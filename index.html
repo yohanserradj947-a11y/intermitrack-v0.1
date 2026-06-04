@@ -51,7 +51,23 @@
           <input id="authEmail" type="email" required placeholder="ton@email.com" />
 
           <label for="authPassword">Mot de passe</label>
-          <input id="authPassword" type="password" required minlength="6" placeholder="Minimum 6 caractères" />
+          <div class="password-wrapper">
+            <input
+              id="authPassword"
+              type="password"
+              required
+              minlength="6"
+              placeholder="Minimum 6 caractères"
+            />
+            <button
+              type="button"
+              id="togglePassword"
+              class="password-toggle"
+              aria-label="Afficher ou masquer le mot de passe"
+            >
+              👁
+            </button>
+          </div>
 
           <button class="primary" type="submit" id="authButton">Se connecter</button>
         </form>
@@ -80,7 +96,7 @@
 
             <div class="stat big-stat">
               <b id="remainingHours">507h</b>
-              <span>Restantes</span>
+              <span>Heures restantes</span>
             </div>
           </div>
 
@@ -89,11 +105,11 @@
           <div class="stats">
             <div class="stat">
               <b id="monthHours">0h</b>
-              <span>Heures du mois affiché</span>
+              <span>Heures du mois</span>
             </div>
             <div class="stat">
               <b id="monthGross">0 EUR</b>
-              <span>Brut du mois affiché</span>
+              <span>Brut du mois</span>
             </div>
             <div class="stat">
               <b id="yearGross">0 EUR</b>
@@ -210,5 +226,19 @@
   </main>
 
   <script src="app.js"></script>
+
+  <script>
+    const togglePassword = document.getElementById("togglePassword");
+    const authPassword = document.getElementById("authPassword");
+
+    if (togglePassword && authPassword) {
+      togglePassword.addEventListener("click", () => {
+        const isHidden = authPassword.getAttribute("type") === "password";
+
+        authPassword.setAttribute("type", isHidden ? "text" : "password");
+        togglePassword.textContent = isHidden ? "🙈" : "👁";
+      });
+    }
+  </script>
 </body>
 </html>
