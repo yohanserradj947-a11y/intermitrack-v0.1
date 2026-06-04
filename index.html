@@ -20,228 +20,16 @@
     .list{margin-top:18px}.row{display:grid;grid-template-columns:1.1fr 1fr .8fr .6fr .8fr auto;gap:10px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line);font-size:14px}.row.header{font-size:12px;text-transform:uppercase;color:var(--muted);font-weight:800}.pill{display:inline-flex;padding:6px 9px;border-radius:99px;background:#EEF4F1;color:var(--petrol);font-weight:700;font-size:12px}.delete{background:#FFF5F5;color:var(--danger);padding:8px 10px}.empty{text-align:center;color:var(--muted);padding:28px}.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}.dayname{text-align:center;color:var(--muted);font-size:12px;font-weight:800}.day{min-height:78px;background:#F8FAF9;border:1px solid var(--line);border-radius:14px;padding:8px;font-size:12px}.day.today{border-color:var(--sage);box-shadow:0 0 0 3px rgba(122,158,126,.12)}.dot{margin-top:5px;background:var(--petrol);color:white;border-radius:9px;padding:4px 5px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dot.planned{background:#F97316}.calhead,.historyhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.calhead h2,.card h2{margin:0;font-size:19px;color:var(--petrol)}.hint{font-size:12px;color:var(--muted);margin:6px 0 0;line-height:1.35}.auth{max-width:460px;margin:50px auto}.authTabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.msg{font-size:13px;margin-top:10px;color:var(--muted);line-height:1.4}.hidden{display:none!important}.userbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}.email{font-size:13px;color:var(--muted)}
     @media(max-width:720px){.row{grid-template-columns:1fr 1fr}.row.header{display:none}.row>*{min-width:0}.calendar{gap:5px}.day{min-height:62px;padding:6px}.heroTop{display:block}.userbar{justify-content:flex-start}}
 
-    /* --- Page d'accueil : aperçu dashboard + connexion + présentation --- */
-    .app:has(#authBox:not(.hidden)){
-      max-width:none;
-      min-height:100vh;
-      padding:0;
-      margin:0;
-      background:
-        radial-gradient(circle at 18% 18%, rgba(122,158,126,.16), transparent 34%),
-        radial-gradient(circle at 82% 20%, rgba(31,78,95,.12), transparent 32%),
-        var(--bg);
-    }
-    .app:has(#authBox:not(.hidden)) .top{
-      display:none;
-    }
-    .home-screen{
-      min-height:100vh;
-      display:grid;
-      place-items:center;
-      padding:34px;
-    }
-    .home-layout{
-      width:min(1180px, 100%);
-      display:grid;
-      grid-template-columns:minmax(260px,.9fr) minmax(320px,400px) minmax(260px,.95fr);
-      gap:22px;
-      align-items:center;
-    }
-    .preview-panel,
-    .login-panel,
-    .info-panel{
-      background:rgba(255,255,255,.88);
-      border:1px solid rgba(226,232,240,.92);
-      border-radius:30px;
-      box-shadow:0 24px 70px rgba(31,78,95,.12);
-      backdrop-filter:blur(14px);
-    }
-    .preview-panel{
-      padding:16px;
-    }
-    .preview-copy{
-      padding:6px 8px 14px;
-    }
-    .eyebrow{
-      margin:0 0 7px;
-      color:var(--sage);
-      font-size:12px;
-      font-weight:900;
-      text-transform:uppercase;
-      letter-spacing:.08em;
-    }
-    .preview-copy h2,
-    .info-panel h2{
-      margin:0;
-      color:#183C49;
-      font-size:25px;
-      line-height:1.05;
-      letter-spacing:-.045em;
-    }
-    .preview-copy p,
-    .info-panel p{
-      margin:10px 0 0;
-      color:#526173;
-      font-size:14px;
-      line-height:1.45;
-    }
-    .dashboard-frame{
-      border-radius:24px;
-      overflow:hidden;
-      background:#fff;
-      border:1px solid var(--line);
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 18px 45px rgba(31,78,95,.12);
-      max-height:640px;
-    }
-    .dashboard-frame img{
-      width:100%;
-      height:100%;
-      max-height:640px;
-      display:block;
-      object-fit:cover;
-      object-position:top center;
-    }
-    .login-panel{
-      padding:24px;
-    }
-    .login-logo{
-      width:58px;
-      height:58px;
-      margin:0 auto 14px;
-      border-radius:19px;
-      background:linear-gradient(135deg,var(--petrol),var(--sage));
-      display:grid;
-      place-items:center;
-      color:white;
-      font-size:28px;
-      font-weight:900;
-      box-shadow:0 18px 40px rgba(31,78,95,.22);
-    }
-    .login-title{
-      margin:0;
-      text-align:center;
-      font-size:38px;
-      line-height:1;
-      letter-spacing:-.055em;
-      color:#183C49;
-    }
-    .login-baseline{
-      margin:10px auto 20px;
-      text-align:center;
-      max-width:320px;
-      color:#526173;
-      font-size:15px;
-      line-height:1.45;
-    }
-    .login-card{
-      background:#fff;
-      border:1px solid var(--line);
-      border-radius:24px;
-      padding:18px;
-      text-align:left;
-      box-shadow:0 16px 40px rgba(31,78,95,.08);
-    }
-    .login-card .authTabs{
-      margin-bottom:14px;
-    }
-    .login-card .ghost{
-      background:#F1F5F4;
-      color:var(--petrol);
-    }
-    .login-card .primary{
-      box-shadow:0 12px 28px rgba(31,78,95,.20);
-    }
-    .trust-line{
-      display:flex;
-      justify-content:center;
-      gap:8px;
-      flex-wrap:wrap;
-      margin:14px 0 0;
-      color:#526173;
-      font-size:12px;
-      font-weight:700;
-      text-align:center;
-    }
-    .trust-line span:not(:last-child)::after{
-      content:"•";
-      margin-left:8px;
-      color:#7A9E7E;
-    }
-    .info-panel{
-      padding:26px;
-    }
-    .info-panel h1{
-      margin:0;
-      font-size:36px;
-      line-height:.98;
-      letter-spacing:-.06em;
-      color:#183C49;
-    }
-    .info-panel .lead{
-      margin:14px 0 22px;
-      font-size:16px;
-      line-height:1.5;
-      color:#334155;
-    }
-    .feature-list{
-      display:grid;
-      gap:10px;
-      margin:0;
-      padding:0;
-      list-style:none;
-    }
-    .feature-list li{
-      display:flex;
-      gap:10px;
-      align-items:flex-start;
-      padding:12px;
-      border:1px solid var(--line);
-      border-radius:16px;
-      background:#F8FAF9;
-      color:#334155;
-      font-size:14px;
-      line-height:1.35;
-      font-weight:700;
-    }
-    .feature-list li::before{
-      content:"";
-      width:9px;
-      height:9px;
-      flex:0 0 9px;
-      margin-top:5px;
-      border-radius:99px;
-      background:linear-gradient(135deg,var(--petrol),var(--sage));
-      box-shadow:0 0 0 4px rgba(122,158,126,.13);
-    }
-    .info-note{
-      margin-top:18px;
-      padding:14px;
-      border-radius:18px;
-      background:#EEF4F1;
-      color:#1F4E5F;
-      font-size:13px;
-      line-height:1.45;
-      font-weight:800;
-    }
-    @media(max-width:980px){
-      .home-screen{padding:20px}
-      .home-layout{grid-template-columns:1fr;max-width:540px}
-      .preview-panel{order:2}
-      .login-panel{order:1}
-      .info-panel{order:3}
-      .dashboard-frame{max-height:460px}
-      .dashboard-frame img{max-height:460px}
-      .info-panel h1{font-size:32px}
-    }
-    @media(max-width:620px){
-      .home-screen{padding:14px}
-      .preview-panel,.login-panel,.info-panel{border-radius:24px}
-      .login-panel,.info-panel{padding:18px}
-      .login-title{font-size:34px}
-      .login-card{border-radius:20px;padding:15px}
-      .preview-copy h2{font-size:22px}
-    }
-
+    /* Page d'accueil / connexion uniquement */
+    .home-auth{min-height:calc(100vh - 120px);display:grid;place-items:center;padding:14px 0 26px}
+    .home-shell{width:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(330px,420px) minmax(0,1fr);gap:18px;align-items:center}
+    .home-panel{background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:28px;padding:18px;box-shadow:0 18px 46px rgba(31,78,95,.10);overflow:hidden}
+    .home-visual{min-height:620px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:18px}
+    .home-visual-header{max-width:330px;margin:0 auto}.home-kicker{display:inline-flex;align-items:center;justify-content:center;padding:7px 12px;border-radius:99px;background:var(--soft);color:var(--petrol);font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+    .home-visual h2,.home-login-card h2{margin:0;color:var(--petrol);font-size:24px;letter-spacing:-.04em}.home-visual p{margin:9px auto 0;color:var(--muted);font-size:14px;line-height:1.45}.home-shot{width:100%;max-width:330px;margin:0 auto;border-radius:24px;background:#F8FAF9;border:1px solid rgba(226,232,240,.95);padding:10px;box-shadow:0 18px 38px rgba(31,78,95,.10)}
+    .home-shot img{display:block;width:100%;height:auto;max-height:430px;object-fit:contain;border-radius:18px;margin:0 auto}.home-login-card{min-height:620px;display:flex;flex-direction:column;justify-content:center;text-align:center;padding:26px}.home-brandmark{width:58px;height:58px;border-radius:18px;background:linear-gradient(135deg,var(--petrol),var(--sage));display:grid;place-items:center;color:white;font-weight:900;font-size:28px;box-shadow:0 14px 32px rgba(31,78,95,.22);margin:0 auto 16px}.home-mainline{font-size:22px;line-height:1.12;font-weight:900;letter-spacing:-.05em;color:var(--text);margin:10px 0}.home-intro{font-size:14px;line-height:1.45;color:var(--muted);margin:0 auto 18px;max-width:330px}.home-login-card .authTabs{text-align:left}.home-login-card form{text-align:left}.home-secure{margin:14px auto 0;color:var(--muted);font-size:12px;line-height:1.35;max-width:330px}
+    @media(max-width:1080px){.home-shell{grid-template-columns:1fr;max-width:520px;margin:0 auto}.home-visual,.home-login-card{min-height:auto}.home-login-card{order:-1}.home-shot{max-width:360px}.home-shot img{max-height:420px}}
+    @media(max-width:620px){.home-auth{padding:4px 0 18px}.home-panel{border-radius:22px;padding:15px}.home-login-card{padding:20px}.home-mainline{font-size:20px}.home-visual h2,.home-login-card h2{font-size:22px}.home-shot img{max-height:360px}}
   </style>
 </head>
 <body>
@@ -250,67 +38,48 @@
       <div class="brand"><div class="logo">I</div><div><h1>Intermitrack</h1><p class="tag">Suivez vos heures. Gardez le contrôle.</p></div></div>
       <div class="userbar hidden" id="userbar"><span class="email" id="userEmail"></span><button class="ghost" onclick="logout()">Déconnexion</button></div>
     </div>
-    <section class="home-screen" id="authBox">
-      <div class="home-layout">
-        <article class="preview-panel" aria-label="Aperçu du tableau de bord Intermitrack">
-          <div class="preview-copy">
-            <p class="eyebrow">Aperçu de l'application</p>
-            <h2>Votre tableau de bord en temps réel</h2>
-            <p>Suivez vos heures, vos revenus et votre progression annuelle dans une vue claire.</p>
+    <section class="home-auth" id="authBox">
+      <div class="home-shell">
+        <article class="home-panel home-visual">
+          <div class="home-visual-header">
+            <span class="home-kicker">Tableau de bord</span>
+            <h2>Suivez votre progression</h2>
+            <p>Consultez vos heures réalisées, vos revenus et votre avancement annuel depuis un espace clair et structuré.</p>
           </div>
-          <div class="dashboard-frame">
-            <img src="dashboard-preview.jpg" alt="Aperçu du tableau de bord Intermitrack avec progression annuelle, heures et statistiques" />
+          <div class="home-shot">
+            <img src="dashboard-progress.jpg" alt="Aperçu du tableau de bord Intermitrack" />
           </div>
         </article>
 
-        <section class="login-panel" aria-label="Connexion Intermitrack">
-          <div class="login-logo">I</div>
-          <h1 class="login-title">Intermitrack</h1>
-          <p class="login-baseline">Connectez-vous pour retrouver vos missions et vos statistiques sur tous vos appareils.</p>
+        <article class="home-panel home-login-card">
+          <div class="home-brandmark">I</div>
+          <h2>Intermitrack</h2>
+          <p class="home-mainline">Une vision claire de votre intermittence.</p>
+          <p class="home-intro">Connectez-vous pour retrouver vos missions, vos statistiques et l’ensemble de votre activité professionnelle.</p>
 
-          <form id="authForm" class="login-card">
-            <div class="authTabs">
-              <button type="button" class="ghost" onclick="setAuthMode('login')">Connexion</button>
-              <button type="button" class="ghost" onclick="setAuthMode('signup')">Créer un compte</button>
-            </div>
-
-            <label>Email</label>
-            <input id="authEmail" type="email" required placeholder="ton@email.com" />
-
-            <label>Mot de passe</label>
-            <input id="authPassword" type="password" required minlength="6" placeholder="Minimum 6 caractères" />
-
+          <div class="authTabs">
+            <button type="button" class="ghost" onclick="setAuthMode('login')">Connexion</button>
+            <button type="button" class="ghost" onclick="setAuthMode('signup')">Créer un compte</button>
+          </div>
+          <form id="authForm">
+            <label>Email</label><input id="authEmail" type="email" required placeholder="ton@email.com" />
+            <label>Mot de passe</label><input id="authPassword" type="password" required minlength="6" placeholder="Minimum 6 caractères" />
             <button class="primary" type="submit" id="authButton">Se connecter</button>
-            <p class="msg" id="authMsg">Mode : connexion</p>
           </form>
+          <p class="msg" id="authMsg">Mode : connexion</p>
+          <p class="home-secure">Données sauvegardées en ligne • Accès sécurisé • Compatible mobile</p>
+        </article>
 
-          <div class="trust-line">
-            <span>Données sécurisées</span>
-            <span>Sauvegarde en ligne</span>
-            <span>Accès multi-appareils</span>
+        <article class="home-panel home-visual">
+          <div class="home-visual-header">
+            <span class="home-kicker">Missions</span>
+            <h2>Centralisez votre activité</h2>
+            <p>Ajoutez vos contrats, vos heures et vos montants bruts pour garder un historique fiable mois après mois.</p>
           </div>
-        </section>
-
-        <aside class="info-panel" aria-label="Présentation des services Intermitrack">
-          <p class="eyebrow">Pour les techniciens du spectacle</p>
-          <h1>Une vision claire de votre intermittence.</h1>
-          <p class="lead">
-            Intermitrack centralise vos missions, vos heures et vos revenus dans un espace simple,
-            conçu pour suivre votre activité tout au long de l'année.
-          </p>
-
-          <ul class="feature-list">
-            <li>Progression annuelle vers votre objectif d'heures</li>
-            <li>Suivi des heures réalisées et prévues</li>
-            <li>Statistiques mensuelles et revenus cumulés</li>
-            <li>Historique complet de vos missions</li>
-            <li>Calendrier d'activité clair et accessible</li>
-          </ul>
-
-          <div class="info-note">
-            Plus besoin de tout recalculer à la fin du mois : vous savez où vous en êtes, au moment où vous en avez besoin.
+          <div class="home-shot">
+            <img src="dashboard-add-mission.jpg" alt="Aperçu de l'ajout d'une mission Intermitrack" />
           </div>
-        </aside>
+        </article>
       </div>
     </section>
     <section class="grid hidden" id="appBox">
