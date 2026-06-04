@@ -265,12 +265,12 @@ button {
 }
 
 .chartWrap {
-  min-height: 260px;
+  min-height: 350px;
   margin-top: 12px;
   border-radius: 22px;
   background: linear-gradient(145deg, #ffffff, #eef4f1);
   border: 1px solid rgba(226, 232, 240, .85);
-  padding: 12px;
+  padding: 10px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9), 0 18px 40px rgba(31, 78, 95, .08);
   display: grid;
   place-items: center;
@@ -284,23 +284,26 @@ button {
 }
 
 .pieText {
-  font-size: 28px;
-  font-weight: 800;
+  font-size: 42px;
+  font-weight: 900;
   fill: #1F4E5F;
 }
 
 .pieSub {
-  font-size: 12px;
+  font-size: 15px;
+  font-weight: 700;
   fill: #718096;
 }
 
 .legendText {
-  font-size: 13px;
+  font-size: 15px;
+  font-weight: 800;
   fill: #2D3748;
 }
 
 .legendMuted {
-  font-size: 12px;
+  font-size: 15px;
+  font-weight: 800;
   fill: #718096;
 }
 
@@ -378,24 +381,41 @@ button {
 
 .calendar {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-rows: 22px repeat(6, 82px);
+  gap: 7px;
 }
 
 .dayname {
-  text-align: center;
+  height: 22px;
+  display: grid;
+  place-items: center;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .day {
-  min-height: 78px;
+  height: 82px;
   background: #F8FAF9;
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 8px;
+  padding: 6px;
   font-size: 12px;
+  overflow: hidden;
+}
+
+.day.blank {
+  background: rgba(248, 250, 249, .45);
+  border-color: rgba(226, 232, 240, .55);
+}
+
+.day b {
+  display: block;
+  font-size: 12px;
+  line-height: 1;
+  margin-bottom: 4px;
+  color: var(--text);
 }
 
 .day.today {
@@ -404,15 +424,18 @@ button {
 }
 
 .dot {
-  margin-top: 5px;
+  margin-top: 3px;
   background: var(--petrol);
   color: white;
-  border-radius: 9px;
-  padding: 4px 5px;
-  font-size: 11px;
+  border-radius: 7px;
+  padding: 3px 4px;
+  font-size: 10px;
+  line-height: 1.05;
+  font-weight: 900;
+  letter-spacing: -.02em;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-overflow: clip;
 }
 
 .dot.planned {
@@ -449,6 +472,24 @@ button {
     display: block;
   }
 
+  .chartWrap {
+    min-height: 330px;
+    padding: 6px;
+  }
+
+  .pieText {
+    font-size: 38px;
+  }
+
+  .pieSub {
+    font-size: 14px;
+  }
+
+  .legendText,
+  .legendMuted {
+    font-size: 14px;
+  }
+
   .stats {
     grid-template-columns: 1fr 1fr;
   }
@@ -462,11 +503,29 @@ button {
   }
 
   .calendar {
+    grid-template-rows: 20px repeat(6, 64px);
     gap: 5px;
   }
 
+  .dayname {
+    height: 20px;
+    font-size: 11px;
+  }
+
   .day {
-    min-height: 62px;
-    padding: 6px;
+    height: 64px;
+    padding: 4px;
+    border-radius: 11px;
+  }
+
+  .day b {
+    font-size: 11px;
+    margin-bottom: 3px;
+  }
+
+  .dot {
+    font-size: 8.8px;
+    padding: 2px 3px;
+    border-radius: 6px;
   }
 }
