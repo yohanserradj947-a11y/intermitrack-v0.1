@@ -175,6 +175,19 @@ function money(n) {
   }).format(n || 0);
 }
 
+function moneyCompact(n) {
+  return `${Math.round(Number(n || 0))}€`;
+}
+
+function productionCode(name) {
+  return String(name || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .slice(0, 3)
+    .toUpperCase() || "MIS";
+}
+
 function formatDate(s) {
   return new Date(s + "T00:00:00").toLocaleDateString("fr-FR", {
     day: "2-digit",
@@ -299,13 +312,16 @@ function renderChart(doneHours, plannedHours = 0) {
   const done = Math.max(0, Math.min(Number(doneHours) || 0, total));
   const planned = Math.max(0, Math.min(Number(plannedHours) || 0, Math.max(0, total - done)));
   const remain = Math.max(0, total - done - planned);
-  const percent = Math.round((done / total) * 100);
 
-  const cx = 250;
-  const cy = 110;
-  const rx = 120;
-  const ry = 72;
-  const depth = 28;
+  const donePercent = Math.round((done / total) * 100);
+  const plannedPercent = Math.round((planned / total) * 100);
+  const potentialPercent = Math.min(100, donePercent + plannedPercent);
+
+  const cx = 310;
+  const cy = 142;
+  const rx = 158;
+  const ry = 94;
+  const depth = 34;
 
   const doneAngle = (done / total) * 360;
   const plannedAngle = (planned / total) * 360;
@@ -331,7 +347,7 @@ function renderChart(doneHours, plannedHours = 0) {
   }
 
   $("chart").innerHTML = `
-    <svg viewBox="0 0 520 260" role="img" aria-label="Camembert progression heures effectuées et prévues">
+    <svg viewBox="0 0 620 350" role="img" aria-label="Camembert progression heures effectuées et prévues">
       <defs>
         <linearGradient id="doneTop" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stop-color="#7A9E7E"/>
@@ -351,24 +367,27 @@ function renderChart(doneHours, plannedHours = 0) {
         </linearGradient>
       </defs>
 
-      <ellipse cx="250" cy="145" rx="142" ry="78" fill="rgba(31,78,95,.12)"/>
+      <ellipse cx="${cx}" cy="${cy + depth + 10}" rx="182" ry="103" fill="rgba(31,78,95,.12)"/>
       <ellipse cx="${cx}" cy="${cy + depth}" rx="${rx}" ry="${ry}" fill="url(#side)"/>
       <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="url(#remainTop)" stroke="#ffffff" stroke-width="3"/>
 
       ${done > 0 ? wedge(0, doneAngle, "url(#doneTop)") : ""}
       ${planned > 0 ? wedge(doneAngle, doneAngle + plannedAngle, "url(#plannedTop)") : ""}
 
-      <text x="${cx}" y="${cy - 8}" text-anchor="middle" class="pieText">${percent}%</text>
-      <text x="${cx}" y="${cy + 15}" text-anchor="middle" class="pieSub">${done}h faites + ${planned}h prévues</text>
+      <text x="${cx}" y="${cy - 12}" text-anchor="middle" class="pieText">${donePercent}%</text>
+      <text x="${cx}" y="${cy + 16}" text-anchor="middle" class="pieSub">${done}h faites</text>
+      <text x="${cx}" y="${cy + 36}" text-anchor="middle" class="pieSub">+ ${planned}h prévues</text>
 
-      <rect x="38" y="218" width="13" height="13" rx="4" fill="#1F4E5F"/>
-      <text x="58" y="229" class="legendText">Effectué : ${done}h</text>
+      <g class="chartLegend">
+        <rect x="68" y="284" width="16" height="16" rx="5" fill="#1F4E5F"/>
+        <text x="92" y="297" class="legendText">Effectué : ${done}h / ${donePercent}%</text>
 
-      <rect x="205" y="218" width="13" height="13" rx="4" fill="#F97316"/>
-      <text x="225" y="229" class="legendText">Prévu : ${planned}h</text>
+        <rect x="250" y="284" width="16" height="16" rx="5" fill="#F97316"/>
+        <text x="274" y="297" class="legendText">Prévu : ${planned}h / ${plannedPercent}%</text>
 
-      <rect x="365" y="218" width="13" height="13" rx="4" fill="#D8E4DF"/>
-      <text x="385" y="229" class="legendMuted">Reste : ${remain}h</text>
+        <rect x="426" y="284" width="16" height="16" rx="5" fill="#D8E4DF"/>
+        <text x="450" y="297" class="legendMuted">Total : ${potentialPercent}%</text>
+      </g>
     </svg>
   `;
 }
@@ -455,33 +474,34 @@ function renderCalendar() {
   const first = new Date(year, month, 1);
   const start = (first.getDay() + 6) % 7;
   const days = new Date(year, month + 1, 0).getDate();
+  const totalCells = 42;
 
-  for (let i = 0; i < start; i++) {
-    calendar.appendChild(document.createElement("div"));
-  }
-
-  for (let d = 1; d <= days; d++) {
-    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  for (let cell = 0; cell < totalCells; cell++) {
+    const dayNumber = cell - start + 1;
     const box = document.createElement("div");
 
+    if (dayNumber < 1 || dayNumber > days) {
+      box.className = "day blank";
+      calendar.appendChild(box);
+      continue;
+    }
+
+    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNumber).padStart(2, "0")}`;
     box.className = "day";
 
     if (dateStr === new Date().toISOString().slice(0, 10)) {
       box.classList.add("today");
     }
 
-    box.innerHTML = `<b>${d}</b>`;
+    box.innerHTML = `<b>${dayNumber}</b>`;
 
     missions
       .filter((mission) => isDateInPeriod(dateStr, mission))
       .forEach((mission) => {
         const isFuture = new Date(dateStr + "T00:00:00") > todayDateOnly();
+        const label = `${productionCode(mission.production)} ${mission.hours}H ${moneyCompact(mission.gross)}`;
 
-        box.innerHTML += `
-          <div class="dot ${isFuture ? "planned" : ""}">
-            ${mission.production} - ${mission.hours}h total - ${money(mission.gross)}
-          </div>
-        `;
+        box.innerHTML += `<div class="dot ${isFuture ? "planned" : ""}" title="${mission.production} - ${mission.hours}h - ${money(mission.gross)}">${label}</div>`;
       });
 
     calendar.appendChild(box);
