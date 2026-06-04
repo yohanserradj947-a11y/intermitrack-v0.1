@@ -109,7 +109,7 @@ async function init(){
 async function loadMissions(){
   const {data,error}=await sb.from('missions').select('*').order('mission_date',{ascending:false});
   if(error){alert('Erreur chargement missions : '+error.message);return;}
-  missions=(data||[]).map(x=>({id:x.id,production:x.production,type:x.mission_type,date:x.mission_date,endDate:x.mission_end_date||x.mission_date,hours:Number(x.hours),gross:Number(x.gross_amount)}));
+  missions=(data||[]).map(x=>({id:x.id,production:x.production,type:x.mission_type,date:x.mission_date,endDate:x.end_date||x.mission_date,hours:Number(x.hours),gross:Number(x.gross_amount)}));
   render();
 }
 document.getElementById('form').addEventListener('submit', async e=>{
@@ -121,7 +121,7 @@ document.getElementById('form').addEventListener('submit', async e=>{
     production: production.value.trim(),
     mission_type: type.value,
     mission_date: date.value,
-    mission_end_date: endDate.value,
+    end_date: endDate.value,
     hours: Number(hours.value),
     gross_amount: Number(gross.value)
   };
