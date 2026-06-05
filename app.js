@@ -6,6 +6,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let authMode = "login";
 let currentUser = null;
 let missions = [];
+let documents = [];
 let current = new Date();
 let deferredInstallPrompt = null;
 
@@ -18,6 +19,8 @@ function setDefaultDates() {
   const today = new Date();
   if ($("date")) $("date").valueAsDate = today;
   if ($("endDate")) $("endDate").valueAsDate = today;
+  if ($("documentMonth")) $("documentMonth").value = String(today.getMonth() + 1);
+  if ($("documentYear")) $("documentYear").value = String(today.getFullYear());
 }
 
 function setAuthMode(mode) {
@@ -54,12 +57,14 @@ async function init() {
 
   showApp();
   await loadMissions();
+  await loadDocuments();
 }
 
 async function logout() {
   await sb.auth.signOut();
   currentUser = null;
   missions = [];
+  documents = [];
   showAuth();
 }
 
@@ -85,6 +90,204 @@ async function loadMissions() {
   }));
 
   render();
+}
+
+
+async function loadDocuments() {
+  if (!currentUser) return;
+
+  const { data, error } = await sb
+    .from("documents")
+    .select("*")
+    .order("doc_year", { ascending: false })
+    .order("doc_month", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    alert("Erreur chargement documents : " + error.message);
+    return;
+  }
+
+  documents = data || [];
+  renderDocuments();
+}
+
+function safeFileName(name) {
+  return String(name || "document")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]/g, "_")
+    .slice(0, 90);
+}
+
+async function uploadDocument(event) {
+  event.preventDefault();
+
+  if (!currentUser) {
+    alert("Connecte-toi avant d'ajouter un document.");
+    return;
+  }
+
+  const fileInput = $("documentFile");
+  const file = fileInput?.files?.[0];
+
+  if (!file) {
+    alert("Ajoute un fichier PDF ou une image.");
+    return;
+  }
+
+  const type = $("documentType").value;
+  const production = $("documentProduction").value.trim();
+  const month = Number($("documentMonth").value);
+  const year = Number($("documentYear").value);
+
+  if (!production || !month || !year) {
+    alert("Complète le type, la production, le mois et l'année.");
+    return;
+  }
+
+  const submitBtn = $("documentSubmitBtn");
+  if (submitBtn) submitBtn.textContent = "Envoi en cours...";
+
+  const cleanName = safeFileName(file.name);
+  const filePath = `${currentUser.id}/${year}/${String(month).padStart(2, "0")}/${Date.now()}_${cleanName}`;
+
+  const { error: uploadError } = await sb.storage
+    .from("documents")
+    .upload(filePath, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type || "application/octet-stream"
+    });
+
+  if (uploadError) {
+    if (submitBtn) submitBtn.textContent = "Ajouter le document";
+    alert("Erreur upload document : " + uploadError.message);
+    return;
+  }
+
+  const { error: insertError } = await sb.from("documents").insert({
+    user_id: currentUser.id,
+    file_name: file.name,
+    file_path: filePath,
+    document_type: type,
+    production,
+    doc_month: month,
+    doc_year: year,
+    mime_type: file.type || null
+  });
+
+  if (insertError) {
+    await sb.storage.from("documents").remove([filePath]);
+    if (submitBtn) submitBtn.textContent = "Ajouter le document";
+    alert("Erreur sauvegarde document : " + insertError.message);
+    return;
+  }
+
+  $("documentForm").reset();
+  setDefaultDates();
+  if (submitBtn) submitBtn.textContent = "Ajouter le document";
+  await loadDocuments();
+}
+
+async function getDocumentSignedUrl(filePath) {
+  const { data, error } = await sb.storage
+    .from("documents")
+    .createSignedUrl(filePath, 120);
+
+  if (error) {
+    alert("Erreur ouverture document : " + error.message);
+    return null;
+  }
+
+  return data.signedUrl;
+}
+
+async function openDocument(filePath) {
+  const url = await getDocumentSignedUrl(filePath);
+  if (!url) return;
+  window.open(url, "_blank");
+}
+
+async function downloadDocument(filePath, fileName) {
+  const url = await getDocumentSignedUrl(filePath);
+  if (!url) return;
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName || "document";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+async function deleteDocument(id, filePath) {
+  if (!confirm("Supprimer ce document ?")) return;
+
+  const { error: storageError } = await sb.storage.from("documents").remove([filePath]);
+  if (storageError) {
+    alert("Erreur suppression fichier : " + storageError.message);
+    return;
+  }
+
+  const { error: dbError } = await sb.from("documents").delete().eq("id", id);
+  if (dbError) {
+    alert("Erreur suppression document : " + dbError.message);
+    return;
+  }
+
+  await loadDocuments();
+}
+
+function monthName(monthNumber) {
+  const date = new Date(2026, Number(monthNumber) - 1, 1);
+  return date.toLocaleDateString("fr-FR", { month: "long" });
+}
+
+function renderDocuments() {
+  const container = $("documentsList");
+  if (!container) return;
+
+  if (!documents.length) {
+    container.innerHTML = `<div class="empty">Aucun document enregistré pour le moment.</div>`;
+    return;
+  }
+
+  const escapeHtml = (value) => String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+  const sorted = [...documents].sort((a, b) => {
+    if (b.doc_year !== a.doc_year) return b.doc_year - a.doc_year;
+    if (b.doc_month !== a.doc_month) return b.doc_month - a.doc_month;
+    return String(a.production).localeCompare(String(b.production), "fr");
+  });
+
+  container.innerHTML = `<div class="documents-list"></div>`;
+  const list = container.querySelector(".documents-list");
+
+  sorted.forEach((doc) => {
+    const card = document.createElement("div");
+    card.className = "document-card";
+    card.innerHTML = `
+      <div class="document-card-head">
+        <div>
+          <strong>${escapeHtml(doc.document_type)} · ${escapeHtml(doc.production)}</strong>
+          <span>${escapeHtml(monthName(doc.doc_month))} ${escapeHtml(doc.doc_year)} · ${escapeHtml(doc.file_name)}</span>
+        </div>
+        <span class="pill">${escapeHtml(doc.document_type)}</span>
+      </div>
+      <div class="document-actions">
+        <button class="ghost" type="button" data-doc-open="${escapeHtml(doc.file_path)}">Ouvrir</button>
+        <button class="ghost" type="button" data-doc-download="${escapeHtml(doc.file_path)}" data-doc-name="${escapeHtml(doc.file_name)}">Télécharger</button>
+        <button class="delete" type="button" data-doc-delete="${escapeHtml(doc.id)}" data-doc-path="${escapeHtml(doc.file_path)}">Supprimer</button>
+      </div>
+    `;
+    list.appendChild(card);
+  });
 }
 
 async function addMission(event) {
@@ -282,6 +485,7 @@ function render() {
   renderAllMissions();
   renderCalendar();
   renderActualisation();
+  renderDocuments();
 }
 
 function polarToCartesian(cx, cy, rx, ry, angle) {
@@ -859,6 +1063,8 @@ function setupEvents() {
   });
 
   $("missionForm").addEventListener("submit", addMission);
+  if ($("documentForm")) $("documentForm").addEventListener("submit", uploadDocument);
+  if ($("refreshDocumentsBtn")) $("refreshDocumentsBtn").addEventListener("click", loadDocuments);
 
   $("date").addEventListener("change", () => {
     if (!$("endDate").value || $("endDate").value < $("date").value) {
@@ -881,6 +1087,24 @@ function setupEvents() {
   if ($("pdfActualisationBtn")) $("pdfActualisationBtn").addEventListener("click", generateActualisationPDF);
 
   document.addEventListener("click", async (event) => {
+    const openButton = event.target.closest("[data-doc-open]");
+    if (openButton) {
+      await openDocument(openButton.dataset.docOpen);
+      return;
+    }
+
+    const downloadButton = event.target.closest("[data-doc-download]");
+    if (downloadButton) {
+      await downloadDocument(downloadButton.dataset.docDownload, downloadButton.dataset.docName);
+      return;
+    }
+
+    const docDeleteButton = event.target.closest("[data-doc-delete]");
+    if (docDeleteButton) {
+      await deleteDocument(docDeleteButton.dataset.docDelete, docDeleteButton.dataset.docPath);
+      return;
+    }
+
     const deleteButton = event.target.closest("[data-delete]");
     if (!deleteButton) return;
     await deleteMission(deleteButton.dataset.delete);
@@ -914,6 +1138,7 @@ sb.auth.onAuthStateChange((_event, session) => {
   if (currentUser) {
     showApp();
     loadMissions();
+    loadDocuments();
   } else {
     showAuth();
   }
