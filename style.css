@@ -820,3 +820,29 @@ button {
     flex-direction: column;
   }
 }
+/* Rester connecté */
+
+.remember-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 12px 0 18px;
+}
+
+.remember-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.remember-label input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  cursor: pointer;
+}
