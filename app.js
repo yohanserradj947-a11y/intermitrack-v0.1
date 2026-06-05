@@ -6,7 +6,8 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let authMode = "login";
 let currentUser = null;
 let missions = [];
-let documents = [];editingMissionId = null;
+let documents = [];
+let editingMissionId = null;
 let current = new Date();
 let deferredInstallPrompt = null;
 
@@ -315,16 +316,16 @@ async function addMission(event) {
 
   let result;
 
-if (editingMissionId) {
-  result = await sb
-    .from("missions")
-    .update(payload)
-    .eq("id", editingMissionId);
-} else {
-  result = await sb.from("missions").insert(payload);
-}
+  if (editingMissionId) {
+    result = await sb
+      .from("missions")
+      .update(payload)
+      .eq("id", editingMissionId);
+  } else {
+    result = await sb.from("missions").insert(payload);
+  }
 
-const { error } = result;
+  const { error } = result;
 
   if (error) {
     alert("Erreur sauvegarde : " + error.message);
@@ -332,13 +333,14 @@ const { error } = result;
   }
 
   $("missionForm").reset();
-  
+
   editingMissionId = null;
 
-const submitBtn = document.querySelector("#missionForm button[type='submit']");
-if (submitBtn) {
-  submitBtn.textContent = "Enregistrer la mission";
-}
+  const submitBtn = document.querySelector("#missionForm button[type='submit']");
+  if (submitBtn) {
+    submitBtn.textContent = "Enregistrer la mission";
+  }
+
   setDefaultDates();
   current = new Date(payload.mission_date + "T00:00:00");
   current.setDate(1);
@@ -346,6 +348,7 @@ if (submitBtn) {
   await loadMissions();
   activateView("dashboard");
 }
+
 function editMission(id) {
   const mission = missions.find((m) => String(m.id) === String(id));
 
@@ -375,6 +378,7 @@ function editMission(id) {
     behavior: "smooth"
   });
 }
+
 async function deleteMission(id) {
   if (!confirm("Supprimer cette mission ?")) return;
 
@@ -660,9 +664,9 @@ function renderHistory() {
       <div>${mission.hours}h</div>
       <div>${money(mission.gross)}</div>
       <div>
-  <button class="ghost" data-edit="${mission.id}" type="button">Modifier</button>
-  <button class="delete" data-delete="${mission.id}" type="button">X</button>
-</div>
+        <button class="ghost" data-edit="${mission.id}" type="button">Modifier</button>
+        <button class="delete" data-delete="${mission.id}" type="button">X</button>
+      </div>
     `;
     missionsEl.appendChild(row);
   });
@@ -672,9 +676,74 @@ function renderAllMissions() {
   const allMissionsEl = $("allMissions");
   const sorted = [...missions].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-  allMissionsEl.innerHTML = sorted.length ? "" : `<div class="empty">Aucune mission enregistrée.</div>`;
+  if (!allMissionsEl) return;
+
+  if (!sorted.length) {
+    allMissionsEl.innerHTML = `<div class="empty">Aucune mission enregistrée.</div>`;
+    return;
+  }
+
+  const groups = {};
 
   sorted.forEach((mission) => {
+    const key = mission.production || "Sans production";
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(mission);
+  });
+
+  allMissionsEl.innerHTML = `
+    <div class="production-grid">
+      ${Object.keys(groups).sort((a, b) => a.localeCompare(b, "fr")).map((production) => {
+        const list = groups[production];
+        const totalHours = Math.round(list.reduce((a, x) => a + Number(x.hours || 0), 0) * 10) / 10;
+        const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
+        const totalDays = sumMissionDays(list);
+
+        return `
+          <button class="production-card" type="button" data-production-open="${production.replace(/"/g, "&quot;")}">
+            <strong>${production}</strong>
+            <span>${list.length} mission${list.length > 1 ? "s" : ""}</span>
+            <span>${totalDays} jour${totalDays > 1 ? "s" : ""}</span>
+            <span>${totalHours}h · ${money(totalGross)}</span>
+          </button>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function openProductionMissions(productionName) {
+  const allMissionsEl = $("allMissions");
+  if (!allMissionsEl) return;
+
+  const list = missions
+    .filter((mission) => mission.production === productionName)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  allMissionsEl.innerHTML = `
+    <div class="production-detail-head">
+      <button class="ghost" type="button" data-production-back>‹ Retour</button>
+      <div>
+        <h2>${productionName}</h2>
+        <p class="sub">${list.length} mission${list.length > 1 ? "s" : ""} enregistrée${list.length > 1 ? "s" : ""}</p>
+      </div>
+    </div>
+
+    <div class="row header">
+      <div>Période</div>
+      <div>Production</div>
+      <div>Mission</div>
+      <div>Heures</div>
+      <div>Brut</div>
+      <div></div>
+    </div>
+
+    <div id="productionMissionRows"></div>
+  `;
+
+  const rows = $("productionMissionRows");
+
+  list.forEach((mission) => {
     const row = document.createElement("div");
     row.className = "row";
     row.innerHTML = `
@@ -684,11 +753,11 @@ function renderAllMissions() {
       <div>${mission.hours}h</div>
       <div>${money(mission.gross)}</div>
       <div>
-  <button class="ghost" data-edit="${mission.id}" type="button">Modifier</button>
-  <button class="delete" data-delete="${mission.id}" type="button">X</button>
-</div>
+        <button class="ghost" data-edit="${mission.id}" type="button">Modifier</button>
+        <button class="delete" data-delete="${mission.id}" type="button">X</button>
+      </div>
     `;
-    allMissionsEl.appendChild(row);
+    rows.appendChild(row);
   });
 }
 
@@ -1139,6 +1208,18 @@ function setupEvents() {
   if ($("pdfActualisationBtn")) $("pdfActualisationBtn").addEventListener("click", generateActualisationPDF);
 
   document.addEventListener("click", async (event) => {
+    const productionOpenButton = event.target.closest("[data-production-open]");
+    if (productionOpenButton) {
+      openProductionMissions(productionOpenButton.dataset.productionOpen);
+      return;
+    }
+
+    const productionBackButton = event.target.closest("[data-production-back]");
+    if (productionBackButton) {
+      renderAllMissions();
+      return;
+    }
+
     const openButton = event.target.closest("[data-doc-open]");
     if (openButton) {
       await openDocument(openButton.dataset.docOpen);
@@ -1156,12 +1237,13 @@ function setupEvents() {
       await deleteDocument(docDeleteButton.dataset.docDelete, docDeleteButton.dataset.docPath);
       return;
     }
-const editButton = event.target.closest("[data-edit]");
 
-if (editButton) {
-  editMission(editButton.dataset.edit);
-  return;
-}
+    const editButton = event.target.closest("[data-edit]");
+    if (editButton) {
+      editMission(editButton.dataset.edit);
+      return;
+    }
+
     const deleteButton = event.target.closest("[data-delete]");
     if (!deleteButton) return;
     await deleteMission(deleteButton.dataset.delete);
