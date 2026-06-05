@@ -10,19 +10,14 @@ let current = new Date();
 let deferredInstallPrompt = null;
 
 const OBJECTIVE_HOURS = 507;
+const MAX_DISPLAY_PERCENT = 300;
 
 const $ = (id) => document.getElementById(id);
 
 function setDefaultDates() {
   const today = new Date();
-
-  if ($("date")) {
-    $("date").valueAsDate = today;
-  }
-
-  if ($("endDate")) {
-    $("endDate").valueAsDate = today;
-  }
+  if ($("date")) $("date").valueAsDate = today;
+  if ($("endDate")) $("endDate").valueAsDate = today;
 }
 
 function setAuthMode(mode) {
@@ -35,7 +30,6 @@ function showAuth() {
   $("authBox").classList.remove("hidden");
   $("appBox").classList.add("hidden");
   $("userbar").classList.add("hidden");
-
   renderChart(0, 0);
 }
 
@@ -43,7 +37,6 @@ function showApp() {
   $("authBox").classList.add("hidden");
   $("appBox").classList.remove("hidden");
   $("userbar").classList.remove("hidden");
-
   $("userEmail").textContent = currentUser?.email || "";
   $("accountEmail").textContent = currentUser?.email || "-";
 }
@@ -51,10 +44,7 @@ function showApp() {
 async function init() {
   setDefaultDates();
 
-  const {
-    data: { session }
-  } = await sb.auth.getSession();
-
+  const { data: { session } } = await sb.auth.getSession();
   currentUser = session?.user || null;
 
   if (!currentUser) {
@@ -68,10 +58,8 @@ async function init() {
 
 async function logout() {
   await sb.auth.signOut();
-
   currentUser = null;
   missions = [];
-
   showAuth();
 }
 
@@ -131,7 +119,6 @@ async function addMission(event) {
 
   $("missionForm").reset();
   setDefaultDates();
-
   current = new Date(payload.mission_date + "T00:00:00");
   current.setDate(1);
 
@@ -140,14 +127,9 @@ async function addMission(event) {
 }
 
 async function deleteMission(id) {
-  if (!confirm("Supprimer cette mission ?")) {
-    return;
-  }
+  if (!confirm("Supprimer cette mission ?")) return;
 
-  const { error } = await sb
-    .from("missions")
-    .delete()
-    .eq("id", id);
+  const { error } = await sb.from("missions").delete().eq("id", id);
 
   if (error) {
     alert("Erreur suppression : " + error.message);
@@ -175,19 +157,6 @@ function money(n) {
   }).format(n || 0);
 }
 
-function moneyCompact(n) {
-  return `${Math.round(Number(n || 0))}€`;
-}
-
-function productionCode(name) {
-  return String(name || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9]/g, "")
-    .slice(0, 3)
-    .toUpperCase() || "MIS";
-}
-
 function formatDate(s) {
   return new Date(s + "T00:00:00").toLocaleDateString("fr-FR", {
     day: "2-digit",
@@ -202,12 +171,17 @@ function formatPeriod(a, b) {
 
 function todayDateOnly() {
   const d = new Date();
-
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
 function daysInclusive(a, b) {
   return Math.max(1, Math.round((b - a) / 86400000) + 1);
+}
+
+function missionDayCount(mission) {
+  const start = new Date(mission.date + "T00:00:00");
+  const end = new Date((mission.endDate || mission.date) + "T00:00:00");
+  return daysInclusive(start, end);
 }
 
 function isDateInPeriod(dateStr, mission) {
@@ -217,13 +191,10 @@ function isDateInPeriod(dateStr, mission) {
 function overlapsMonth(mission, ref) {
   const year = ref.getFullYear();
   const month = ref.getMonth();
-
   const start = new Date(mission.date + "T00:00:00");
   const end = new Date((mission.endDate || mission.date) + "T00:00:00");
-
   const monthStart = new Date(year, month, 1);
   const monthEnd = new Date(year, month + 1, 0, 23, 59, 59);
-
   return start <= monthEnd && end >= monthStart;
 }
 
@@ -235,16 +206,10 @@ function splitMissionByTime(mission) {
   const start = new Date(mission.date + "T00:00:00");
   const end = new Date((mission.endDate || mission.date) + "T00:00:00");
   const today = todayDateOnly();
-
   const totalHours = Number(mission.hours || 0);
 
-  if (end < today) {
-    return { done: totalHours, planned: 0 };
-  }
-
-  if (start > today) {
-    return { done: 0, planned: totalHours };
-  }
+  if (end < today) return { done: totalHours, planned: 0 };
+  if (start > today) return { done: 0, planned: totalHours };
 
   const totalDays = daysInclusive(start, end);
   const doneDays = daysInclusive(start, today);
@@ -264,6 +229,20 @@ function sumPlanned(list) {
   return list.reduce((total, mission) => total + splitMissionByTime(mission).planned, 0);
 }
 
+function sumMissionDays(list) {
+  return list.reduce((total, mission) => total + missionDayCount(mission), 0);
+}
+
+function getProductionInitials(name) {
+  return String(name || "---")
+    .replace(/[^a-zA-ZÀ-ÿ0-9\s]/g, " ")
+    .trim()
+    .split(/\s+/)
+    .join("")
+    .slice(0, 3)
+    .toUpperCase() || "---";
+}
+
 function render() {
   const now = new Date();
   const year = now.getFullYear();
@@ -276,31 +255,37 @@ function render() {
 
   const yearHours = Math.round(sumDone(yearMissions) * 10) / 10;
   const plannedHours = Math.round(sumPlanned(yearMissions) * 10) / 10;
-  const monthHours = Math.round(sumDone(selectedMonthMissions) * 10) / 10;
+
+  // Heures du mois affiché : on affiche le total du mois sélectionné,
+  // pas seulement les heures déjà passées dans le temps.
+  // Comme ça, juin affiche bien toutes les heures enregistrées en juin.
+  const monthHours = Math.round(
+    selectedMonthMissions.reduce((total, mission) => total + Number(mission.hours || 0), 0) * 10
+  ) / 10;
 
   const yearGross = yearMissions.reduce((a, x) => a + Number(x.gross || 0), 0);
   const monthGross = selectedMonthMissions.reduce((a, x) => a + Number(x.gross || 0), 0);
 
-  const percent = Math.min(100, Math.round((yearHours / OBJECTIVE_HOURS) * 100));
-  const remaining = Math.max(0, OBJECTIVE_HOURS - yearHours);
+  const percent = Math.round((yearHours / OBJECTIVE_HOURS) * 100);
+  const remaining = Math.max(0, Math.round((OBJECTIVE_HOURS - yearHours) * 10) / 10);
 
   $("yearHours").textContent = yearHours;
   $("monthHours").textContent = monthHours + "h";
   $("monthGross").textContent = money(monthGross);
   $("yearGross").textContent = money(yearGross);
   $("remainingHours").textContent = remaining + "h";
-  $("missionCount").textContent = missions.length;
+  $("missionCount").textContent = sumMissionDays(yearMissions);
   $("progressText").textContent = percent + "% de ton objectif intermittent";
 
   renderChart(yearHours, plannedHours);
   renderHistory();
   renderAllMissions();
   renderCalendar();
+  renderActualisation();
 }
 
 function polarToCartesian(cx, cy, rx, ry, angle) {
   const rad = (angle - 90) * Math.PI / 180;
-
   return {
     x: cx + rx * Math.cos(rad),
     y: cy + ry * Math.sin(rad)
@@ -309,27 +294,40 @@ function polarToCartesian(cx, cy, rx, ry, angle) {
 
 function renderChart(doneHours, plannedHours = 0) {
   const total = OBJECTIVE_HOURS;
-  const done = Math.max(0, Math.min(Number(doneHours) || 0, total));
-  const planned = Math.max(0, Math.min(Number(plannedHours) || 0, Math.max(0, total - done)));
-  const remain = Math.max(0, total - done - planned);
+  const maxPercent = MAX_DISPLAY_PERCENT;
+  const maxHours = total * (maxPercent / 100);
 
-  const donePercent = Math.round((done / total) * 100);
-  const plannedPercent = Math.round((planned / total) * 100);
-  const potentialPercent = Math.min(100, donePercent + plannedPercent);
+  const doneRaw = Math.max(0, Number(doneHours) || 0);
+  const plannedRaw = Math.max(0, Number(plannedHours) || 0);
+  const totalRaw = doneRaw + plannedRaw;
 
-  const cx = 310;
-  const cy = 142;
-  const rx = 158;
-  const ry = 94;
-  const depth = 34;
+  const donePercent = Math.round((doneRaw / total) * 100);
+  const plannedPercent = Math.round((plannedRaw / total) * 100);
+  const totalPercent = donePercent + plannedPercent;
 
-  const doneAngle = (done / total) * 360;
-  const plannedAngle = (planned / total) * 360;
+  const doneVisibleHours = Math.min(doneRaw, maxHours);
+  const plannedVisibleHours = Math.min(plannedRaw, Math.max(0, maxHours - doneVisibleHours));
+  const remainVisibleHours = Math.max(0, maxHours - doneVisibleHours - plannedVisibleHours);
+
+  const cx = 250;
+  const cy = 118;
+  const rx = 150;
+  const ry = 92;
+  const depth = 28;
+
+  const doneAngle = (doneVisibleHours / maxHours) * 360;
+  const plannedAngle = (plannedVisibleHours / maxHours) * 360;
+
+  function polarLabel(angle, ratio = 0.58) {
+    const rad = (angle - 90) * Math.PI / 180;
+    return {
+      x: cx + rx * ratio * Math.cos(rad),
+      y: cy + ry * ratio * Math.sin(rad)
+    };
+  }
 
   function wedge(startAngle, endAngle, fill) {
-    if (endAngle <= startAngle) {
-      return "";
-    }
+    if (endAngle <= startAngle) return "";
 
     if (endAngle - startAngle >= 359.9) {
       return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" stroke="#ffffff" stroke-width="3"/>`;
@@ -342,12 +340,13 @@ function renderChart(doneHours, plannedHours = 0) {
     return `<path d="M ${cx} ${cy} L ${start.x} ${start.y} A ${rx} ${ry} 0 ${large} 0 ${end.x} ${end.y} Z" fill="${fill}" stroke="#ffffff" stroke-width="3"/>`;
   }
 
-  if (!$("chart")) {
-    return;
-  }
+  const doneLabel = polarLabel(doneAngle / 2);
+  const plannedLabel = polarLabel(doneAngle + plannedAngle / 2);
+
+  if (!$("chart")) return;
 
   $("chart").innerHTML = `
-    <svg viewBox="0 0 620 350" role="img" aria-label="Camembert progression heures effectuées et prévues">
+    <svg viewBox="0 0 520 305" role="img" aria-label="Camembert progression heures effectuées et prévues">
       <defs>
         <linearGradient id="doneTop" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stop-color="#7A9E7E"/>
@@ -367,27 +366,26 @@ function renderChart(doneHours, plannedHours = 0) {
         </linearGradient>
       </defs>
 
-      <ellipse cx="${cx}" cy="${cy + depth + 10}" rx="182" ry="103" fill="rgba(31,78,95,.12)"/>
+      <ellipse cx="250" cy="165" rx="168" ry="92" fill="rgba(31,78,95,.12)"/>
       <ellipse cx="${cx}" cy="${cy + depth}" rx="${rx}" ry="${ry}" fill="url(#side)"/>
       <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="url(#remainTop)" stroke="#ffffff" stroke-width="3"/>
 
-      ${done > 0 ? wedge(0, doneAngle, "url(#doneTop)") : ""}
-      ${planned > 0 ? wedge(doneAngle, doneAngle + plannedAngle, "url(#plannedTop)") : ""}
+      ${doneVisibleHours > 0 ? wedge(0, doneAngle, "url(#doneTop)") : ""}
+      ${plannedVisibleHours > 0 ? wedge(doneAngle, doneAngle + plannedAngle, "url(#plannedTop)") : ""}
 
-      <text x="${cx}" y="${cy - 12}" text-anchor="middle" class="pieText">${donePercent}%</text>
-      <text x="${cx}" y="${cy + 16}" text-anchor="middle" class="pieSub">${done}h faites</text>
-      <text x="${cx}" y="${cy + 36}" text-anchor="middle" class="pieSub">+ ${planned}h prévues</text>
+      ${donePercent > 0 ? `<text x="${doneLabel.x}" y="${doneLabel.y + 7}" text-anchor="middle" class="piePercent">${donePercent}%</text>` : ""}
+      ${plannedPercent > 0 ? `<text x="${plannedLabel.x}" y="${plannedLabel.y + 7}" text-anchor="middle" class="piePercent">${plannedPercent}%</text>` : ""}
 
-      <g class="chartLegend">
-        <rect x="68" y="284" width="16" height="16" rx="5" fill="#1F4E5F"/>
-        <text x="92" y="297" class="legendText">Effectué : ${done}h / ${donePercent}%</text>
+      <text x="${cx}" y="252" text-anchor="middle" class="pieTotal">Total potentiel : ${totalPercent}%</text>
 
-        <rect x="250" y="284" width="16" height="16" rx="5" fill="#F97316"/>
-        <text x="274" y="297" class="legendText">Prévu : ${planned}h / ${plannedPercent}%</text>
+      <rect x="62" y="278" width="13" height="13" rx="4" fill="#1F4E5F"/>
+      <text x="82" y="289" class="legendText">Effectué</text>
 
-        <rect x="426" y="284" width="16" height="16" rx="5" fill="#D8E4DF"/>
-        <text x="450" y="297" class="legendMuted">Total : ${potentialPercent}%</text>
-      </g>
+      <rect x="220" y="278" width="13" height="13" rx="4" fill="#F97316"/>
+      <text x="240" y="289" class="legendText">Prévu</text>
+
+      <rect x="360" y="278" width="13" height="13" rx="4" fill="#D8E4DF"/>
+      <text x="380" y="289" class="legendMuted">Restant</text>
     </svg>
   `;
 }
@@ -400,13 +398,11 @@ function renderHistory() {
 
   const sorted = [...monthMissions(current)].sort((a, b) => new Date(b.date) - new Date(a.date));
   const missionsEl = $("missions");
-
   missionsEl.innerHTML = sorted.length ? "" : `<div class="empty">Aucune mission sur ce mois.</div>`;
 
   sorted.forEach((mission) => {
     const row = document.createElement("div");
     row.className = "row";
-
     row.innerHTML = `
       <div>${formatPeriod(mission.date, mission.endDate)}</div>
       <div><b>${mission.production}</b></div>
@@ -415,7 +411,6 @@ function renderHistory() {
       <div>${money(mission.gross)}</div>
       <div><button class="delete" data-delete="${mission.id}">X</button></div>
     `;
-
     missionsEl.appendChild(row);
   });
 }
@@ -429,7 +424,6 @@ function renderAllMissions() {
   sorted.forEach((mission) => {
     const row = document.createElement("div");
     row.className = "row";
-
     row.innerHTML = `
       <div>${formatPeriod(mission.date, mission.endDate)}</div>
       <div><b>${mission.production}</b></div>
@@ -438,7 +432,6 @@ function renderAllMissions() {
       <div>${money(mission.gross)}</div>
       <div><button class="delete" data-delete="${mission.id}">X</button></div>
     `;
-
     allMissionsEl.appendChild(row);
   });
 }
@@ -446,7 +439,6 @@ function renderAllMissions() {
 function moveMonth(amount) {
   current.setMonth(current.getMonth() + amount);
   current.setDate(1);
-
   render();
 }
 
@@ -455,7 +447,6 @@ function renderCalendar() {
   calendar.innerHTML = "";
 
   const names = ["L", "M", "M", "J", "V", "S", "D"];
-
   names.forEach((name) => {
     const el = document.createElement("div");
     el.className = "dayname";
@@ -474,40 +465,371 @@ function renderCalendar() {
   const first = new Date(year, month, 1);
   const start = (first.getDay() + 6) % 7;
   const days = new Date(year, month + 1, 0).getDate();
-  const totalCells = 42;
+  const totalSlots = 42;
 
-  for (let cell = 0; cell < totalCells; cell++) {
-    const dayNumber = cell - start + 1;
+  for (let i = 0; i < start; i++) {
+    const empty = document.createElement("div");
+    empty.className = "day empty-day";
+    calendar.appendChild(empty);
+  }
+
+  for (let d = 1; d <= days; d++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
     const box = document.createElement("div");
-
-    if (dayNumber < 1 || dayNumber > days) {
-      box.className = "day blank";
-      calendar.appendChild(box);
-      continue;
-    }
-
-    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNumber).padStart(2, "0")}`;
     box.className = "day";
 
     if (dateStr === new Date().toISOString().slice(0, 10)) {
       box.classList.add("today");
     }
 
-    box.innerHTML = `<b>${dayNumber}</b>`;
+    box.innerHTML = `<b>${d}</b>`;
 
     missions
       .filter((mission) => isDateInPeriod(dateStr, mission))
       .forEach((mission) => {
         const isFuture = new Date(dateStr + "T00:00:00") > todayDateOnly();
-        const label = `${productionCode(mission.production)} ${mission.hours}H ${moneyCompact(mission.gross)}`;
+        const initials = getProductionInitials(mission.production);
+        const hours = `${String(mission.hours).replace(".5", ",5")}H`;
+        const gross = `${Math.round(mission.gross || 0)}€`;
 
-        box.innerHTML += `<div class="dot ${isFuture ? "planned" : ""}" title="${mission.production} - ${mission.hours}h - ${money(mission.gross)}">${label}</div>`;
+        box.innerHTML += `
+          <div class="dot ${isFuture ? "planned" : ""}" title="${mission.production} - ${mission.hours}h - ${money(mission.gross)}">
+            ${initials} ${hours} ${gross}
+          </div>
+        `;
       });
 
     calendar.appendChild(box);
   }
+
+  const usedSlots = start + days;
+  for (let i = usedSlots; i < totalSlots; i++) {
+    const empty = document.createElement("div");
+    empty.className = "day empty-day";
+    calendar.appendChild(empty);
+  }
 }
 
+function buildActualisationText() {
+  const list = monthMissions(current)
+    .filter((mission) => new Date(mission.date + "T00:00:00") <= todayDateOnly())
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const title = current.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  const totalHours = Math.round(sumDone(list) * 10) / 10;
+  const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
+  const totalDays = sumMissionDays(list);
+
+  const lines = [`Actualisation ${title}`, "", `Total journées : ${totalDays}`, `Total heures : ${totalHours}h`, `Total brut : ${money(totalGross)}`, ""];
+
+  list.forEach((mission, index) => {
+    lines.push(`${index + 1}. ${mission.production}`);
+    lines.push(`Période : ${formatPeriod(mission.date, mission.endDate)}`);
+    lines.push(`Mission : ${mission.type}`);
+    lines.push(`Heures : ${mission.hours}h`);
+    lines.push(`Brut : ${money(mission.gross)}`);
+    lines.push("");
+  });
+
+  return lines.join("\n");
+}
+
+function renderActualisation() {
+  if (!$('actualisationMonthTitle')) return;
+
+  const list = monthMissions(current)
+    .filter((mission) => new Date(mission.date + "T00:00:00") <= todayDateOnly())
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const totalHours = Math.round(sumDone(list) * 10) / 10;
+  const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
+  const totalDays = sumMissionDays(list);
+
+  $('actualisationMonthTitle').textContent = current.toLocaleDateString('fr-FR', {
+    month: 'long',
+    year: 'numeric'
+  });
+
+  if ($('actualisationDays')) $('actualisationDays').textContent = totalDays;
+  if ($('actualisationHours')) $('actualisationHours').textContent = totalHours + 'h';
+  if ($('actualisationGross')) $('actualisationGross').textContent = money(totalGross);
+  if ($('actualisationCount')) $('actualisationCount').textContent = list.length;
+
+  const container = $('actualisationList');
+  if (!container) return;
+
+  if (!list.length) {
+    container.innerHTML = `<div class="empty">Aucune mission effectuée sur ce mois.</div>`;
+    return;
+  }
+
+  const escapeHtml = (value) => String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+  const rows = list.map((mission) => `
+    <tr>
+      <td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;white-space:nowrap;">${escapeHtml(formatPeriod(mission.date, mission.endDate))}</td>
+      <td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;"><strong style="color:#1F4E5F;">${escapeHtml(mission.production)}</strong></td>
+      <td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;">${escapeHtml(mission.type)}</td>
+      <td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;text-align:right;white-space:nowrap;">${escapeHtml(mission.hours)}h</td>
+      <td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;text-align:right;white-space:nowrap;">${escapeHtml(money(mission.gross))}</td>
+    </tr>
+  `).join('');
+
+  container.innerHTML = `
+    <div style="margin-top:14px;border:1px solid #E2E8F0;border-radius:18px;overflow:hidden;background:#FFFFFF;box-shadow:0 8px 20px rgba(31,78,95,.04);">
+      <div style="padding:14px 16px;background:#F8FAF9;border-bottom:1px solid #E2E8F0;">
+        <strong style="display:block;color:#1F4E5F;font-size:16px;">Détail des missions du mois</strong>
+        <span style="display:block;color:#718096;font-size:12px;margin-top:3px;">Récapitulatif prêt pour l'actualisation</span>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;min-width:620px;">
+          <thead>
+            <tr>
+              <th style="padding:11px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Période</th>
+              <th style="padding:11px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Production</th>
+              <th style="padding:11px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Mission</th>
+              <th style="padding:11px 10px;text-align:right;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Heures</th>
+              <th style="padding:11px 10px;text-align:right;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Brut</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+async function copyActualisation() {
+  const text = buildActualisationText();
+  await navigator.clipboard.writeText(text);
+  alert("Récapitulatif copié.");
+}
+
+function generateActualisationPDF() {
+  const list = monthMissions(current)
+    .filter((mission) => new Date(mission.date + "T00:00:00") <= todayDateOnly())
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const title = current.toLocaleDateString("fr-FR", {
+    month: "long",
+    year: "numeric"
+  });
+
+  const totalHours = Math.round(sumDone(list) * 10) / 10;
+  const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
+  const totalDays = sumMissionDays(list);
+
+  const escapeHtml = (value) => String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+  const rows = list.map((mission) => `
+    <tr>
+      <td>${escapeHtml(formatPeriod(mission.date, mission.endDate))}</td>
+      <td><strong>${escapeHtml(mission.production)}</strong></td>
+      <td>${escapeHtml(mission.type)}</td>
+      <td>${escapeHtml(mission.hours)}h</td>
+      <td>${escapeHtml(money(mission.gross))}</td>
+    </tr>
+  `).join("");
+
+  const win = window.open("", "_blank");
+
+  if (!win) {
+    alert("Impossible d'ouvrir la fenêtre PDF. Autorise les pop-ups pour ce site.");
+    return;
+  }
+
+  win.document.write(`
+    <!doctype html>
+    <html lang="fr">
+      <head>
+        <meta charset="utf-8" />
+        <title>Actualisation ${escapeHtml(title)}</title>
+        <style>
+          * {
+            box-sizing: border-box;
+          }
+
+          body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            color: #2D3748;
+            background: #ffffff;
+            padding: 34px;
+          }
+
+          .header {
+            border-bottom: 3px solid #1F4E5F;
+            padding-bottom: 16px;
+            margin-bottom: 22px;
+          }
+
+          h1 {
+            margin: 0;
+            color: #1F4E5F;
+            font-size: 28px;
+            letter-spacing: -0.03em;
+          }
+
+          .subtitle {
+            color: #718096;
+            margin: 6px 0 0;
+            font-size: 14px;
+          }
+
+          .summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 22px 0 24px;
+          }
+
+          .summary-box {
+            border: 1px solid #E2E8F0;
+            border-radius: 14px;
+            padding: 14px;
+            background: #F8FAF9;
+          }
+
+          .summary-box strong {
+            display: block;
+            color: #1F4E5F;
+            font-size: 24px;
+            line-height: 1.1;
+          }
+
+          .summary-box span {
+            display: block;
+            margin-top: 4px;
+            color: #718096;
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: 700;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+          }
+
+          th {
+            text-align: left;
+            color: #718096;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            padding: 10px 8px;
+            border-bottom: 2px solid #E2E8F0;
+          }
+
+          td {
+            padding: 12px 8px;
+            border-bottom: 1px solid #E2E8F0;
+            font-size: 14px;
+            vertical-align: top;
+          }
+
+          tr:nth-child(even) td {
+            background: #FBFCFC;
+          }
+
+          .empty {
+            padding: 20px;
+            text-align: center;
+            color: #718096;
+            border: 1px solid #E2E8F0;
+            border-radius: 14px;
+            background: #F8FAF9;
+          }
+
+          .footer {
+            margin-top: 26px;
+            padding-top: 12px;
+            border-top: 1px solid #E2E8F0;
+            font-size: 12px;
+            color: #718096;
+            line-height: 1.45;
+          }
+
+          @media print {
+            body {
+              padding: 20px;
+            }
+
+            .summary-box,
+            tr:nth-child(even) td {
+              print-color-adjust: exact;
+              -webkit-print-color-adjust: exact;
+            }
+          }
+        </style>
+      </head>
+
+      <body>
+        <div class="header">
+          <h1>Récapitulatif actualisation</h1>
+          <p class="subtitle">${escapeHtml(title)} · Généré avec Intermitrack</p>
+        </div>
+
+        <div class="summary">
+          <div class="summary-box">
+            <strong>${escapeHtml(totalDays)}</strong>
+            <span>Journées</span>
+          </div>
+          <div class="summary-box">
+            <strong>${escapeHtml(totalHours)}h</strong>
+            <span>Heures</span>
+          </div>
+          <div class="summary-box">
+            <strong>${escapeHtml(money(totalGross))}</strong>
+            <span>Brut total</span>
+          </div>
+        </div>
+
+        ${list.length ? `
+          <table>
+            <thead>
+              <tr>
+                <th>Période</th>
+                <th>Production</th>
+                <th>Mission</th>
+                <th>Heures</th>
+                <th>Brut</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        ` : `
+          <div class="empty">Aucune mission effectuée sur ce mois.</div>
+        `}
+
+        <p class="footer">
+          Ce document est un récapitulatif personnel destiné à faciliter l'actualisation mensuelle.
+          Les informations doivent être vérifiées par l'utilisateur avant déclaration officielle.
+        </p>
+      </body>
+    </html>
+  `);
+
+  win.document.close();
+  win.focus();
+  win.print();
+}
 function setupEvents() {
   $("loginModeBtn").addEventListener("click", () => setAuthMode("login"));
   $("signupModeBtn").addEventListener("click", () => setAuthMode("signup"));
@@ -515,18 +837,14 @@ function setupEvents() {
 
   $("authForm").addEventListener("submit", async (event) => {
     event.preventDefault();
-
     $("authMsg").textContent = "Chargement...";
 
     const email = $("authEmail").value.trim();
     const password = $("authPassword").value;
     let result;
 
-    if (authMode === "signup") {
-      result = await sb.auth.signUp({ email, password });
-    } else {
-      result = await sb.auth.signInWithPassword({ email, password });
-    }
+    if (authMode === "signup") result = await sb.auth.signUp({ email, password });
+    else result = await sb.auth.signInWithPassword({ email, password });
 
     if (result.error) {
       $("authMsg").textContent = "Erreur : " + result.error.message;
@@ -557,13 +875,14 @@ function setupEvents() {
   $("calendarPrevBtn").addEventListener("click", () => moveMonth(-1));
   $("calendarNextBtn").addEventListener("click", () => moveMonth(1));
 
+  if ($("actualisationPrevBtn")) $("actualisationPrevBtn").addEventListener("click", () => moveMonth(-1));
+  if ($("actualisationNextBtn")) $("actualisationNextBtn").addEventListener("click", () => moveMonth(1));
+  if ($("copyActualisationBtn")) $("copyActualisationBtn").addEventListener("click", copyActualisation);
+  if ($("pdfActualisationBtn")) $("pdfActualisationBtn").addEventListener("click", generateActualisationPDF);
+
   document.addEventListener("click", async (event) => {
     const deleteButton = event.target.closest("[data-delete]");
-
-    if (!deleteButton) {
-      return;
-    }
-
+    if (!deleteButton) return;
     await deleteMission(deleteButton.dataset.delete);
   });
 
@@ -579,7 +898,6 @@ function setupEvents() {
     }
 
     deferredInstallPrompt.prompt();
-
     await deferredInstallPrompt.userChoice;
     deferredInstallPrompt = null;
   });
@@ -593,7 +911,6 @@ if ("serviceWorker" in navigator) {
 
 sb.auth.onAuthStateChange((_event, session) => {
   currentUser = session?.user || null;
-
   if (currentUser) {
     showApp();
     loadMissions();
