@@ -6,7 +6,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let authMode = "login";
 let currentUser = null;
 let missions = [];
-let documents = [];
+let documents = [];editingMissionId = null;
 let current = new Date();
 let deferredInstallPrompt = null;
 
@@ -313,7 +313,18 @@ async function addMission(event) {
     gross_amount: Number($("gross").value)
   };
 
-  const { error } = await sb.from("missions").insert(payload);
+  let result;
+
+if (editingMissionId) {
+  result = await sb
+    .from("missions")
+    .update(payload)
+    .eq("id", editingMissionId);
+} else {
+  result = await sb.from("missions").insert(payload);
+}
+
+const { error } = result;
 
   if (error) {
     alert("Erreur sauvegarde : " + error.message);
@@ -321,6 +332,13 @@ async function addMission(event) {
   }
 
   $("missionForm").reset();
+  
+  editingMissionId = null;
+
+const submitBtn = document.querySelector("#missionForm button[type='submit']");
+if (submitBtn) {
+  submitBtn.textContent = "Enregistrer la mission";
+}
   setDefaultDates();
   current = new Date(payload.mission_date + "T00:00:00");
   current.setDate(1);
@@ -328,7 +346,35 @@ async function addMission(event) {
   await loadMissions();
   activateView("dashboard");
 }
+function editMission(id) {
+  const mission = missions.find((m) => String(m.id) === String(id));
 
+  if (!mission) {
+    alert("Mission introuvable.");
+    return;
+  }
+
+  editingMissionId = mission.id;
+
+  $("production").value = mission.production || "";
+  $("type").value = mission.type || "Autre";
+  $("date").value = mission.date || "";
+  $("endDate").value = mission.endDate || mission.date || "";
+  $("hours").value = mission.hours || 0;
+  $("gross").value = mission.gross || 0;
+
+  const submitBtn = document.querySelector("#missionForm button[type='submit']");
+  if (submitBtn) {
+    submitBtn.textContent = "Mettre à jour la mission";
+  }
+
+  activateView("missions");
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+}
 async function deleteMission(id) {
   if (!confirm("Supprimer cette mission ?")) return;
 
@@ -477,7 +523,7 @@ function render() {
   $("monthGross").textContent = money(monthGross);
   $("yearGross").textContent = money(yearGross);
   $("remainingHours").textContent = remaining + "h";
-  $("missionCount").textContent = sumMissionDays(yearMissions);
+  $("missionCount").textContent = sumMissionDays(selectedMonthMissions);
   $("progressText").textContent = percent + "% de ton objectif intermittent";
 
   renderChart(yearHours, plannedHours);
@@ -613,7 +659,10 @@ function renderHistory() {
       <div><span class="pill">${mission.type}</span></div>
       <div>${mission.hours}h</div>
       <div>${money(mission.gross)}</div>
-      <div><button class="delete" data-delete="${mission.id}">X</button></div>
+      <div>
+  <button class="ghost" data-edit="${mission.id}" type="button">Modifier</button>
+  <button class="delete" data-delete="${mission.id}" type="button">X</button>
+</div>
     `;
     missionsEl.appendChild(row);
   });
@@ -634,7 +683,10 @@ function renderAllMissions() {
       <div><span class="pill">${mission.type}</span></div>
       <div>${mission.hours}h</div>
       <div>${money(mission.gross)}</div>
-      <div><button class="delete" data-delete="${mission.id}">X</button></div>
+      <div>
+  <button class="ghost" data-edit="${mission.id}" type="button">Modifier</button>
+  <button class="delete" data-delete="${mission.id}" type="button">X</button>
+</div>
     `;
     allMissionsEl.appendChild(row);
   });
@@ -1104,7 +1156,12 @@ function setupEvents() {
       await deleteDocument(docDeleteButton.dataset.docDelete, docDeleteButton.dataset.docPath);
       return;
     }
+const editButton = event.target.closest("[data-edit]");
 
+if (editButton) {
+  editMission(editButton.dataset.edit);
+  return;
+}
     const deleteButton = event.target.closest("[data-delete]");
     if (!deleteButton) return;
     await deleteMission(deleteButton.dataset.delete);
