@@ -790,7 +790,7 @@ function renderCalendar() {
   const first = new Date(year, month, 1);
   const start = (first.getDay() + 6) % 7;
   const days = new Date(year, month + 1, 0).getDate();
-  const totalSlots = 42;
+  const totalSlots = Math.ceil((start + days) / 7) * 7;
 
   for (let i = 0; i < start; i++) {
     const empty = document.createElement("div");
