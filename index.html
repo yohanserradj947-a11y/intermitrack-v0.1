@@ -32,37 +32,104 @@
     </header>
 
     <section class="auth-page" id="authBox">
-      <article class="auth-card">
-        <div class="home-brandmark">I</div>
+  <div class="auth-layout">
 
-        <h2>Intermitrack</h2>
-        <p class="home-mainline">Une vision claire de votre intermittence.</p>
-        <p class="home-intro">
-          Connectez-vous pour retrouver vos missions, vos statistiques et l'ensemble de votre activité professionnelle.
-        </p>
+    <article class="auth-info-card">
+      <span class="mini-label">Tableau de bord intermittent</span>
+      <h2>Visualise tes 507h en temps réel.</h2>
+      <p>
+        Intermitrack centralise tes missions, tes heures, ton brut, tes journées travaillées
+        et ton avancement vers les 507h.
+      </p>
 
-        <div class="authTabs">
-          <button type="button" class="ghost" id="loginModeBtn">Connexion</button>
-          <button type="button" class="ghost" id="signupModeBtn">Créer un compte</button>
+      <div class="demo-chart">
+        <svg viewBox="0 0 220 160">
+          <circle cx="110" cy="78" r="54" fill="none" stroke="#D8E4DF" stroke-width="22"/>
+          <circle cx="110" cy="78" r="54" fill="none" stroke="#1F4E5F" stroke-width="22"
+            stroke-dasharray="205 340" stroke-linecap="round" transform="rotate(-90 110 78)"/>
+          <circle cx="110" cy="78" r="54" fill="none" stroke="#F97316" stroke-width="22"
+            stroke-dasharray="58 340" stroke-dashoffset="-205" stroke-linecap="round" transform="rotate(-90 110 78)"/>
+          <text x="110" y="76" text-anchor="middle" class="demo-percent">78%</text>
+          <text x="110" y="96" text-anchor="middle" class="demo-sub">projection</text>
+        </svg>
+      </div>
+
+      <div class="mini-legend">
+        <span><i class="done-dot"></i> Effectué</span>
+        <span><i class="planned-dot"></i> Prévu</span>
+      </div>
+    </article>
+
+    <article class="auth-card">
+      <div class="home-brandmark">I</div>
+
+      <h2>Intermitrack</h2>
+      <p class="home-mainline">Une vision claire de votre intermittence.</p>
+      <p class="home-intro">
+        Connectez-vous pour retrouver vos missions, vos statistiques et l'ensemble de votre activité professionnelle.
+      </p>
+
+      <div class="authTabs">
+        <button type="button" class="ghost" id="loginModeBtn">Connexion</button>
+        <button type="button" class="ghost" id="signupModeBtn">Créer un compte</button>
+      </div>
+
+      <form id="authForm">
+        <label for="authEmail">Email</label>
+        <input id="authEmail" type="email" required placeholder="ton@email.com" />
+
+        <label for="authPassword">Mot de passe</label>
+        <div class="password-wrapper">
+          <input
+            id="authPassword"
+            type="password"
+            required
+            minlength="6"
+            placeholder="Minimum 6 caractères"
+          />
+          <button
+            type="button"
+            id="togglePassword"
+            class="password-toggle"
+            aria-label="Afficher ou masquer le mot de passe"
+          >
+            👁
+          </button>
         </div>
 
-        <form id="authForm">
-          <label for="authEmail">Email</label>
-          <input id="authEmail" type="email" required placeholder="ton@email.com" />
+        <button class="primary" type="submit" id="authButton">Se connecter</button>
+      </form>
 
-          <label for="authPassword">Mot de passe</label>
-          <div class="password-wrapper">
-            <input id="authPassword" type="password" required minlength="6" placeholder="Minimum 6 caractères" />
-            <button type="button" id="togglePassword" class="password-toggle" aria-label="Afficher ou masquer le mot de passe">👁</button>
-          </div>
+      <p class="msg" id="authMsg">Mode : connexion</p>
+      <p class="home-secure">Données sauvegardées en ligne - Accès sécurisé - Compatible mobile</p>
+    </article>
 
-          <button class="primary" type="submit" id="authButton">Se connecter</button>
-        </form>
+    <article class="auth-info-card">
+      <span class="mini-label">Sécurité & cloud</span>
+      <h2>Tes données restent liées à ton compte.</h2>
+      <p>
+        Les missions sont sauvegardées via Supabase. Chaque utilisateur accède uniquement
+        à ses propres informations grâce à son compte sécurisé.
+      </p>
 
-        <p class="msg" id="authMsg">Mode : connexion</p>
-        <p class="home-secure">Données sauvegardées en ligne - Accès sécurisé - Compatible mobile</p>
-      </article>
-    </section>
+      <div class="trust-list">
+        <div>
+          <strong>Compte personnel</strong>
+          <span>Email + mot de passe sécurisé</span>
+        </div>
+        <div>
+          <strong>Sauvegarde en ligne</strong>
+          <span>Retrouve tes missions sur téléphone et ordinateur</span>
+        </div>
+        <div>
+          <strong>Objectif bêta</strong>
+          <span>Construire un outil fiable avec les retours du terrain</span>
+        </div>
+      </div>
+    </article>
+
+  </div>
+</section>
 
     <section class="appBox hidden" id="appBox">
       <nav class="tabs">
