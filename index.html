@@ -52,21 +52,8 @@
 
           <label for="authPassword">Mot de passe</label>
           <div class="password-wrapper">
-            <input
-              id="authPassword"
-              type="password"
-              required
-              minlength="6"
-              placeholder="Minimum 6 caractères"
-            />
-            <button
-              type="button"
-              id="togglePassword"
-              class="password-toggle"
-              aria-label="Afficher ou masquer le mot de passe"
-            >
-              👁
-            </button>
+            <input id="authPassword" type="password" required minlength="6" placeholder="Minimum 6 caractères" />
+            <button type="button" id="togglePassword" class="password-toggle" aria-label="Afficher ou masquer le mot de passe">👁</button>
           </div>
 
           <button class="primary" type="submit" id="authButton">Se connecter</button>
@@ -82,6 +69,7 @@
         <button class="tab active" type="button" data-view="dashboard">Tableau de bord</button>
         <button class="tab" type="button" data-view="missions">Missions</button>
         <button class="tab" type="button" data-view="calendar">Calendrier</button>
+        <button class="tab" type="button" data-view="actualisation">Actualisation</button>
         <button class="tab" type="button" data-view="account">Compte</button>
       </nav>
 
@@ -103,22 +91,10 @@
           <div class="chartWrap" id="chart"></div>
 
           <div class="stats">
-            <div class="stat">
-              <b id="monthHours">0h</b>
-              <span>Heures du mois</span>
-            </div>
-            <div class="stat">
-              <b id="monthGross">0 EUR</b>
-              <span>Brut du mois</span>
-            </div>
-            <div class="stat">
-              <b id="yearGross">0 EUR</b>
-              <span>Brut total</span>
-            </div>
-            <div class="stat">
-              <b id="missionCount">0</b>
-              <span>Missions</span>
-            </div>
+            <div class="stat"><b id="monthHours">0h</b><span>Heures du mois</span></div>
+            <div class="stat"><b id="monthGross">0 EUR</b><span>Brut du mois</span></div>
+            <div class="stat"><b id="yearGross">0 EUR</b><span>Brut total</span></div>
+            <div class="stat"><b id="missionCount">0</b><span>Journées</span></div>
           </div>
         </article>
 
@@ -133,15 +109,7 @@
 
           <p class="sub" id="historyMonthTitle"></p>
 
-          <div class="row header">
-            <div>Période</div>
-            <div>Production</div>
-            <div>Mission</div>
-            <div>Heures</div>
-            <div>Brut</div>
-            <div></div>
-          </div>
-
+          <div class="row header"><div>Période</div><div>Production</div><div>Mission</div><div>Heures</div><div>Brut</div><div></div></div>
           <div id="missions"></div>
         </article>
       </section>
@@ -155,15 +123,7 @@
             <input id="production" placeholder="Ex : The Voice" required />
 
             <label for="type">Type de mission</label>
-            <select id="type">
-              <option>Montage</option>
-              <option>Tournage</option>
-              <option>Démontage</option>
-              <option>Régie</option>
-              <option>Son</option>
-              <option>Lumière</option>
-              <option>Autre</option>
-            </select>
+            <select id="type"><option>Montage</option><option>Tournage</option><option>Démontage</option><option>Régie</option><option>Son</option><option>Lumière</option><option>Autre</option></select>
 
             <label for="date">Date début</label>
             <input id="date" type="date" required />
@@ -177,32 +137,40 @@
             <label for="gross">Montant brut de la mission (EUR)</label>
             <input id="gross" type="number" min="0" step="0.01" placeholder="Ex : 230" required />
 
-            <p class="hint">
-              Pour une mission sur plusieurs jours, indique la période complète et le total d'heures cumulées.
-            </p>
-
+            <p class="hint">Pour une mission sur plusieurs jours, indique la période complète et le total d'heures cumulées.</p>
             <button class="primary" type="submit">Enregistrer la mission</button>
           </form>
         </article>
 
-        <article class="card">
-          <h2>Toutes mes missions</h2>
-          <div id="allMissions"></div>
-        </article>
+        <article class="card"><h2>Toutes mes missions</h2><div id="allMissions"></div></article>
       </section>
 
       <section class="view" id="view-calendar">
         <article class="card">
           <div class="calhead">
             <h2>Calendrier</h2>
-            <div>
-              <button class="ghost" type="button" id="calendarPrevBtn">‹</button>
-              <button class="ghost" type="button" id="calendarNextBtn">›</button>
-            </div>
+            <div><button class="ghost" type="button" id="calendarPrevBtn">‹</button><button class="ghost" type="button" id="calendarNextBtn">›</button></div>
           </div>
-
           <p class="sub" id="monthTitle"></p>
           <div class="calendar" id="calendar"></div>
+        </article>
+      </section>
+
+      <section class="view" id="view-actualisation">
+        <article class="card">
+          <div class="historyhead">
+            <h2>Actualisation mensuelle</h2>
+            <div><button class="ghost" type="button" id="actualisationPrevBtn">‹</button><button class="ghost" type="button" id="actualisationNextBtn">›</button></div>
+          </div>
+          <p class="sub">Récapitulatif des missions effectuées à utiliser pendant ton actualisation France Travail.</p>
+          <p class="sub" id="actualisationMonthTitle"></p>
+          <div class="actualisation-summary" id="actualisationSummary"></div>
+          <div class="actualisation-list" id="actualisationList"></div>
+          <textarea class="actualisation-text hidden" id="actualisationText" readonly></textarea>
+          <div class="actualisation-actions">
+            <button class="primary" type="button" id="copyActualisationBtn">Copier le récapitulatif</button>
+            <button class="ghost actualisation-pdf-btn" type="button" id="pdfActualisationBtn">Générer PDF</button>
+          </div>
         </article>
       </section>
 
@@ -210,35 +178,17 @@
         <article class="card">
           <h2>Compte</h2>
           <p class="sub">Votre espace Intermitrack.</p>
-
           <div class="account-box">
             <p><strong>Email :</strong> <span id="accountEmail">-</span></p>
             <p><strong>Abonnement :</strong> <span class="pill">Version test</span></p>
           </div>
-
           <button class="primary" type="button" id="installBtn">Installer l'application</button>
-          <p class="hint">
-            Sur iPhone, utilisez aussi le bouton Partager de Safari puis "Ajouter à l'écran d'accueil".
-          </p>
+          <p class="hint">Sur iPhone, utilisez aussi le bouton Partager de Safari puis "Ajouter à l'écran d'accueil".</p>
         </article>
       </section>
     </section>
   </main>
 
   <script src="app.js"></script>
-
-  <script>
-    const togglePassword = document.getElementById("togglePassword");
-    const authPassword = document.getElementById("authPassword");
-
-    if (togglePassword && authPassword) {
-      togglePassword.addEventListener("click", () => {
-        const isHidden = authPassword.getAttribute("type") === "password";
-
-        authPassword.setAttribute("type", isHidden ? "text" : "password");
-        togglePassword.textContent = isHidden ? "🙈" : "👁";
-      });
-    }
-  </script>
 </body>
 </html>
