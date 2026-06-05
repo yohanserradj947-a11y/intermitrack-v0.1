@@ -137,6 +137,7 @@
         <button class="tab" type="button" data-view="missions">Missions</button>
         <button class="tab" type="button" data-view="calendar">Calendrier</button>
         <button class="tab" type="button" data-view="actualisation">Actualisation</button>
+        <button class="tab" type="button" data-view="documents">Documents</button>
         <button class="tab" type="button" data-view="account">Compte</button>
       </nav>
 
@@ -238,6 +239,66 @@
             <button class="primary" type="button" id="copyActualisationBtn">Copier le récapitulatif</button>
             <button class="ghost actualisation-pdf-btn" type="button" id="pdfActualisationBtn">Générer PDF</button>
           </div>
+        </article>
+      </section>
+
+
+      <section class="view" id="view-documents">
+        <article class="card">
+          <h2>Documents</h2>
+          <p class="sub">Centralise tes AEM, fiches de paie, Congés Spectacles, contrats et justificatifs.</p>
+
+          <form id="documentForm">
+            <label for="documentType">Type de document</label>
+            <select id="documentType" required>
+              <option>AEM</option>
+              <option>Fiche de paie</option>
+              <option>Congés Spectacles</option>
+              <option>Contrat</option>
+              <option>Autre</option>
+            </select>
+
+            <label for="documentProduction">Production</label>
+            <input id="documentProduction" placeholder="Ex : The Voice" required />
+
+            <div class="document-grid">
+              <div>
+                <label for="documentMonth">Mois</label>
+                <select id="documentMonth" required>
+                  <option value="1">Janvier</option>
+                  <option value="2">Février</option>
+                  <option value="3">Mars</option>
+                  <option value="4">Avril</option>
+                  <option value="5">Mai</option>
+                  <option value="6">Juin</option>
+                  <option value="7">Juillet</option>
+                  <option value="8">Août</option>
+                  <option value="9">Septembre</option>
+                  <option value="10">Octobre</option>
+                  <option value="11">Novembre</option>
+                  <option value="12">Décembre</option>
+                </select>
+              </div>
+              <div>
+                <label for="documentYear">Année</label>
+                <input id="documentYear" type="number" min="2000" max="2100" required />
+              </div>
+            </div>
+
+            <label for="documentFile">Fichier PDF ou image</label>
+            <input id="documentFile" type="file" accept="application/pdf,image/*" required />
+
+            <p class="hint">Les documents sont enregistrés dans ton espace Supabase privé et restent liés à ton compte.</p>
+            <button class="primary" type="submit" id="documentSubmitBtn">Ajouter le document</button>
+          </form>
+        </article>
+
+        <article class="card">
+          <div class="historyhead">
+            <h2>Mes documents</h2>
+            <button class="ghost" type="button" id="refreshDocumentsBtn">Actualiser</button>
+          </div>
+          <div id="documentsList"></div>
         </article>
       </section>
 
