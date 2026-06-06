@@ -1857,27 +1857,21 @@ button {
   text-decoration: underline;
 }
 .beta-banner {
-  background: #fff3cd;
-  color: #856404;
-  border-bottom: 1px solid #ffe69c;
+  width: 100%;
+  box-sizing: border-box;
 
-  padding: 10px 16px;
+  background: #fff7d6;
+  color: #7a5a00;
+  border-bottom: 1px solid #f3d98b;
+
+  padding: 8px 16px;
   text-align: center;
 
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
 
   position: sticky;
   top: 0;
   z-index: 9999;
-}.document-beta-warning {
-  margin: 12px 0 14px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffe69c;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.45;
 }
