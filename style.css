@@ -1870,4 +1870,14 @@ button {
   position: sticky;
   top: 0;
   z-index: 9999;
+}.document-beta-warning {
+  margin: 12px 0 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffe69c;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
 }
