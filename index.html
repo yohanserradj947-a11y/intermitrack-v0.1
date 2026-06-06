@@ -152,6 +152,8 @@
         <button class="tab" type="button" data-view="calendar">Calendrier</button>
         <button class="tab" type="button" data-view="actualisation">Actualisation</button>
         <button class="tab" type="button" data-view="documents">Documents</button>
+        <button class="tab" type="button" data-view="fiscalite">Fiscalité</button>
+        <button class="tab" type="button" data-view="previsions">Prévisions</button>
         <button class="tab" type="button" data-view="account">Compte</button>
       </nav>
 
@@ -214,6 +216,7 @@
       <section class="view" id="view-missions">
         <article class="card">
           <h2>Ajouter une mission</h2>
+<div id="document-parser-container"></div>
 
           <form id="missionForm">
             <label for="production">Nom de la production</label>
@@ -233,6 +236,24 @@
 
             <label for="gross">Montant brut de la mission (EUR)</label>
             <input id="gross" type="number" min="0" step="0.01" placeholder="Ex : 230" required />
+
+            <div class="optional-block">
+              <h3>Frais kilométriques</h3>
+              <p class="hint">Optionnel : remplis uniquement si tu veux suivre des frais de déplacement pour cette mission.</p>
+
+              <div class="document-grid">
+                <div>
+                  <label for="kmDistance">Kilomètres professionnels</label>
+                  <input id="kmDistance" type="number" min="0" step="1" placeholder="Ex : 42" />
+                </div>
+                <div>
+                  <label for="kmRate">Barème / taux par km (€)</label>
+                  <input id="kmRate" type="number" min="0" step="0.01" placeholder="Ex : 0.50" />
+                </div>
+              </div>
+
+              <p class="hint" id="kmPreview">Frais km estimés : 0 EUR</p>
+            </div>
 
             <p class="hint">Pour une mission sur plusieurs jours, indique la période complète et le total d'heures cumulées.</p>
             <button class="primary" type="submit">Enregistrer la mission</button>
@@ -331,6 +352,113 @@
         </article>
       </section>
 
+
+      <section class="view" id="view-fiscalite">
+        <article class="card">
+          <h2>Fiscalité</h2>
+          <p class="sub">Prépare tes informations fiscales à partir de tes missions, revenus et frais professionnels.</p>
+
+          <div class="fiscalite-grid">
+            <div class="fiscalite-card">
+              <span class="mini-label">Estimation</span>
+              <h3>Estimation d'impôt</h3>
+              <p>
+                Estimation indicative calculée automatiquement à partir du brut enregistré dans tes missions. Les frais kilométriques renseignés sont déduits comme frais réels estimés. Renseigne uniquement ton nombre de parts fiscales.
+              </p>
+
+              
+              <label for="otherIncomeInput">Revenus complémentaires imposables annuels (€)</label>
+              <input id="otherIncomeInput" type="number" min="0" step="1" placeholder="ARE, autres salaires, activité indépendante..." />
+
+              <label for="taxPartsInput">Nombre de parts fiscales</label>
+              <input id="taxPartsInput" type="number" min="0.5" step="0.5" placeholder="Ex : 1" />
+
+              <button class="ghost fiscal-small-btn" type="button" id="saveTaxSettingsBtn">Calculer / enregistrer</button>
+
+              <strong id="fiscaliteGrossPreview">Brut annuel : 0 EUR</strong>
+              <strong id="fiscaliteNetPreview">Net imposable estimé : 0 EUR</strong>
+              <strong id="fiscaliteKmDeductionPreview">Frais km déduits : 0 EUR</strong>
+              <strong id="fiscaliteOtherIncomePreview">Revenus complémentaires : 0 EUR</strong>
+              <strong id="fiscaliteTotalIncomePreview">Base imposable estimée : 0 EUR</strong>
+              <strong id="fiscaliteProjectionPreview">Projection annuelle : données insuffisantes</strong>
+              <strong id="fiscaliteTaxPreview">Impôt estimé : renseigne tes parts</strong>
+              <strong id="fiscaliteRatePreview">Taux moyen estimé : -</strong>
+              <strong id="fiscaliteBracketPreview">Tranche marginale estimée : -</strong>
+
+              <small>
+                Estimation non officielle : Intermitrack transforme le brut annuel en net imposable estimé avec un coefficient indicatif, puis déduit les frais kilométriques saisis.
+                Le vrai revenu net imposable dépend de tes fiches de paie, cotisations, autres revenus du foyer,
+                abattements, crédits/réductions et situations particulières.
+              </small>
+            </div>
+
+            <div class="fiscalite-card">
+              <span class="mini-label">Frais réels</span>
+              <h3>Frais kilométriques</h3>
+              <p>Totalise les kilomètres et frais estimés renseignés dans tes missions.</p>
+              <strong id="fiscaliteKmPreview">0 km</strong>
+              <strong id="fiscaliteKmAmountPreview">0 EUR estimés</strong>
+            </div>
+
+            <div class="fiscalite-card">
+              <span class="mini-label">Déclaration</span>
+              <h3>Déclaration pré-remplie</h3>
+              <p>Récapitulatif préparatoire à vérifier avant déclaration officielle.</p>
+              <strong id="fiscaliteDeclarationPreview">Brut + frais km à vérifier</strong>
+            </div>
+          </div>
+
+          <p class="hint">
+            Les montants affichés seront des estimations indicatives. Ils devront toujours être vérifiés avant toute déclaration fiscale.
+          </p>
+        </article>
+      </section>
+
+
+      <section class="view" id="view-previsions">
+        <article class="card">
+          <h2>Prévisions</h2>
+          <p class="sub">Anticipe tes droits, tes congés, tes carences et ton taux journalier à partir des missions enregistrées.</p>
+
+          <div class="previsions-grid">
+            <div class="prevision-card">
+              <span class="mini-label">France Travail</span>
+              <h3>Estimation carence</h3>
+              <p>Module à développer avec les paramètres personnels nécessaires pour éviter toute estimation trompeuse.</p>
+              <strong id="previsionCarence">Non calculé pour le moment</strong>
+              <small>Objectif : afficher une estimation fiable après paramétrage utilisateur.</small>
+            </div>
+
+            <div class="prevision-card">
+              <span class="mini-label">Congés</span>
+              <h3>Estimation Congés Spectacles</h3>
+              <p>Estimation brute indicative basée sur environ 10% du brut enregistré sur la période de référence.</p>
+              <strong id="previsionConges">Estimation indicative</strong>
+              <small>Hors cotisations, régularisations et règles particulières.</small>
+            </div>
+
+            <div class="prevision-card">
+              <span class="mini-label">Droits</span>
+              <h3>Réouverture des droits</h3>
+              <p>Suis ton avancement vers les 507 heures et visualise ce qu'il te reste à effectuer.</p>
+              <strong id="previsionDroits">507h restantes</strong>
+            </div>
+
+            <div class="prevision-card">
+              <span class="mini-label">Indemnisation</span>
+              <h3>Prévision taux journalier</h3>
+              <p>Le taux journalier correspond à une estimation France Travail, pas à ton brut moyen de production.</p>
+              <strong id="previsionTaux">Calcul officiel à intégrer</strong>
+              <small>À développer avec les paramètres France Travail et annexes intermittents.</small>
+            </div>
+          </div>
+
+          <p class="hint">
+            Les montants de cette rubrique sont strictement indicatifs. Aucun calcul France Travail ou fiscal officiel n'est remplacé par Intermitrack.
+          </p>
+        </article>
+      </section>
+
       <section class="view" id="view-account">
         <article class="card">
           <h2>Compte</h2>
@@ -346,6 +474,7 @@
     </section>
   </main>
 
+  <script src="document-parser.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
