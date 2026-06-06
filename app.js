@@ -124,6 +124,107 @@ function setTaxRate(value) {
   localStorage.setItem(storageKey("tax_rate"), String(Number(value || 0)));
 }
 
+
+function calculateEstimatedAreDailyRate() {
+  const hours = Number($("areHours")?.value || 0);
+  const dailyGross = Number($("areDailyGross")?.value || 0);
+
+  if (!hours || !dailyGross) {
+    if ($("previsionTaux")) {
+      $("previsionTaux").textContent = "Renseigne tes heures et ton brut journée";
+    }
+
+    if ($("previsionTauxDetails")) {
+      $("previsionTauxDetails").textContent = "Simulation indicative Annexe 8 technicien.";
+    }
+
+    if ($("areProjectionText")) {
+      $("areProjectionText").textContent = "Renseigne tes données pour voir les projections.";
+    }
+
+    return;
+  }
+
+  const estimatedDays = hours / 8;
+  const referenceSalary = estimatedDays * dailyGross;
+
+  const MIN_ARE = 38;
+  const MAX_ARE = 174.8;
+  const AJ_MIN = 31.96;
+
+  const salaryPart =
+    Math.min(referenceSalary, 14400) * 0.42 +
+    Math.max(0, referenceSalary - 14400) * 0.05;
+
+  const hoursPart =
+    Math.min(hours, 720) * 0.26 +
+    Math.max(0, hours - 720) * 0.08;
+
+  const grossAre =
+    (AJ_MIN * salaryPart / 5000) +
+    (AJ_MIN * hoursPart / 507) +
+    (AJ_MIN * 0.40);
+
+  const cappedGrossAre =
+    Math.min(MAX_ARE, Math.max(MIN_ARE, grossAre));
+
+  const estimatedNetAre = cappedGrossAre * 0.89;
+
+  if ($("previsionTaux")) {
+    $("previsionTaux").textContent =
+      "Environ " +
+      estimatedNetAre.toFixed(2).replace(".", ",") +
+      " € net / jour";
+  }
+
+  if ($("previsionTauxDetails")) {
+    $("previsionTauxDetails").textContent =
+      "Jours estimés : " +
+      estimatedDays.toFixed(1).replace(".", ",") +
+      " • Salaire de référence : " +
+      money(referenceSalary);
+  }
+
+  if ($("areProjectionText")) {
+    let targets;
+
+    if (hours < 507) targets = [507, 600, 700];
+    else if (hours < 700) targets = [700, 800, 900];
+    else if (hours < 900) targets = [900, 1000, 1100];
+    else if (hours < 1200) targets = [1200, 1300, 1400];
+    else {
+      const base = Math.ceil(hours / 100) * 100;
+      targets = [base, base + 100, base + 200];
+    }
+
+    const projectionLines = targets.map((targetHours) => {
+      const targetDays = targetHours / 8;
+      const targetSalary = targetDays * dailyGross;
+
+      const targetSalaryPart =
+        Math.min(targetSalary, 14400) * 0.42 +
+        Math.max(0, targetSalary - 14400) * 0.05;
+
+      const targetHoursPart =
+        Math.min(targetHours, 720) * 0.26 +
+        Math.max(0, targetHours - 720) * 0.08;
+
+      const targetGrossAre =
+        (AJ_MIN * targetSalaryPart / 5000) +
+        (AJ_MIN * targetHoursPart / 507) +
+        (AJ_MIN * 0.40);
+
+      const targetNet =
+        Math.min(MAX_ARE, Math.max(MIN_ARE, targetGrossAre)) * 0.89;
+
+      return `${targetHours}h → ${targetNet.toFixed(2).replace(".", ",")} € net/j`;
+    });
+
+    $("areProjectionText").innerHTML = projectionLines.join("<br>");
+  }
+}
+
+
 function calculateKmAmount() {
   const distance = Number($("kmDistance")?.value || 0);
   const rate = Number($("kmRate")?.value || 0);
@@ -154,8 +255,7 @@ function showApp() {
   $("appBox").classList.remove("hidden");
   $("userbar").classList.remove("hidden");
   $("userEmail").textContent = currentUser?.email || "";
-  $("accountEmail").textContent = currentUser?.email || "-";
-  monterWidgetParser();
+  if (typeof monterWidgetParser === "function") monterWidgetParser();
 }
 
 async function init() {
@@ -172,6 +272,7 @@ async function init() {
   showApp();
   await loadMissions();
   await loadDocuments();
+  render();
 }
 
 async function logout() {
@@ -370,6 +471,7 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
+
 function renderDocuments() {
   const container = $("documentsList");
   if (!container) return;
@@ -397,7 +499,7 @@ function renderDocuments() {
 
   if (!openDocumentProduction) {
     container.innerHTML = `
-      <div class="document-folder-grid">
+      <div class="document-folder-grid document-folder-grid-pro">
         ${Object.keys(groups).sort((a, b) => a.localeCompare(b, "fr")).map((production) => {
           const list = groups[production];
           const counts = list.reduce((acc, doc) => {
@@ -405,14 +507,30 @@ function renderDocuments() {
             return acc;
           }, {});
 
+          const latest = [...list].sort((a, b) => {
+            if (b.doc_year !== a.doc_year) return b.doc_year - a.doc_year;
+            return b.doc_month - a.doc_month;
+          })[0];
+
+          const types = Object.keys(counts).sort();
+
           return `
-            <button class="document-folder-card" type="button" data-doc-production-open="${escapeHtml(production)}">
-              <strong>${escapeHtml(production)}</strong>
-              <span>${list.length} document${list.length > 1 ? "s" : ""}</span>
+            <button class="document-folder-card document-folder-card-pro" type="button" data-doc-production-open="${escapeHtml(production)}">
+              <div class="document-folder-icon">📁</div>
+
+              <div class="document-folder-main">
+                <strong>${escapeHtml(production)}</strong>
+                <span>${list.length} document${list.length > 1 ? "s" : ""}</span>
+              </div>
+
+              <div class="document-folder-tags">
+                ${types.slice(0, 4).map((type) => `
+                  <em>${escapeHtml(type)} · ${counts[type]}</em>
+                `).join("")}
+              </div>
+
               <small>
-                ${Object.keys(counts).sort().map((type) =>
-                  `${escapeHtml(type)} : ${counts[type]}`
-                ).join(" · ")}
+                Dernier ajout : ${latest ? `${escapeHtml(monthName(latest.doc_month))} ${escapeHtml(latest.doc_year)}` : "—"}
               </small>
             </button>
           `;
@@ -429,7 +547,7 @@ function renderDocuments() {
     : productionDocs.filter((doc) => doc.document_type === documentFilter);
 
   container.innerHTML = `
-    <div class="document-detail-head">
+    <div class="document-detail-head document-detail-head-pro">
       <button class="ghost" type="button" data-doc-production-back>‹ Retour aux productions</button>
       <div>
         <h2>${escapeHtml(openDocumentProduction)}</h2>
@@ -437,7 +555,7 @@ function renderDocuments() {
       </div>
     </div>
 
-    <div class="document-filter-bar">
+    <div class="document-filter-bar document-filter-bar-pro">
       ${filters.map((filter) => `
         <button
           class="doc-filter ${documentFilter === filter ? "active" : ""}"
@@ -449,27 +567,34 @@ function renderDocuments() {
       `).join("")}
     </div>
 
-    <div class="documents-list">
+    <div class="documents-card-grid">
       ${filteredDocs.length ? filteredDocs.map((doc) => `
-        <div class="document-card">
-          <div class="document-card-head">
-            <div>
-              <strong>${escapeHtml(doc.document_type)} · ${escapeHtml(doc.production)}</strong>
-              <span>${escapeHtml(monthName(doc.doc_month))} ${escapeHtml(doc.doc_year)} · ${escapeHtml(doc.file_name)}</span>
-            </div>
-            <span class="pill">${escapeHtml(doc.document_type)}</span>
-          </div>
+        <div class="document-card document-card-pro">
+          <div class="document-file-icon">${escapeHtml(String(doc.document_type || "Doc").slice(0, 3).toUpperCase())}</div>
 
-          <div class="document-actions">
-            <button class="ghost" type="button" data-doc-open="${escapeHtml(doc.file_path)}">Ouvrir</button>
-            <button class="ghost" type="button" data-doc-download="${escapeHtml(doc.file_path)}" data-doc-name="${escapeHtml(doc.file_name)}">Télécharger</button>
-            <button class="delete" type="button" data-doc-delete="${escapeHtml(doc.id)}" data-doc-path="${escapeHtml(doc.file_path)}">Supprimer</button>
+          <div class="document-card-content">
+            <div class="document-card-head">
+              <div>
+                <strong>${escapeHtml(doc.document_type)} · ${escapeHtml(doc.production)}</strong>
+                <span>${escapeHtml(monthName(doc.doc_month))} ${escapeHtml(doc.doc_year)}</span>
+              </div>
+              <span class="pill">${escapeHtml(doc.document_type)}</span>
+            </div>
+
+            <p class="document-file-name">${escapeHtml(doc.file_name)}</p>
+
+            <div class="document-actions">
+              <button class="ghost" type="button" data-doc-open="${escapeHtml(doc.file_path)}">Ouvrir</button>
+              <button class="ghost" type="button" data-doc-download="${escapeHtml(doc.file_path)}" data-doc-name="${escapeHtml(doc.file_name)}">Télécharger</button>
+              <button class="delete" type="button" data-doc-delete="${escapeHtml(doc.id)}" data-doc-path="${escapeHtml(doc.file_path)}">Supprimer</button>
+            </div>
           </div>
         </div>
       `).join("") : `<div class="empty">Aucun document dans ce filtre.</div>`}
     </div>
   `;
 }
+
 async function addMission(event) {
   event.preventDefault();
 
@@ -708,13 +833,13 @@ function render() {
   const percent = Math.round((yearHours / OBJECTIVE_HOURS) * 100);
   const remaining = Math.max(0, Math.round((OBJECTIVE_HOURS - yearHours) * 10) / 10);
 
-  $("yearHours").textContent = yearHours;
-  $("monthHours").textContent = monthHours + "h";
-  $("monthGross").textContent = money(monthGross);
-  $("yearGross").textContent = money(yearGross);
-  $("remainingHours").textContent = remaining + "h";
-  $("missionCount").textContent = sumMissionDays(selectedMonthMissions);
-  $("progressText").textContent = percent + "% de ton objectif intermittent";
+  if ($("yearHours")) $("yearHours").textContent = yearHours;
+  if ($("monthHours")) $("monthHours").textContent = monthHours + "h";
+  if ($("monthGross")) $("monthGross").textContent = money(monthGross);
+  if ($("yearGross")) $("yearGross").textContent = money(yearGross);
+  if ($("remainingHours")) $("remainingHours").textContent = remaining + "h";
+  if ($("missionCount")) $("missionCount").textContent = sumMissionDays(selectedMonthMissions);
+  if ($("progressText")) $("progressText").textContent = percent + "% de ton objectif intermittent";
 
   if ($("fiscaliteGrossPreview")) {
     $("fiscaliteGrossPreview").textContent = "Brut annuel : " + money(yearGross);
@@ -834,8 +959,8 @@ function render() {
     $("previsionDroits").textContent = remaining + "h restantes";
   }
 
-  if ($("previsionTaux")) {
-    $("previsionTaux").textContent = "Calcul officiel à intégrer";
+  if ($("previsionTaux") && !$("areHours")?.value && !$("areDailyGross")?.value) {
+    $("previsionTaux").textContent = "Renseigne tes heures et ton brut journée";
   }
 
   if ($("previsionCarence")) {
