@@ -1501,3 +1501,238 @@ button {
   outline: none !important;
   box-shadow: none !important;
 }
+
+
+/* Onglet documents classés par production */
+.document-folder-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.document-folder-card {
+  text-align: left;
+  background: linear-gradient(145deg, #FFFFFF, #EEF4F1);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 16px;
+  color: var(--text);
+  box-shadow: 0 10px 24px rgba(31,78,95,.06);
+}
+
+.document-folder-card strong {
+  display: block;
+  color: var(--petrol);
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+
+.document-folder-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.document-folder-card small {
+  display: block;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.document-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.document-detail-head h2 {
+  margin: 0;
+}
+
+.document-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+
+.doc-filter {
+  background: var(--soft);
+  color: var(--petrol);
+  border: 1px solid var(--line);
+  padding: 9px 12px;
+  font-size: 13px;
+}
+
+.doc-filter.active {
+  background: var(--petrol);
+  color: white;
+}
+
+/* Onglet fiscalité */
+.fiscalite-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 16px 0;
+}
+
+.fiscalite-card {
+  background: linear-gradient(145deg, #FFFFFF, #EEF4F1);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 10px 24px rgba(31,78,95,.06);
+}
+
+.fiscalite-card h3 {
+  color: var(--petrol);
+  margin: 12px 0 8px;
+  font-size: 18px;
+}
+
+.fiscalite-card p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0 0 12px;
+}
+
+.fiscalite-card strong {
+  color: var(--petrol);
+  font-size: 15px;
+}
+
+.tabs {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
+
+@media (max-width: 720px) {
+  .document-folder-grid,
+  .fiscalite-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .document-detail-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+
+/* Onglet Prévisions */
+.previsions-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin: 16px 0;
+}
+
+.prevision-card {
+  background: linear-gradient(145deg, #FFFFFF, #EEF4F1);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 10px 24px rgba(31,78,95,.06);
+}
+
+.prevision-card h3 {
+  color: var(--petrol);
+  margin: 12px 0 8px;
+  font-size: 18px;
+}
+
+.prevision-card p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0 0 12px;
+}
+
+.prevision-card strong {
+  color: var(--petrol);
+  font-size: 15px;
+}
+
+@media (max-width: 1100px) {
+  .previsions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .previsions-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Sécurité affichage estimations prévisions */
+.prevision-card small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+  margin-top: 8px;
+}
+
+
+/* Frais kilométriques dans mission */
+.optional-block {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #F8FAF9;
+}
+
+.optional-block h3 {
+  margin: 0 0 4px;
+  color: var(--petrol);
+  font-size: 17px;
+}
+
+.fiscal-small-btn {
+  width: 100%;
+  margin: 10px 0 12px;
+}
+
+.fiscalite-card label {
+  margin-top: 10px;
+}
+
+.fiscalite-card strong + strong {
+  display: block;
+  margin-top: 8px;
+}
+
+
+/* Estimation impôt détaillée */
+.fiscalite-card small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+  margin-top: 10px;
+}
+
+.fiscalite-card input {
+  margin-bottom: 4px;
+}
+
+/* Net imposable estimé depuis le brut */
+#fiscaliteNetPreview {
+  display: block;
+  color: var(--petrol);
+}
+
+/* Fiscalité projection annuelle et frais réels */
+#fiscaliteKmDeductionPreview,
+#fiscaliteOtherIncomePreview,
+#fiscaliteTotalIncomePreview,
+#fiscaliteProjectionPreview {
+  display: block;
+  color: var(--petrol);
+}
