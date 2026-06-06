@@ -154,7 +154,6 @@
         <button class="tab" type="button" data-view="documents">Documents</button>
         <button class="tab" type="button" data-view="fiscalite">Fiscalité</button>
         <button class="tab" type="button" data-view="previsions">Prévisions</button>
-        <button class="tab" type="button" data-view="account">Compte</button>
       </nav>
 
       <section class="view active" id="view-dashboard">
@@ -414,25 +413,51 @@
         </article>
       </section>
 
-
       <section class="view" id="view-previsions">
         <article class="card">
           <h2>Prévisions</h2>
-          <p class="sub">Anticipe tes droits, tes congés, tes carences et ton taux journalier à partir des missions enregistrées.</p>
+          <p class="sub">Anticipe tes droits, tes congés, tes carences et ton taux journalier.</p>
 
           <div class="previsions-grid">
+
             <div class="prevision-card">
-              <span class="mini-label">France Travail</span>
-              <h3>Estimation carence</h3>
-              <p>Module à développer avec les paramètres personnels nécessaires pour éviter toute estimation trompeuse.</p>
-              <strong id="previsionCarence">Non calculé pour le moment</strong>
-              <small>Objectif : afficher une estimation fiable après paramétrage utilisateur.</small>
+              <span class="mini-label">Annexe 8</span>
+              <h3>Prévision taux journalier</h3>
+
+              <p>Simulation indicative technicien basée sur une journée de référence de 8h.</p>
+
+              <label for="areHours">Nombre d'heures retenues</label>
+              <input id="areHours" type="number" min="0" step="1" placeholder="Ex : 580" />
+
+              <label for="areDailyGross">Brut moyen par journée de 8h (€)</label>
+              <input id="areDailyGross" type="number" min="0" step="0.01" placeholder="Ex : 230" />
+
+              <p class="hint">
+                Le salaire de référence est estimé automatiquement : heures ÷ 8 × brut journée.
+              </p>
+
+              <button class="ghost fiscal-small-btn" type="button" id="calculateAreBtn">
+                Calculer
+              </button>
+
+              <strong id="previsionTaux">Renseigne tes heures et ton brut journée</strong>
+
+              <small id="previsionTauxDetails">
+                Simulation indicative. Ne remplace pas le calcul officiel France Travail.
+              </small>
+
+              <div class="projection-box">
+                <strong>Projection rapide</strong>
+                <p id="areProjectionText">
+                  Renseigne tes données pour voir les projections.
+                </p>
+              </div>
             </div>
 
             <div class="prevision-card">
               <span class="mini-label">Congés</span>
               <h3>Estimation Congés Spectacles</h3>
-              <p>Estimation brute indicative basée sur environ 10% du brut enregistré sur la période de référence.</p>
+              <p>Estimation brute indicative basée sur environ 10% du brut enregistré.</p>
               <strong id="previsionConges">Estimation indicative</strong>
               <small>Hors cotisations, régularisations et règles particulières.</small>
             </div>
@@ -440,38 +465,27 @@
             <div class="prevision-card">
               <span class="mini-label">Droits</span>
               <h3>Réouverture des droits</h3>
-              <p>Suis ton avancement vers les 507 heures et visualise ce qu'il te reste à effectuer.</p>
+              <p>Suis ton avancement vers les 507 heures.</p>
               <strong id="previsionDroits">507h restantes</strong>
             </div>
 
             <div class="prevision-card">
-              <span class="mini-label">Indemnisation</span>
-              <h3>Prévision taux journalier</h3>
-              <p>Le taux journalier correspond à une estimation France Travail, pas à ton brut moyen de production.</p>
-              <strong id="previsionTaux">Calcul officiel à intégrer</strong>
-              <small>À développer avec les paramètres France Travail et annexes intermittents.</small>
+              <span class="mini-label">France Travail</span>
+              <h3>Estimation carence</h3>
+              <p>Module à développer avec les paramètres personnels.</p>
+              <strong id="previsionCarence">Non calculé pour le moment</strong>
+              <small>Objectif : estimation mensuelle fiable.</small>
             </div>
+
           </div>
 
           <p class="hint">
-            Les montants de cette rubrique sont strictement indicatifs. Aucun calcul France Travail ou fiscal officiel n'est remplacé par Intermitrack.
+            Les montants de cette rubrique sont strictement indicatifs. Aucun calcul France Travail officiel n'est remplacé par Intermitrack.
           </p>
         </article>
       </section>
 
-      <section class="view" id="view-account">
-        <article class="card">
-          <h2>Compte</h2>
-          <p class="sub">Votre espace Intermitrack.</p>
-          <div class="account-box">
-            <p><strong>Email :</strong> <span id="accountEmail">-</span></p>
-            <p><strong>Abonnement :</strong> <span class="pill">Version test</span></p>
-          </div>
-          <button class="primary" type="button" id="installBtn">Installer l'application</button>
-          <p class="hint">Sur iPhone, utilisez aussi le bouton Partager de Safari puis "Ajouter à l'écran d'accueil".</p>
-        </article>
-      </section>
-    </section>
+</section>
   </main>
 
   <script src="document-parser.js"></script>
