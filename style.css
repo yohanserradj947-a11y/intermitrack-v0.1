@@ -1856,3 +1856,18 @@ button {
 .legal-footer a:hover {
   text-decoration: underline;
 }
+.beta-banner {
+  background: #fff3cd;
+  color: #856404;
+  border-bottom: 1px solid #ffe69c;
+
+  padding: 10px 16px;
+  text-align: center;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  position: sticky;
+  top: 0;
+  z-index: 9999;
+}
