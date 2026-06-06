@@ -225,6 +225,150 @@ function calculateEstimatedAreDailyRate() {
 }
 
 
+
+function monterWidgetParserDocuments() {
+  const container = $("document-parser-container-documents");
+  if (!container) return;
+
+  container.innerHTML = `
+    <div style="
+      border: 2px dashed #6c63ff;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      background: rgba(108,99,255,0.05);
+      margin-bottom: 20px;
+    ">
+      <p style="font-weight:600; margin:0 0 8px;">📄 Importer un contrat ou fiche de paie</p>
+      <p style="font-size:13px; color:#888; margin:0 0 12px;">PDF, JPG ou PNG — l'IA classe le document automatiquement</p>
+      <input type="file" id="doc-input-documents" accept=".pdf,.jpg,.jpeg,.png" style="display:none">
+      <button id="doc-btn-documents" type="button" style="
+        padding: 8px 20px;
+        background: #1F4E5F;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+      ">Choisir un fichier</button>
+      <p id="doc-status-documents" style="margin-top:12px; font-size:13px; color:#888;"></p>
+    </div>
+  `;
+
+  const input = $("doc-input-documents");
+  const button = $("doc-btn-documents");
+  const status = $("doc-status-documents");
+
+  if (!input || !button || !status) return;
+
+  button.addEventListener("click", () => input.click());
+
+  input.addEventListener("change", async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    status.textContent = "⏳ Analyse en cours…";
+    button.disabled = true;
+    button.style.opacity = "0.6";
+
+    try {
+      let data = null;
+
+      if (typeof analyserDocument === "function") {
+        data = await analyserDocument(file);
+      } else if (typeof analyserDocumentAvecIa === "function") {
+        data = await analyserDocumentAvecIa(file);
+      } else if (typeof uploadEtAnalyserDocument === "function") {
+        data = await uploadEtAnalyserDocument(file);
+      } else {
+        throw new Error("Module IA introuvable.");
+      }
+
+      if (!data) throw new Error("Aucune donnée détectée.");
+
+      if (typeof sauvegarderDocumentDansRubrique === "function") {
+        await sauvegarderDocumentDansRubrique(file, data);
+      } else if (typeof classerDocumentDepuisIa === "function") {
+        await classerDocumentDepuisIa(file, data);
+      } else {
+        await classerDocumentAnalyseIa(file, data);
+      }
+
+      status.style.color = "#28a745";
+      status.textContent = "✅ Document analysé et classé automatiquement.";
+      openDocumentProduction = data.production || data.employeur || data.societe || data.entreprise || openDocumentProduction;
+      await loadDocuments();
+      renderDocuments();
+    } catch (error) {
+      console.error(error);
+      status.style.color = "#dc3545";
+      status.textContent = "❌ Erreur : " + error.message;
+    } finally {
+      button.disabled = false;
+      button.style.opacity = "1";
+      input.value = "";
+    }
+  });
+}
+
+async function classerDocumentAnalyseIa(file, data) {
+  if (!currentUser) {
+    throw new Error("Connecte-toi avant d'ajouter un document.");
+  }
+
+  const production =
+    data.production ||
+    data.employeur ||
+    data.societe ||
+    data.entreprise ||
+    "Sans production";
+
+  const rawType = String(data.typeDocument || data.type_document || data.documentType || data.type || "").toLowerCase();
+  let documentType = "Autre";
+
+  if (rawType.includes("aem")) documentType = "AEM";
+  else if (rawType.includes("paie") || rawType.includes("bulletin")) documentType = "Fiche de paie";
+  else if (rawType.includes("congé") || rawType.includes("conge")) documentType = "Congés Spectacles";
+  else if (rawType.includes("contrat") || rawType.includes("cddu")) documentType = "Contrat";
+
+  const dateValue = data.dateDebut || data.date_debut || data.date || data.mission_date;
+  const baseDate = dateValue ? new Date(dateValue + "T00:00:00") : new Date();
+  const month = baseDate.getMonth() + 1;
+  const year = baseDate.getFullYear();
+
+  const cleanName = safeFileName(file.name);
+  const filePath = `${currentUser.id}/${year}/${String(month).padStart(2, "0")}/${Date.now()}_${cleanName}`;
+
+  const { error: uploadError } = await sb.storage
+    .from("documents")
+    .upload(filePath, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type || "application/octet-stream"
+    });
+
+  if (uploadError) {
+    throw new Error("Erreur upload document : " + uploadError.message);
+  }
+
+  const { error: insertError } = await sb.from("documents").insert({
+    user_id: currentUser.id,
+    file_name: file.name,
+    file_path: filePath,
+    document_type: documentType,
+    production,
+    doc_month: month,
+    doc_year: year,
+    mime_type: file.type || null
+  });
+
+  if (insertError) {
+    await sb.storage.from("documents").remove([filePath]);
+    throw new Error("Erreur sauvegarde document : " + insertError.message);
+  }
+}
+
+
 function calculateKmAmount() {
   const distance = Number($("kmDistance")?.value || 0);
   const rate = Number($("kmRate")?.value || 0);
@@ -256,6 +400,7 @@ function showApp() {
   $("userbar").classList.remove("hidden");
   $("userEmail").textContent = currentUser?.email || "";
   if (typeof monterWidgetParser === "function") monterWidgetParser();
+  if (typeof monterWidgetParserDocuments === "function") monterWidgetParserDocuments();
 }
 
 async function init() {
@@ -1138,6 +1283,7 @@ function renderAllMissions() {
 
         return `
           <button class="production-card" type="button" data-production-open="${production.replace(/"/g, "&quot;")}">
+            <div class="production-card-icon" aria-hidden="true">🎬</div>
             <strong>${production}</strong>
             <span>${list.length} mission${list.length > 1 ? "s" : ""}</span>
             <span>${totalDays} jour${totalDays > 1 ? "s" : ""}</span>
