@@ -18,6 +18,19 @@ const OBJECTIVE_HOURS = 507;
 const MAX_DISPLAY_PERCENT = 300;
 
 const $ = (id) => document.getElementById(id);
+async function trackEvent(eventName, eventData = {}) {
+  try {
+    if (!currentUser) return;
+
+    await sb.from("analytics_events").insert({
+      user_id: currentUser.id,
+      event_name: eventName,
+      event_data: eventData
+    });
+  } catch (error) {
+    console.warn("Analytics non bloquant :", error.message);
+  }
+}
 
 function setDefaultDates() {
   const today = new Date();
@@ -856,6 +869,8 @@ function activateView(viewName) {
   document.querySelectorAll(".view").forEach((view) => {
     view.classList.toggle("active", view.id === "view-" + viewName);
   });
+
+  trackEvent("view_" + viewName);
 }
 
 function money(n) {
@@ -2020,7 +2035,7 @@ if ($("calculateAreBtn")) $("calculateAreBtn").addEventListener("click", calcula
     deferredInstallPrompt = event;
   });
 
-  $("installBtn").addEventListener("click", async () => {
+  if ($("installBtn")) $("installBtn").addEventListener("click", async () => {
     if (!deferredInstallPrompt) {
       alert("Sur iPhone : ouvrez Safari, bouton Partager, puis Ajouter à l'écran d'accueil. Sur Android : menu du navigateur, puis Installer l'application.");
       return;
