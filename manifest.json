@@ -1,12 +1,11 @@
 {
   "name": "Intermitrack",
   "short_name": "Intermitrack",
-  "description": "Suivez vos heures, vos missions et votre progression vers les 507h.",
-  "start_url": "./index.html",
+  "description": "Le tableau de bord des intermittents.",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#F5F7F6",
   "theme_color": "#1F4E5F",
-  "orientation": "portrait",
   "icons": [
     {
       "src": "icon-192.png",
