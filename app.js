@@ -1865,6 +1865,15 @@ function setupEvents() {
   $("loginModeBtn").addEventListener("click", () => setAuthMode("login"));
   $("signupModeBtn").addEventListener("click", () => setAuthMode("signup"));
   $("logoutBtn").addEventListener("click", logout);
+  if ($("togglePassword")) {
+  $("togglePassword").addEventListener("click", () => {
+    const input = $("authPassword");
+    if (!input) return;
+
+    input.type = input.type === "password" ? "text" : "password";
+    $("togglePassword").textContent = input.type === "password" ? "👁" : "🙈";
+  });
+}
 
   $("authForm").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -1873,6 +1882,11 @@ function setupEvents() {
     const email = $("authEmail").value.trim();
     const password = $("authPassword").value;
     let result;
+    if (authMode === "signup" && password.length < 6) {
+  $("authMsg").textContent =
+    "Le mot de passe doit contenir au moins 6 caractères.";
+  return;
+}
 
     if (authMode === "signup") result = await sb.auth.signUp({ email, password });
     else result = await sb.auth.signInWithPassword({ email, password });
