@@ -1810,3 +1810,32 @@ button {
     height: 44px;
   }
 }
+
+/* Missions - emoji production corrigé */
+.production-card .production-card-icon {
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px !important;
+  min-height: 46px !important;
+  border-radius: 16px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  background: linear-gradient(135deg, var(--petrol), var(--sage)) !important;
+  color: #FFFFFF !important;
+
+  font-size: 24px !important;
+  line-height: 1 !important;
+  font-weight: 400 !important;
+
+  box-shadow: 0 10px 20px rgba(31, 78, 95, .16) !important;
+  margin: 0 0 10px 0 !important;
+  padding: 0 !important;
+}
+
+.production-card {
+  display: grid !important;
+  align-content: start !important;
+}
