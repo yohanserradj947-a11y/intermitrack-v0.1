@@ -1900,7 +1900,7 @@ function setupEvents() {
   });
   if ($("documentForm")) $("documentForm").addEventListener("submit", uploadDocument);
   if ($("refreshDocumentsBtn")) $("refreshDocumentsBtn").addEventListener("click", loadDocuments);
-
+if ($("calculateAreBtn")) $("calculateAreBtn").addEventListener("click", calculateEstimatedAreDailyRate);
   $("date").addEventListener("change", () => {
     if (!$("endDate").value || $("endDate").value < $("date").value) {
       $("endDate").value = $("date").value;
