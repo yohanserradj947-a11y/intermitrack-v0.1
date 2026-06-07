@@ -14,6 +14,7 @@ let editingMissionId = null;
 let current = new Date();
 let deferredInstallPrompt = null;
 let historyPage = 1;
+let areAdmissionDate = localStorage.getItem("areAdmissionDate") || "";
 const HISTORY_PER_PAGE = 6;
 
 const OBJECTIVE_HOURS = 507;
@@ -164,6 +165,18 @@ function setDefaultDates() {
   if ($("endDate")) $("endDate").valueAsDate = today;
   if ($("documentMonth")) $("documentMonth").value = String(today.getMonth() + 1);
   if ($("documentYear")) $("documentYear").value = String(today.getFullYear());
+  if ($("saveAreAdmissionDateBtn")) {
+  $("saveAreAdmissionDateBtn").addEventListener("click", () => {
+    const value = $("areAdmissionDate").value;
+
+    localStorage.setItem("areAdmissionDate", value);
+    areAdmissionDate = value;
+
+    render();
+
+    alert("Date d'admission ARE enregistrée.");
+  });
+}
 }
 
 
@@ -1097,10 +1110,24 @@ function getProductionInitials(name) {
 function render() {
   const now = new Date();
   const year = now.getFullYear();
+  if ($("areAdmissionDate")) {
+  $("areAdmissionDate").value = areAdmissionDate || "";
+}
 
-  const yearMissions = missions.filter((mission) => {
-    return new Date(mission.date + "T00:00:00").getFullYear() === year;
-  });
+if ($("areAdmissionInfo") && areAdmissionDate) {
+  $("areAdmissionInfo").textContent =
+    "Calcul des heures effectué depuis le " +
+    new Date(areAdmissionDate).toLocaleDateString("fr-FR");
+}
+
+  const areStartDate = areAdmissionDate
+  ? new Date(areAdmissionDate + "T00:00:00")
+  : new Date(year, 0, 1);
+
+const yearMissions = missions.filter((mission) => {
+  const missionDate = new Date(mission.date + "T00:00:00");
+  return missionDate >= areStartDate;
+});
 
   const selectedMonthMissions = monthMissions(current);
 
@@ -1124,7 +1151,7 @@ function render() {
   if ($("monthHours")) $("monthHours").textContent = monthHours + "h";
   if ($("monthGross")) $("monthGross").textContent = money(monthGross);
   if ($("yearGross")) $("yearGross").textContent = money(yearGross);
-  if ($("remainingHours")) $("remainingHours").textContent = remaining + "h";
+  if ($("remainingHours")) $("remainingHours").textContent = remaining;
   if ($("missionCount")) $("missionCount").textContent = sumMissionDays(selectedMonthMissions);
   if ($("progressText")) $("progressText").textContent = percent + "% de ton objectif intermittent";
 
@@ -1272,98 +1299,73 @@ function polarToCartesian(cx, cy, rx, ry, angle) {
 
 function renderChart(doneHours, plannedHours = 0) {
   const total = OBJECTIVE_HOURS;
-  const maxPercent = MAX_DISPLAY_PERCENT;
-  const maxHours = total * (maxPercent / 100);
-
   const doneRaw = Math.max(0, Number(doneHours) || 0);
   const plannedRaw = Math.max(0, Number(plannedHours) || 0);
-  const totalRaw = doneRaw + plannedRaw;
 
   const donePercent = Math.round((doneRaw / total) * 100);
   const plannedPercent = Math.round((plannedRaw / total) * 100);
   const totalPercent = donePercent + plannedPercent;
 
-  const doneVisibleHours = Math.min(doneRaw, maxHours);
-  const plannedVisibleHours = Math.min(plannedRaw, Math.max(0, maxHours - doneVisibleHours));
-  const remainVisibleHours = Math.max(0, maxHours - doneVisibleHours - plannedVisibleHours);
-
-  const cx = 250;
-  const cy = 118;
-  const rx = 150;
-  const ry = 92;
-  const depth = 28;
-
-  const doneAngle = (doneVisibleHours / maxHours) * 360;
-  const plannedAngle = (plannedVisibleHours / maxHours) * 360;
-
-  function polarLabel(angle, ratio = 0.58) {
-    const rad = (angle - 90) * Math.PI / 180;
-    return {
-      x: cx + rx * ratio * Math.cos(rad),
-      y: cy + ry * ratio * Math.sin(rad)
-    };
-  }
-
-  function wedge(startAngle, endAngle, fill) {
-    if (endAngle <= startAngle) return "";
-
-    if (endAngle - startAngle >= 359.9) {
-      return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" stroke="#ffffff" stroke-width="3"/>`;
-    }
-
-    const start = polarToCartesian(cx, cy, rx, ry, endAngle);
-    const end = polarToCartesian(cx, cy, rx, ry, startAngle);
-    const large = endAngle - startAngle <= 180 ? 0 : 1;
-
-    return `<path d="M ${cx} ${cy} L ${start.x} ${start.y} A ${rx} ${ry} 0 ${large} 0 ${end.x} ${end.y} Z" fill="${fill}" stroke="#ffffff" stroke-width="3"/>`;
-  }
-
-  const doneLabel = polarLabel(doneAngle / 2);
-  const plannedLabel = polarLabel(doneAngle + plannedAngle / 2);
+  const CIRC = 377;
+  const doneDash = Math.min((donePercent / 100) * CIRC, CIRC);
+  const plannedDash = Math.min((plannedPercent / 100) * CIRC, CIRC - doneDash);
 
   if (!$("chart")) return;
 
   $("chart").innerHTML = `
-    <svg viewBox="0 0 520 305" role="img" aria-label="Camembert progression heures effectuées et prévues">
+    <svg viewBox="0 0 300 200" width="100%" role="img" aria-label="Arc progression heures">
       <defs>
-        <linearGradient id="doneTop" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id="g3done" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stop-color="#7A9E7E"/>
           <stop offset="100%" stop-color="#1F4E5F"/>
         </linearGradient>
-        <linearGradient id="plannedTop" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id="g3plan" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stop-color="#FDBA74"/>
           <stop offset="100%" stop-color="#F97316"/>
         </linearGradient>
-        <linearGradient id="remainTop" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#EEF4F1"/>
-          <stop offset="100%" stop-color="#D8E4DF"/>
-        </linearGradient>
-        <linearGradient id="side" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#C7D8D1"/>
-          <stop offset="100%" stop-color="#AABDB5"/>
-        </linearGradient>
+        <filter id="arcShadow">
+          <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.15"/>
+        </filter>
       </defs>
 
-      <ellipse cx="250" cy="165" rx="168" ry="92" fill="rgba(31,78,95,.12)"/>
-      <ellipse cx="${cx}" cy="${cy + depth}" rx="${rx}" ry="${ry}" fill="url(#side)"/>
-      <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="url(#remainTop)" stroke="#ffffff" stroke-width="3"/>
+      <!-- Fond restant -->
+      <path d="M 30 165 A 120 120 0 0 1 270 165"
+        fill="none" stroke="#EEF4F1" stroke-width="30" stroke-linecap="round"/>
 
-      ${doneVisibleHours > 0 ? wedge(0, doneAngle, "url(#doneTop)") : ""}
-      ${plannedVisibleHours > 0 ? wedge(doneAngle, doneAngle + plannedAngle, "url(#plannedTop)") : ""}
+      <!-- Effectué -->
+      ${doneDash > 0 ? `
+      <path d="M 30 165 A 120 120 0 0 1 270 165"
+        fill="none" stroke="url(#g3done)" stroke-width="30" stroke-linecap="round"
+        stroke-dasharray="${doneDash} ${CIRC}" filter="url(#arcShadow)"/>
+      ` : ""}
 
-      ${donePercent > 0 ? `<text x="${doneLabel.x}" y="${doneLabel.y + 7}" text-anchor="middle" class="piePercent">${donePercent}%</text>` : ""}
-      ${plannedPercent > 0 ? `<text x="${plannedLabel.x}" y="${plannedLabel.y + 7}" text-anchor="middle" class="piePercent">${plannedPercent}%</text>` : ""}
+      <!-- Prévu -->
+      ${plannedDash > 0 ? `
+      <path d="M 30 165 A 120 120 0 0 1 270 165"
+        fill="none" stroke="url(#g3plan)" stroke-width="30" stroke-linecap="round"
+        stroke-dasharray="${plannedDash} ${CIRC}" stroke-dashoffset="${-doneDash}"/>
+      ` : ""}
 
-      <text x="${cx}" y="252" text-anchor="middle" class="pieTotal">Total potentiel : ${totalPercent}%</text>
+      <!-- % total au centre -->
+      <text x="150" y="132" text-anchor="middle"
+        font-size="44" font-weight="900" fill="#1F4E5F"
+        font-family="-apple-system, BlinkMacSystemFont, sans-serif">${totalPercent}%</text>
+      <text x="150" y="155" text-anchor="middle"
+        font-size="13" fill="#718096"
+        font-family="-apple-system, BlinkMacSystemFont, sans-serif">potentiel total</text>
 
-      <rect x="62" y="278" width="13" height="13" rx="4" fill="#1F4E5F"/>
-      <text x="82" y="289" class="legendText">Effectué</text>
+      <!-- Légende -->
+      <rect x="20" y="182" width="12" height="12" rx="3" fill="#1F4E5F"/>
+      <text x="37" y="193" font-size="13" font-weight="700" fill="#2D3748"
+        font-family="-apple-system, BlinkMacSystemFont, sans-serif">Effectué · ${donePercent}%</text>
 
-      <rect x="220" y="278" width="13" height="13" rx="4" fill="#F97316"/>
-      <text x="240" y="289" class="legendText">Prévu</text>
+      <rect x="128" y="182" width="12" height="12" rx="3" fill="#F97316"/>
+      <text x="145" y="193" font-size="13" font-weight="700" fill="#2D3748"
+        font-family="-apple-system, BlinkMacSystemFont, sans-serif">Prévu · ${plannedPercent}%</text>
 
-      <rect x="360" y="278" width="13" height="13" rx="4" fill="#D8E4DF"/>
-      <text x="380" y="289" class="legendMuted">Restant</text>
+      <rect x="228" y="182" width="12" height="12" rx="3" fill="#D8E4DF"/>
+      <text x="245" y="193" font-size="13" font-weight="700" fill="#718096"
+        font-family="-apple-system, BlinkMacSystemFont, sans-serif">Restant</text>
     </svg>
   `;
 }
