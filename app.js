@@ -1,4 +1,3 @@
-
 const SUPABASE_URL = "https://upeogpgczoghlfwblnkb.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwZW9ncGdjem9naGxmd2JsbmtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MjkyMDQsImV4cCI6MjA5NjEwNTIwNH0.6535_0KMaEDLxTMhz_OX-4OqC_tpQsPJR5jkFQL7UqI";
 
@@ -26,90 +25,53 @@ const productionAliases = {
   "DMLS PROD": "DMLS",
   "DMLS PRODUCTION": "DMLS",
   "DMLS PRODUCTIONS": "DMLS",
-
   "ITV FRANCE": "ITV",
   "ITV STUDIOS": "ITV",
   "ITV PROD": "ITV",
   "ITV PRODUCTION": "ITV",
   "ITV PRODUCTIONS": "ITV",
-
   "TF1 PROD": "TF1",
   "TF1 PRODUCTION": "TF1",
   "TF1 PRODUCTIONS": "TF1",
-
   "BANIJAY FRANCE": "BANIJAY",
   "BANIJAY PROD": "BANIJAY",
-
   "ENDEMOL FRANCE": "ENDEMOL",
   "ENDEMOL SHINE": "ENDEMOL",
   "ENDEMOLSHINE": "ENDEMOL",
-
   "FREMANTLE FRANCE": "FREMANTLE",
   "FREMANTLEMEDIA": "FREMANTLE",
-
   "MEDIAWAN PROD": "MEDIAWAN",
   "MEDIAWAN PRODUCTION": "MEDIAWAN",
-
   "NEWEN STUDIOS": "NEWEN",
   "NEWEN FRANCE": "NEWEN",
-
   "M6 PROD": "M6",
   "M6 PRODUCTION": "M6",
-
   "DUSHOW TV": "DUSHOW",
   "DUSHOW SAS": "DUSHOW",
-
   "BLIVE PROD": "BLIVE",
   "BLIVE PRODUCTION": "BLIVE",
-
   "NOVELTY FRANCE": "NOVELTY",
   "NOVELTY MAGNUM": "NOVELTY",
   "NOVELTY EVENT": "NOVELTY",
-
   "AMP VISUAL TV": "AMP VISUAL",
   "AMP VISUAL PRODUCTION": "AMP VISUAL",
-
   "SATEL PRODUCTION": "SATEL",
   "SATEL TV": "SATEL",
-
   "BBC STUDIOS": "BBC",
   "BBC FRANCE": "BBC",
-
   "CARSON PROD": "CARSON",
   "CARSON PRODUCTION": "CARSON",
   "D M L S TV": "DMLS",
-"D M L S": "DMLS",
-
-"VDLM": "LES VICTOIRES DE LA MUSIQUE",
-"VICTOIRES DE LA MUSIQUE": "LES VICTOIRES DE LA MUSIQUE",
-"LES VICTOIRES DE LA MUSIQUE": "LES VICTOIRES DE LA MUSIQUE"
+  "D M L S": "DMLS",
+  "VDLM": "LES VICTOIRES DE LA MUSIQUE",
+  "VICTOIRES DE LA MUSIQUE": "LES VICTOIRES DE LA MUSIQUE",
+  "LES VICTOIRES DE LA MUSIQUE": "LES VICTOIRES DE LA MUSIQUE"
 };
 
 const productionPrefixes = [
-  "AMP VISUAL",
-  "DMLS",
-  "ITV",
-  "TF1",
-  "BANIJAY",
-  "ENDEMOL",
-  "FREMANTLE",
-  "MEDIAWAN",
-  "NEWEN",
-  "M6",
-  "DUSHOW",
-  "BLIVE",
-  "NOVELTY",
-  "SATEL",
-  "BBC",
-  "CARSON",
-  "DMLS",
-"VDLM",
-"VICTOIRES DE LA MUSIQUE",
-"LES VICTOIRES DE LA MUSIQUE",
-
-
-
-
+  "AMP VISUAL", "DMLS", "ITV", "TF1", "BANIJAY", "ENDEMOL", "FREMANTLE",
+  "MEDIAWAN", "NEWEN", "M6", "DUSHOW", "BLIVE", "NOVELTY", "SATEL", "BBC",
+  "CARSON", "VDLM", "VICTOIRES DE LA MUSIQUE", "LES VICTOIRES DE LA MUSIQUE"
 ];
 
 function normalizeProductionName(value) {
@@ -124,31 +86,22 @@ function normalizeProductionName(value) {
     .replace(/\s+/g, " ")
     .trim();
 
-  if (productionAliases[name]) {
-    return productionAliases[name];
-  }
+  if (productionAliases[name]) return productionAliases[name];
+
   const compactName = name.replace(/\s+/g, "");
-
-if (compactName.startsWith("DMLS")) {
-  return "DMLS";
-}
-
-if (compactName.startsWith("VDLM")) {
-  return "LES VICTOIRES DE LA MUSIQUE";
-}
+  if (compactName.startsWith("DMLS")) return "DMLS";
+  if (compactName.startsWith("VDLM")) return "LES VICTOIRES DE LA MUSIQUE";
 
   for (const prefix of productionPrefixes) {
-    if (name === prefix || name.startsWith(prefix + " ")) {
-      return prefix;
-    }
+    if (name === prefix || name.startsWith(prefix + " ")) return prefix;
   }
 
   return name;
 }
+
 async function trackEvent(eventName, eventData = {}) {
   try {
     if (!currentUser) return;
-
     await sb.from("analytics_events").insert({
       user_id: currentUser.id,
       event_name: eventName,
@@ -166,24 +119,19 @@ function setDefaultDates() {
   if ($("documentMonth")) $("documentMonth").value = String(today.getMonth() + 1);
   if ($("documentYear")) $("documentYear").value = String(today.getFullYear());
   if ($("saveAreAdmissionDateBtn")) {
-  $("saveAreAdmissionDateBtn").addEventListener("click", () => {
-    const value = $("areAdmissionDate").value;
-
-    localStorage.setItem("areAdmissionDate", value);
-    areAdmissionDate = value;
-
-    render();
-
-    alert("Date d'admission ARE enregistrée.");
-  });
+    $("saveAreAdmissionDateBtn").addEventListener("click", () => {
+      const value = $("areAdmissionDate").value;
+      localStorage.setItem("areAdmissionDate", value);
+      areAdmissionDate = value;
+      render();
+      alert("Date d'admission ARE enregistrée.");
+    });
+  }
 }
-}
-
 
 function storageKey(name) {
   return currentUser?.id ? `intermitrack_${name}_${currentUser.id}` : `intermitrack_${name}`;
 }
-
 
 function getTaxableIncome() {
   return Number(localStorage.getItem(storageKey("taxable_income")) || 0);
@@ -223,9 +171,6 @@ function estimateAnnualProjection(value, observedMonths) {
 }
 
 function estimateTaxableIncomeFromGross(grossAmount) {
-  // Coefficient volontairement indicatif.
-  // Objectif : éviter de demander le net imposable à l'utilisateur tout en restant prudent.
-  // À terme, ce coefficient pourra être remplacé par une lecture fiable des fiches de paie.
   return Math.max(0, Math.round(Number(grossAmount || 0) * 0.78));
 }
 
@@ -252,7 +197,6 @@ function calculateProgressiveTax(taxableIncome, parts) {
       taxPerPart += taxableSlice * bracket.rate;
       if (taxableSlice > 0) marginalRate = bracket.rate;
     }
-
     if (incomePerPart <= bracket.limit) break;
     previous = bracket.limit;
   }
@@ -260,12 +204,7 @@ function calculateProgressiveTax(taxableIncome, parts) {
   const estimatedTax = Math.max(0, Math.round(taxPerPart * safeParts));
   const averageRate = safeIncome ? (estimatedTax / safeIncome) * 100 : 0;
 
-  return {
-    estimatedTax,
-    averageRate,
-    marginalRate: marginalRate * 100,
-    incomePerPart
-  };
+  return { estimatedTax, averageRate, marginalRate: marginalRate * 100, incomePerPart };
 }
 
 function getTaxRate() {
@@ -276,9 +215,59 @@ function setTaxRate(value) {
   localStorage.setItem(storageKey("tax_rate"), String(Number(value || 0)));
 }
 
-
 function calculateEstimatedAreDailyRate() {
-  // ← fin de calculateEstimatedAreDailyRate()
+  const hours = Number($("areHours")?.value || 0);
+  const dailyGross = Number($("areDailyGross")?.value || 0);
+
+  if (!hours || !dailyGross) {
+    if ($("previsionTaux")) $("previsionTaux").textContent = "Renseigne tes heures et ton brut journée";
+    if ($("previsionTauxDetails")) $("previsionTauxDetails").textContent = "Simulation indicative Annexe 8 technicien.";
+    if ($("areProjectionText")) $("areProjectionText").textContent = "Renseigne tes données pour voir les projections.";
+    return;
+  }
+
+  const estimatedDays = hours / 8;
+  const referenceSalary = estimatedDays * dailyGross;
+  const MIN_ARE = 38;
+  const MAX_ARE = 174.8;
+  const AJ_MIN = 31.96;
+
+  const salaryPart = Math.min(referenceSalary, 14400) * 0.42 + Math.max(0, referenceSalary - 14400) * 0.05;
+  const hoursPart = Math.min(hours, 720) * 0.26 + Math.max(0, hours - 720) * 0.08;
+  const grossAre = (AJ_MIN * salaryPart / 5000) + (AJ_MIN * hoursPart / 507) + (AJ_MIN * 0.40);
+  const cappedGrossAre = Math.min(MAX_ARE, Math.max(MIN_ARE, grossAre));
+  const estimatedNetAre = cappedGrossAre * 0.89;
+
+  if ($("previsionTaux")) {
+    $("previsionTaux").textContent = "Environ " + estimatedNetAre.toFixed(2).replace(".", ",") + " € net / jour";
+  }
+
+  if ($("previsionTauxDetails")) {
+    $("previsionTauxDetails").textContent =
+      "Jours estimés : " + estimatedDays.toFixed(1).replace(".", ",") +
+      " • Salaire de référence : " + money(referenceSalary);
+  }
+
+  if ($("areProjectionText")) {
+    let targets;
+    if (hours < 507) targets = [507, 600, 700];
+    else if (hours < 700) targets = [700, 800, 900];
+    else if (hours < 900) targets = [900, 1000, 1100];
+    else if (hours < 1200) targets = [1200, 1300, 1400];
+    else { const base = Math.ceil(hours / 100) * 100; targets = [base, base + 100, base + 200]; }
+
+    const projectionLines = targets.map((targetHours) => {
+      const targetDays = targetHours / 8;
+      const targetSalary = targetDays * dailyGross;
+      const targetSalaryPart = Math.min(targetSalary, 14400) * 0.42 + Math.max(0, targetSalary - 14400) * 0.05;
+      const targetHoursPart = Math.min(targetHours, 720) * 0.26 + Math.max(0, targetHours - 720) * 0.08;
+      const targetGrossAre = (AJ_MIN * targetSalaryPart / 5000) + (AJ_MIN * targetHoursPart / 507) + (AJ_MIN * 0.40);
+      const targetNet = Math.min(MAX_ARE, Math.max(MIN_ARE, targetGrossAre)) * 0.89;
+      return `${targetHours}h → ${targetNet.toFixed(2).replace(".", ",")} € net/j`;
+    });
+
+    $("areProjectionText").innerHTML = projectionLines.join("<br>");
+  }
 }
 
 function calculateCarence() {
@@ -292,20 +281,16 @@ function calculateCarence() {
   }
 
   const delaiAttente = 7;
-
   const franchiseCongesRaw = conges > 0 ? Math.round(conges / sjm) : 0;
   const franchiseConges = Math.min(franchiseCongesRaw, 36);
-
   const franchiseSupraRaw = supra > 0 ? Math.round(supra / sjm) : 0;
   const franchiseSupra = Math.min(franchiseSupraRaw, 75);
-
   const total = delaiAttente + franchiseConges + franchiseSupra;
 
   $("carenceAttente").textContent = delaiAttente + "j";
   $("carenceCongesResult").textContent = franchiseConges + "j";
   $("carenceSupraResult").textContent = franchiseSupra + "j";
   $("carenceTotal").textContent = total + "j";
-
   $("carenceDetail").textContent =
     `Franchise congés : ${conges}€ ÷ ${sjm}€ = ${franchiseCongesRaw}j → plafonnée à ${franchiseConges}j` +
     (supra > 0 ? ` | Franchise salaires : ${supra}€ ÷ ${sjm}€ = ${franchiseSupraRaw}j → plafonnée à ${franchiseSupra}j` : " | Franchise salaires : non applicable (0€)");
@@ -313,141 +298,23 @@ function calculateCarence() {
   $("carenceResult").style.display = "block";
 }
 
-// ← suite de ton code...
-function monterWidgetParserDocuments() {
-  const hours = Number($("areHours")?.value || 0);
-  const dailyGross = Number($("areDailyGross")?.value || 0);
-
-  if (!hours || !dailyGross) {
-    if ($("previsionTaux")) {
-      $("previsionTaux").textContent = "Renseigne tes heures et ton brut journée";
-    }
-
-    if ($("previsionTauxDetails")) {
-      $("previsionTauxDetails").textContent = "Simulation indicative Annexe 8 technicien.";
-    }
-
-    if ($("areProjectionText")) {
-      $("areProjectionText").textContent = "Renseigne tes données pour voir les projections.";
-    }
-
-    return;
-  }
-
-  const estimatedDays = hours / 8;
-  const referenceSalary = estimatedDays * dailyGross;
-
-  const MIN_ARE = 38;
-  const MAX_ARE = 174.8;
-  const AJ_MIN = 31.96;
-
-  const salaryPart =
-    Math.min(referenceSalary, 14400) * 0.42 +
-    Math.max(0, referenceSalary - 14400) * 0.05;
-
-  const hoursPart =
-    Math.min(hours, 720) * 0.26 +
-    Math.max(0, hours - 720) * 0.08;
-
-  const grossAre =
-    (AJ_MIN * salaryPart / 5000) +
-    (AJ_MIN * hoursPart / 507) +
-    (AJ_MIN * 0.40);
-
-  const cappedGrossAre =
-    Math.min(MAX_ARE, Math.max(MIN_ARE, grossAre));
-
-  const estimatedNetAre = cappedGrossAre * 0.89;
-
-  if ($("previsionTaux")) {
-    $("previsionTaux").textContent =
-      "Environ " +
-      estimatedNetAre.toFixed(2).replace(".", ",") +
-      " € net / jour";
-  }
-
-  if ($("previsionTauxDetails")) {
-    $("previsionTauxDetails").textContent =
-      "Jours estimés : " +
-      estimatedDays.toFixed(1).replace(".", ",") +
-      " • Salaire de référence : " +
-      money(referenceSalary);
-  }
-
-  if ($("areProjectionText")) {
-    let targets;
-
-    if (hours < 507) targets = [507, 600, 700];
-    else if (hours < 700) targets = [700, 800, 900];
-    else if (hours < 900) targets = [900, 1000, 1100];
-    else if (hours < 1200) targets = [1200, 1300, 1400];
-    else {
-      const base = Math.ceil(hours / 100) * 100;
-      targets = [base, base + 100, base + 200];
-    }
-
-    const projectionLines = targets.map((targetHours) => {
-      const targetDays = targetHours / 8;
-      const targetSalary = targetDays * dailyGross;
-
-      const targetSalaryPart =
-        Math.min(targetSalary, 14400) * 0.42 +
-        Math.max(0, targetSalary - 14400) * 0.05;
-
-      const targetHoursPart =
-        Math.min(targetHours, 720) * 0.26 +
-        Math.max(0, targetHours - 720) * 0.08;
-
-      const targetGrossAre =
-        (AJ_MIN * targetSalaryPart / 5000) +
-        (AJ_MIN * targetHoursPart / 507) +
-        (AJ_MIN * 0.40);
-
-      const targetNet =
-        Math.min(MAX_ARE, Math.max(MIN_ARE, targetGrossAre)) * 0.89;
-
-      return `${targetHours}h → ${targetNet.toFixed(2).replace(".", ",")} € net/j`;
-    });
-
-    $("areProjectionText").innerHTML = projectionLines.join("<br>");
-  }
-}
-
-
-
 function monterWidgetParserDocuments() {
   const container = $("document-parser-container-documents");
   if (!container) return;
 
   container.innerHTML = `
-    <div style="
-      border: 2px dashed #6c63ff;
-      border-radius: 12px;
-      padding: 20px;
-      text-align: center;
-      background: rgba(108,99,255,0.05);
-      margin-bottom: 20px;
-    ">
-      <p style="font-weight:600; margin:0 0 8px;">📄 Importer un contrat ou fiche de paie</p>
-      <p style="font-size:13px; color:#888; margin:0 0 12px;">PDF, JPG ou PNG — l'IA classe le document automatiquement</p>
+    <div style="border:2px dashed #6c63ff;border-radius:12px;padding:20px;text-align:center;background:rgba(108,99,255,0.05);margin-bottom:20px;">
+      <p style="font-weight:600;margin:0 0 8px;">📄 Importer un contrat ou fiche de paie</p>
+      <p style="font-size:13px;color:#888;margin:0 0 12px;">PDF, JPG ou PNG — l'IA classe le document automatiquement</p>
       <input type="file" id="doc-input-documents" accept=".pdf,.jpg,.jpeg,.png" style="display:none">
-      <button id="doc-btn-documents" type="button" style="
-        padding: 8px 20px;
-        background: #1F4E5F;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 14px;
-      ">Choisir un fichier</button>
-      <p id="doc-status-documents" style="margin-top:12px; font-size:13px; color:#888;"></p>
+      <button id="doc-btn-documents" type="button" style="padding:8px 20px;background:#1F4E5F;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;">Choisir un fichier</button>
+      <p id="doc-status-documents" style="margin-top:12px;font-size:13px;color:#888;"></p>
     </div>
   `;
 
   const input = $("doc-input-documents");
   const button = $("doc-btn-documents");
   const status = $("doc-status-documents");
-
   if (!input || !button || !status) return;
 
   button.addEventListener("click", () => input.click());
@@ -462,26 +329,16 @@ function monterWidgetParserDocuments() {
 
     try {
       let data = null;
-
-      if (typeof analyserDocument === "function") {
-        data = await analyserDocument(file);
-      } else if (typeof analyserDocumentAvecIa === "function") {
-        data = await analyserDocumentAvecIa(file);
-      } else if (typeof uploadEtAnalyserDocument === "function") {
-        data = await uploadEtAnalyserDocument(file);
-      } else {
-        throw new Error("Module IA introuvable.");
-      }
+      if (typeof analyserDocument === "function") data = await analyserDocument(file);
+      else if (typeof analyserDocumentAvecIa === "function") data = await analyserDocumentAvecIa(file);
+      else if (typeof uploadEtAnalyserDocument === "function") data = await uploadEtAnalyserDocument(file);
+      else throw new Error("Module IA introuvable.");
 
       if (!data) throw new Error("Aucune donnée détectée.");
 
-      if (typeof sauvegarderDocumentDansRubrique === "function") {
-        await sauvegarderDocumentDansRubrique(file, data);
-      } else if (typeof classerDocumentDepuisIa === "function") {
-        await classerDocumentDepuisIa(file, data);
-      } else {
-        await classerDocumentAnalyseIa(file, data);
-      }
+      if (typeof sauvegarderDocumentDansRubrique === "function") await sauvegarderDocumentDansRubrique(file, data);
+      else if (typeof classerDocumentDepuisIa === "function") await classerDocumentDepuisIa(file, data);
+      else await classerDocumentAnalyseIa(file, data);
 
       status.style.color = "#28a745";
       status.textContent = "✅ Document analysé et classé automatiquement.";
@@ -501,21 +358,14 @@ function monterWidgetParserDocuments() {
 }
 
 async function classerDocumentAnalyseIa(file, data) {
-  if (!currentUser) {
-    throw new Error("Connecte-toi avant d'ajouter un document.");
-  }
+  if (!currentUser) throw new Error("Connecte-toi avant d'ajouter un document.");
 
   const production = normalizeProductionName(
-  data.production ||
-  data.employeur ||
-  data.societe ||
-  data.entreprise ||
-  "Sans production"
-);
+    data.production || data.employeur || data.societe || data.entreprise || "Sans production"
+  );
 
   const rawType = String(data.typeDocument || data.type_document || data.documentType || data.type || "").toLowerCase();
   let documentType = "Autre";
-
   if (rawType.includes("aem")) documentType = "AEM";
   else if (rawType.includes("paie") || rawType.includes("bulletin")) documentType = "Fiche de paie";
   else if (rawType.includes("congé") || rawType.includes("conge")) documentType = "Congés Spectacles";
@@ -529,35 +379,20 @@ async function classerDocumentAnalyseIa(file, data) {
   const cleanName = safeFileName(file.name);
   const filePath = `${currentUser.id}/${year}/${String(month).padStart(2, "0")}/${Date.now()}_${cleanName}`;
 
-  const { error: uploadError } = await sb.storage
-    .from("documents")
-    .upload(filePath, file, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: file.type || "application/octet-stream"
-    });
-
-  if (uploadError) {
-    throw new Error("Erreur upload document : " + uploadError.message);
-  }
+  const { error: uploadError } = await sb.storage.from("documents").upload(filePath, file, {
+    cacheControl: "3600", upsert: false, contentType: file.type || "application/octet-stream"
+  });
+  if (uploadError) throw new Error("Erreur upload document : " + uploadError.message);
 
   const { error: insertError } = await sb.from("documents").insert({
-    user_id: currentUser.id,
-    file_name: file.name,
-    file_path: filePath,
-    document_type: documentType,
-    production,
-    doc_month: month,
-    doc_year: year,
-    mime_type: file.type || null
+    user_id: currentUser.id, file_name: file.name, file_path: filePath,
+    document_type: documentType, production, doc_month: month, doc_year: year, mime_type: file.type || null
   });
-
   if (insertError) {
     await sb.storage.from("documents").remove([filePath]);
     throw new Error("Erreur sauvegarde document : " + insertError.message);
   }
 }
-
 
 function calculateKmAmount() {
   const distance = Number($("kmDistance")?.value || 0);
@@ -595,15 +430,9 @@ function showApp() {
 
 async function init() {
   setDefaultDates();
-
   const { data: { session } } = await sb.auth.getSession();
   currentUser = session?.user || null;
-
-  if (!currentUser) {
-    showAuth();
-    return;
-  }
-
+  if (!currentUser) { showAuth(); return; }
   showApp();
   await loadMissions();
   await loadDocuments();
@@ -619,85 +448,49 @@ async function logout() {
 }
 
 async function loadMissions() {
-  const { data, error } = await sb
-    .from("missions")
-    .select("*")
-    .order("mission_date", { ascending: false });
-
-  if (error) {
-    alert("Erreur chargement missions : " + error.message);
-    return;
-  }
+  const { data, error } = await sb.from("missions").select("*").order("mission_date", { ascending: false });
+  if (error) { alert("Erreur chargement missions : " + error.message); return; }
 
   missions = (data || []).map((x) => ({
-    id: x.id,
-    production: x.production,
-    type: x.mission_type,
-    date: x.mission_date,
-    endDate: x.end_date || x.mission_date,
-    hours: Number(x.hours || 0),
-    gross: Number(x.gross_amount || 0),
-    kmDistance: Number(x.km_distance || 0),
-    kmRate: Number(x.km_rate || 0),
-    kmAmount: Number(x.km_amount || 0)
+    id: x.id, production: x.production, type: x.mission_type,
+    date: x.mission_date, endDate: x.end_date || x.mission_date,
+    hours: Number(x.hours || 0), gross: Number(x.gross_amount || 0),
+    kmDistance: Number(x.km_distance || 0), kmRate: Number(x.km_rate || 0), kmAmount: Number(x.km_amount || 0)
   }));
 
   render();
 }
 
-
 async function loadDocuments() {
   if (!currentUser) return;
-
-  const { data, error } = await sb
-    .from("documents")
-    .select("*")
+  const { data, error } = await sb.from("documents").select("*")
     .order("doc_year", { ascending: false })
     .order("doc_month", { ascending: false })
     .order("created_at", { ascending: false });
-
-  if (error) {
-    alert("Erreur chargement documents : " + error.message);
-    return;
-  }
-
+  if (error) { alert("Erreur chargement documents : " + error.message); return; }
   documents = data || [];
   renderDocuments();
 }
 
 function safeFileName(name) {
   return String(name || "document")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9._-]/g, "_")
-    .slice(0, 90);
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 90);
 }
 
 async function uploadDocument(event) {
   event.preventDefault();
-
-  if (!currentUser) {
-    alert("Connecte-toi avant d'ajouter un document.");
-    return;
-  }
+  if (!currentUser) { alert("Connecte-toi avant d'ajouter un document."); return; }
 
   const fileInput = $("documentFile");
   const file = fileInput?.files?.[0];
-
-  if (!file) {
-    alert("Ajoute un fichier PDF ou une image.");
-    return;
-  }
+  if (!file) { alert("Ajoute un fichier PDF ou une image."); return; }
 
   const type = $("documentType").value;
   const production = $("documentProduction").value.trim();
   const month = Number($("documentMonth").value);
   const year = Number($("documentYear").value);
-
-  if (!production || !month || !year) {
-    alert("Complète le type, la production, le mois et l'année.");
-    return;
-  }
+  if (!production || !month || !year) { alert("Complète le type, la production, le mois et l'année."); return; }
 
   const submitBtn = $("documentSubmitBtn");
   if (submitBtn) submitBtn.textContent = "Envoi en cours...";
@@ -705,14 +498,9 @@ async function uploadDocument(event) {
   const cleanName = safeFileName(file.name);
   const filePath = `${currentUser.id}/${year}/${String(month).padStart(2, "0")}/${Date.now()}_${cleanName}`;
 
-  const { error: uploadError } = await sb.storage
-    .from("documents")
-    .upload(filePath, file, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: file.type || "application/octet-stream"
-    });
-
+  const { error: uploadError } = await sb.storage.from("documents").upload(filePath, file, {
+    cacheControl: "3600", upsert: false, contentType: file.type || "application/octet-stream"
+  });
   if (uploadError) {
     if (submitBtn) submitBtn.textContent = "Ajouter le document";
     alert("Erreur upload document : " + uploadError.message);
@@ -720,16 +508,9 @@ async function uploadDocument(event) {
   }
 
   const { error: insertError } = await sb.from("documents").insert({
-    user_id: currentUser.id,
-    file_name: file.name,
-    file_path: filePath,
-    document_type: type,
-    production,
-    doc_month: month,
-    doc_year: year,
-    mime_type: file.type || null
+    user_id: currentUser.id, file_name: file.name, file_path: filePath,
+    document_type: type, production, doc_month: month, doc_year: year, mime_type: file.type || null
   });
-
   if (insertError) {
     await sb.storage.from("documents").remove([filePath]);
     if (submitBtn) submitBtn.textContent = "Ajouter le document";
@@ -744,15 +525,8 @@ async function uploadDocument(event) {
 }
 
 async function getDocumentSignedUrl(filePath) {
-  const { data, error } = await sb.storage
-    .from("documents")
-    .createSignedUrl(filePath, 120);
-
-  if (error) {
-    alert("Erreur ouverture document : " + error.message);
-    return null;
-  }
-
+  const { data, error } = await sb.storage.from("documents").createSignedUrl(filePath, 120);
+  if (error) { alert("Erreur ouverture document : " + error.message); return null; }
   return data.signedUrl;
 }
 
@@ -765,30 +539,17 @@ async function openDocument(filePath) {
 async function downloadDocument(filePath, fileName) {
   const url = await getDocumentSignedUrl(filePath);
   if (!url) return;
-
   const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName || "document";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
+  link.href = url; link.download = fileName || "document";
+  document.body.appendChild(link); link.click(); link.remove();
 }
 
 async function deleteDocument(id, filePath) {
   if (!confirm("Supprimer ce document ?")) return;
-
   const { error: storageError } = await sb.storage.from("documents").remove([filePath]);
-  if (storageError) {
-    alert("Erreur suppression fichier : " + storageError.message);
-    return;
-  }
-
+  if (storageError) { alert("Erreur suppression fichier : " + storageError.message); return; }
   const { error: dbError } = await sb.from("documents").delete().eq("id", id);
-  if (dbError) {
-    alert("Erreur suppression document : " + dbError.message);
-    return;
-  }
-
+  if (dbError) { alert("Erreur suppression document : " + dbError.message); return; }
   await loadDocuments();
 }
 
@@ -799,13 +560,9 @@ function monthName(monthNumber) {
 
 function escapeHtml(value) {
   return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
-
 
 function renderDocuments() {
   const container = $("documentsList");
@@ -817,9 +574,8 @@ function renderDocuments() {
   }
 
   const sorted = [...documents].sort((a, b) => {
-    if (String(a.production).localeCompare(String(b.production), "fr") !== 0) {
+    if (String(a.production).localeCompare(String(b.production), "fr") !== 0)
       return String(a.production).localeCompare(String(b.production), "fr");
-    }
     if (b.doc_year !== a.doc_year) return b.doc_year - a.doc_year;
     if (b.doc_month !== a.doc_month) return b.doc_month - a.doc_month;
     return String(a.document_type).localeCompare(String(b.document_type), "fr");
@@ -837,36 +593,20 @@ function renderDocuments() {
       <div class="document-folder-grid document-folder-grid-pro">
         ${Object.keys(groups).sort((a, b) => a.localeCompare(b, "fr")).map((production) => {
           const list = groups[production];
-          const counts = list.reduce((acc, doc) => {
-            acc[doc.document_type] = (acc[doc.document_type] || 0) + 1;
-            return acc;
-          }, {});
-
-          const latest = [...list].sort((a, b) => {
-            if (b.doc_year !== a.doc_year) return b.doc_year - a.doc_year;
-            return b.doc_month - a.doc_month;
-          })[0];
-
+          const counts = list.reduce((acc, doc) => { acc[doc.document_type] = (acc[doc.document_type] || 0) + 1; return acc; }, {});
+          const latest = [...list].sort((a, b) => { if (b.doc_year !== a.doc_year) return b.doc_year - a.doc_year; return b.doc_month - a.doc_month; })[0];
           const types = Object.keys(counts).sort();
-
           return `
             <button class="document-folder-card document-folder-card-pro" type="button" data-doc-production-open="${escapeHtml(production)}">
               <div class="document-folder-icon">📁</div>
-
               <div class="document-folder-main">
                 <strong>${escapeHtml(production)}</strong>
                 <span>${list.length} document${list.length > 1 ? "s" : ""}</span>
               </div>
-
               <div class="document-folder-tags">
-                ${types.slice(0, 4).map((type) => `
-                  <em>${escapeHtml(type)} · ${counts[type]}</em>
-                `).join("")}
+                ${types.slice(0, 4).map((type) => `<em>${escapeHtml(type)} · ${counts[type]}</em>`).join("")}
               </div>
-
-              <small>
-                Dernier ajout : ${latest ? `${escapeHtml(monthName(latest.doc_month))} ${escapeHtml(latest.doc_year)}` : "—"}
-              </small>
+              <small>Dernier ajout : ${latest ? `${escapeHtml(monthName(latest.doc_month))} ${escapeHtml(latest.doc_year)}` : "—"}</small>
             </button>
           `;
         }).join("")}
@@ -877,9 +617,7 @@ function renderDocuments() {
 
   const productionDocs = groups[openDocumentProduction] || [];
   const filters = ["Tous", "AEM", "Fiche de paie", "Congés Spectacles", "Contrat", "Autre"];
-  const filteredDocs = documentFilter === "Tous"
-    ? productionDocs
-    : productionDocs.filter((doc) => doc.document_type === documentFilter);
+  const filteredDocs = documentFilter === "Tous" ? productionDocs : productionDocs.filter((doc) => doc.document_type === documentFilter);
 
   container.innerHTML = `
     <div class="document-detail-head document-detail-head-pro">
@@ -889,24 +627,15 @@ function renderDocuments() {
         <p class="sub">${productionDocs.length} document${productionDocs.length > 1 ? "s" : ""} classé${productionDocs.length > 1 ? "s" : ""}</p>
       </div>
     </div>
-
     <div class="document-filter-bar document-filter-bar-pro">
       ${filters.map((filter) => `
-        <button
-          class="doc-filter ${documentFilter === filter ? "active" : ""}"
-          type="button"
-          data-doc-filter="${escapeHtml(filter)}"
-        >
-          ${escapeHtml(filter)}
-        </button>
+        <button class="doc-filter ${documentFilter === filter ? "active" : ""}" type="button" data-doc-filter="${escapeHtml(filter)}">${escapeHtml(filter)}</button>
       `).join("")}
     </div>
-
     <div class="documents-card-grid">
       ${filteredDocs.length ? filteredDocs.map((doc) => `
         <div class="document-card document-card-pro">
           <div class="document-file-icon">${escapeHtml(String(doc.document_type || "Doc").slice(0, 3).toUpperCase())}</div>
-
           <div class="document-card-content">
             <div class="document-card-head">
               <div>
@@ -915,9 +644,7 @@ function renderDocuments() {
               </div>
               <span class="pill">${escapeHtml(doc.document_type)}</span>
             </div>
-
             <p class="document-file-name">${escapeHtml(doc.file_name)}</p>
-
             <div class="document-actions">
               <button class="ghost" type="button" data-doc-open="${escapeHtml(doc.file_path)}">Ouvrir</button>
               <button class="ghost" type="button" data-doc-download="${escapeHtml(doc.file_path)}" data-doc-name="${escapeHtml(doc.file_name)}">Télécharger</button>
@@ -932,16 +659,8 @@ function renderDocuments() {
 
 async function addMission(event) {
   event.preventDefault();
-
-  if (!currentUser) {
-    alert("Connecte-toi avant d'ajouter une mission.");
-    return;
-  }
-
-  if ($("endDate").value < $("date").value) {
-    alert("La date de fin ne peut pas être avant la date de début.");
-    return;
-  }
+  if (!currentUser) { alert("Connecte-toi avant d'ajouter une mission."); return; }
+  if ($("endDate").value < $("date").value) { alert("La date de fin ne peut pas être avant la date de début."); return; }
 
   const payload = {
     user_id: currentUser.id,
@@ -957,51 +676,30 @@ async function addMission(event) {
   };
 
   let result;
-
-  if (editingMissionId) {
-    result = await sb
-      .from("missions")
-      .update(payload)
-      .eq("id", editingMissionId);
-  } else {
-    result = await sb.from("missions").insert(payload);
-  }
+  if (editingMissionId) result = await sb.from("missions").update(payload).eq("id", editingMissionId);
+  else result = await sb.from("missions").insert(payload);
 
   const { error } = result;
-
-  if (error) {
-    alert("Erreur sauvegarde : " + error.message);
-    return;
-  }
+  if (error) { alert("Erreur sauvegarde : " + error.message); return; }
 
   $("missionForm").reset();
-
   editingMissionId = null;
-
   const submitBtn = document.querySelector("#missionForm button[type='submit']");
-  if (submitBtn) {
-    submitBtn.textContent = "Enregistrer la mission";
-  }
+  if (submitBtn) submitBtn.textContent = "Enregistrer la mission";
 
   setDefaultDates();
   updateKmPreview();
   current = new Date(payload.mission_date + "T00:00:00");
   current.setDate(1);
-
   await loadMissions();
   activateView("dashboard");
 }
 
 function editMission(id) {
   const mission = missions.find((m) => String(m.id) === String(id));
-
-  if (!mission) {
-    alert("Mission introuvable.");
-    return;
-  }
+  if (!mission) { alert("Mission introuvable."); return; }
 
   editingMissionId = mission.id;
-
   $("production").value = mission.production || "";
   $("type").value = mission.type || "Autre";
   $("date").value = mission.date || "";
@@ -1013,28 +711,16 @@ function editMission(id) {
   updateKmPreview();
 
   const submitBtn = document.querySelector("#missionForm button[type='submit']");
-  if (submitBtn) {
-    submitBtn.textContent = "Mettre à jour la mission";
-  }
+  if (submitBtn) submitBtn.textContent = "Mettre à jour la mission";
 
   activateView("missions");
-
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 async function deleteMission(id) {
   if (!confirm("Supprimer cette mission ?")) return;
-
   const { error } = await sb.from("missions").delete().eq("id", id);
-
-  if (error) {
-    alert("Erreur suppression : " + error.message);
-    return;
-  }
-
+  if (error) { alert("Erreur suppression : " + error.message); return; }
   await loadMissions();
 }
 
@@ -1042,28 +728,18 @@ function activateView(viewName) {
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.classList.toggle("active", tab.dataset.view === viewName);
   });
-
   document.querySelectorAll(".view").forEach((view) => {
     view.classList.toggle("active", view.id === "view-" + viewName);
   });
-
   trackEvent("view_" + viewName);
 }
 
 function money(n) {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0
-  }).format(n || 0);
+  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n || 0);
 }
 
 function formatDate(s) {
-  return new Date(s + "T00:00:00").toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric"
-  });
+  return new Date(s + "T00:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function formatPeriod(a, b) {
@@ -1115,11 +791,7 @@ function splitMissionByTime(mission) {
   const totalDays = daysInclusive(start, end);
   const doneDays = daysInclusive(start, today);
   const done = Math.min(totalHours, Math.round(totalHours * (doneDays / totalDays) * 10) / 10);
-
-  return {
-    done,
-    planned: Math.max(0, Math.round((totalHours - done) * 10) / 10)
-  };
+  return { done, planned: Math.max(0, Math.round((totalHours - done) * 10) / 10) };
 }
 
 function sumDone(list) {
@@ -1136,51 +808,28 @@ function sumMissionDays(list) {
 
 function getProductionInitials(name) {
   return String(name || "---")
-    .replace(/[^a-zA-ZÀ-ÿ0-9\s]/g, " ")
-    .trim()
-    .split(/\s+/)
-    .join("")
-    .slice(0, 3)
-    .toUpperCase() || "---";
+    .replace(/[^a-zA-ZÀ-ÿ0-9\s]/g, " ").trim()
+    .split(/\s+/).join("").slice(0, 3).toUpperCase() || "---";
 }
 
 function render() {
   const now = new Date();
   const year = now.getFullYear();
-  if ($("areAdmissionDate")) {
-  $("areAdmissionDate").value = areAdmissionDate || "";
-}
 
-if ($("areAdmissionInfo") && areAdmissionDate) {
-  $("areAdmissionInfo").textContent =
-    "Calcul des heures effectué depuis le " +
-    new Date(areAdmissionDate).toLocaleDateString("fr-FR");
-}
+  if ($("areAdmissionDate")) $("areAdmissionDate").value = areAdmissionDate || "";
+  if ($("areAdmissionInfo") && areAdmissionDate) {
+    $("areAdmissionInfo").textContent = "Calcul des heures effectué depuis le " + new Date(areAdmissionDate).toLocaleDateString("fr-FR");
+  }
 
-  const areStartDate = areAdmissionDate
-  ? new Date(areAdmissionDate + "T00:00:00")
-  : new Date(year, 0, 1);
-
-const yearMissions = missions.filter((mission) => {
-  const missionDate = new Date(mission.date + "T00:00:00");
-  return missionDate >= areStartDate;
-});
-
+  const areStartDate = areAdmissionDate ? new Date(areAdmissionDate + "T00:00:00") : new Date(year, 0, 1);
+  const yearMissions = missions.filter((mission) => new Date(mission.date + "T00:00:00") >= areStartDate);
   const selectedMonthMissions = monthMissions(current);
 
   const yearHours = Math.round(sumDone(yearMissions) * 10) / 10;
   const plannedHours = Math.round(sumPlanned(yearMissions) * 10) / 10;
-
-  // Heures du mois affiché : on affiche le total du mois sélectionné,
-  // pas seulement les heures déjà passées dans le temps.
-  // Comme ça, juin affiche bien toutes les heures enregistrées en juin.
-  const monthHours = Math.round(
-    selectedMonthMissions.reduce((total, mission) => total + Number(mission.hours || 0), 0) * 10
-  ) / 10;
-
+  const monthHours = Math.round(selectedMonthMissions.reduce((total, mission) => total + Number(mission.hours || 0), 0) * 10) / 10;
   const yearGross = yearMissions.reduce((a, x) => a + Number(x.gross || 0), 0);
   const monthGross = selectedMonthMissions.reduce((a, x) => a + Number(x.gross || 0), 0);
-
   const percent = Math.round((yearHours / OBJECTIVE_HOURS) * 100);
   const remaining = Math.max(0, Math.round((OBJECTIVE_HOURS - yearHours) * 10) / 10);
 
@@ -1191,16 +840,12 @@ const yearMissions = missions.filter((mission) => {
   if ($("remainingHours")) $("remainingHours").textContent = remaining;
   if ($("missionCount")) $("missionCount").textContent = sumMissionDays(selectedMonthMissions);
   if ($("progressText")) $("progressText").textContent = percent + "% de ton objectif intermittent";
-
-  if ($("fiscaliteGrossPreview")) {
-    $("fiscaliteGrossPreview").textContent = "Brut annuel : " + money(yearGross);
-  }
+  if ($("fiscaliteGrossPreview")) $("fiscaliteGrossPreview").textContent = "Brut annuel : " + money(yearGross);
 
   if ($("otherIncomeInput")) {
     const savedOtherIncome = getOtherIncome();
     if (!$("otherIncomeInput").value && savedOtherIncome) $("otherIncomeInput").value = savedOtherIncome;
   }
-
   if ($("taxPartsInput")) {
     const savedParts = getTaxParts();
     if (!$("taxPartsInput").value && savedParts) $("taxPartsInput").value = savedParts;
@@ -1212,71 +857,35 @@ const yearMissions = missions.filter((mission) => {
   const projectedKmAmount = estimateAnnualProjection(totalKmAmountForTax, observedMonths);
   const complementaryIncome = getOtherIncome();
 
-  if ($("fiscaliteNetPreview")) {
-    $("fiscaliteNetPreview").textContent =
-      "Net imposable estimé : " + money(estimateTaxableIncomeFromGross(yearGross));
-  }
-
-  if ($("fiscaliteKmDeductionPreview")) {
-    $("fiscaliteKmDeductionPreview").textContent =
-      "Frais km déduits : " + money(totalKmAmountForTax);
-  }
-
-  if ($("fiscaliteOtherIncomePreview")) {
-    $("fiscaliteOtherIncomePreview").textContent =
-      "Revenus complémentaires : " + money(complementaryIncome);
-  }
+  if ($("fiscaliteNetPreview")) $("fiscaliteNetPreview").textContent = "Net imposable estimé : " + money(estimateTaxableIncomeFromGross(yearGross));
+  if ($("fiscaliteKmDeductionPreview")) $("fiscaliteKmDeductionPreview").textContent = "Frais km déduits : " + money(totalKmAmountForTax);
+  if ($("fiscaliteOtherIncomePreview")) $("fiscaliteOtherIncomePreview").textContent = "Revenus complémentaires : " + money(complementaryIncome);
 
   if ($("fiscaliteTotalIncomePreview")) {
-    const currentTaxableBase = Math.max(
-      0,
-      estimateTaxableIncomeFromGross(yearGross) + complementaryIncome - totalKmAmountForTax
-    );
-
-    $("fiscaliteTotalIncomePreview").textContent =
-      "Base imposable estimée : " + money(currentTaxableBase);
+    const currentTaxableBase = Math.max(0, estimateTaxableIncomeFromGross(yearGross) + complementaryIncome - totalKmAmountForTax);
+    $("fiscaliteTotalIncomePreview").textContent = "Base imposable estimée : " + money(currentTaxableBase);
   }
 
   if ($("fiscaliteProjectionPreview")) {
     if (observedMonths > 0) {
-      const projectedBase = Math.max(
-        0,
-        estimateTaxableIncomeFromGross(projectedGross) + complementaryIncome - projectedKmAmount
-      );
-
-      $("fiscaliteProjectionPreview").textContent =
-        "Projection annuelle : " + money(projectedBase) +
-        " sur " + observedMonths + " mois renseigné" + (observedMonths > 1 ? "s" : "");
+      const projectedBase = Math.max(0, estimateTaxableIncomeFromGross(projectedGross) + complementaryIncome - projectedKmAmount);
+      $("fiscaliteProjectionPreview").textContent = "Projection annuelle : " + money(projectedBase) + " sur " + observedMonths + " mois renseigné" + (observedMonths > 1 ? "s" : "");
     } else {
       $("fiscaliteProjectionPreview").textContent = "Projection annuelle : ajoute une mission";
     }
   }
 
   if ($("fiscaliteTaxPreview")) {
-    const currentTaxableBase = Math.max(
-      0,
-      estimateTaxableIncomeFromGross(yearGross) + complementaryIncome - totalKmAmountForTax
-    );
-    const projectedTaxableBase = observedMonths > 0
-      ? Math.max(0, estimateTaxableIncomeFromGross(projectedGross) + complementaryIncome - projectedKmAmount)
-      : currentTaxableBase;
-
+    const currentTaxableBase = Math.max(0, estimateTaxableIncomeFromGross(yearGross) + complementaryIncome - totalKmAmountForTax);
+    const projectedTaxableBase = observedMonths > 0 ? Math.max(0, estimateTaxableIncomeFromGross(projectedGross) + complementaryIncome - projectedKmAmount) : currentTaxableBase;
     const taxableIncome = projectedTaxableBase || currentTaxableBase;
     const parts = getTaxParts();
 
     if (taxableIncome > 0 && parts > 0) {
       const taxResult = calculateProgressiveTax(taxableIncome, parts);
       $("fiscaliteTaxPreview").textContent = "Impôt estimé projeté : " + money(taxResult.estimatedTax);
-
-      if ($("fiscaliteRatePreview")) {
-        $("fiscaliteRatePreview").textContent =
-          "Taux moyen estimé : " + taxResult.averageRate.toFixed(1).replace(".", ",") + "%";
-      }
-
-      if ($("fiscaliteBracketPreview")) {
-        $("fiscaliteBracketPreview").textContent =
-          "Tranche marginale estimée : " + Math.round(taxResult.marginalRate) + "%";
-      }
+      if ($("fiscaliteRatePreview")) $("fiscaliteRatePreview").textContent = "Taux moyen estimé : " + taxResult.averageRate.toFixed(1).replace(".", ",") + "%";
+      if ($("fiscaliteBracketPreview")) $("fiscaliteBracketPreview").textContent = "Tranche marginale estimée : " + Math.round(taxResult.marginalRate) + "%";
     } else {
       $("fiscaliteTaxPreview").textContent = "Impôt estimé : ajoute tes missions et tes parts";
       if ($("fiscaliteRatePreview")) $("fiscaliteRatePreview").textContent = "Taux moyen estimé : -";
@@ -1284,16 +893,8 @@ const yearMissions = missions.filter((mission) => {
     }
   }
 
-  if ($("fiscaliteKmPreview")) {
-    const totalKm = Math.round(yearMissions.reduce((a, x) => a + Number(x.kmDistance || 0), 0));
-    $("fiscaliteKmPreview").textContent = totalKm + " km enregistrés";
-  }
-
-  if ($("fiscaliteKmAmountPreview")) {
-    const totalKmAmount = yearMissions.reduce((a, x) => a + Number(x.kmAmount || 0), 0);
-    $("fiscaliteKmAmountPreview").textContent = money(totalKmAmount) + " estimés";
-  }
-
+  if ($("fiscaliteKmPreview")) $("fiscaliteKmPreview").textContent = Math.round(yearMissions.reduce((a, x) => a + Number(x.kmDistance || 0), 0)) + " km enregistrés";
+  if ($("fiscaliteKmAmountPreview")) $("fiscaliteKmAmountPreview").textContent = money(yearMissions.reduce((a, x) => a + Number(x.kmAmount || 0), 0)) + " estimés";
   if ($("fiscaliteDeclarationPreview")) {
     const totalKmAmount = yearMissions.reduce((a, x) => a + Number(x.kmAmount || 0), 0);
     $("fiscaliteDeclarationPreview").textContent = "Brut " + money(yearGross) + " · Frais km " + money(totalKmAmount);
@@ -1301,22 +902,11 @@ const yearMissions = missions.filter((mission) => {
 
   if ($("previsionConges")) {
     const estimatedConges = Math.round(yearGross * 0.10);
-    $("previsionConges").textContent = yearGross > 0
-      ? "Environ " + money(estimatedConges) + " brut"
-      : "Estimation indicative";
+    $("previsionConges").textContent = yearGross > 0 ? "Environ " + money(estimatedConges) + " brut" : "Estimation indicative";
   }
-
-  if ($("previsionDroits")) {
-    $("previsionDroits").textContent = remaining + "h restantes";
-  }
-
-  if ($("previsionTaux") && !$("areHours")?.value && !$("areDailyGross")?.value) {
-    $("previsionTaux").textContent = "Renseigne tes heures et ton brut journée";
-  }
-
-  if ($("previsionCarence")) {
-    $("previsionCarence").textContent = "Non calculé pour le moment";
-  }
+  if ($("previsionDroits")) $("previsionDroits").textContent = remaining + "h restantes";
+  if ($("previsionTaux") && !$("areHours")?.value && !$("areDailyGross")?.value) $("previsionTaux").textContent = "Renseigne tes heures et ton brut journée";
+  if ($("previsionCarence")) $("previsionCarence").textContent = "Non calculé pour le moment";
 
   renderChart(yearHours, plannedHours);
   renderHistory();
@@ -1326,23 +916,13 @@ const yearMissions = missions.filter((mission) => {
   renderDocuments();
 }
 
-function polarToCartesian(cx, cy, rx, ry, angle) {
-  const rad = (angle - 90) * Math.PI / 180;
-  return {
-    x: cx + rx * Math.cos(rad),
-    y: cy + ry * Math.sin(rad)
-  };
-}
-
 function renderChart(doneHours, plannedHours = 0) {
   const total = OBJECTIVE_HOURS;
   const doneRaw = Math.max(0, Number(doneHours) || 0);
   const plannedRaw = Math.max(0, Number(plannedHours) || 0);
-
   const donePercent = Math.round((doneRaw / total) * 100);
   const plannedPercent = Math.round((plannedRaw / total) * 100);
   const totalPercent = donePercent + plannedPercent;
-
   const CIRC = 377;
   const doneDash = Math.min((donePercent / 100) * CIRC, CIRC);
   const plannedDash = Math.min((plannedPercent / 100) * CIRC, CIRC - doneDash);
@@ -1364,45 +944,17 @@ function renderChart(doneHours, plannedHours = 0) {
           <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.15"/>
         </filter>
       </defs>
-
-      <!-- Fond restant -->
-      <path d="M 30 165 A 120 120 0 0 1 270 165"
-        fill="none" stroke="#EEF4F1" stroke-width="30" stroke-linecap="round"/>
-
-      <!-- Effectué -->
-      ${doneDash > 0 ? `
-      <path d="M 30 165 A 120 120 0 0 1 270 165"
-        fill="none" stroke="url(#g3done)" stroke-width="30" stroke-linecap="round"
-        stroke-dasharray="${doneDash} ${CIRC}" filter="url(#arcShadow)"/>
-      ` : ""}
-
-      <!-- Prévu -->
-      ${plannedDash > 0 ? `
-      <path d="M 30 165 A 120 120 0 0 1 270 165"
-        fill="none" stroke="url(#g3plan)" stroke-width="30" stroke-linecap="round"
-        stroke-dasharray="${plannedDash} ${CIRC}" stroke-dashoffset="${-doneDash}"/>
-      ` : ""}
-
-      <!-- % total au centre -->
-      <text x="150" y="132" text-anchor="middle"
-        font-size="44" font-weight="900" fill="#1F4E5F"
-        font-family="-apple-system, BlinkMacSystemFont, sans-serif">${totalPercent}%</text>
-      <text x="150" y="155" text-anchor="middle"
-        font-size="13" fill="#718096"
-        font-family="-apple-system, BlinkMacSystemFont, sans-serif">potentiel total</text>
-
-      <!-- Légende -->
+      <path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="#EEF4F1" stroke-width="30" stroke-linecap="round"/>
+      ${doneDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3done)" stroke-width="30" stroke-linecap="round" stroke-dasharray="${doneDash} ${CIRC}" filter="url(#arcShadow)"/>` : ""}
+      ${plannedDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3plan)" stroke-width="30" stroke-linecap="round" stroke-dasharray="${plannedDash} ${CIRC}" stroke-dashoffset="${-doneDash}"/>` : ""}
+      <text x="150" y="132" text-anchor="middle" font-size="44" font-weight="900" fill="#1F4E5F" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${totalPercent}%</text>
+      <text x="150" y="155" text-anchor="middle" font-size="13" fill="#718096" font-family="-apple-system, BlinkMacSystemFont, sans-serif">potentiel total</text>
       <rect x="20" y="182" width="12" height="12" rx="3" fill="#1F4E5F"/>
-      <text x="37" y="193" font-size="13" font-weight="700" fill="#2D3748"
-        font-family="-apple-system, BlinkMacSystemFont, sans-serif">Effectué · ${donePercent}%</text>
-
+      <text x="37" y="193" font-size="13" font-weight="700" fill="#2D3748" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Effectué · ${donePercent}%</text>
       <rect x="128" y="182" width="12" height="12" rx="3" fill="#F97316"/>
-      <text x="145" y="193" font-size="13" font-weight="700" fill="#2D3748"
-        font-family="-apple-system, BlinkMacSystemFont, sans-serif">Prévu · ${plannedPercent}%</text>
-
+      <text x="145" y="193" font-size="13" font-weight="700" fill="#2D3748" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Prévu · ${plannedPercent}%</text>
       <rect x="228" y="182" width="12" height="12" rx="3" fill="#D8E4DF"/>
-      <text x="245" y="193" font-size="13" font-weight="700" fill="#718096"
-        font-family="-apple-system, BlinkMacSystemFont, sans-serif">Restant</text>
+      <text x="245" y="193" font-size="13" font-weight="700" fill="#718096" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Restant</text>
     </svg>
   `;
 }
@@ -1414,25 +966,18 @@ function renderHistory() {
     $("historyMonthPicker").value = `${year}-${month}`;
   }
 
-  const sorted = [...monthMissions(current)].sort(
-    (a, b) => new Date(b.date) - new Date(a.date)
-  );
-
+  const sorted = [...monthMissions(current)].sort((a, b) => new Date(b.date) - new Date(a.date));
   const missionsEl = $("missions");
   if (!missionsEl) return;
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / HISTORY_PER_PAGE));
-
   if (historyPage > totalPages) historyPage = totalPages;
   if (historyPage < 1) historyPage = 1;
 
   const start = (historyPage - 1) * HISTORY_PER_PAGE;
   const visible = sorted.slice(start, start + HISTORY_PER_PAGE);
 
-  if (!sorted.length) {
-    missionsEl.innerHTML = `<div class="empty">Aucune mission sur ce mois.</div>`;
-    return;
-  }
+  if (!sorted.length) { missionsEl.innerHTML = `<div class="empty">Aucune mission sur ce mois.</div>`; return; }
 
   missionsEl.innerHTML = `
     <div class="mission-card-grid">
@@ -1442,13 +987,11 @@ function renderHistory() {
             <strong>${mission.production}</strong>
             <span class="pill">${mission.type}</span>
           </div>
-
           <div class="mission-history-info">
             <span>📅 ${formatPeriod(mission.date, mission.endDate)}</span>
             <span>🕒 ${mission.hours}h</span>
             <span>€ ${money(mission.gross)}</span>
           </div>
-
           <div class="mission-history-actions">
             <button class="edit-icon-btn" data-edit="${mission.id}" type="button" title="Modifier">✏️</button>
             <button class="delete-icon-btn" data-delete="${mission.id}" type="button" title="Supprimer">✕</button>
@@ -1456,7 +999,6 @@ function renderHistory() {
         </div>
       `).join("")}
     </div>
-
     ${totalPages > 1 ? `
       <div class="history-pagination">
         <button class="ghost" type="button" id="historyPagePrev" ${historyPage === 1 ? "disabled" : ""}>‹</button>
@@ -1466,36 +1008,21 @@ function renderHistory() {
     ` : ""}
   `;
 
-  if ($("historyPagePrev")) {
-    $("historyPagePrev").addEventListener("click", () => {
-      historyPage--;
-      renderHistory();
-    });
-  }
-
-  if ($("historyPageNext")) {
-    $("historyPageNext").addEventListener("click", () => {
-      historyPage++;
-      renderHistory();
-    });
-  }
+  if ($("historyPagePrev")) $("historyPagePrev").addEventListener("click", () => { historyPage--; renderHistory(); });
+  if ($("historyPageNext")) $("historyPageNext").addEventListener("click", () => { historyPage++; renderHistory(); });
 }
 
 function renderAllMissions() {
   const allMissionsEl = $("allMissions");
   const sorted = [...missions].sort((a, b) => new Date(b.date) - new Date(a.date));
-
   if (!allMissionsEl) return;
 
-  if (!sorted.length) {
-    allMissionsEl.innerHTML = `<div class="empty">Aucune mission enregistrée.</div>`;
-    return;
-  }
+  if (!sorted.length) { allMissionsEl.innerHTML = `<div class="empty">Aucune mission enregistrée.</div>`; return; }
 
   const groups = {};
-
   sorted.forEach((mission) => {
-const key = normalizeProductionName(mission.production || "Sans production");    if (!groups[key]) groups[key] = [];
+    const key = normalizeProductionName(mission.production || "Sans production");
+    if (!groups[key]) groups[key] = [];
     groups[key].push(mission);
   });
 
@@ -1506,7 +1033,6 @@ const key = normalizeProductionName(mission.production || "Sans production");   
         const totalHours = Math.round(list.reduce((a, x) => a + Number(x.hours || 0), 0) * 10) / 10;
         const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
         const totalDays = sumMissionDays(list);
-
         return `
           <button class="production-card" type="button" data-production-open="${production.replace(/"/g, "&quot;")}">
             <div class="production-card-icon" aria-hidden="true">🎬</div>
@@ -1525,9 +1051,7 @@ function openProductionMissions(productionName) {
   const allMissionsEl = $("allMissions");
   if (!allMissionsEl) return;
 
-  const list = missions
-    .filter((mission) => mission.production === productionName)
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
+  const list = missions.filter((mission) => mission.production === productionName).sort((a, b) => new Date(b.date) - new Date(a.date));
 
   allMissionsEl.innerHTML = `
     <div class="production-detail-head">
@@ -1537,21 +1061,13 @@ function openProductionMissions(productionName) {
         <p class="sub">${list.length} mission${list.length > 1 ? "s" : ""} enregistrée${list.length > 1 ? "s" : ""}</p>
       </div>
     </div>
-
     <div class="row header">
-      <div>Période</div>
-      <div>Production</div>
-      <div>Mission</div>
-      <div>Heures</div>
-      <div>Brut</div>
-      <div></div>
+      <div>Période</div><div>Production</div><div>Mission</div><div>Heures</div><div>Brut</div><div></div>
     </div>
-
     <div id="productionMissionRows"></div>
   `;
 
   const rows = $("productionMissionRows");
-
   list.forEach((mission) => {
     const row = document.createElement("div");
     row.className = "row";
@@ -1576,84 +1092,92 @@ function moveMonth(amount) {
   render();
 }
 
-function renderCalendar() {
-  const calendar = $("calendar");
-  calendar.innerHTML = "";
+let calMissionPage = 0;
+const CAL_MISSIONS_PER_PAGE = 3;
 
-  const names = ["L", "M", "M", "J", "V", "S", "D"];
-  names.forEach((name) => {
-    const el = document.createElement("div");
-    el.className = "dayname";
-    el.textContent = name;
-    calendar.appendChild(el);
+function renderCalendar() {
+  const calView = document.getElementById("view-calendar");
+  if (!calView) return;
+
+  const card = calView.querySelector(".card");
+  if (!card) return;
+
+  card.innerHTML = `
+    <div class="new-cal-header">
+      <h2 id="monthTitle"></h2>
+      <div class="new-cal-nav">
+        <button class="ghost new-cal-btn" type="button" id="calendarPrevBtn">‹</button>
+        <input type="month" id="calendarMonthPicker" class="history-month-picker"/>
+        <button class="ghost new-cal-btn" type="button" id="calendarNextBtn">›</button>
+      </div>
+    </div>
+    <div class="new-cal-daynames">
+      <div>L</div><div>M</div><div>M</div><div>J</div><div>V</div><div>S</div><div>D</div>
+    </div>
+    <div class="new-cal-grid" id="calendar"></div>
+    <div class="new-mission-section">
+      <div class="new-mission-header">
+        <span class="new-mission-title">Missions du mois</span>
+        <span class="new-mission-page" id="calMissionPageInfo"></span>
+      </div>
+      <div id="calMissionCards"></div>
+      <div class="new-mission-pagination">
+        <button class="new-pag-btn" id="calMissionPrev" type="button">‹</button>
+        <button class="new-pag-btn" id="calMissionNext" type="button">›</button>
+      </div>
+    </div>
+    <div id="calendarDayPanel"></div>
+  `;
+
+  $("calendarPrevBtn").addEventListener("click", () => moveMonth(-1));
+  $("calendarNextBtn").addEventListener("click", () => moveMonth(1));
+  $("calendarMonthPicker").addEventListener("change", () => {
+    const value = $("calendarMonthPicker").value;
+    if (!value) return;
+    const [year, month] = value.split("-").map(Number);
+    current = new Date(year, month - 1, 1);
+    render();
   });
 
   const year = current.getFullYear();
   const month = current.getMonth();
 
-  $("monthTitle").textContent = current.toLocaleDateString("fr-FR", {
-    month: "long",
-    year: "numeric"
-  });
-if ($("calendarMonthPicker")) {
-  const year = current.getFullYear();
-  const month = String(current.getMonth() + 1).padStart(2, "0");
-  $("calendarMonthPicker").value = `${year}-${month}`;
-}
+  $("monthTitle").textContent = current.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  $("calendarMonthPicker").value = `${year}-${String(month + 1).padStart(2, "0")}`;
+
+  const calendar = $("calendar");
   const first = new Date(year, month, 1);
   const start = (first.getDay() + 6) % 7;
   const days = new Date(year, month + 1, 0).getDate();
   const totalSlots = Math.ceil((start + days) / 7) * 7;
+  const now = new Date();
+  const todayStr = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
 
   for (let i = 0; i < start; i++) {
     const empty = document.createElement("div");
-    empty.className = "day empty-day";
+    empty.className = "new-cal-day new-cal-empty";
     calendar.appendChild(empty);
   }
 
   for (let d = 1; d <= days; d++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
     const box = document.createElement("div");
-    box.className = "day";
-
-    const now = new Date();
-    const today =
-      now.getFullYear() +
-      "-" +
-      String(now.getMonth() + 1).padStart(2, "0") +
-      "-" +
-      String(now.getDate()).padStart(2, "0");
-
-    if (dateStr === today) {
-      box.classList.add("today");
-    }
-
-    box.innerHTML = `<b>${d}</b>`;
+    box.className = "new-cal-day";
     box.dataset.calendarDate = dateStr;
 
-    const missionsOfDay = missions.filter((mission) =>
-      isDateInPeriod(dateStr, mission)
-    );
+    if (dateStr === todayStr) box.classList.add("today");
 
+    const missionsOfDay = missions.filter((m) => isDateInPeriod(dateStr, m));
     if (missionsOfDay.length) {
       box.dataset.hasMission = "1";
+      const isFuture = missionsOfDay.some((m) => new Date(m.date + "T00:00:00") >= todayDateOnly());
+      const isPast = missionsOfDay.some((m) => new Date((m.endDate || m.date) + "T00:00:00") < todayDateOnly());
+      if (isPast) box.classList.add("has-done");
+      if (isFuture) box.classList.add("has-planned");
+      box.innerHTML = `<span class="new-cal-num">${d}</span><div class="new-cal-dot ${isFuture ? "dot-planned" : "dot-done"}"></div>`;
+    } else {
+      box.innerHTML = `<span class="new-cal-num">${d}</span>`;
     }
-
-    missionsOfDay.forEach((mission) => {
-        const isFuture = new Date(dateStr + "T00:00:00") > todayDateOnly();
-        const initials = getProductionInitials(mission.production);
-        const days = missionDayCount(mission);
-        const dailyHours = Math.round((Number(mission.hours || 0) / days) * 10) / 10;
-        const dailyGross = Math.round(Number(mission.gross || 0) / days);
-        const hours = `${String(dailyHours).replace(".5", ",5")}H`;
-        const gross = `${dailyGross}€`;
-
-        box.innerHTML += `
-          <div class="dot ${isFuture ? "planned" : ""}" title="${mission.production} - ${mission.hours}h - ${money(mission.gross)}">
-            ${initials} ${hours} ${gross}
-          </div>
-        `;
-      });
 
     calendar.appendChild(box);
   }
@@ -1661,8 +1185,129 @@ if ($("calendarMonthPicker")) {
   const usedSlots = start + days;
   for (let i = usedSlots; i < totalSlots; i++) {
     const empty = document.createElement("div");
-    empty.className = "day empty-day";
+    empty.className = "new-cal-day new-cal-empty";
     calendar.appendChild(empty);
+  }
+
+  calMissionPage = 0;
+  renderCalMissions();
+}
+
+function renderCalMissions() {
+  const list = monthMissions(current).sort((a, b) => new Date(a.date) - new Date(b.date));
+  const total = Math.max(1, Math.ceil(list.length / CAL_MISSIONS_PER_PAGE));
+
+  if (calMissionPage >= total) calMissionPage = total - 1;
+  if (calMissionPage < 0) calMissionPage = 0;
+
+  const pageInfo = $("calMissionPageInfo");
+  const cards = $("calMissionCards");
+  const prevBtn = $("calMissionPrev");
+  const nextBtn = $("calMissionNext");
+
+  if (!cards) return;
+
+  if (pageInfo) pageInfo.textContent = total > 1 ? `${calMissionPage + 1} / ${total}` : "";
+  if (prevBtn) { prevBtn.disabled = calMissionPage === 0; prevBtn.onclick = () => { calMissionPage--; renderCalMissions(); }; }
+  if (nextBtn) { nextBtn.disabled = calMissionPage >= total - 1; nextBtn.onclick = () => { calMissionPage++; renderCalMissions(); }; }
+
+  const visible = list.slice(calMissionPage * CAL_MISSIONS_PER_PAGE, (calMissionPage + 1) * CAL_MISSIONS_PER_PAGE);
+
+  if (!visible.length) { cards.innerHTML = `<div class="empty">Aucune mission ce mois.</div>`; return; }
+
+  cards.innerHTML = visible.map((m) => {
+    const isFuture = new Date(m.date + "T00:00:00") >= todayDateOnly();
+    return `
+      <div class="new-mission-card ${isFuture ? "planned" : "done"}">
+        <div class="new-mission-body">
+          <div class="new-mission-prod">${escapeHtml(m.production)}</div>
+          <div class="new-mission-dates">${escapeHtml(formatPeriod(m.date, m.endDate))}</div>
+        </div>
+        <div class="new-mission-right">
+          <span class="new-mission-hours">${m.hours}h</span>
+          <span class="new-mission-type ${isFuture ? "type-planned" : "type-done"}">${escapeHtml(m.type)}</span>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderCalendarDayPanel(dateStr) {
+  const panel = $("calendarDayPanel");
+  if (!panel) return;
+
+  const dayMissions = missions
+    .filter((mission) => isDateInPeriod(dateStr, mission))
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const dateLabel = formatDate(dateStr);
+
+  if (!dayMissions.length) {
+    panel.innerHTML = "";
+    return;
+  }
+
+  panel.innerHTML = `
+    <div class="calendar-day-panel">
+      <div class="calendar-day-panel-head">
+        <div>
+          <strong>Missions du ${escapeHtml(dateLabel)}</strong>
+          <span>${dayMissions.length} mission${dayMissions.length > 1 ? "s" : ""} prévue${dayMissions.length > 1 ? "s" : ""} ce jour-là.</span>
+        </div>
+        <button class="ghost" type="button" data-calendar-add-date="${escapeHtml(dateStr)}">Ajouter une autre mission</button>
+      </div>
+      <div class="calendar-day-missions">
+        ${dayMissions.map((mission) => {
+          const totalDays = missionDayCount(mission);
+          const dailyHours = Math.round((Number(mission.hours || 0) / totalDays) * 10) / 10;
+          const dailyGross = Math.round(Number(mission.gross || 0) / totalDays);
+          return `
+            <div class="calendar-day-mission">
+              <div>
+                <strong>${escapeHtml(mission.production)}</strong>
+                <span>${escapeHtml(mission.type)} · ${dailyHours}h · ${money(dailyGross)}</span>
+              </div>
+              <div class="calendar-day-actions">
+                <button class="ghost" type="button" data-edit="${escapeHtml(mission.id)}">Modifier</button>
+                <button class="delete" type="button" data-delete="${escapeHtml(mission.id)}">X</button>
+              </div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function resetMissionFormForDate(dateStr) {
+  editingMissionId = null;
+  if ($("missionForm")) $("missionForm").reset();
+  if ($("production")) $("production").value = "";
+  if ($("type")) $("type").value = "Montage";
+  if ($("date")) $("date").value = dateStr;
+  if ($("endDate")) $("endDate").value = dateStr;
+  if ($("hours")) $("hours").value = "";
+  if ($("gross")) $("gross").value = "";
+  const submitBtn = document.querySelector("#missionForm button[type='submit']");
+  if (submitBtn) submitBtn.textContent = "Enregistrer la mission";
+}
+
+function openCalendarDay(dateStr) {
+  const missionsOfDay = missions.filter((mission) => isDateInPeriod(dateStr, mission));
+
+  if (missionsOfDay.length > 0) {
+    // Date avec mission → afficher le panel sous le calendrier sans rediriger
+    activateView("calendar");
+    renderCalendarDayPanel(dateStr);
+    setTimeout(() => {
+      const panel = $("calendarDayPanel");
+      if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  } else {
+    // Date vide → aller au formulaire d'ajout
+    activateView("missions");
+    resetMissionFormForDate(dateStr);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 }
 
@@ -1677,7 +1322,6 @@ function buildActualisationText() {
   const totalDays = sumMissionDays(list);
 
   const lines = [`Actualisation ${title}`, "", `Total journées : ${totalDays}`, `Total heures : ${totalHours}h`, `Total brut : ${money(totalGross)}`, ""];
-
   list.forEach((mission, index) => {
     lines.push(`${index + 1}. ${mission.production}`);
     lines.push(`Période : ${formatPeriod(mission.date, mission.endDate)}`);
@@ -1701,31 +1345,19 @@ function renderActualisation() {
   const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
   const totalDays = sumMissionDays(list);
 
- if ($("actualisationMonthPicker")) {
-  const year = current.getFullYear();
-  const month = String(current.getMonth() + 1).padStart(2, "0");
-  $("actualisationMonthPicker").value = `${year}-${month}`;
-}
-
-  if ($('actualisationDays')) $('actualisationDays').textContent = totalDays;
-  if ($('actualisationHours')) $('actualisationHours').textContent = totalHours + 'h';
-  if ($('actualisationGross')) $('actualisationGross').textContent = money(totalGross);
-  if ($('actualisationCount')) $('actualisationCount').textContent = list.length;
-
-  const container = $('actualisationList');
-  if (!container) return;
-
-  if (!list.length) {
-    container.innerHTML = `<div class="empty">Aucune mission effectuée sur ce mois.</div>`;
-    return;
+  if ($("actualisationMonthPicker")) {
+    $("actualisationMonthPicker").value = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}`;
   }
 
-  const escapeHtml = (value) => String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+  if ($("actualisationDays")) $("actualisationDays").textContent = totalDays;
+  if ($("actualisationHours")) $("actualisationHours").textContent = totalHours + "h";
+  if ($("actualisationGross")) $("actualisationGross").textContent = money(totalGross);
+  if ($("actualisationCount")) $("actualisationCount").textContent = list.length;
+
+  const container = $("actualisationList");
+  if (!container) return;
+
+  if (!list.length) { container.innerHTML = `<div class="empty">Aucune mission effectuée sur ce mois.</div>`; return; }
 
   const rows = list.map((mission) => `
     <tr>
@@ -1735,7 +1367,7 @@ function renderActualisation() {
       <td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;text-align:right;white-space:nowrap;">${escapeHtml(mission.hours)}h</td>
       <td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;text-align:right;white-space:nowrap;">${escapeHtml(money(mission.gross))}</td>
     </tr>
-  `).join('');
+  `).join("");
 
   container.innerHTML = `
     <div style="margin-top:14px;border:1px solid #E2E8F0;border-radius:18px;overflow:hidden;background:#FFFFFF;box-shadow:0 8px 20px rgba(31,78,95,.04);">
@@ -1743,7 +1375,6 @@ function renderActualisation() {
         <strong style="display:block;color:#1F4E5F;font-size:16px;">Détail des missions du mois</strong>
         <span style="display:block;color:#718096;font-size:12px;margin-top:3px;">Récapitulatif prêt pour l'actualisation</span>
       </div>
-
       <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;min-width:620px;">
           <thead>
@@ -1755,9 +1386,7 @@ function renderActualisation() {
               <th style="padding:11px 10px;text-align:right;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Brut</th>
             </tr>
           </thead>
-          <tbody>
-            ${rows}
-          </tbody>
+          <tbody>${rows}</tbody>
         </table>
       </div>
     </div>
@@ -1775,21 +1404,10 @@ function generateActualisationPDF() {
     .filter((mission) => new Date(mission.date + "T00:00:00") <= todayDateOnly())
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  const title = current.toLocaleDateString("fr-FR", {
-    month: "long",
-    year: "numeric"
-  });
-
+  const title = current.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
   const totalHours = Math.round(sumDone(list) * 10) / 10;
   const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
   const totalDays = sumMissionDays(list);
-
-  const escapeHtml = (value) => String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
 
   const rows = list.map((mission) => `
     <tr>
@@ -1802,185 +1420,35 @@ function generateActualisationPDF() {
   `).join("");
 
   const win = window.open("", "_blank");
-
-  if (!win) {
-    alert("Impossible d'ouvrir la fenêtre PDF. Autorise les pop-ups pour ce site.");
-    return;
-  }
+  if (!win) { alert("Impossible d'ouvrir la fenêtre PDF. Autorise les pop-ups pour ce site."); return; }
 
   win.document.write(`
-    <!doctype html>
-    <html lang="fr">
-      <head>
-        <meta charset="utf-8" />
-        <title>Actualisation ${escapeHtml(title)}</title>
-        <style>
-          * {
-            box-sizing: border-box;
-          }
-
-          body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            color: #2D3748;
-            background: #ffffff;
-            padding: 34px;
-          }
-
-          .header {
-            border-bottom: 3px solid #1F4E5F;
-            padding-bottom: 16px;
-            margin-bottom: 22px;
-          }
-
-          h1 {
-            margin: 0;
-            color: #1F4E5F;
-            font-size: 28px;
-            letter-spacing: -0.03em;
-          }
-
-          .subtitle {
-            color: #718096;
-            margin: 6px 0 0;
-            font-size: 14px;
-          }
-
-          .summary {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            margin: 22px 0 24px;
-          }
-
-          .summary-box {
-            border: 1px solid #E2E8F0;
-            border-radius: 14px;
-            padding: 14px;
-            background: #F8FAF9;
-          }
-
-          .summary-box strong {
-            display: block;
-            color: #1F4E5F;
-            font-size: 24px;
-            line-height: 1.1;
-          }
-
-          .summary-box span {
-            display: block;
-            margin-top: 4px;
-            color: #718096;
-            font-size: 12px;
-            text-transform: uppercase;
-            font-weight: 700;
-          }
-
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-          }
-
-          th {
-            text-align: left;
-            color: #718096;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-            padding: 10px 8px;
-            border-bottom: 2px solid #E2E8F0;
-          }
-
-          td {
-            padding: 12px 8px;
-            border-bottom: 1px solid #E2E8F0;
-            font-size: 14px;
-            vertical-align: top;
-          }
-
-          tr:nth-child(even) td {
-            background: #FBFCFC;
-          }
-
-          .empty {
-            padding: 20px;
-            text-align: center;
-            color: #718096;
-            border: 1px solid #E2E8F0;
-            border-radius: 14px;
-            background: #F8FAF9;
-          }
-
-          .footer {
-            margin-top: 26px;
-            padding-top: 12px;
-            border-top: 1px solid #E2E8F0;
-            font-size: 12px;
-            color: #718096;
-            line-height: 1.45;
-          }
-
-          @media print {
-            body {
-              padding: 20px;
-            }
-
-            .summary-box,
-            tr:nth-child(even) td {
-              print-color-adjust: exact;
-              -webkit-print-color-adjust: exact;
-            }
-          }
-        </style>
-      </head>
-
-      <body>
-        <div class="header">
-          <h1>Récapitulatif actualisation</h1>
-          <p class="subtitle">${escapeHtml(title)} · Généré avec Intermitrack</p>
-        </div>
-
-        <div class="summary">
-          <div class="summary-box">
-            <strong>${escapeHtml(totalDays)}</strong>
-            <span>Journées</span>
-          </div>
-          <div class="summary-box">
-            <strong>${escapeHtml(totalHours)}h</strong>
-            <span>Heures</span>
-          </div>
-          <div class="summary-box">
-            <strong>${escapeHtml(money(totalGross))}</strong>
-            <span>Brut total</span>
-          </div>
-        </div>
-
-        ${list.length ? `
-          <table>
-            <thead>
-              <tr>
-                <th>Période</th>
-                <th>Production</th>
-                <th>Mission</th>
-                <th>Heures</th>
-                <th>Brut</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows}
-            </tbody>
-          </table>
-        ` : `
-          <div class="empty">Aucune mission effectuée sur ce mois.</div>
-        `}
-
-        <p class="footer">
-          Ce document est un récapitulatif personnel destiné à faciliter l'actualisation mensuelle.
-          Les informations doivent être vérifiées par l'utilisateur avant déclaration officielle.
-        </p>
-      </body>
-    </html>
+    <!doctype html><html lang="fr"><head><meta charset="utf-8"/>
+    <title>Actualisation ${escapeHtml(title)}</title>
+    <style>
+      *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#2D3748;background:#fff;padding:34px}
+      .header{border-bottom:3px solid #1F4E5F;padding-bottom:16px;margin-bottom:22px}
+      h1{margin:0;color:#1F4E5F;font-size:28px;letter-spacing:-.03em}.subtitle{color:#718096;margin:6px 0 0;font-size:14px}
+      .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0 24px}
+      .summary-box{border:1px solid #E2E8F0;border-radius:14px;padding:14px;background:#F8FAF9}
+      .summary-box strong{display:block;color:#1F4E5F;font-size:24px;line-height:1.1}
+      .summary-box span{display:block;margin-top:4px;color:#718096;font-size:12px;text-transform:uppercase;font-weight:700}
+      table{width:100%;border-collapse:collapse;margin-top:10px}
+      th{text-align:left;color:#718096;font-size:12px;text-transform:uppercase;letter-spacing:.03em;padding:10px 8px;border-bottom:2px solid #E2E8F0}
+      td{padding:12px 8px;border-bottom:1px solid #E2E8F0;font-size:14px;vertical-align:top}
+      tr:nth-child(even) td{background:#FBFCFC}
+      .footer{margin-top:26px;padding-top:12px;border-top:1px solid #E2E8F0;font-size:12px;color:#718096;line-height:1.45}
+      @media print{body{padding:20px}.summary-box,tr:nth-child(even) td{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+    </style></head><body>
+    <div class="header"><h1>Récapitulatif actualisation</h1><p class="subtitle">${escapeHtml(title)} · Généré avec Intermitrack</p></div>
+    <div class="summary">
+      <div class="summary-box"><strong>${escapeHtml(totalDays)}</strong><span>Journées</span></div>
+      <div class="summary-box"><strong>${escapeHtml(totalHours)}h</strong><span>Heures</span></div>
+      <div class="summary-box"><strong>${escapeHtml(money(totalGross))}</strong><span>Brut total</span></div>
+    </div>
+    ${list.length ? `<table><thead><tr><th>Période</th><th>Production</th><th>Mission</th><th>Heures</th><th>Brut</th></tr></thead><tbody>${rows}</tbody></table>` : `<div class="empty">Aucune mission effectuée sur ce mois.</div>`}
+    <p class="footer">Ce document est un récapitulatif personnel destiné à faciliter l'actualisation mensuelle. Les informations doivent être vérifiées par l'utilisateur avant déclaration officielle.</p>
+    </body></html>
   `);
 
   win.document.close();
@@ -1988,169 +1456,55 @@ function generateActualisationPDF() {
   win.print();
 }
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function resetMissionFormForDate(dateStr) {
-  editingMissionId = null;
-
-  if ($("missionForm")) $("missionForm").reset();
-  if ($("production")) $("production").value = "";
-  if ($("type")) $("type").value = "Montage";
-  if ($("date")) $("date").value = dateStr;
-  if ($("endDate")) $("endDate").value = dateStr;
-  if ($("hours")) $("hours").value = "";
-  if ($("gross")) $("gross").value = "";
-
-  const submitBtn = document.querySelector("#missionForm button[type='submit']");
-  if (submitBtn) {
-    submitBtn.textContent = "Enregistrer la mission";
-  }
-}
-
-function renderCalendarDayPanel(dateStr) {
-  const form = $("missionForm");
-  if (!form) return;
-
-  let panel = $("calendarDayPanel");
-
-  if (!panel) {
-    panel = document.createElement("div");
-    panel.id = "calendarDayPanel";
-    panel.className = "calendar-day-panel";
-    form.insertAdjacentElement("afterend", panel);
-  }
-
-  const dayMissions = missions
-    .filter((mission) => isDateInPeriod(dateStr, mission))
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-  const dateLabel = formatDate(dateStr);
-
-  if (!dayMissions.length) {
-    panel.innerHTML = `
-      <div class="calendar-day-panel-head">
-        <div>
-          <strong>${escapeHtml(dateLabel)}</strong>
-          <span>Aucune mission prévue ce jour-là.</span>
-        </div>
-      </div>
-      <p class="hint">Le formulaire est prêt pour ajouter une mission à cette date.</p>
-    `;
-    return;
-  }
-
-  panel.innerHTML = `
-    <div class="calendar-day-panel-head">
-      <div>
-        <strong>Missions du ${escapeHtml(dateLabel)}</strong>
-        <span>${dayMissions.length} mission${dayMissions.length > 1 ? "s" : ""} prévue${dayMissions.length > 1 ? "s" : ""} ce jour-là.</span>
-      </div>
-      <button class="ghost" type="button" data-calendar-add-date="${escapeHtml(dateStr)}">Ajouter une autre mission</button>
-    </div>
-
-    <div class="calendar-day-missions">
-      ${dayMissions.map((mission) => {
-        const totalDays = missionDayCount(mission);
-        const dailyHours = Math.round((Number(mission.hours || 0) / totalDays) * 10) / 10;
-        const dailyGross = Math.round(Number(mission.gross || 0) / totalDays);
-
-        return `
-          <div class="calendar-day-mission">
-            <div>
-              <strong>${escapeHtml(mission.production)}</strong>
-              <span>${escapeHtml(mission.type)} · ${dailyHours}h · ${money(dailyGross)}</span>
-            </div>
-            <div class="calendar-day-actions">
-              <button class="ghost" type="button" data-edit="${escapeHtml(mission.id)}">Modifier</button>
-              <button class="delete" type="button" data-delete="${escapeHtml(mission.id)}">X</button>
-            </div>
-          </div>
-        `;
-      }).join("")}
-    </div>
-
-    <p class="hint">Pour ajouter une deuxième mission le même jour, remplis le formulaire au-dessus.</p>
-  `;
-}
-
-function openCalendarDay(dateStr) {
-  activateView("missions");
-  resetMissionFormForDate(dateStr);
-  renderCalendarDayPanel(dateStr);
-
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
-}
-
-
 function setupEvents() {
   $("loginModeBtn").addEventListener("click", () => setAuthMode("login"));
   $("signupModeBtn").addEventListener("click", () => setAuthMode("signup"));
   $("logoutBtn").addEventListener("click", logout);
-  if ($("togglePassword")) {
-  $("togglePassword").addEventListener("click", () => {
-    const input = $("authPassword");
-    if (!input) return;
 
-    input.type = input.type === "password" ? "text" : "password";
-    $("togglePassword").textContent = input.type === "password" ? "👁" : "🙈";
-  });
-}
+  if ($("togglePassword")) {
+    $("togglePassword").addEventListener("click", () => {
+      const input = $("authPassword");
+      if (!input) return;
+      input.type = input.type === "password" ? "text" : "password";
+      $("togglePassword").textContent = input.type === "password" ? "👁" : "🙈";
+    });
+  }
 
   $("authForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     $("authMsg").textContent = "Chargement...";
-
     const email = $("authEmail").value.trim();
     const password = $("authPassword").value;
     let result;
     if (authMode === "signup" && password.length < 6) {
-  $("authMsg").textContent =
-    "Le mot de passe doit contenir au moins 6 caractères.";
-  return;
-}
-
-    if (authMode === "signup") result = await sb.auth.signUp({ email, password });
-    else result = await sb.auth.signInWithPassword({ email, password });
-
-    if (result.error) {
-      $("authMsg").textContent = "Erreur : " + result.error.message;
+      $("authMsg").textContent = "Le mot de passe doit contenir au moins 6 caractères.";
       return;
     }
-
-    if (authMode === "signup") {
-      $("authMsg").textContent = "Compte créé. Vérifiez votre boîte mail si une confirmation est demandée.";
-    }
-
+    if (authMode === "signup") result = await sb.auth.signUp({ email, password });
+    else result = await sb.auth.signInWithPassword({ email, password });
+    if (result.error) { $("authMsg").textContent = "Erreur : " + result.error.message; return; }
+    if (authMode === "signup") $("authMsg").textContent = "Compte créé. Vérifiez votre boîte mail si une confirmation est demandée.";
     await init();
   });
 
   $("missionForm").addEventListener("submit", addMission);
   if ($("kmDistance")) $("kmDistance").addEventListener("input", updateKmPreview);
   if ($("kmRate")) $("kmRate").addEventListener("input", updateKmPreview);
+
   if ($("saveTaxSettingsBtn")) $("saveTaxSettingsBtn").addEventListener("click", () => {
     setOtherIncome($("otherIncomeInput")?.value || 0);
     setTaxParts($("taxPartsInput")?.value || 1);
     render();
     alert("Nombre de parts enregistré.");
   });
+
   if ($("documentForm")) $("documentForm").addEventListener("submit", uploadDocument);
   if ($("refreshDocumentsBtn")) $("refreshDocumentsBtn").addEventListener("click", loadDocuments);
-if ($("calculateAreBtn")) $("calculateAreBtn").addEventListener("click", calculateEstimatedAreDailyRate);
-if ($("calculateCarenceBtn")) $("calculateCarenceBtn").addEventListener("click", calculateCarence);
+  if ($("calculateAreBtn")) $("calculateAreBtn").addEventListener("click", calculateEstimatedAreDailyRate);
+  if ($("calculateCarenceBtn")) $("calculateCarenceBtn").addEventListener("click", calculateCarence);
+
   $("date").addEventListener("change", () => {
-    if (!$("endDate").value || $("endDate").value < $("date").value) {
-      $("endDate").value = $("date").value;
-    }
+    if (!$("endDate").value || $("endDate").value < $("date").value) $("endDate").value = $("date").value;
   });
 
   document.querySelectorAll(".tab").forEach((tab) => {
@@ -2160,116 +1514,71 @@ if ($("calculateCarenceBtn")) $("calculateCarenceBtn").addEventListener("click",
   $("historyPrevBtn").addEventListener("click", () => moveMonth(-1));
   $("historyNextBtn").addEventListener("click", () => moveMonth(1));
   if ($("historyMonthPicker")) {
-  $("historyMonthPicker").addEventListener("change", () => {
-    const value = $("historyMonthPicker").value;
-    if (!value) return;
+    $("historyMonthPicker").addEventListener("change", () => {
+      const value = $("historyMonthPicker").value;
+      if (!value) return;
+      const [year, month] = value.split("-").map(Number);
+      current = new Date(year, month - 1, 1);
+      render();
+    });
+  }
 
-    const [year, month] = value.split("-").map(Number);
-    current = new Date(year, month - 1, 1);
-    render();
-  });
-}
-  $("calendarPrevBtn").addEventListener("click", () => moveMonth(-1));
-  $("calendarNextBtn").addEventListener("click", () => moveMonth(1));
-if ($("calendarMonthPicker")) {
-  $("calendarMonthPicker").addEventListener("change", () => {
-    const value = $("calendarMonthPicker").value;
-    if (!value) return;
+  $("calendarPrevBtn") && $("calendarPrevBtn").addEventListener("click", () => moveMonth(-1));
+  $("calendarNextBtn") && $("calendarNextBtn").addEventListener("click", () => moveMonth(1));
 
-    const [year, month] = value.split("-").map(Number);
-    current = new Date(year, month - 1, 1);
-    render();
-  });
-}
   if ($("actualisationPrevBtn")) $("actualisationPrevBtn").addEventListener("click", () => moveMonth(-1));
   if ($("actualisationNextBtn")) $("actualisationNextBtn").addEventListener("click", () => moveMonth(1));
   if ($("actualisationMonthPicker")) {
-  $("actualisationMonthPicker").addEventListener("change", () => {
-    const value = $("actualisationMonthPicker").value;
-    if (!value) return;
+    $("actualisationMonthPicker").addEventListener("change", () => {
+      const value = $("actualisationMonthPicker").value;
+      if (!value) return;
+      const [year, month] = value.split("-");
+      current = new Date(Number(year), Number(month) - 1, 1);
+      render();
+    });
+  }
 
-    const [year, month] = value.split("-");
-    current = new Date(Number(year), Number(month) - 1, 1);
-    render();
-  });
-}
   if ($("copyActualisationBtn")) $("copyActualisationBtn").addEventListener("click", copyActualisation);
   if ($("pdfActualisationBtn")) $("pdfActualisationBtn").addEventListener("click", generateActualisationPDF);
 
   document.addEventListener("click", async (event) => {
     const docProductionOpen = event.target.closest("[data-doc-production-open]");
-    if (docProductionOpen) {
-      openDocumentProduction = docProductionOpen.dataset.docProductionOpen;
-      documentFilter = "Tous";
-      renderDocuments();
-      return;
-    }
+    if (docProductionOpen) { openDocumentProduction = docProductionOpen.dataset.docProductionOpen; documentFilter = "Tous"; renderDocuments(); return; }
 
     const docProductionBack = event.target.closest("[data-doc-production-back]");
-    if (docProductionBack) {
-      openDocumentProduction = null;
-      documentFilter = "Tous";
-      renderDocuments();
-      return;
-    }
+    if (docProductionBack) { openDocumentProduction = null; documentFilter = "Tous"; renderDocuments(); return; }
 
     const docFilterButton = event.target.closest("[data-doc-filter]");
-    if (docFilterButton) {
-      documentFilter = docFilterButton.dataset.docFilter;
-      renderDocuments();
-      return;
-    }
+    if (docFilterButton) { documentFilter = docFilterButton.dataset.docFilter; renderDocuments(); return; }
 
     const calendarDay = event.target.closest("[data-calendar-date]");
-    if (calendarDay) {
-      openCalendarDay(calendarDay.dataset.calendarDate);
-      return;
-    }
+    if (calendarDay) { openCalendarDay(calendarDay.dataset.calendarDate); return; }
 
     const calendarAddButton = event.target.closest("[data-calendar-add-date]");
     if (calendarAddButton) {
+      activateView("missions");
       resetMissionFormForDate(calendarAddButton.dataset.calendarAddDate);
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
+
     const productionOpenButton = event.target.closest("[data-production-open]");
-    if (productionOpenButton) {
-      openProductionMissions(productionOpenButton.dataset.productionOpen);
-      return;
-    }
+    if (productionOpenButton) { openProductionMissions(productionOpenButton.dataset.productionOpen); return; }
 
     const productionBackButton = event.target.closest("[data-production-back]");
-    if (productionBackButton) {
-      renderAllMissions();
-      return;
-    }
+    if (productionBackButton) { renderAllMissions(); return; }
 
     const openButton = event.target.closest("[data-doc-open]");
-    if (openButton) {
-      await openDocument(openButton.dataset.docOpen);
-      return;
-    }
+    if (openButton) { await openDocument(openButton.dataset.docOpen); return; }
 
     const downloadButton = event.target.closest("[data-doc-download]");
-    if (downloadButton) {
-      await downloadDocument(downloadButton.dataset.docDownload, downloadButton.dataset.docName);
-      return;
-    }
+    if (downloadButton) { await downloadDocument(downloadButton.dataset.docDownload, downloadButton.dataset.docName); return; }
 
     const docDeleteButton = event.target.closest("[data-doc-delete]");
-    if (docDeleteButton) {
-      await deleteDocument(docDeleteButton.dataset.docDelete, docDeleteButton.dataset.docPath);
-      return;
-    }
+    if (docDeleteButton) { await deleteDocument(docDeleteButton.dataset.docDelete, docDeleteButton.dataset.docPath); return; }
 
     const editButton = event.target.closest("[data-edit]");
-    if (editButton) {
-      editMission(editButton.dataset.edit);
-      return;
-    }
+    if (editButton) { editMission(editButton.dataset.edit); return; }
 
     const deleteButton = event.target.closest("[data-delete]");
     if (!deleteButton) return;
@@ -2286,7 +1595,6 @@ if ($("calendarMonthPicker")) {
       alert("Sur iPhone : ouvrez Safari, bouton Partager, puis Ajouter à l'écran d'accueil. Sur Android : menu du navigateur, puis Installer l'application.");
       return;
     }
-
     deferredInstallPrompt.prompt();
     await deferredInstallPrompt.userChoice;
     deferredInstallPrompt = null;
@@ -2301,13 +1609,8 @@ if ("serviceWorker" in navigator) {
 
 sb.auth.onAuthStateChange((_event, session) => {
   currentUser = session?.user || null;
-  if (currentUser) {
-    showApp();
-    loadMissions();
-    loadDocuments();
-  } else {
-    showAuth();
-  }
+  if (currentUser) { showApp(); loadMissions(); loadDocuments(); }
+  else showAuth();
 });
 
 setupEvents();
