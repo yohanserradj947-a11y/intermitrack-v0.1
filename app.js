@@ -13,6 +13,8 @@ let openDocumentProduction = null;
 let editingMissionId = null;
 let current = new Date();
 let deferredInstallPrompt = null;
+let historyPage = 1;
+const HISTORY_PER_PAGE = 6;
 
 const OBJECTIVE_HOURS = 507;
 const MAX_DISPLAY_PERCENT = 300;
@@ -768,7 +770,7 @@ async function addMission(event) {
 
   const payload = {
     user_id: currentUser.id,
-    production: $("production").value.trim(),
+    production: $("production").value.trim().toUpperCase(),
     mission_type: $("type").value,
     mission_date: $("date").value,
     end_date: $("endDate").value,
@@ -1242,36 +1244,77 @@ function renderChart(doneHours, plannedHours = 0) {
 }
 
 function renderHistory() {
-  $("historyMonthTitle").textContent = current.toLocaleDateString("fr-FR", {
-    month: "long",
-    year: "numeric"
-  });
   if ($("historyMonthPicker")) {
-  const year = current.getFullYear();
-  const month = String(current.getMonth() + 1).padStart(2, "0");
-  $("historyMonthPicker").value = `${year}-${month}`;
-}
+    const year = current.getFullYear();
+    const month = String(current.getMonth() + 1).padStart(2, "0");
+    $("historyMonthPicker").value = `${year}-${month}`;
+  }
 
-  const sorted = [...monthMissions(current)].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const sorted = [...monthMissions(current)].sort(
+    (a, b) => new Date(b.date) - new Date(a.date)
+  );
+
   const missionsEl = $("missions");
-  missionsEl.innerHTML = sorted.length ? "" : `<div class="empty">Aucune mission sur ce mois.</div>`;
+  if (!missionsEl) return;
 
-  sorted.forEach((mission) => {
-    const row = document.createElement("div");
-    row.className = "row";
-    row.innerHTML = `
-      <div>${formatPeriod(mission.date, mission.endDate)}</div>
-      <div><b>${mission.production}</b></div>
-      <div><span class="pill">${mission.type}</span></div>
-      <div>${mission.hours}h</div>
-      <div>${money(mission.gross)}</div>
-      <div>
-        <button class="ghost" data-edit="${mission.id}" type="button">Modifier</button>
-        <button class="delete" data-delete="${mission.id}" type="button">X</button>
+  const totalPages = Math.max(1, Math.ceil(sorted.length / HISTORY_PER_PAGE));
+
+  if (historyPage > totalPages) historyPage = totalPages;
+  if (historyPage < 1) historyPage = 1;
+
+  const start = (historyPage - 1) * HISTORY_PER_PAGE;
+  const visible = sorted.slice(start, start + HISTORY_PER_PAGE);
+
+  if (!sorted.length) {
+    missionsEl.innerHTML = `<div class="empty">Aucune mission sur ce mois.</div>`;
+    return;
+  }
+
+  missionsEl.innerHTML = `
+    <div class="mission-card-grid">
+      ${visible.map((mission) => `
+        <div class="mission-history-card">
+          <div class="mission-history-head">
+            <strong>${mission.production}</strong>
+            <span class="pill">${mission.type}</span>
+          </div>
+
+          <div class="mission-history-info">
+            <span>📅 ${formatPeriod(mission.date, mission.endDate)}</span>
+            <span>🕒 ${mission.hours}h</span>
+            <span>€ ${money(mission.gross)}</span>
+          </div>
+
+          <div class="mission-history-actions">
+            <button class="edit-icon-btn" data-edit="${mission.id}" type="button" title="Modifier">✏️</button>
+            <button class="delete-icon-btn" data-delete="${mission.id}" type="button" title="Supprimer">✕</button>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+
+    ${totalPages > 1 ? `
+      <div class="history-pagination">
+        <button class="ghost" type="button" id="historyPagePrev" ${historyPage === 1 ? "disabled" : ""}>‹</button>
+        <span>Page ${historyPage} / ${totalPages}</span>
+        <button class="ghost" type="button" id="historyPageNext" ${historyPage === totalPages ? "disabled" : ""}>›</button>
       </div>
-    `;
-    missionsEl.appendChild(row);
-  });
+    ` : ""}
+  `;
+
+  if ($("historyPagePrev")) {
+    $("historyPagePrev").addEventListener("click", () => {
+      historyPage--;
+      renderHistory();
+    });
+  }
+
+  if ($("historyPageNext")) {
+    $("historyPageNext").addEventListener("click", () => {
+      historyPage++;
+      renderHistory();
+    });
+  }
 }
 
 function renderAllMissions() {
