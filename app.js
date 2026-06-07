@@ -278,6 +278,43 @@ function setTaxRate(value) {
 
 
 function calculateEstimatedAreDailyRate() {
+  // ← fin de calculateEstimatedAreDailyRate()
+}
+
+function calculateCarence() {
+  const sjm = Number($("carenceSJM")?.value || 0);
+  const conges = Number($("carenceConges")?.value || 0);
+  const supra = Number($("carenceSupra")?.value || 0);
+
+  if (!sjm) {
+    alert("Renseigne ton Salaire Journalier Moyen.");
+    return;
+  }
+
+  const delaiAttente = 7;
+
+  const franchiseCongesRaw = conges > 0 ? Math.round(conges / sjm) : 0;
+  const franchiseConges = Math.min(franchiseCongesRaw, 36);
+
+  const franchiseSupraRaw = supra > 0 ? Math.round(supra / sjm) : 0;
+  const franchiseSupra = Math.min(franchiseSupraRaw, 75);
+
+  const total = delaiAttente + franchiseConges + franchiseSupra;
+
+  $("carenceAttente").textContent = delaiAttente + "j";
+  $("carenceCongesResult").textContent = franchiseConges + "j";
+  $("carenceSupraResult").textContent = franchiseSupra + "j";
+  $("carenceTotal").textContent = total + "j";
+
+  $("carenceDetail").textContent =
+    `Franchise congés : ${conges}€ ÷ ${sjm}€ = ${franchiseCongesRaw}j → plafonnée à ${franchiseConges}j` +
+    (supra > 0 ? ` | Franchise salaires : ${supra}€ ÷ ${sjm}€ = ${franchiseSupraRaw}j → plafonnée à ${franchiseSupra}j` : " | Franchise salaires : non applicable (0€)");
+
+  $("carenceResult").style.display = "block";
+}
+
+// ← suite de ton code...
+function monterWidgetParserDocuments() {
   const hours = Number($("areHours")?.value || 0);
   const dailyGross = Number($("areDailyGross")?.value || 0);
 
@@ -2109,6 +2146,7 @@ function setupEvents() {
   if ($("documentForm")) $("documentForm").addEventListener("submit", uploadDocument);
   if ($("refreshDocumentsBtn")) $("refreshDocumentsBtn").addEventListener("click", loadDocuments);
 if ($("calculateAreBtn")) $("calculateAreBtn").addEventListener("click", calculateEstimatedAreDailyRate);
+if ($("calculateCarenceBtn")) $("calculateCarenceBtn").addEventListener("click", calculateCarence);
   $("date").addEventListener("change", () => {
     if (!$("endDate").value || $("endDate").value < $("date").value) {
       $("endDate").value = $("date").value;
