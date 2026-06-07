@@ -1246,6 +1246,11 @@ function renderHistory() {
     month: "long",
     year: "numeric"
   });
+  if ($("historyMonthPicker")) {
+  const year = current.getFullYear();
+  const month = String(current.getMonth() + 1).padStart(2, "0");
+  $("historyMonthPicker").value = `${year}-${month}`;
+}
 
   const sorted = [...monthMissions(current)].sort((a, b) => new Date(b.date) - new Date(a.date));
   const missionsEl = $("missions");
@@ -1384,7 +1389,11 @@ function renderCalendar() {
     month: "long",
     year: "numeric"
   });
-
+if ($("calendarMonthPicker")) {
+  const year = current.getFullYear();
+  const month = String(current.getMonth() + 1).padStart(2, "0");
+  $("calendarMonthPicker").value = `${year}-${month}`;
+}
   const first = new Date(year, month, 1);
   const start = (first.getDay() + 6) % 7;
   const days = new Date(year, month + 1, 0).getDate();
@@ -1476,7 +1485,7 @@ function buildActualisationText() {
 }
 
 function renderActualisation() {
-  if (!$('actualisationMonthTitle')) return;
+  if (!$("actualisationMonthPicker")) return;
 
   const list = monthMissions(current)
     .filter((mission) => new Date(mission.date + "T00:00:00") <= todayDateOnly())
@@ -1486,10 +1495,11 @@ function renderActualisation() {
   const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
   const totalDays = sumMissionDays(list);
 
-  $('actualisationMonthTitle').textContent = current.toLocaleDateString('fr-FR', {
-    month: 'long',
-    year: 'numeric'
-  });
+ if ($("actualisationMonthPicker")) {
+  const year = current.getFullYear();
+  const month = String(current.getMonth() + 1).padStart(2, "0");
+  $("actualisationMonthPicker").value = `${year}-${month}`;
+}
 
   if ($('actualisationDays')) $('actualisationDays').textContent = totalDays;
   if ($('actualisationHours')) $('actualisationHours').textContent = totalHours + 'h';
@@ -1942,11 +1952,40 @@ if ($("calculateAreBtn")) $("calculateAreBtn").addEventListener("click", calcula
 
   $("historyPrevBtn").addEventListener("click", () => moveMonth(-1));
   $("historyNextBtn").addEventListener("click", () => moveMonth(1));
+  if ($("historyMonthPicker")) {
+  $("historyMonthPicker").addEventListener("change", () => {
+    const value = $("historyMonthPicker").value;
+    if (!value) return;
+
+    const [year, month] = value.split("-").map(Number);
+    current = new Date(year, month - 1, 1);
+    render();
+  });
+}
   $("calendarPrevBtn").addEventListener("click", () => moveMonth(-1));
   $("calendarNextBtn").addEventListener("click", () => moveMonth(1));
+if ($("calendarMonthPicker")) {
+  $("calendarMonthPicker").addEventListener("change", () => {
+    const value = $("calendarMonthPicker").value;
+    if (!value) return;
 
+    const [year, month] = value.split("-").map(Number);
+    current = new Date(year, month - 1, 1);
+    render();
+  });
+}
   if ($("actualisationPrevBtn")) $("actualisationPrevBtn").addEventListener("click", () => moveMonth(-1));
   if ($("actualisationNextBtn")) $("actualisationNextBtn").addEventListener("click", () => moveMonth(1));
+  if ($("actualisationMonthPicker")) {
+  $("actualisationMonthPicker").addEventListener("change", () => {
+    const value = $("actualisationMonthPicker").value;
+    if (!value) return;
+
+    const [year, month] = value.split("-");
+    current = new Date(Number(year), Number(month) - 1, 1);
+    render();
+  });
+}
   if ($("copyActualisationBtn")) $("copyActualisationBtn").addEventListener("click", copyActualisation);
   if ($("pdfActualisationBtn")) $("pdfActualisationBtn").addEventListener("click", generateActualisationPDF);
 
