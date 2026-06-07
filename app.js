@@ -15,6 +15,8 @@ let deferredInstallPrompt = null;
 let historyPage = 1;
 let areAdmissionDate = localStorage.getItem("areAdmissionDate") || "";
 const HISTORY_PER_PAGE = 6;
+let missionsDateFrom = null;
+let missionsDateTo = null;
 let documentsPage = 1;
 const DOCS_PER_PAGE_DESKTOP = 9;
 const DOCS_PER_PAGE_MOBILE = 5;
@@ -332,7 +334,8 @@ async function loadMissions() {
     id: x.id, production: x.production, type: x.mission_type,
     date: x.mission_date, endDate: x.end_date || x.mission_date,
     hours: Number(x.hours || 0), gross: Number(x.gross_amount || 0),
-    kmDistance: Number(x.km_distance || 0), kmRate: Number(x.km_rate || 0), kmAmount: Number(x.km_amount || 0)
+  kmDistance: Number(x.km_distance || 0), kmRate: Number(x.km_rate || 0), kmAmount: Number(x.km_amount || 0),
+vacations: Number(x.vacations || Math.round((x.hours || 0) / 8))
   }));
   render();
 }
@@ -508,11 +511,12 @@ async function addMission(event) {
   if ($("endDate").value < $("date").value) { alert("La date de fin ne peut pas être avant la date de début."); return; }
   const payload = {
     user_id: currentUser.id, production: normalizeProductionName($("production").value),
-    mission_type: $("type").value, mission_date: $("date").value, end_date: $("endDate").value,
-    hours: Number($("hours").value), gross_amount: Number($("gross").value),
-    km_distance: Number($("kmDistance")?.value || 0), km_rate: Number($("kmRate")?.value || 0), km_amount: calculateKmAmount()
-  };
-  let result;
+   mission_type: $("type").value, mission_date: $("date").value, end_date: $("endDate").value,
+hours: Number($("hours").value), gross_amount: Number($("gross").value),
+km_distance: Number($("kmDistance")?.value || 0), km_rate: Number($("kmRate")?.value || 0), km_amount: calculateKmAmount(),
+vacations: Number($("vacations")?.value || Math.round(Number($("hours").value || 0) / 8))
+};
+let result;
   if (editingMissionId) result = await sb.from("missions").update(payload).eq("id", editingMissionId);
   else result = await sb.from("missions").insert(payload);
   const { error } = result;
@@ -707,24 +711,24 @@ function renderChart(doneHours, plannedHours = 0) {
   const plannedDash = Math.min((plannedPercent / 100) * CIRC, CIRC - doneDash);
   if (!$("chart")) return;
   $("chart").innerHTML = `
-    <svg viewBox="0 0 300 200" width="100%" role="img" aria-label="Arc progression heures">
+    <svg viewBox="0 0 300 215" width="100%" role="img" aria-label="Arc progression heures">
       <defs>
-        <linearGradient id="g3done" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#7A9E7E"/><stop offset="100%" stop-color="#1F4E5F"/></linearGradient>
-        <linearGradient id="g3plan" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#FDBA74"/><stop offset="100%" stop-color="#F97316"/></linearGradient>
-        <filter id="arcShadow"><feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.15"/></filter>
-      </defs>
-      <path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="#EEF4F1" stroke-width="30" stroke-linecap="round"/>
-      ${doneDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3done)" stroke-width="30" stroke-linecap="round" stroke-dasharray="${doneDash} ${CIRC}" filter="url(#arcShadow)"/>` : ""}
-      ${plannedDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3plan)" stroke-width="30" stroke-linecap="round" stroke-dasharray="${plannedDash} ${CIRC}" stroke-dashoffset="${-doneDash}"/>` : ""}
-      <text x="150" y="132" text-anchor="middle" font-size="44" font-weight="900" fill="#1F4E5F" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${totalPercent}%</text>
-      <text x="150" y="155" text-anchor="middle" font-size="13" fill="#718096" font-family="-apple-system, BlinkMacSystemFont, sans-serif">potentiel total</text>
-      <rect x="20" y="182" width="12" height="12" rx="3" fill="#1F4E5F"/>
-      <text x="37" y="193" font-size="13" font-weight="700" fill="#2D3748" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Effectué · ${donePercent}%</text>
-      <rect x="128" y="182" width="12" height="12" rx="3" fill="#F97316"/>
-      <text x="145" y="193" font-size="13" font-weight="700" fill="#2D3748" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Prévu · ${plannedPercent}%</text>
-      <rect x="228" y="182" width="12" height="12" rx="3" fill="#D8E4DF"/>
-      <text x="245" y="193" font-size="13" font-weight="700" fill="#718096" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Restant</text>
-    </svg>
+       <linearGradient id="g3done" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1F4E5F"/><stop offset="100%" stop-color="#1F4E5F"/></linearGradient>
+<linearGradient id="g3plan" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#F97316"/><stop offset="100%" stop-color="#F97316"/></linearGradient>
+<filter id="arcShadow"><feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.15"/></filter>
+</defs>
+<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="#EEF4F1" stroke-width="30" stroke-linecap="round"/>
+${doneDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3done)" stroke-width="30" stroke-linecap="round" stroke-dasharray="${doneDash} ${CIRC}" filter="url(#arcShadow)"/>` : ""}
+${plannedDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3plan)" stroke-width="30" stroke-linecap="round" stroke-dasharray="${plannedDash} ${CIRC}" stroke-dashoffset="${-doneDash}"/>` : ""}
+<text x="150" y="132" text-anchor="middle" font-size="44" font-weight="900" fill="#1F4E5F" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${totalPercent}%</text>
+<text x="150" y="155" text-anchor="middle" font-size="13" fill="#718096" font-family="-apple-system, BlinkMacSystemFont, sans-serif">potentiel total</text>
+<rect x="20" y="196" width="12" height="12" rx="3" fill="#1F4E5F"/>
+<text x="37" y="207" font-size="13" font-weight="700" fill="#2D3748" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Effectué · ${donePercent}%</text>
+<rect x="128" y="196" width="12" height="12" rx="3" fill="#F97316"/>
+<text x="145" y="207" font-size="13" font-weight="700" fill="#2D3748" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Prévu · ${plannedPercent}%</text>
+<rect x="228" y="196" width="12" height="12" rx="3" fill="#D8E4DF"/>
+<text x="245" y="207" font-size="13" font-weight="700" fill="#718096" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Restant</text>
+</svg>
   `;
 }
 
@@ -771,46 +775,111 @@ function renderHistory() {
 function renderAllMissions() {
   const container = $("missionsGraphContainer");
   if (!container) return;
-  if (!missions.length) { container.innerHTML = `<div class="empty">Aucune mission enregistrée. Ajoute des missions depuis le calendrier !</div>`; return; }
+
+  if (!missions.length) {
+    container.innerHTML = `<div class="empty">Aucune mission enregistrée. Ajoute des missions depuis le calendrier !</div>`;
+    return;
+  }
+
+  // Calcul période par défaut
+  const now = new Date();
+  const defaultStart = areAdmissionDate
+    ? new Date(areAdmissionDate + "T00:00:00")
+    : new Date(now.getFullYear(), 0, 1);
+
+  const fromDate = missionsDateFrom ? new Date(missionsDateFrom + "-01T00:00:00") : defaultStart;
+  const toDate = missionsDateTo ? new Date(missionsDateTo + "-01T00:00:00") : now;
+  // fin du mois to
+  const toDateEnd = missionsDateTo
+    ? new Date(toDate.getFullYear(), toDate.getMonth() + 1, 0, 23, 59, 59)
+    : now;
+
+  const isCustomPeriod = missionsDateFrom || missionsDateTo;
+
+  const periodeLabel = isCustomPeriod
+    ? `Période personnalisée : <em>${new Date(fromDate).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })} → ${new Date(toDateEnd).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}</em>`
+    : areAdmissionDate
+      ? `Depuis l'admission ARE : <em>${new Date(areAdmissionDate).toLocaleDateString("fr-FR")} → aujourd'hui</em>`
+      : `Depuis le 1er janvier ${now.getFullYear()} → aujourd'hui`;
+
+  // Filtrer missions selon période
+  const filteredMissions = missions.filter((m) => {
+    const d = new Date(m.date + "T00:00:00");
+    return d >= fromDate && d <= toDateEnd;
+  });
+
   const groups = {};
-  missions.forEach((mission) => {
+  filteredMissions.forEach((mission) => {
     const key = normalizeProductionName(mission.production || "Sans production");
     if (!groups[key]) groups[key] = [];
     groups[key].push(mission);
   });
+
   const sorted = Object.keys(groups).map((name) => ({
     name, list: groups[name],
     gross: groups[name].reduce((a, x) => a + Number(x.gross || 0), 0),
     hours: Math.round(groups[name].reduce((a, x) => a + Number(x.hours || 0), 0) * 10) / 10,
-    days: sumMissionDays(groups[name]), count: groups[name].length
+    vacations: groups[name].reduce((a, x) => a + Number(x.vacations || 0), 0),
+    count: groups[name].length
   })).sort((a, b) => b.gross - a.gross);
+
   const totalGross = sorted.reduce((a, x) => a + x.gross, 0);
   const totalHours = Math.round(sorted.reduce((a, x) => a + x.hours, 0) * 10) / 10;
-  const totalMissions = missions.length;
+  const totalVacations = sorted.reduce((a, x) => a + x.vacations, 0);
+  const totalMissions = filteredMissions.length;
+
   const COLORS = ["#1F4E5F","#2A6174","#3A7A8F","#7A9E7E","#8AB08E","#9AC09E","#F97316","#FDBA74","#4A8FA5","#5A9FB5"];
   const CIRC = 2 * Math.PI * 75;
   let offset = 0;
   const arcs = sorted.map((p, i) => {
     const pct = totalGross > 0 ? p.gross / totalGross : 0;
     const dash = pct * CIRC;
-    const arc = `<circle cx="100" cy="100" r="75" fill="none" stroke="${COLORS[i % COLORS.length]}" stroke-width="28" stroke-dasharray="${dash.toFixed(2)} ${CIRC.toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}" transform="rotate(-90 100 100)" stroke-linecap="butt"/>`;
+    const arc = `<circle cx="100" cy="100" r="75" fill="none" stroke="${COLORS[i % COLORS.length]}" stroke-width="28"
+      stroke-dasharray="${dash.toFixed(2)} ${CIRC.toFixed(2)}"
+      stroke-dashoffset="${(-offset).toFixed(2)}"
+      transform="rotate(-90 100 100)" stroke-linecap="butt"/>`;
     offset += dash;
     return arc;
   });
+
+  const fromVal = missionsDateFrom || (areAdmissionDate ? areAdmissionDate.slice(0, 7) : `${now.getFullYear()}-01`);
+  const toVal = missionsDateTo || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
   container.innerHTML = `
+    <div class="periode-bar">
+      <span class="periode-label">📅 Période</span>
+      <span class="periode-info" id="periodeInfo">${periodeLabel}</span>
+      <button class="btn-custom ${isCustomPeriod ? "active" : ""}" type="button" id="btnCustomPeriode">Personnaliser</button>
+      ${isCustomPeriod ? `<button class="btn-reset" type="button" id="btnResetPeriode">↺ Par défaut</button>` : ""}
+    </div>
+
+    <div class="custom-panel" id="customPanel" style="display:none;">
+      <label>De</label>
+      <input type="month" id="missionsFrom" value="${fromVal}"/>
+      <span style="color:var(--muted);font-size:16px;">→</span>
+      <label>À</label>
+      <input type="month" id="missionsTo" value="${toVal}"/>
+      <button class="btn-apply" type="button" id="btnApplyPeriode">Appliquer</button>
+    </div>
+
     <div class="missions-stats-row">
-      <div class="mstat-box"><strong>${totalMissions}</strong><span>Missions</span></div>
+      <div class="mstat-box"><strong>${sorted.length}</strong><span>Productions</span></div>
       <div class="mstat-box"><strong>${totalHours}h</strong><span>Heures totales</span></div>
       <div class="mstat-box highlight"><strong>${money(totalGross)}</strong><span>Brut total</span></div>
-      <div class="mstat-box"><strong>${sorted.length}</strong><span>Productions</span></div>
+      <div class="mstat-box"><strong>${totalVacations}</strong><span>Vacations</span></div>
     </div>
+
+    ${sorted.length ? `
     <div class="missions-graph-layout">
       <div class="missions-arc-wrap">
         <svg viewBox="0 0 200 200" width="100%">
           <circle cx="100" cy="100" r="75" fill="none" stroke="#F0F4F3" stroke-width="28"/>
           ${arcs.join("")}
         </svg>
-        <div class="missions-arc-center"><strong>${money(totalGross)}</strong><span>brut total</span></div>
+        <div class="missions-arc-center">
+          <strong>${money(totalGross)}</strong>
+          <span>brut total</span>
+        </div>
       </div>
       <div class="missions-legend">
         ${sorted.map((p, i) => `
@@ -826,27 +895,98 @@ function renderAllMissions() {
         `).join("")}
       </div>
     </div>
+    ` : `<div class="empty">Aucune mission sur cette période.</div>`}
   `;
+
+  // Events
+  $("btnCustomPeriode").addEventListener("click", () => {
+    const panel = $("customPanel");
+    panel.style.display = panel.style.display === "none" ? "flex" : "none";
+  });
+
+  if ($("btnResetPeriode")) {
+    $("btnResetPeriode").addEventListener("click", () => {
+      missionsDateFrom = null;
+      missionsDateTo = null;
+      renderAllMissions();
+    });
+  }
+
+  $("btnApplyPeriode").addEventListener("click", () => {
+    missionsDateFrom = $("missionsFrom").value || null;
+    missionsDateTo = $("missionsTo").value || null;
+    renderAllMissions();
+  });
 }
 
 function openProductionMissions(productionName) {
-  const allMissionsEl = $("allMissions");
-  if (!allMissionsEl) return;
-  const list = missions.filter((m) => m.production === productionName).sort((a, b) => new Date(b.date) - new Date(a.date));
-  allMissionsEl.innerHTML = `
-    <div class="production-detail-head">
-      <button class="ghost" type="button" data-production-back>‹ Retour</button>
-      <div><h2>${productionName}</h2><p class="sub">${list.length} mission${list.length > 1 ? "s" : ""} enregistrée${list.length > 1 ? "s" : ""}</p></div>
+  const container = $("missionsGraphContainer");
+  if (!container) return;
+
+  const list = missions
+    .filter((m) => normalizeProductionName(m.production) === productionName)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const totalVacations = list.reduce((a, x) => a + Number(x.vacations || 0), 0);
+  const totalHoursP = list.reduce((a, x) => a + Number(x.hours || 0), 0);
+  const totalGrossP = list.reduce((a, x) => a + Number(x.gross || 0), 0);
+
+  container.innerHTML = `
+    <div class="production-detail-head" style="margin-bottom:16px;">
+      <button class="ghost" type="button" id="backToGraphBtn">‹ Retour</button>
+      <div>
+        <h2>${escapeHtml(productionName)}</h2>
+        <p class="sub">${list.length} mission${list.length > 1 ? "s" : ""} · ${totalVacations} vacation${totalVacations > 1 ? "s" : ""} · ${totalHoursP}h · ${money(totalGrossP)}</p>
+      </div>
     </div>
-    <div class="row header"><div>Période</div><div>Production</div><div>Mission</div><div>Heures</div><div>Brut</div><div></div></div>
-    <div id="productionMissionRows"></div>
+    <div class="mission-card-grid">
+      ${list.map((m) => `
+        <div class="mission-history-card">
+          <div class="mission-history-head">
+            <strong>${escapeHtml(formatPeriod(m.date, m.endDate))}</strong>
+            <span class="pill">${escapeHtml(m.type)}</span>
+          </div>
+          <div class="mission-history-info">
+            <span>🕒 ${m.hours}h</span>
+            <span>💼 <strong>${m.vacations || 0}</strong> vacation${(m.vacations || 0) > 1 ? "s" : ""}</span>
+            <span>€ ${money(m.gross)}</span>
+          </div>
+          <div class="mission-history-actions">
+            <button class="ghost" style="font-size:12px;padding:6px 10px;" type="button"
+              data-edit-vacation="${escapeHtml(m.id)}"
+              data-vacation-label="${escapeHtml(productionName + ' — ' + formatPeriod(m.date, m.endDate))}"
+              data-current-vacations="${m.vacations || 0}">✏️ Vacations</button>
+            <button class="edit-icon-btn" data-edit="${escapeHtml(m.id)}" type="button" title="Modifier">✏️</button>
+            <button class="delete-icon-btn" data-delete="${escapeHtml(m.id)}" type="button" title="Supprimer">✕</button>
+          </div>
+        </div>
+      `).join("")}
+    </div>
   `;
-  const rows = $("productionMissionRows");
-  list.forEach((mission) => {
-    const row = document.createElement("div");
-    row.className = "row";
-    row.innerHTML = `<div>${formatPeriod(mission.date, mission.endDate)}</div><div><b>${mission.production}</b></div><div><span class="pill">${mission.type}</span></div><div>${mission.hours}h</div><div>${money(mission.gross)}</div><div><button class="ghost" data-edit="${mission.id}" type="button">Modifier</button><button class="delete" data-delete="${mission.id}" type="button">X</button></div>`;
-    rows.appendChild(row);
+
+  $("backToGraphBtn").addEventListener("click", () => renderAllMissions());
+
+  container.querySelectorAll("[data-edit-vacation]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.editVacation;
+      const label = btn.dataset.vacationLabel;
+      const current = btn.dataset.currentVacations;
+
+      $("modalVacationLabel").textContent = "Mission : " + label;
+      $("modalVacationInput").value = current;
+      $("modalVacations").classList.remove("hidden");
+
+      $("modalVacationCancel").onclick = () => $("modalVacations").classList.add("hidden");
+
+      $("modalVacationSave").onclick = async () => {
+        const vacations = Math.max(0, parseInt($("modalVacationInput").value) || 0);
+        const { error } = await sb.from("missions").update({ vacations }).eq("id", id);
+        if (error) { alert("Erreur : " + error.message); return; }
+        $("modalVacations").classList.add("hidden");
+        await loadMissions();
+        openProductionMissions(productionName);
+      };
+    });
   });
 }
 

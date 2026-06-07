@@ -164,8 +164,8 @@
         <article class="card">
           <div class="historyhead">
             <div>
-              <h2>Mes productions</h2>
-              <p class="sub">Répartition du brut par production</p>
+              <h2>Mes missions</h2>
+<p class="sub">Répartition du brut par production</p>
             </div>
           </div>
           <div id="missionsGraphContainer"></div>
@@ -190,6 +190,8 @@
             <input id="endDate" type="date" required />
             <label for="hours">Nombre d'heures cumulées sur la période</label>
             <input id="hours" type="number" min="0" step="0.5" placeholder="Ex : 40" required />
+            <label for="vacations">Nombre de vacations</label>
+<input id="vacations" type="number" min="0" step="1" placeholder="Ex : 1" />
             <label for="gross">Montant brut de la mission (EUR)</label>
             <input id="gross" type="number" min="0" step="0.01" placeholder="Ex : 230" required />
             <div class="optional-block">
@@ -451,5 +453,17 @@
     <a href="confidentialite.html" target="_blank">Confidentialité</a>
     <a href="cgu.html" target="_blank">CGU</a>
   </footer>
+  <!-- MODAL vacations -->
+<div class="modal-overlay hidden" id="modalVacations">
+  <div class="modal-vacation">
+    <h3>✏️ Modifier les vacations</h3>
+    <p id="modalVacationLabel">Mission : —</p>
+    <input type="number" id="modalVacationInput" min="0" step="1" value="1"/>
+    <div class="modal-vacation-actions">
+      <button type="button" id="modalVacationCancel">Annuler</button>
+      <button type="button" id="modalVacationSave">✅ Enregistrer</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
