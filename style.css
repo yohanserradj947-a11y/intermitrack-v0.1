@@ -2719,4 +2719,26 @@ button {
   font-size: 28px !important;
   font-weight: 900 !important;
   color: var(--petrol) !important;
+}@media (max-width: 720px) {
+  .heroTop {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-areas:
+      "center center"
+      "left right" !important;
+    gap: 12px !important;
+    align-items: start !important;
+  }
+
+  .heroTop .remaining-badge:first-child {
+    grid-area: left !important;
+  }
+
+  .heroTop .remaining-badge:last-child {
+    grid-area: right !important;
+  }
+
+  .heroTop .are-admission-center {
+    grid-area: center !important;
+  }
 }
