@@ -9,11 +9,10 @@
   <meta name="theme-color" content="#1F4E5F" />
 
   <link rel="manifest" href="manifest.json" />
-<script src="document-parser.js"></script>
-<script src="app.js"></script>
+  <link rel="stylesheet" href="style.css?v=2" />
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-
 <body>
   <div class="beta-banner">
   🚧 Version en phase bêta. Certaines fonctionnalités peuvent évoluer ou contenir des erreurs. Vos retours nous aident à améliorer l'application.
@@ -543,12 +542,47 @@
             </div>
 
             <div class="prevision-card">
-              <span class="mini-label">France Travail</span>
-              <h3>Estimation carence</h3>
-              <p>Module à développer avec les paramètres personnels.</p>
-              <strong id="previsionCarence">Non calculé pour le moment</strong>
-              <small>Objectif : estimation mensuelle fiable.</small>
-            </div>
+  <span class="mini-label">Annexe 8</span>
+  <h3>Calcul des franchises</h3>
+  <p>Estimation des jours de carence avant le versement de ton ARE.</p>
+
+  <label for="carenceSJM">Salaire Journalier Moyen (€)</label>
+  <input id="carenceSJM" type="number" min="0" step="0.01" placeholder="Ex : 230" />
+
+  <label for="carenceConges">Indemnités congés payés reçues (€)</label>
+  <input id="carenceConges" type="number" min="0" step="0.01" placeholder="Ex : 800" />
+
+  <label for="carenceSupra">Indemnités supra-légales (€)</label>
+  <input id="carenceSupra" type="number" min="0" step="0.01" placeholder="Ex : 0 (souvent 0 en CDDU)" />
+
+  <button class="ghost fiscal-small-btn" type="button" id="calculateCarenceBtn">
+    Calculer
+  </button>
+
+  <div id="carenceResult" style="display:none; margin-top:14px;">
+    <div class="carence-grid">
+      <div class="carence-box">
+        <strong id="carenceAttente">7j</strong>
+        <span>Délai d'attente</span>
+      </div>
+      <div class="carence-box">
+        <strong id="carenceCongesResult">0j</strong>
+        <span>Franchise congés</span>
+      </div>
+      <div class="carence-box">
+        <strong id="carenceSupraResult">0j</strong>
+        <span>Franchise salaires</span>
+      </div>
+      <div class="carence-box carence-total">
+        <strong id="carenceTotal">7j</strong>
+        <span>Total jours de carence</span>
+      </div>
+    </div>
+    <small id="carenceDetail" style="display:block; margin-top:10px; color:var(--muted); font-size:12px;"></small>
+  </div>
+
+  <small>Calcul indicatif Annexe 8. Ne remplace pas le calcul officiel France Travail.</small>
+</div>
 
           </div>
 
