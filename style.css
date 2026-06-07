@@ -2483,4 +2483,109 @@ button {
   height: 42px;
   border-radius: 50%;
   padding: 0;
+}/* Historique missions - vignettes propres */
+.mission-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.mission-history-card {
+  min-height: 142px;
+  padding: 14px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid rgba(31, 78, 95, 0.12);
+  box-shadow: 0 10px 24px rgba(31, 78, 95, 0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.mission-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mission-history-head strong {
+  color: var(--petrol);
+  font-size: 15px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.mission-history-info {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.mission-history-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.edit-icon-btn,
+.delete-icon-btn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  width: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer;
+  font-size: 15px !important;
+}
+
+.edit-icon-btn {
+  color: var(--petrol) !important;
+}
+
+.delete-icon-btn {
+  color: #d93025 !important;
+}
+
+.edit-icon-btn:hover,
+.delete-icon-btn:hover {
+  transform: scale(1.15);
+}
+.history-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.history-pagination span {
+  color: var(--petrol);
+  font-weight: 900;
+}
+
+.history-pagination button {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  padding: 0;
+}
+
+.history-pagination button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+@media (max-width: 720px) {
+  .mission-card-grid {
+    grid-template-columns: 1fr;
+  }
 }
