@@ -215,9 +215,17 @@
 
       <!-- CALENDRIER — article vide, tout est construit par renderCalendar() -->
       <section class="view" id="view-calendar">
-        <article class="card"></article>
-      </section>
-
+  <article class="card"></article>
+  <article class="card" style="padding:16px 24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">
+      <div>
+        <strong style="color:#1F4E5F;font-size:15px;">📅 Synchroniser avec mon calendrier</strong>
+        <p style="font-size:12px;color:#718096;margin-top:4px;">Abonne-toi pour voir tes missions sur iPhone, Android ou Google Calendar — mis à jour automatiquement.</p>
+      </div>
+      <button class="ghost" type="button" id="copyIcsBtn" style="white-space:nowrap;flex-shrink:0;">📅 Synchroniser iPhone / Android</button>
+    </div>
+  </article>
+</section>
       <!-- ACTUALISATION -->
       <section class="view" id="view-actualisation">
         <article class="card actualisation-card-clean">
