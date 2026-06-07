@@ -2588,4 +2588,135 @@ button {
   .mission-card-grid {
     grid-template-columns: 1fr;
   }
+}.are-admission-pill {
+  margin-top: 10px;
+  max-width: 360px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 16px;
+  background: #eef5f2;
+  border: 1px solid rgba(31, 78, 95, 0.12);
+}
+
+.are-admission-pill span {
+  color: var(--petrol);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.are-admission-pill input {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(31, 78, 95, 0.14);
+  padding: 0 8px;
+  color: var(--petrol);
+  font-weight: 800;
+}
+
+.are-admission-pill button {
+  height: 34px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 10px;
+  background: var(--petrol);
+  color: white;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.are-admission-info {
+  display: block;
+  margin-top: 6px;
+  color: #667085;
+  font-size: 12px;
+}.heroTop {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 16px !important;
+}
+
+.are-admission-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+
+.are-admission-center label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--petrol);
+  margin: 0;
+}
+
+.remaining-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid rgba(31, 78, 95, 0.15);
+  border-radius: 20px;
+  padding: 18px 24px;
+  box-shadow: 0 10px 28px rgba(31, 78, 95, 0.08);
+  min-width: 140px;
+  text-align: center;
+}
+
+.remaining-badge b {
+  display: block;
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--petrol);
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.remaining-badge span {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .heroTop {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  .are-admission-center {
+    align-items: flex-start;
+    text-align: left;
+    width: 100%;
+  }
+}.remaining-badge b {
+  font-size: 54px !important;
+  font-weight: 900 !important;
+  color: var(--petrol) !important;
+  letter-spacing: -0.04em !important;
+  line-height: 1 !important;
+  display: block !important;
+
+}.remaining-badge b span {
+  font-size: 48px !important;
+  font-weight: 900 !important;
+}.remaining-badge b,
+.remaining-badge b span {
+  font-size: 48px !important;
+  font-weight: 900 !important;
+  color: var(--petrol) !important;
+}
+.remaining-badge b,
+.remaining-badge b span {
+  font-size: 28px !important;
+  font-weight: 900 !important;
+  color: var(--petrol) !important;
 }
