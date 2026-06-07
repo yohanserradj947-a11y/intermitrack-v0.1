@@ -1192,22 +1192,78 @@ function buildActualisationText() {
 
 function renderActualisation() {
   if (!$("actualisationMonthPicker")) return;
-  const list = monthMissions(current).filter((m) => new Date(m.date + "T00:00:00") <= todayDateOnly()).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  let searchDate = new Date(current.getFullYear(), current.getMonth(), 1);
+  let list = [];
+  let attempts = 0;
+
+  while (attempts < 24) {
+    list = monthMissions(searchDate)
+      .filter((m) => new Date(m.date + "T00:00:00") <= todayDateOnly())
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    if (list.length > 0) break;
+    searchDate.setMonth(searchDate.getMonth() - 1);
+    attempts++;
+  }
+
   const totalHours = Math.round(sumDone(list) * 10) / 10;
   const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
-  const totalDays = sumMissionDays(list);
-  if ($("actualisationMonthPicker")) $("actualisationMonthPicker").value = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}`;
-  if ($("actualisationDays")) $("actualisationDays").textContent = totalDays;
+
+  $("actualisationMonthPicker").value = `${searchDate.getFullYear()}-${String(searchDate.getMonth() + 1).padStart(2, "0")}`;
+
+  const monthLabel = searchDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  if ($("actualisationMonthTitle")) $("actualisationMonthTitle").textContent = monthLabel;
+
+  if (!list.length) {
+    if ($("actualisationStats")) $("actualisationStats").style.display = "none";
+    if ($("actualisationTableWrap")) $("actualisationTableWrap").style.display = "none";
+    if ($("actualisationActions")) $("actualisationActions").style.display = "none";
+    return;
+  }
+
+  if ($("actualisationStats")) $("actualisationStats").style.display = "grid";
+  if ($("actualisationTableWrap")) $("actualisationTableWrap").style.display = "block";
+  if ($("actualisationActions")) $("actualisationActions").style.display = "grid";
+
+  if ($("actualisationCount")) $("actualisationCount").textContent = list.length;
   if ($("actualisationHours")) $("actualisationHours").textContent = totalHours + "h";
   if ($("actualisationGross")) $("actualisationGross").textContent = money(totalGross);
-  if ($("actualisationCount")) $("actualisationCount").textContent = list.length;
+
   const container = $("actualisationList");
   if (!container) return;
-  if (!list.length) { container.innerHTML = `<div class="empty">Aucune mission effectuée sur ce mois.</div>`; return; }
-  const rows = list.map((mission) => `<tr><td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;white-space:nowrap;">${escapeHtml(formatPeriod(mission.date, mission.endDate))}</td><td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;"><strong style="color:#1F4E5F;">${escapeHtml(mission.production)}</strong></td><td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;">${escapeHtml(mission.type)}</td><td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;text-align:right;white-space:nowrap;">${escapeHtml(mission.hours)}h</td><td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;text-align:right;white-space:nowrap;">${escapeHtml(money(mission.gross))}</td></tr>`).join("");
-  container.innerHTML = `<div style="margin-top:14px;border:1px solid #E2E8F0;border-radius:18px;overflow:hidden;background:#FFFFFF;box-shadow:0 8px 20px rgba(31,78,95,.04);"><div style="padding:14px 16px;background:#F8FAF9;border-bottom:1px solid #E2E8F0;"><strong style="display:block;color:#1F4E5F;font-size:16px;">Détail des missions du mois</strong><span style="display:block;color:#718096;font-size:12px;margin-top:3px;">Récapitulatif prêt pour l'actualisation</span></div><div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;min-width:620px;"><thead><tr><th style="padding:11px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Période</th><th style="padding:11px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Production</th><th style="padding:11px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Mission</th><th style="padding:11px 10px;text-align:right;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Heures</th><th style="padding:11px 10px;text-align:right;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Brut</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
-}
 
+  const rows = list.map((mission) => `
+    <tr>
+      <td class="act-td-periode">${escapeHtml(formatPeriod(mission.date, mission.endDate))}</td>
+      <td class="act-td-prod">${escapeHtml(mission.production)}</td>
+      <td class="act-td-type"><span class="pill">${escapeHtml(mission.type)}</span></td>
+      <td class="act-td-h">${escapeHtml(String(mission.hours))}h</td>
+      <td class="act-td-brut">${escapeHtml(money(mission.gross))}</td>
+    </tr>
+  `).join("");
+
+  container.innerHTML = `
+    <table class="act-table">
+      <thead>
+        <tr>
+          <th>Période</th>
+          <th>Production</th>
+          <th>Mission</th>
+          <th>Heures</th>
+          <th>Brut</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+        <tr class="act-total-row">
+          <td colspan="3"><strong>Total</strong></td>
+          <td><strong>${totalHours}h</strong></td>
+          <td><strong>${money(totalGross)}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  `;
+}
 async function copyActualisation() {
   const text = buildActualisationText();
   await navigator.clipboard.writeText(text);
@@ -1288,19 +1344,27 @@ function setupEvents() {
   $("calendarPrevBtn") && $("calendarPrevBtn").addEventListener("click", () => moveMonth(-1));
   $("calendarNextBtn") && $("calendarNextBtn").addEventListener("click", () => moveMonth(1));
 
-  if ($("actualisationPrevBtn")) $("actualisationPrevBtn").addEventListener("click", () => moveMonth(-1));
-  if ($("actualisationNextBtn")) $("actualisationNextBtn").addEventListener("click", () => moveMonth(1));
-  if ($("actualisationMonthPicker")) {
-    $("actualisationMonthPicker").addEventListener("change", () => {
-      const value = $("actualisationMonthPicker").value;
-      if (!value) return;
-      const [year, month] = value.split("-");
-      current = new Date(Number(year), Number(month) - 1, 1); render();
-    });
+  if ($("actualisationPrevBtn")) $("actualisationPrevBtn").addEventListener("click", () => { moveMonth(-1); renderActualisation(); });
+if ($("actualisationNextBtn")) $("actualisationNextBtn").addEventListener("click", () => { moveMonth(1); renderActualisation(); });
+ if ($("actualisationMonthPicker")) {
+  $("actualisationMonthPicker").addEventListener("change", () => {
+    const value = $("actualisationMonthPicker").value;
+    if (!value) return;
+    const [year, month] = value.split("-");
+    current = new Date(Number(year), Number(month) - 1, 1);
+    renderActualisation();
+  });
+}
   }
 
   if ($("copyActualisationBtn")) $("copyActualisationBtn").addEventListener("click", copyActualisation);
   if ($("pdfActualisationBtn")) $("pdfActualisationBtn").addEventListener("click", generateActualisationPDF);
+  if ($("franceTravailBtn")) $("franceTravailBtn").addEventListener("click", () => {
+  $("modalFranceTravail").classList.remove("hidden");
+});
+if ($("modalFtClose")) $("modalFtClose").addEventListener("click", () => {
+  $("modalFranceTravail").classList.add("hidden");
+});
 
   if ($("copyIcsBtn")) $("copyIcsBtn").addEventListener("click", () => {
     const url = getCalendarIcsUrl();
@@ -1346,7 +1410,7 @@ function setupEvents() {
     await deferredInstallPrompt.userChoice;
     deferredInstallPrompt = null;
   });
-}
+
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => { navigator.serviceWorker.register("service-worker.js"); });

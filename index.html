@@ -229,29 +229,51 @@
   </article>
 </section>
       <!-- ACTUALISATION -->
-      <section class="view" id="view-actualisation">
-        <article class="card actualisation-card-clean">
-          <div class="actualisation-top">
-            <div>
-              <h2>Actualisation mensuelle</h2>
-              <p class="sub">Récapitulatif des missions effectuées à utiliser pendant ton actualisation France Travail.</p>
-            </div>
-            <div class="actualisation-month-control">
-              <button class="ghost" type="button" id="actualisationPrevBtn">‹</button>
-              <input id="actualisationMonthPicker" class="month-picker" type="month" />
-              <button class="ghost" type="button" id="actualisationNextBtn">›</button>
-            </div>
-          </div>
-          <div class="actualisation-table-wrap">
-            <h3>Détail des missions du mois</h3>
-            <p class="sub">Récapitulatif prêt pour l'actualisation</p>
-            <div id="actualisationList"></div>
-          </div>
-          <div class="actualisation-actions-clean">
-            <button class="ghost" type="button" id="pdfActualisationBtn">Générer PDF</button>
-          </div>
-        </article>
-      </section>
+<section class="view" id="view-actualisation">
+  <article class="card actualisation-card-clean">
+    <div class="actualisation-top">
+      <div>
+        <h2>Actualisation mensuelle</h2>
+        <p class="sub">Récapitulatif des missions effectuées à utiliser pendant ton actualisation France Travail.</p>
+      </div>
+      <div class="actualisation-month-control">
+        <button class="ghost" type="button" id="actualisationPrevBtn">‹</button>
+        <input id="actualisationMonthPicker" class="month-picker" type="month" />
+        <button class="ghost" type="button" id="actualisationNextBtn">›</button>
+      </div>
+    </div>
+    <div class="act-stats-row" id="actualisationStats" style="display:none;">
+      <div class="act-stat-box"><strong id="actualisationCount">0</strong><span>Missions</span></div>
+      <div class="act-stat-box"><strong id="actualisationHours">0h</strong><span>Heures totales</span></div>
+      <div class="act-stat-box highlight"><strong id="actualisationGross">0 €</strong><span>Brut total</span></div>
+    </div>
+    <div class="actualisation-table-wrap" id="actualisationTableWrap" style="display:none;">
+      <div class="act-table-head">
+        <h3>Détail des missions</h3>
+        <span id="actualisationMonthTitle"></span>
+      </div>
+      <div id="actualisationList"></div>
+    </div>
+    <div class="actualisation-actions-clean" id="actualisationActions" style="display:none;">
+      <button class="btn-act-pdf" type="button" id="pdfActualisationBtn">📄 Générer PDF</button>
+      <button class="btn-act-ft" type="button" id="franceTravailBtn">
+        🏛️ France Travail
+        <div class="badge-dev">Bientôt</div>
+      </button>
+    </div>
+  </article>
+</section>
+
+<!-- Modal France Travail -->
+<div class="modal-overlay hidden" id="modalFranceTravail">
+  <div class="modal-ft">
+    <div style="font-size:48px;margin-bottom:16px;">🚧</div>
+    <h3>En développement</h3>
+    <div class="modal-ft-badge">⏳ Bientôt disponible</div>
+    <p>La connexion directe avec France Travail est en cours de développement. Cette fonctionnalité permettra d'envoyer ton actualisation automatiquement depuis Intermitrack.</p>
+    <button class="btn-ft-close" type="button" id="modalFtClose">Compris !</button>
+  </div>
+</div>
 
       <!-- DOCUMENTS -->
       <section class="view" id="view-documents">
