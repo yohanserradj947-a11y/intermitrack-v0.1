@@ -57,7 +57,8 @@
           <circle cx="110" cy="78" r="54" fill="none" stroke="#F97316" stroke-width="22"
             stroke-dasharray="58 340" stroke-dashoffset="-205" stroke-linecap="round" transform="rotate(-90 110 78)"/>
           <text x="110" y="76" text-anchor="middle" class="demo-percent">507h</text>
-          <text x="110" y="96" text-anchor="middle" class="demo-sub">progression annuelle</text>
+          <text x="110" y="96" text-anchor="middle" class="demo-sub">Heures effectuées</text>
+    
         </svg>
       </div>
 
@@ -162,18 +163,40 @@
 
       <section class="view active" id="view-dashboard">
         <article class="card hero">
-          <div class="heroTop">
-            <div>
-              <p class="sub">Progression annuelle</p>
-              <div class="metric"><span id="yearHours">0</span>h</div>
-              <p class="sub" id="progressText">Objectif : 507h</p>
-            </div>
+          <!-- REMPLACE ce bloc dans .heroTop -->
+<div class="heroTop">
 
-            <div class="stat big-stat">
-              <b id="remainingHours">507h</b>
-              <span>Heures restantes</span>
-            </div>
-          </div>
+  <div class="remaining-badge">
+  <b><span id="yearHours">0</span>h</b>
+  <span>Heures effectuées</span>
+</div>
+
+  <div class="are-admission-center">
+    <label for="areAdmissionDate">📅 Date d'admission ARE</label>
+    <div class="are-admission-pill">
+      <span>ARE :</span>
+      <input id="areAdmissionDate" type="date" />
+      <button type="button" id="saveAreAdmissionDateBtn">OK</button>
+    </div>
+    <small id="areAdmissionInfo" class="are-admission-info">
+      Calcul depuis la date d'admission ARE.
+    </small>
+  </div>
+
+  <div class="remaining-badge">
+  <b><span id="remainingHours">507</span>h</b>
+  <span>Heures restantes</span>
+</div>
+
+</div>
+</div>
+
+  <!-- ✅ AJOUTER CE BLOC — heures restantes -->
+  <div class="big-stat">
+  
+    <span>Heures restantes</span>
+  </div>
+</div>
 
           <div class="chartWrap" id="chart"></div>
 
