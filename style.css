@@ -427,19 +427,23 @@ button { border: 0; border-radius: 15px; padding: 13px 16px; font-weight: 800; f
 .new-cal-daynames div { text-align: center; font-size: 10px; font-weight: 900; color: var(--muted); padding: 5px 0; text-transform: uppercase; letter-spacing: .04em; }
 
 .new-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
-.new-cal-day {aspect-ratio: unset;height: 52px;; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; cursor: pointer; transition: all .12s; position: relative; }
+.new-cal-day { height: 52px; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; border-radius: 10px; cursor: pointer; transition: all .12s; position: relative; padding: 5px 6px; }
 .new-cal-day:hover { background: #EEF4F2; }
-.new-cal-day:active { transform: scale(.88); }
-.new-cal-empty { cursor: default; }
+.new-cal-day:active { transform: scale(.95); }
+.new-cal-empty { cursor: default !important; }
 .new-cal-empty:hover { background: transparent !important; }
 .new-cal-num { font-size: 12px; font-weight: 700; color: #2D3748; line-height: 1; }
 .new-cal-day.today { background: var(--petrol) !important; }
 .new-cal-day.today .new-cal-num { color: white !important; }
-.new-cal-day.has-done { background: rgba(31, 78, 95, .09); }
-.new-cal-day.has-planned { background: rgba(249, 115, 22, .10); }
-.new-cal-dot { width: 5px; height: 5px; border-radius: 50%; margin-top: 3px; }
-.new-cal-dot.dot-done { background: var(--sage); }
-.new-cal-dot.dot-planned { background: var(--orange); }
+.mission-bar { position: absolute; bottom: 5px; left: 0; right: 0; height: 18px; display: flex; align-items: center; font-size: 9px; font-weight: 900; overflow: hidden; white-space: nowrap; z-index: 2; }
+.mission-bar.done { background: rgba(31,78,95,.14); color: var(--petrol); }
+.mission-bar.planned { background: rgba(249,115,22,.14); color: var(--orange); }
+.mission-bar.single { border-radius: 99px; padding: 0 6px; margin: 0 3px; }
+.mission-bar.start { border-radius: 99px 0 0 99px; padding-left: 6px; margin-left: 3px; }
+.mission-bar.end { border-radius: 0 99px 99px 0; margin-right: 3px; }
+.mission-bar.middle { border-radius: 0; }
+.mission-bar.row-continue { border-radius: 99px 0 0 99px; margin-left: 3px; }
+.mbar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .new-mission-section { margin-top: 16px; }
 .new-mission-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
@@ -449,8 +453,8 @@ button { border: 0; border-radius: 15px; padding: 13px 16px; font-weight: 800; f
 .new-mission-card { background: #F8FAFA; border: 1px solid var(--line); border-left: 4px solid var(--petrol); border-radius: 0 14px 14px 0; padding: 12px 14px; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; box-shadow: 0 2px 8px rgba(31, 78, 95, .05); }
 .new-mission-card.planned { border-left-color: var(--orange); }
 .new-mission-body { flex: 1; min-width: 0; }
-.new-mission-prod { font-size: 13px; font-weight: 900; color: var(--petrol); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.new-mission-dates { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.new-mission-prod { font-size: 15px; font-weight: 900; color: var(--petrol); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.new-mission-dates {font-size: 13px;color: var(--muted);margin-top: 3px;font-weight: 600;}
 .new-mission-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
 .new-mission-hours { font-size: 15px; font-weight: 900; color: var(--petrol); letter-spacing: -.03em; }
 .new-mission-type { font-size: 10px; padding: 3px 8px; border-radius: 99px; font-weight: 800; }
@@ -458,13 +462,27 @@ button { border: 0; border-radius: 15px; padding: 13px 16px; font-weight: 800; f
 .type-planned { background: rgba(249, 115, 22, .12); color: #C05621; }
 
 .new-mission-pagination { display: flex; justify-content: center; gap: 10px; margin-top: 6px; }
-.new-pag-btn { width: 32px; height: 32px; border-radius: 50%; background: #EEF4F2; border: none; color: var(--petrol); font-size: 15px; font-weight: 900; cursor: pointer; box-shadow: 0 2px 6px rgba(31, 78, 95, .08); }
-.new-pag-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.new-pag-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--petrol);
+  border: none;
+  color: white;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(31, 78, 95, .25);
+  transition: all .12s;
+}
+.new-pag-btn:hover { filter: brightness(1.15); transform: scale(1.05); }
+.new-pag-btn:disabled { background: #EEF4F2; color: var(--muted); box-shadow: none; transform: none; }.new-pag-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
 @media (max-width: 720px) {
   .new-cal-header { flex-direction: column; align-items: flex-start; gap: 10px; }
   .new-cal-nav { width: 100%; justify-content: flex-start; }
-  .new-cal-day { border-radius: 8px; }
+  .new-cal-day { height: 44px; border-radius: 8px; }
+  .mission-bar { height: 14px; font-size: 8px; bottom: 3px; }
 }
 
 /* ============================================================
@@ -811,4 +829,26 @@ button { border: 0; border-radius: 15px; padding: 13px 16px; font-weight: 800; f
 #view-dashboard .chartWrap {
   min-height: 240px !important;
   max-height: 300px !important;
+}.new-cal-mission-label {
+  font-size: 9px;
+  font-weight: 900;
+  padding: 2px 4px;
+  border-radius: 5px;
+  margin-top: 3px;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.new-cal-mission-label.dot-done {
+  background: rgba(31,78,95,.12);
+  color: var(--petrol);
+}
+
+.new-cal-mission-label.dot-planned {
+  background: rgba(249,115,22,.12);
+  color: var(--orange);
 }

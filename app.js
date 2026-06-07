@@ -997,7 +997,7 @@ function moveMonth(amount) {
 }
 
 let calMissionPage = 0;
-const CAL_MISSIONS_PER_PAGE = 3;
+const CAL_MISSIONS_PER_PAGE = window.innerWidth <= 720 ? 5 : 10;
 
 function renderCalendar() {
   const calView = document.getElementById("view-calendar");
@@ -1051,17 +1051,53 @@ function renderCalendar() {
   for (let d = 1; d <= days; d++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
     const box = document.createElement("div");
-    box.className = "new-cal-day"; box.dataset.calendarDate = dateStr;
+    box.className = "new-cal-day";
+    box.dataset.calendarDate = dateStr;
     if (dateStr === todayStr) box.classList.add("today");
+
     const missionsOfDay = missions.filter((m) => isDateInPeriod(dateStr, m));
-    if (missionsOfDay.length) {
+    const col = (new Date(dateStr + "T00:00:00").getDay() + 6) % 7;
+    const isRowEnd = col === 6;
+    const isRowStart = col === 0;
+
+    box.innerHTML = `<span class="new-cal-num">${d}</span>`;
+
+    if (missionsOfDay.length > 0) {
       box.dataset.hasMission = "1";
-      const isFuture = missionsOfDay.some((m) => new Date(m.date + "T00:00:00") >= todayDateOnly());
-      const isPast = missionsOfDay.some((m) => new Date((m.endDate || m.date) + "T00:00:00") < todayDateOnly());
-      if (isPast) box.classList.add("has-done");
+      const m = missionsOfDay[0];
+      const isFuture = new Date(m.date + "T00:00:00") >= todayDateOnly();
+      const isStart = dateStr === m.date;
+      const isEnd = dateStr === (m.endDate || m.date);
+      const isSingle = m.date === (m.endDate || m.date);
+      const colorClass = isFuture ? "planned" : "done";
+      const initials = getProductionInitials(m.production);
+      const totalH = missionsOfDay.reduce((a, x) => a + Number(x.hours || 0), 0);
+
+      let posClass = "";
+      let label = "";
+
+      if (isSingle) {
+        posClass = "single";
+        label = `<span class="mbar-label">${initials} · ${totalH}h</span>`;
+      } else if (isStart) {
+        posClass = isRowEnd ? "single" : "start";
+        label = `<span class="mbar-label">${initials} · ${totalH}h</span>`;
+      } else if (isEnd) {
+        posClass = "end";
+      } else if (isRowStart) {
+        posClass = "row-continue";
+      } else if (isRowEnd) {
+        posClass = "end";
+      } else {
+        posClass = "middle";
+      }
+
       if (isFuture) box.classList.add("has-planned");
-      box.innerHTML = `<span class="new-cal-num">${d}</span><div class="new-cal-dot ${isFuture ? "dot-planned" : "dot-done"}"></div>`;
-    } else { box.innerHTML = `<span class="new-cal-num">${d}</span>`; }
+      else box.classList.add("has-done");
+
+      box.innerHTML += `<div class="mission-bar ${colorClass} ${posClass}">${label}</div>`;
+    }
+
     calendar.appendChild(box);
   }
   const usedSlots = start + days;
@@ -1085,7 +1121,7 @@ function renderCalMissions() {
   cards.innerHTML = visible.map((m) => {
     const isFuture = new Date(m.date + "T00:00:00") >= todayDateOnly();
     return `
-      <div class="new-mission-card ${isFuture ? "planned" : "done"}">
+      <div class="new-mission-card ${isFuture ? "planned" : "done"}" style="cursor:pointer;" data-calendar-date="${escapeHtml(m.date)}">
         <div class="new-mission-body"><div class="new-mission-prod">${escapeHtml(m.production)}</div><div class="new-mission-dates">${escapeHtml(formatPeriod(m.date, m.endDate))}</div></div>
         <div class="new-mission-right"><span class="new-mission-hours">${m.hours}h</span><span class="new-mission-type ${isFuture ? "type-planned" : "type-done"}">${escapeHtml(m.type)}</span></div>
       </div>
