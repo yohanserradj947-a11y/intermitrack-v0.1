@@ -405,7 +405,7 @@ button { border: 0; border-radius: 15px; padding: 13px 16px; font-weight: 800; f
 .new-cal-daynames div { text-align: center; font-size: 10px; font-weight: 900; color: var(--muted); padding: 5px 0; text-transform: uppercase; letter-spacing: .04em; }
 
 .new-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
-.new-cal-day { aspect-ratio: unset;height: 52px;; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; cursor: pointer; transition: all .12s; position: relative; }
+.new-cal-day {aspect-ratio: unset;height: 52px;; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; cursor: pointer; transition: all .12s; position: relative; }
 .new-cal-day:hover { background: #EEF4F2; }
 .new-cal-day:active { transform: scale(.88); }
 .new-cal-empty { cursor: default; }
@@ -444,8 +444,311 @@ button { border: 0; border-radius: 15px; padding: 13px 16px; font-weight: 800; f
   .new-cal-nav { width: 100%; justify-content: flex-start; }
   .new-cal-day { border-radius: 8px; }
 }
+
+/* ============================================================
+   GRAPHIQUE MISSIONS — Arc + légende
+   ============================================================ */
+
+.missions-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.mstat-box {
+  background: #F8FAF9;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+  text-align: center;
+}
+
+.mstat-box.highlight {
+  background: linear-gradient(145deg, #EEF4F2, #E0ECE8);
+  border-color: rgba(31,78,95,.15);
+}
+
+.mstat-box strong {
+  display: block;
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--petrol);
+  letter-spacing: -.03em;
+}
+
+.mstat-box span {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-top: 4px;
+}
+
+.missions-graph-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 28px;
+  align-items: center;
+}
+
+.missions-arc-wrap {
+  position: relative;
+}
+
+.missions-arc-wrap svg {
+  width: 100%;
+  display: block;
+  filter: drop-shadow(0 8px 16px rgba(31,78,95,.12));
+}
+
+.missions-arc-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.missions-arc-center strong {
+  display: block;
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--petrol);
+  letter-spacing: -.03em;
+  line-height: 1;
+}
+
+.missions-arc-center span {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.missions-legend {
+  display: grid;
+  gap: 8px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.missions-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: #F8FAF9;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: all .12s;
+}
+
+.missions-legend-row:hover {
+  background: #EEF4F2;
+  border-color: rgba(31,78,95,.2);
+  transform: translateX(3px);
+}
+
+.missions-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.missions-legend-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.missions-legend-name {
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--petrol);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.missions-legend-detail {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.missions-legend-pct {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  flex-shrink: 0;
+  min-width: 36px;
+  text-align: right;
+}
+
+.missions-legend-amount {
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--petrol);
+  flex-shrink: 0;
+  min-width: 70px;
+  text-align: right;
+}
+
 @media (max-width: 720px) {
-  .new-cal-day {
-    height: 44px;
+  .missions-stats-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .missions-graph-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .missions-arc-wrap {
+    max-width: 200px;
+    margin: 0 auto;
+  }
+
+  .missions-legend-row {
+    padding: 10px 12px;
+  }
+}
+
+/* ============================================================
+   DOCUMENTS — Refonte visuelle
+   ============================================================ */
+
+.doc-section-card {
+  padding: 24px !important;
+}
+
+.doc-section-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.doc-section-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  box-shadow: 0 8px 20px rgba(31,78,95,.15);
+  flex-shrink: 0;
+}
+
+.doc-section-header h2 {
+  margin: 0 !important;
+}
+
+.doc-badge-exp {
+  margin-left: auto;
+  padding: 5px 12px;
+  border-radius: 99px;
+  background: rgba(108,99,255,.10);
+  color: #6C63FF;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  border: 1px solid rgba(108,99,255,.2);
+}
+
+.doc-warning-box {
+  display: flex;
+  gap: 14px;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 18px;
+}
+
+.doc-warning-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.doc-warning-box strong {
+  display: block;
+  color: #92400E;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.doc-warning-box p {
+  color: #78350F;
+  font-size: 12px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.doc-form-clean {
+  display: grid;
+  gap: 0;
+}
+
+.doc-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.doc-file-zone {
+  margin: 4px 0 8px;
+}
+
+.doc-file-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 2px dashed var(--line);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all .15s;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--muted);
+  background: #F8FAF9;
+}
+
+.doc-file-label:hover {
+  border-color: var(--sage);
+  background: #EEF4F2;
+  color: var(--petrol);
+}
+
+.doc-file-icon {
+  font-size: 20px;
+}
+
+@media (max-width: 720px) {
+  .doc-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .doc-section-header {
+    flex-wrap: wrap;
+  }
+
+  .doc-badge-exp {
+    margin-left: 0;
+  }
+
+  .doc-warning-box {
+    flex-direction: column;
+    gap: 8px;
   }
 }

@@ -7,7 +7,8 @@
   <meta name="description" content="Le tableau de bord des intermittents." />
   <meta name="theme-color" content="#1F4E5F" />
   <link rel="manifest" href="manifest.json" />
-<link rel="stylesheet" href="style.css?v=4" />  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="style.css?v=3" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div class="beta-banner">
@@ -158,12 +159,26 @@
         </article>
       </section>
 
-      <!-- MISSIONS -->
+      <!-- MISSIONS — Vue d'ensemble graphique -->
       <section class="view" id="view-missions">
         <article class="card">
-          <h2>Ajouter une mission</h2>
-          <div class="document-beta-warning">⚠️ Import de documents en phase bêta : évitez de déposer des documents sensibles ou confidentiels. Vous restez responsable des fichiers importés sur la plateforme.</div>
-          <div id="document-parser-container"></div>
+          <div class="historyhead">
+            <div>
+              <h2>Mes productions</h2>
+              <p class="sub">Répartition du brut par production</p>
+            </div>
+          </div>
+          <div id="missionsGraphContainer"></div>
+        </article>
+      </section>
+
+      <!-- ADD-MISSION — Formulaire caché, ouvert depuis le calendrier uniquement -->
+      <section class="view" id="view-add-mission">
+        <article class="card">
+          <div class="historyhead" style="margin-bottom:16px;">
+            <h2 id="addMissionTitle">Ajouter une mission</h2>
+            <button class="ghost" type="button" onclick="activateView('calendar')" style="display:flex;align-items:center;gap:6px;">‹ Retour au calendrier</button>
+          </div>
           <form id="missionForm">
             <label for="production">Nom de la production</label>
             <input id="production" placeholder="Ex : The Voice" required />
@@ -196,7 +211,6 @@
             <button class="primary" type="submit">Enregistrer la mission</button>
           </form>
         </article>
-        <article class="card"><h2>Toutes mes missions</h2><div id="allMissions"></div></article>
       </section>
 
       <!-- CALENDRIER — article vide, tout est construit par renderCalendar() -->
@@ -231,19 +245,50 @@
 
       <!-- DOCUMENTS -->
       <section class="view" id="view-documents">
-        <article class="card">
-          <h2>Documents</h2>
-          <p class="sub">Centralise tes AEM, fiches de paie, Congés Spectacles, contrats et justificatifs.</p>
-          <div class="document-beta-warning">⚠️ Import de documents en phase bêta : évitez de déposer des documents sensibles ou confidentiels. Vous restez responsable des fichiers importés sur la plateforme.</div>
+
+        <!-- Bloc import IA -->
+        <article class="card doc-section-card">
+          <div class="doc-section-header">
+            <div class="doc-section-icon" style="background:linear-gradient(135deg,#6C63FF,#A78BFA)">🤖</div>
+            <div>
+              <h2>Import par IA</h2>
+              <p class="sub">Analyse automatique de ton document</p>
+            </div>
+            <span class="doc-badge-exp">Expérimental</span>
+          </div>
+          <div class="doc-warning-box">
+            <div class="doc-warning-icon">⚠️</div>
+            <div>
+              <strong>Phase d'expérimentation — données sensibles déconseillées</strong>
+              <p>Cette fonctionnalité utilise une IA pour lire et classer tes documents automatiquement. Elle est en phase de test : la confidentialité des données n'est pas garantie à 100%. N'importe quel fichier contenant des informations très sensibles (données bancaires, données médicales) ne devrait pas être importé via cette voie. Tu restes seul responsable des fichiers déposés.</p>
+            </div>
+          </div>
           <div id="document-parser-container-documents"></div>
-          <form id="documentForm">
-            <label for="documentType">Type de document</label>
-            <select id="documentType" required>
-              <option>AEM</option><option>Fiche de paie</option><option>Congés Spectacles</option><option>Contrat</option><option>Autre</option>
-            </select>
-            <label for="documentProduction">Production</label>
-            <input id="documentProduction" placeholder="Ex : The Voice" required />
-            <div class="document-grid">
+        </article>
+
+        <!-- Bloc import manuel -->
+        <article class="card doc-section-card">
+          <div class="doc-section-header">
+            <div class="doc-section-icon" style="background:linear-gradient(135deg,#1F4E5F,#7A9E7E)">📁</div>
+            <div>
+              <h2>Ajouter un document</h2>
+              <p class="sub">Classement manuel par production, type et date</p>
+            </div>
+          </div>
+          <form id="documentForm" class="doc-form-clean">
+            <div class="doc-form-grid">
+              <div>
+                <label for="documentType">Type de document</label>
+                <select id="documentType" required>
+                  <option>AEM</option><option>Fiche de paie</option><option>Congés Spectacles</option><option>Contrat</option><option>Autre</option>
+                </select>
+              </div>
+              <div>
+                <label for="documentProduction">Production</label>
+                <input id="documentProduction" placeholder="Ex : The Voice" required />
+              </div>
+            </div>
+            <div class="doc-form-grid">
               <div>
                 <label for="documentMonth">Mois</label>
                 <select id="documentMonth" required>
@@ -258,12 +303,19 @@
                 <input id="documentYear" type="number" min="2000" max="2100" required />
               </div>
             </div>
-            <label for="documentFile">Fichier PDF ou image</label>
-            <input id="documentFile" type="file" accept="application/pdf,image/*" required />
+            <div class="doc-file-zone">
+              <label for="documentFile" class="doc-file-label">
+                <span class="doc-file-icon">📎</span>
+                <span id="docFileNameDisplay">Choisir un fichier PDF ou image</span>
+              </label>
+              <input id="documentFile" type="file" accept="application/pdf,image/*" required style="display:none" onchange="document.getElementById('docFileNameDisplay').textContent = this.files[0]?.name || 'Choisir un fichier PDF ou image'" />
+            </div>
             <p class="hint">Les documents sont enregistrés dans ton espace Supabase privé et restent liés à ton compte.</p>
-            <button class="primary" type="submit" id="documentSubmitBtn">Ajouter le document</button>
+            <button class="primary" type="submit" id="documentSubmitBtn">Enregistrer le document</button>
           </form>
         </article>
+
+        <!-- Liste documents -->
         <article class="card">
           <div class="historyhead">
             <h2>Mes documents</h2>
@@ -271,6 +323,7 @@
           </div>
           <div id="documentsList"></div>
         </article>
+
       </section>
 
       <!-- FISCALITE -->
@@ -383,8 +436,8 @@
     </section>
   </main>
 
-  <script src="document-parser.js?v=4"></script>
-<script src="app.js?v=4"></script>
+  <script src="document-parser.js?v=3"></script>
+  <script src="app.js?v=3"></script>
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>
     <a href="confidentialite.html" target="_blank">Confidentialité</a>

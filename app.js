@@ -15,6 +15,9 @@ let deferredInstallPrompt = null;
 let historyPage = 1;
 let areAdmissionDate = localStorage.getItem("areAdmissionDate") || "";
 const HISTORY_PER_PAGE = 6;
+let documentsPage = 1;
+const DOCS_PER_PAGE_DESKTOP = 9;
+const DOCS_PER_PAGE_MOBILE = 5;
 
 const OBJECTIVE_HOURS = 507;
 const MAX_DISPLAY_PERCENT = 300;
@@ -322,6 +325,13 @@ function monterWidgetParserDocuments() {
   input.addEventListener("change", async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    const ALLOWED_TYPES_IA = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+if (!ALLOWED_TYPES_IA.includes(file.type)) {
+  status.style.color = "#dc3545";
+  status.textContent = "❌ Format non autorisé. Seuls les PDF et images sont acceptés.";
+  input.value = "";
+  return;
+}
 
     status.textContent = "⏳ Analyse en cours…";
     button.disabled = true;
@@ -491,7 +501,11 @@ async function uploadDocument(event) {
   const month = Number($("documentMonth").value);
   const year = Number($("documentYear").value);
   if (!production || !month || !year) { alert("Complète le type, la production, le mois et l'année."); return; }
-
+const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/gif"];
+if (!ALLOWED_TYPES.includes(file.type)) {
+  alert("Format non autorisé. Seuls les PDF et images sont acceptés (PDF, JPG, PNG, WEBP).");
+  return;
+}
   const submitBtn = $("documentSubmitBtn");
   if (submitBtn) submitBtn.textContent = "Envoi en cours...";
 
@@ -588,17 +602,25 @@ function renderDocuments() {
     groups[production].push(doc);
   });
 
-  if (!openDocumentProduction) {
+ if (!openDocumentProduction) {
+    const isMobile = window.innerWidth <= 720;
+    const perPage = isMobile ? DOCS_PER_PAGE_MOBILE : DOCS_PER_PAGE_DESKTOP;
+    const keys = Object.keys(groups).sort((a, b) => a.localeCompare(b, "fr"));
+    const totalPages = Math.max(1, Math.ceil(keys.length / perPage));
+    if (documentsPage > totalPages) documentsPage = totalPages;
+    if (documentsPage < 1) documentsPage = 1;
+    const visibleKeys = keys.slice((documentsPage - 1) * perPage, documentsPage * perPage);
+
     container.innerHTML = `
       <div class="document-folder-grid document-folder-grid-pro">
-        ${Object.keys(groups).sort((a, b) => a.localeCompare(b, "fr")).map((production) => {
+        ${visibleKeys.map((production) => {
           const list = groups[production];
           const counts = list.reduce((acc, doc) => { acc[doc.document_type] = (acc[doc.document_type] || 0) + 1; return acc; }, {});
           const latest = [...list].sort((a, b) => { if (b.doc_year !== a.doc_year) return b.doc_year - a.doc_year; return b.doc_month - a.doc_month; })[0];
           const types = Object.keys(counts).sort();
           return `
             <button class="document-folder-card document-folder-card-pro" type="button" data-doc-production-open="${escapeHtml(production)}">
-              <div class="document-folder-icon">📁</div>
+              <div class="document-folder-icon">📄</div>
               <div class="document-folder-main">
                 <strong>${escapeHtml(production)}</strong>
                 <span>${list.length} document${list.length > 1 ? "s" : ""}</span>
@@ -611,7 +633,17 @@ function renderDocuments() {
           `;
         }).join("")}
       </div>
+      ${totalPages > 1 ? `
+        <div class="history-pagination">
+          <button class="ghost" type="button" id="docsPrev" ${documentsPage === 1 ? "disabled" : ""}>‹</button>
+          <span>Page ${documentsPage} / ${totalPages}</span>
+          <button class="ghost" type="button" id="docsNext" ${documentsPage >= totalPages ? "disabled" : ""}>›</button>
+        </div>
+      ` : ""}
     `;
+
+    if ($("docsPrev")) $("docsPrev").addEventListener("click", () => { documentsPage--; renderDocuments(); });
+    if ($("docsNext")) $("docsNext").addEventListener("click", () => { documentsPage++; renderDocuments(); });
     return;
   }
 
@@ -692,7 +724,7 @@ async function addMission(event) {
   current = new Date(payload.mission_date + "T00:00:00");
   current.setDate(1);
   await loadMissions();
-  activateView("dashboard");
+  activateView("calendar");
 }
 
 function editMission(id) {
@@ -713,7 +745,7 @@ function editMission(id) {
   const submitBtn = document.querySelector("#missionForm button[type='submit']");
   if (submitBtn) submitBtn.textContent = "Mettre à jour la mission";
 
-  activateView("missions");
+  activateView("add-mission");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -1013,36 +1045,85 @@ function renderHistory() {
 }
 
 function renderAllMissions() {
-  const allMissionsEl = $("allMissions");
-  const sorted = [...missions].sort((a, b) => new Date(b.date) - new Date(a.date));
-  if (!allMissionsEl) return;
+  const container = $("missionsGraphContainer");
+  if (!container) return;
 
-  if (!sorted.length) { allMissionsEl.innerHTML = `<div class="empty">Aucune mission enregistrée.</div>`; return; }
+  if (!missions.length) {
+    container.innerHTML = `<div class="empty">Aucune mission enregistrée. Ajoute des missions depuis le calendrier !</div>`;
+    return;
+  }
 
   const groups = {};
-  sorted.forEach((mission) => {
+  missions.forEach((mission) => {
     const key = normalizeProductionName(mission.production || "Sans production");
     if (!groups[key]) groups[key] = [];
     groups[key].push(mission);
   });
 
-  allMissionsEl.innerHTML = `
-    <div class="production-grid">
-      ${Object.keys(groups).sort((a, b) => a.localeCompare(b, "fr")).map((production) => {
-        const list = groups[production];
-        const totalHours = Math.round(list.reduce((a, x) => a + Number(x.hours || 0), 0) * 10) / 10;
-        const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
-        const totalDays = sumMissionDays(list);
-        return `
-          <button class="production-card" type="button" data-production-open="${production.replace(/"/g, "&quot;")}">
-            <div class="production-card-icon" aria-hidden="true">🎬</div>
-            <strong>${production}</strong>
-            <span>${list.length} mission${list.length > 1 ? "s" : ""}</span>
-            <span>${totalDays} jour${totalDays > 1 ? "s" : ""}</span>
-            <span>${totalHours}h · ${money(totalGross)}</span>
-          </button>
-        `;
-      }).join("")}
+  const sorted = Object.keys(groups)
+    .map((name) => ({
+      name,
+      list: groups[name],
+      gross: groups[name].reduce((a, x) => a + Number(x.gross || 0), 0),
+      hours: Math.round(groups[name].reduce((a, x) => a + Number(x.hours || 0), 0) * 10) / 10,
+      days: sumMissionDays(groups[name]),
+      count: groups[name].length
+    }))
+    .sort((a, b) => b.gross - a.gross);
+
+  const totalGross = sorted.reduce((a, x) => a + x.gross, 0);
+  const totalHours = Math.round(sorted.reduce((a, x) => a + x.hours, 0) * 10) / 10;
+  const totalMissions = missions.length;
+
+  const COLORS = ["#1F4E5F","#2A6174","#3A7A8F","#7A9E7E","#8AB08E","#9AC09E","#F97316","#FDBA74","#4A8FA5","#5A9FB5"];
+
+  // Arc SVG (camembert)
+  const CIRC = 2 * Math.PI * 75;
+  let offset = 0;
+  const arcs = sorted.map((p, i) => {
+    const pct = totalGross > 0 ? p.gross / totalGross : 0;
+    const dash = pct * CIRC;
+    const arc = `<circle cx="100" cy="100" r="75" fill="none" stroke="${COLORS[i % COLORS.length]}" stroke-width="28"
+      stroke-dasharray="${dash.toFixed(2)} ${CIRC.toFixed(2)}"
+      stroke-dashoffset="${(-offset).toFixed(2)}"
+      transform="rotate(-90 100 100)" stroke-linecap="butt"/>`;
+    offset += dash;
+    return arc;
+  });
+
+  container.innerHTML = `
+    <div class="missions-stats-row">
+      <div class="mstat-box"><strong>${totalMissions}</strong><span>Missions</span></div>
+      <div class="mstat-box"><strong>${totalHours}h</strong><span>Heures totales</span></div>
+      <div class="mstat-box highlight"><strong>${money(totalGross)}</strong><span>Brut total</span></div>
+      <div class="mstat-box"><strong>${sorted.length}</strong><span>Productions</span></div>
+    </div>
+
+    <div class="missions-graph-layout">
+      <div class="missions-arc-wrap">
+        <svg viewBox="0 0 200 200" width="100%">
+          <circle cx="100" cy="100" r="75" fill="none" stroke="#F0F4F3" stroke-width="28"/>
+          ${arcs.join("")}
+        </svg>
+        <div class="missions-arc-center">
+          <strong>${money(totalGross)}</strong>
+          <span>brut total</span>
+        </div>
+      </div>
+
+      <div class="missions-legend">
+        ${sorted.map((p, i) => `
+          <div class="missions-legend-row" data-production-open="${escapeHtml(p.name)}">
+            <div class="missions-legend-dot" style="background:${COLORS[i % COLORS.length]}"></div>
+            <div class="missions-legend-body">
+              <div class="missions-legend-name">${escapeHtml(p.name)}</div>
+              <div class="missions-legend-detail">${p.count} mission${p.count > 1 ? "s" : ""} · ${p.hours}h</div>
+            </div>
+            <div class="missions-legend-pct">${totalGross > 0 ? Math.round((p.gross / totalGross) * 100) : 0}%</div>
+            <div class="missions-legend-amount">${money(p.gross)}</div>
+          </div>
+        `).join("")}
+      </div>
     </div>
   `;
 }
@@ -1304,8 +1385,8 @@ function openCalendarDay(dateStr) {
       if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 100);
   } else {
-    // Date vide → aller au formulaire d'ajout
-    activateView("missions");
+    // Date vide → ouvrir le formulaire caché d'ajout de mission
+    activateView("add-mission");
     resetMissionFormForDate(dateStr);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -1556,7 +1637,7 @@ function setupEvents() {
 
     const calendarAddButton = event.target.closest("[data-calendar-add-date]");
     if (calendarAddButton) {
-      activateView("missions");
+      activateView("add-mission");
       resetMissionFormForDate(calendarAddButton.dataset.calendarAddDate);
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
