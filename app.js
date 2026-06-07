@@ -20,6 +20,111 @@ const OBJECTIVE_HOURS = 507;
 const MAX_DISPLAY_PERCENT = 300;
 
 const $ = (id) => document.getElementById(id);
+const productionAliases = {
+  "DMLS TV": "DMLS",
+  "DMLS PROD": "DMLS",
+  "DMLS PRODUCTION": "DMLS",
+  "DMLS PRODUCTIONS": "DMLS",
+
+  "ITV FRANCE": "ITV",
+  "ITV STUDIOS": "ITV",
+  "ITV PROD": "ITV",
+  "ITV PRODUCTION": "ITV",
+  "ITV PRODUCTIONS": "ITV",
+
+  "TF1 PROD": "TF1",
+  "TF1 PRODUCTION": "TF1",
+  "TF1 PRODUCTIONS": "TF1",
+
+  "BANIJAY FRANCE": "BANIJAY",
+  "BANIJAY PROD": "BANIJAY",
+
+  "ENDEMOL FRANCE": "ENDEMOL",
+  "ENDEMOL SHINE": "ENDEMOL",
+  "ENDEMOLSHINE": "ENDEMOL",
+
+  "FREMANTLE FRANCE": "FREMANTLE",
+  "FREMANTLEMEDIA": "FREMANTLE",
+
+  "MEDIAWAN PROD": "MEDIAWAN",
+  "MEDIAWAN PRODUCTION": "MEDIAWAN",
+
+  "NEWEN STUDIOS": "NEWEN",
+  "NEWEN FRANCE": "NEWEN",
+
+  "M6 PROD": "M6",
+  "M6 PRODUCTION": "M6",
+
+  "DUSHOW TV": "DUSHOW",
+  "DUSHOW SAS": "DUSHOW",
+
+  "BLIVE PROD": "BLIVE",
+  "BLIVE PRODUCTION": "BLIVE",
+
+  "NOVELTY FRANCE": "NOVELTY",
+  "NOVELTY MAGNUM": "NOVELTY",
+  "NOVELTY EVENT": "NOVELTY",
+
+  "AMP VISUAL TV": "AMP VISUAL",
+  "AMP VISUAL PRODUCTION": "AMP VISUAL",
+
+  "SATEL PRODUCTION": "SATEL",
+  "SATEL TV": "SATEL",
+
+  "BBC STUDIOS": "BBC",
+  "BBC FRANCE": "BBC",
+
+  "CARSON PROD": "CARSON",
+  "CARSON PRODUCTION": "CARSON"
+};
+
+const productionPrefixes = [
+  "AMP VISUAL",
+  "DMLS",
+  "ITV",
+  "TF1",
+  "BANIJAY",
+  "ENDEMOL",
+  "FREMANTLE",
+  "MEDIAWAN",
+  "NEWEN",
+  "M6",
+  "DUSHOW",
+  "BLIVE",
+  "NOVELTY",
+  "SATEL",
+  "BBC",
+  "CARSON"
+  
+
+
+
+];
+
+function normalizeProductionName(value) {
+  if (!value) return "SANS PRODUCTION";
+
+  let name = String(value)
+    .trim()
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[._-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (productionAliases[name]) {
+    return productionAliases[name];
+  }
+
+  for (const prefix of productionPrefixes) {
+    if (name === prefix || name.startsWith(prefix + " ")) {
+      return prefix;
+    }
+  }
+
+  return name;
+}
 async function trackEvent(eventName, eventData = {}) {
   try {
     if (!currentUser) return;
@@ -331,12 +436,13 @@ async function classerDocumentAnalyseIa(file, data) {
     throw new Error("Connecte-toi avant d'ajouter un document.");
   }
 
-  const production =
-    data.production ||
-    data.employeur ||
-    data.societe ||
-    data.entreprise ||
-    "Sans production";
+  const production = normalizeProductionName(
+  data.production ||
+  data.employeur ||
+  data.societe ||
+  data.entreprise ||
+  "Sans production"
+);
 
   const rawType = String(data.typeDocument || data.type_document || data.documentType || data.type || "").toLowerCase();
   let documentType = "Autre";
@@ -652,7 +758,7 @@ function renderDocuments() {
 
   const groups = {};
   sorted.forEach((doc) => {
-    const production = doc.production || "Sans production";
+    const production = normalizeProductionName(doc.production || "Sans production");
     if (!groups[production]) groups[production] = [];
     groups[production].push(doc);
   });
@@ -770,7 +876,7 @@ async function addMission(event) {
 
   const payload = {
     user_id: currentUser.id,
-    production: $("production").value.trim().toUpperCase(),
+    production: normalizeProductionName($("production").value),
     mission_type: $("type").value,
     mission_date: $("date").value,
     end_date: $("endDate").value,
@@ -1331,8 +1437,7 @@ function renderAllMissions() {
   const groups = {};
 
   sorted.forEach((mission) => {
-    const key = mission.production || "Sans production";
-    if (!groups[key]) groups[key] = [];
+const key = normalizeProductionName(mission.production || "Sans production");    if (!groups[key]) groups[key] = [];
     groups[key].push(mission);
   });
 
