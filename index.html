@@ -202,12 +202,20 @@
 
         <article class="card">
           <div class="historyhead">
-            <h2>Historique des missions</h2>
-            <div>
-              <button class="ghost" type="button" id="historyPrevBtn">‹</button>
-              <button class="ghost" type="button" id="historyNextBtn">›</button>
-            </div>
-          </div>
+  <h2>Historique des missions</h2>
+
+  <div class="history-month-nav">
+    <button class="ghost" type="button" id="historyPrevBtn">‹</button>
+
+    <input
+      type="month"
+      id="historyMonthPicker"
+      class="history-month-picker"
+    />
+
+    <button class="ghost" type="button" id="historyNextBtn">›</button>
+  </div>
+</div>
 
           <p class="sub" id="historyMonthTitle"></p>
 
@@ -273,31 +281,62 @@
         <article class="card">
           <div class="calhead">
             <h2>Calendrier</h2>
-            <div><button class="ghost" type="button" id="calendarPrevBtn">‹</button><button class="ghost" type="button" id="calendarNextBtn">›</button></div>
+            <div>
+  <button class="ghost" type="button" id="calendarPrevBtn">‹</button>
+
+  <input
+    type="month"
+    id="calendarMonthPicker"
+    class="history-month-picker"
+  />
+
+  <button class="ghost" type="button" id="calendarNextBtn">›</button>
+</div>
           </div>
           <p class="sub" id="monthTitle"></p>
           <div class="calendar" id="calendar"></div>
         </article>
       </section>
 
-      <section class="view" id="view-actualisation">
-        <article class="card">
-          <div class="historyhead">
-            <h2>Actualisation mensuelle</h2>
-            <div><button class="ghost" type="button" id="actualisationPrevBtn">‹</button><button class="ghost" type="button" id="actualisationNextBtn">›</button></div>
-          </div>
-          <p class="sub">Récapitulatif des missions effectuées à utiliser pendant ton actualisation France Travail.</p>
-          <p class="sub" id="actualisationMonthTitle"></p>
-          <div class="actualisation-summary" id="actualisationSummary"></div>
-          <div class="actualisation-list" id="actualisationList"></div>
-          <textarea class="actualisation-text hidden" id="actualisationText" readonly></textarea>
-          <div class="actualisation-actions">
-            <button class="primary" type="button" id="copyActualisationBtn">Copier le récapitulatif</button>
-            <button class="ghost actualisation-pdf-btn" type="button" id="pdfActualisationBtn">Générer PDF</button>
-          </div>
-        </article>
-      </section>
+     <section class="view" id="view-actualisation">
+  <article class="card actualisation-card-clean">
 
+    <div class="actualisation-top">
+      <div>
+        <h2>Actualisation mensuelle</h2>
+        <p class="sub">
+          Récapitulatif des missions effectuées à utiliser pendant ton actualisation France Travail.
+        </p>
+      </div>
+
+      <div class="actualisation-month-control">
+        <button class="ghost" type="button" id="actualisationPrevBtn">‹</button>
+
+        <input
+          id="actualisationMonthPicker"
+          class="month-picker"
+          type="month"
+        />
+
+        <button class="ghost" type="button" id="actualisationNextBtn">›</button>
+      </div>
+    </div>
+
+    <div class="actualisation-table-wrap">
+      <h3>Détail des missions du mois</h3>
+      <p class="sub">Récapitulatif prêt pour l’actualisation</p>
+
+      <div id="actualisationList"></div>
+    </div>
+
+    <div class="actualisation-actions-clean">
+      <button class="ghost" type="button" id="pdfActualisationBtn">
+     Générer PDF
+    </button>
+    </div>
+
+  </article>
+</section>
 
       <section class="view" id="view-documents">
         <article class="card">
