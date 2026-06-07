@@ -1,2301 +1,2722 @@
+:root {
+  --petrol: #1F4E5F;
+  --sage: #7A9E7E;
+  --bg: #F5F7F6;
+  --card: #FFFFFF;
+  --text: #2D3748;
+  --muted: #718096;
+  --line: #E2E8F0;
+  --soft: #EEF4F1;
+  --danger: #9B2C2C;
+  --orange: #F97316;
+}
 
-const SUPABASE_URL = "https://upeogpgczoghlfwblnkb.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwZW9ncGdjem9naGxmd2JsbmtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MjkyMDQsImV4cCI6MjA5NjEwNTIwNH0.6535_0KMaEDLxTMhz_OX-4OqC_tpQsPJR5jkFQL7UqI";
-
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-let authMode = "login";
-let currentUser = null;
-let missions = [];
-let documents = [];
-let documentFilter = "Tous";
-let openDocumentProduction = null;
-let editingMissionId = null;
-let current = new Date();
-let deferredInstallPrompt = null;
-let historyPage = 1;
-let areAdmissionDate = localStorage.getItem("areAdmissionDate") || "";
-const HISTORY_PER_PAGE = 6;
-
-const OBJECTIVE_HOURS = 507;
-const MAX_DISPLAY_PERCENT = 300;
-
-const $ = (id) => document.getElementById(id);
-const productionAliases = {
-  "DMLS TV": "DMLS",
-  "DMLS PROD": "DMLS",
-  "DMLS PRODUCTION": "DMLS",
-  "DMLS PRODUCTIONS": "DMLS",
-
-  "ITV FRANCE": "ITV",
-  "ITV STUDIOS": "ITV",
-  "ITV PROD": "ITV",
-  "ITV PRODUCTION": "ITV",
-  "ITV PRODUCTIONS": "ITV",
-
-  "TF1 PROD": "TF1",
-  "TF1 PRODUCTION": "TF1",
-  "TF1 PRODUCTIONS": "TF1",
-
-  "BANIJAY FRANCE": "BANIJAY",
-  "BANIJAY PROD": "BANIJAY",
-
-  "ENDEMOL FRANCE": "ENDEMOL",
-  "ENDEMOL SHINE": "ENDEMOL",
-  "ENDEMOLSHINE": "ENDEMOL",
+* {
+  box-sizing: border-box;
+}
 
-  "FREMANTLE FRANCE": "FREMANTLE",
-  "FREMANTLEMEDIA": "FREMANTLE",
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
 
-  "MEDIAWAN PROD": "MEDIAWAN",
-  "MEDIAWAN PRODUCTION": "MEDIAWAN",
+.app {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 22px;
+}
 
-  "NEWEN STUDIOS": "NEWEN",
-  "NEWEN FRANCE": "NEWEN",
+.top {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 20px;
+}
 
-  "M6 PROD": "M6",
-  "M6 PRODUCTION": "M6",
-
-  "DUSHOW TV": "DUSHOW",
-  "DUSHOW SAS": "DUSHOW",
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
-  "BLIVE PROD": "BLIVE",
-  "BLIVE PRODUCTION": "BLIVE",
+.logo,
+.home-brandmark {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--petrol), var(--sage));
+  display: grid;
+  place-items: center;
+  color: white;
+  font-weight: 800;
+  font-size: 22px;
+  box-shadow: 0 10px 25px rgba(31, 78, 95, .18);
+}
 
-  "NOVELTY FRANCE": "NOVELTY",
-  "NOVELTY MAGNUM": "NOVELTY",
-  "NOVELTY EVENT": "NOVELTY",
+.home-brandmark {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  font-size: 28px;
+  margin: 0 auto 16px;
+}
 
-  "AMP VISUAL TV": "AMP VISUAL",
-  "AMP VISUAL PRODUCTION": "AMP VISUAL",
-
-  "SATEL PRODUCTION": "SATEL",
-  "SATEL TV": "SATEL",
-
-  "BBC STUDIOS": "BBC",
-  "BBC FRANCE": "BBC",
+h1 {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: -.03em;
+}
 
-  "CARSON PROD": "CARSON",
-  "CARSON PRODUCTION": "CARSON",
-  "D M L S TV": "DMLS",
-"D M L S": "DMLS",
+h2 {
+  margin: 0 0 12px;
+  color: var(--petrol);
+  font-size: 21px;
+  letter-spacing: -.03em;
+}
 
-"VDLM": "LES VICTOIRES DE LA MUSIQUE",
-"VICTOIRES DE LA MUSIQUE": "LES VICTOIRES DE LA MUSIQUE",
-"LES VICTOIRES DE LA MUSIQUE": "LES VICTOIRES DE LA MUSIQUE"
-};
+.tag,
+.sub,
+.hint,
+.msg,
+.email,
+.home-intro,
+.home-secure {
+  color: var(--muted);
+}
 
-const productionPrefixes = [
-  "AMP VISUAL",
-  "DMLS",
-  "ITV",
-  "TF1",
-  "BANIJAY",
-  "ENDEMOL",
-  "FREMANTLE",
-  "MEDIAWAN",
-  "NEWEN",
-  "M6",
-  "DUSHOW",
-  "BLIVE",
-  "NOVELTY",
-  "SATEL",
-  "BBC",
-  "CARSON",
-  "DMLS",
-"VDLM",
-"VICTOIRES DE LA MUSIQUE",
-"LES VICTOIRES DE LA MUSIQUE",
+.tag {
+  margin: 3px 0 0;
+  font-size: 14px;
+}
 
+.hidden {
+  display: none !important;
+}
 
+.card,
+.auth-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 18px;
+  box-shadow: 0 10px 28px rgba(31, 78, 95, .06);
+}
 
+.auth-page {
+  min-height: calc(100vh - 120px);
+  display: grid;
+  place-items: center;
+}
 
-];
+.auth-card {
+  width: 100%;
+  max-width: 460px;
+  text-align: center;
+  padding: 28px;
+}
 
-function normalizeProductionName(value) {
-  if (!value) return "SANS PRODUCTION";
+.home-mainline {
+  font-size: 22px;
+  line-height: 1.12;
+  font-weight: 900;
+  letter-spacing: -.05em;
+  color: var(--text);
+  margin: 10px 0;
+}
 
-  let name = String(value)
-    .trim()
-    .toUpperCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[._-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+.home-intro {
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 0 auto 18px;
+  max-width: 330px;
+}
 
-  if (productionAliases[name]) {
-    return productionAliases[name];
-  }
-  const compactName = name.replace(/\s+/g, "");
+.home-secure {
+  margin: 14px auto 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
 
-if (compactName.startsWith("DMLS")) {
-  return "DMLS";
+.authTabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
-if (compactName.startsWith("VDLM")) {
-  return "LES VICTOIRES DE LA MUSIQUE";
+form {
+  text-align: left;
 }
 
-  for (const prefix of productionPrefixes) {
-    if (name === prefix || name.startsWith(prefix + " ")) {
-      return prefix;
-    }
-  }
+label {
+  display: block;
+  font-weight: 700;
+  font-size: 13px;
+  margin: 12px 0 6px;
+}
 
-  return name;
+input,
+select {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: white;
+  font-size: 15px;
+  color: var(--text);
+  outline: none;
 }
-async function trackEvent(eventName, eventData = {}) {
-  try {
-    if (!currentUser) return;
 
-    await sb.from("analytics_events").insert({
-      user_id: currentUser.id,
-      event_name: eventName,
-      event_data: eventData
-    });
-  } catch (error) {
-    console.warn("Analytics non bloquant :", error.message);
-  }
+input:focus,
+select:focus {
+  border-color: var(--sage);
+  box-shadow: 0 0 0 4px rgba(122, 158, 126, .14);
 }
 
-function setDefaultDates() {
-  const today = new Date();
-  if ($("date")) $("date").valueAsDate = today;
-  if ($("endDate")) $("endDate").valueAsDate = today;
-  if ($("documentMonth")) $("documentMonth").value = String(today.getMonth() + 1);
-  if ($("documentYear")) $("documentYear").value = String(today.getFullYear());
-  if ($("saveAreAdmissionDateBtn")) {
-  $("saveAreAdmissionDateBtn").addEventListener("click", () => {
-    const value = $("areAdmissionDate").value;
+button {
+  border: 0;
+  border-radius: 15px;
+  padding: 13px 16px;
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+}
 
-    localStorage.setItem("areAdmissionDate", value);
-    areAdmissionDate = value;
+.primary {
+  width: 100%;
+  background: var(--petrol);
+  color: white;
+  margin-top: 14px;
+}
 
-    render();
+.primary:hover {
+  filter: brightness(.95);
+}
 
-    alert("Date d'admission ARE enregistrée.");
-  });
+.ghost {
+  background: var(--soft);
+  color: var(--petrol);
 }
+
+.danger {
+  background: #FFF5F5;
+  color: var(--danger);
 }
 
+.userbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
 
-function storageKey(name) {
-  return currentUser?.id ? `intermitrack_${name}_${currentUser.id}` : `intermitrack_${name}`;
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 18px;
 }
 
+.tab {
+  background: white;
+  color: var(--petrol);
+  border: 1px solid var(--line);
+}
 
-function getTaxableIncome() {
-  return Number(localStorage.getItem(storageKey("taxable_income")) || 0);
+.tab.active {
+  background: var(--petrol);
+  color: white;
 }
 
-function setTaxableIncome(value) {
-  localStorage.setItem(storageKey("taxable_income"), String(Number(value || 0)));
+.view {
+  display: none;
 }
 
-function getOtherIncome() {
-  return Number(localStorage.getItem(storageKey("other_income")) || 0);
+.view.active {
+  display: grid;
+  gap: 18px;
 }
 
-function setOtherIncome(value) {
-  localStorage.setItem(storageKey("other_income"), String(Number(value || 0)));
+.hero {
+  background: linear-gradient(135deg, #fff, #EEF4F1);
 }
 
-function getTaxParts() {
-  return Number(localStorage.getItem(storageKey("tax_parts")) || 1);
+.heroTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
 }
 
-function setTaxParts(value) {
-  localStorage.setItem(storageKey("tax_parts"), String(Number(value || 1)));
+.metric {
+  font-size: 54px;
+  font-weight: 900;
+  color: var(--petrol);
+  letter-spacing: -.06em;
+  margin: 8px 0;
 }
 
-function getObservedMissionMonths(list) {
-  const months = new Set(
-    list.map((mission) => String(mission.date || "").slice(0, 7)).filter(Boolean)
-  );
-  return months.size;
+.big-stat {
+  min-width: 150px;
 }
 
-function estimateAnnualProjection(value, observedMonths) {
-  const months = Math.max(0, Number(observedMonths || 0));
-  if (!months) return 0;
-  return Math.round((Number(value || 0) / months) * 12);
+.chartWrap {
+  min-height: 350px;
+  margin-top: 12px;
+  border-radius: 22px;
+  background: linear-gradient(145deg, #ffffff, #eef4f1);
+  border: 1px solid rgba(226, 232, 240, .85);
+  padding: 10px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9), 0 18px 40px rgba(31, 78, 95, .08);
+  display: grid;
+  place-items: center;
 }
 
-function estimateTaxableIncomeFromGross(grossAmount) {
-  // Coefficient volontairement indicatif.
-  // Objectif : éviter de demander le net imposable à l'utilisateur tout en restant prudent.
-  // À terme, ce coefficient pourra être remplacé par une lecture fiable des fiches de paie.
-  return Math.max(0, Math.round(Number(grossAmount || 0) * 0.78));
+.chartWrap svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: drop-shadow(0 22px 18px rgba(31, 78, 95, .18));
 }
 
-function calculateProgressiveTax(taxableIncome, parts) {
-  const safeIncome = Math.max(0, Number(taxableIncome || 0));
-  const safeParts = Math.max(0.5, Number(parts || 1));
-  const incomePerPart = safeIncome / safeParts;
+.pieText {
+  font-size: 42px;
+  font-weight: 900;
+  fill: #1F4E5F;
+}
 
-  const brackets = [
-    { limit: 11600, rate: 0 },
-    { limit: 29579, rate: 0.11 },
-    { limit: 84577, rate: 0.30 },
-    { limit: 181917, rate: 0.41 },
-    { limit: Infinity, rate: 0.45 }
-  ];
+.pieSub {
+  font-size: 15px;
+  font-weight: 700;
+  fill: #718096;
+}
 
-  let previous = 0;
-  let taxPerPart = 0;
-  let marginalRate = 0;
+.legendText {
+  font-size: 15px;
+  font-weight: 800;
+  fill: #2D3748;
+}
 
-  for (const bracket of brackets) {
-    if (incomePerPart > previous) {
-      const taxableSlice = Math.min(incomePerPart, bracket.limit) - previous;
-      taxPerPart += taxableSlice * bracket.rate;
-      if (taxableSlice > 0) marginalRate = bracket.rate;
-    }
+.legendMuted {
+  font-size: 15px;
+  font-weight: 800;
+  fill: #718096;
+}
 
-    if (incomePerPart <= bracket.limit) break;
-    previous = bracket.limit;
-  }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 14px;
+}
 
-  const estimatedTax = Math.max(0, Math.round(taxPerPart * safeParts));
-  const averageRate = safeIncome ? (estimatedTax / safeIncome) * 100 : 0;
+.stat {
+  background: #F8FAF9;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.stat b {
+  display: block;
+  font-size: 22px;
+  color: var(--petrol);
+}
 
-  return {
-    estimatedTax,
-    averageRate,
-    marginalRate: marginalRate * 100,
-    incomePerPart
-  };
+.stat span {
+  font-size: 13px;
+  color: var(--muted);
 }
 
-function getTaxRate() {
-  return Number(localStorage.getItem(storageKey("tax_rate")) || 0);
+.historyhead,
+.calhead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
 }
 
-function setTaxRate(value) {
-  localStorage.setItem(storageKey("tax_rate"), String(Number(value || 0)));
+.row {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr .8fr .6fr .8fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
 }
 
+.row.header {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 800;
+}
 
-function calculateEstimatedAreDailyRate() {
-  const hours = Number($("areHours")?.value || 0);
-  const dailyGross = Number($("areDailyGross")?.value || 0);
+.pill {
+  display: inline-flex;
+  padding: 6px 9px;
+  border-radius: 99px;
+  background: var(--soft);
+  color: var(--petrol);
+  font-weight: 700;
+  font-size: 12px;
+}
 
-  if (!hours || !dailyGross) {
-    if ($("previsionTaux")) {
-      $("previsionTaux").textContent = "Renseigne tes heures et ton brut journée";
-    }
+.delete {
+  background: #FFF5F5;
+  color: var(--danger);
+  padding: 8px 10px;
+}
 
-    if ($("previsionTauxDetails")) {
-      $("previsionTauxDetails").textContent = "Simulation indicative Annexe 8 technicien.";
-    }
+.empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 28px;
+}
 
-    if ($("areProjectionText")) {
-      $("areProjectionText").textContent = "Renseigne tes données pour voir les projections.";
-    }
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-auto-rows: 82px;
+  gap: 7px;
+}
 
-    return;
-  }
+.dayname {
+  height: 22px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
 
-  const estimatedDays = hours / 8;
-  const referenceSalary = estimatedDays * dailyGross;
+.day {
+  height: 82px;
+  background: #F8FAF9;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 6px;
+  font-size: 12px;
+  overflow: hidden;
+}
 
-  const MIN_ARE = 38;
-  const MAX_ARE = 174.8;
-  const AJ_MIN = 31.96;
+.day.blank {
+  background: rgba(248, 250, 249, .45);
+  border-color: rgba(226, 232, 240, .55);
+}
 
-  const salaryPart =
-    Math.min(referenceSalary, 14400) * 0.42 +
-    Math.max(0, referenceSalary - 14400) * 0.05;
+.day b {
+  display: block;
+  font-size: 12px;
+  line-height: 1;
+  margin-bottom: 4px;
+  color: var(--text);
+}
 
-  const hoursPart =
-    Math.min(hours, 720) * 0.26 +
-    Math.max(0, hours - 720) * 0.08;
+.day.today {
+  border-color: var(--sage);
+  box-shadow: 0 0 0 3px rgba(122, 158, 126, .12);
+}
 
-  const grossAre =
-    (AJ_MIN * salaryPart / 5000) +
-    (AJ_MIN * hoursPart / 507) +
-    (AJ_MIN * 0.40);
+.dot {
+  margin-top: 3px;
+  background: var(--petrol);
+  color: white;
+  border-radius: 7px;
+  padding: 3px 4px;
+  font-size: 10px;
+  line-height: 1.05;
+  font-weight: 900;
+  letter-spacing: -.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+}
 
-  const cappedGrossAre =
-    Math.min(MAX_ARE, Math.max(MIN_ARE, grossAre));
+.dot.planned {
+  background: var(--orange);
+}
 
-  const estimatedNetAre = cappedGrossAre * 0.89;
+.account-box {
+  background: #F8FAF9;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+  margin: 12px 0;
+}
 
-  if ($("previsionTaux")) {
-    $("previsionTaux").textContent =
-      "Environ " +
-      estimatedNetAre.toFixed(2).replace(".", ",") +
-      " € net / jour";
+@media (max-width: 720px) {
+  .app {
+    padding: 14px;
   }
 
-  if ($("previsionTauxDetails")) {
-    $("previsionTauxDetails").textContent =
-      "Jours estimés : " +
-      estimatedDays.toFixed(1).replace(".", ",") +
-      " • Salaire de référence : " +
-      money(referenceSalary);
+  .top {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
-  if ($("areProjectionText")) {
-    let targets;
+  h1 {
+    font-size: 24px;
+  }
 
-    if (hours < 507) targets = [507, 600, 700];
-    else if (hours < 700) targets = [700, 800, 900];
-    else if (hours < 900) targets = [900, 1000, 1100];
-    else if (hours < 1200) targets = [1200, 1300, 1400];
-    else {
-      const base = Math.ceil(hours / 100) * 100;
-      targets = [base, base + 100, base + 200];
-    }
+  .tabs {
+    grid-template-columns: 1fr 1fr;
+  }
 
-    const projectionLines = targets.map((targetHours) => {
-      const targetDays = targetHours / 8;
-      const targetSalary = targetDays * dailyGross;
+  .heroTop {
+    display: block;
+  }
 
-      const targetSalaryPart =
-        Math.min(targetSalary, 14400) * 0.42 +
-        Math.max(0, targetSalary - 14400) * 0.05;
+  .chartWrap {
+    min-height: 330px;
+    padding: 6px;
+  }
 
-      const targetHoursPart =
-        Math.min(targetHours, 720) * 0.26 +
-        Math.max(0, targetHours - 720) * 0.08;
+  .pieText {
+    font-size: 38px;
+  }
 
-      const targetGrossAre =
-        (AJ_MIN * targetSalaryPart / 5000) +
-        (AJ_MIN * targetHoursPart / 507) +
-        (AJ_MIN * 0.40);
+  .pieSub {
+    font-size: 14px;
+  }
 
-      const targetNet =
-        Math.min(MAX_ARE, Math.max(MIN_ARE, targetGrossAre)) * 0.89;
+  .legendText,
+  .legendMuted {
+    font-size: 14px;
+  }
 
-      return `${targetHours}h → ${targetNet.toFixed(2).replace(".", ",")} € net/j`;
-    });
+  .stats {
+    grid-template-columns: 1fr 1fr;
+  }
 
-    $("areProjectionText").innerHTML = projectionLines.join("<br>");
+  .row {
+    grid-template-columns: 1fr 1fr;
   }
-}
 
+  .row.header {
+    display: none;
+  }
 
+  .calendar {
+    grid-template-rows: 20px repeat(6, 64px);
+    gap: 5px;
+  }
 
-function monterWidgetParserDocuments() {
-  const container = $("document-parser-container-documents");
-  if (!container) return;
+  .dayname {
+    height: 20px;
+    font-size: 11px;
+  }
 
-  container.innerHTML = `
-    <div style="
-      border: 2px dashed #6c63ff;
-      border-radius: 12px;
-      padding: 20px;
-      text-align: center;
-      background: rgba(108,99,255,0.05);
-      margin-bottom: 20px;
-    ">
-      <p style="font-weight:600; margin:0 0 8px;">📄 Importer un contrat ou fiche de paie</p>
-      <p style="font-size:13px; color:#888; margin:0 0 12px;">PDF, JPG ou PNG — l'IA classe le document automatiquement</p>
-      <input type="file" id="doc-input-documents" accept=".pdf,.jpg,.jpeg,.png" style="display:none">
-      <button id="doc-btn-documents" type="button" style="
-        padding: 8px 20px;
-        background: #1F4E5F;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 14px;
-      ">Choisir un fichier</button>
-      <p id="doc-status-documents" style="margin-top:12px; font-size:13px; color:#888;"></p>
-    </div>
-  `;
+  .day {
+    height: 64px;
+    padding: 4px;
+    border-radius: 11px;
+  }
 
-  const input = $("doc-input-documents");
-  const button = $("doc-btn-documents");
-  const status = $("doc-status-documents");
+  .day b {
+    font-size: 11px;
+    margin-bottom: 3px;
+  }
 
-  if (!input || !button || !status) return;
+  .dot {
+    font-size: 8.8px;
+    padding: 2px 3px;
+    border-radius: 6px;
+  }
+}
 
-  button.addEventListener("click", () => input.click());
 
-  input.addEventListener("change", async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+.actualisation-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 14px 0;
+}
 
-    status.textContent = "⏳ Analyse en cours…";
-    button.disabled = true;
-    button.style.opacity = "0.6";
+.actualisation-stat,
+.actualisation-card {
+  background: #F8FAF9;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+}
 
-    try {
-      let data = null;
+.actualisation-stat b {
+  display: block;
+  color: var(--petrol);
+  font-size: 22px;
+}
 
-      if (typeof analyserDocument === "function") {
-        data = await analyserDocument(file);
-      } else if (typeof analyserDocumentAvecIa === "function") {
-        data = await analyserDocumentAvecIa(file);
-      } else if (typeof uploadEtAnalyserDocument === "function") {
-        data = await uploadEtAnalyserDocument(file);
-      } else {
-        throw new Error("Module IA introuvable.");
-      }
+.actualisation-stat span,
+.actualisation-card div:not(:first-child) {
+  color: var(--muted);
+  font-size: 13px;
+}
 
-      if (!data) throw new Error("Aucune donnée détectée.");
+.actualisation-list {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+}
 
-      if (typeof sauvegarderDocumentDansRubrique === "function") {
-        await sauvegarderDocumentDansRubrique(file, data);
-      } else if (typeof classerDocumentDepuisIa === "function") {
-        await classerDocumentDepuisIa(file, data);
-      } else {
-        await classerDocumentAnalyseIa(file, data);
-      }
+.actualisation-text {
+  min-height: 230px;
+  resize: vertical;
+  line-height: 1.45;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+}
 
-      status.style.color = "#28a745";
-      status.textContent = "✅ Document analysé et classé automatiquement.";
-      openDocumentProduction = data.production || data.employeur || data.societe || data.entreprise || openDocumentProduction;
-      await loadDocuments();
-      renderDocuments();
-    } catch (error) {
-      console.error(error);
-      status.style.color = "#dc3545";
-      status.textContent = "❌ Erreur : " + error.message;
-    } finally {
-      button.disabled = false;
-      button.style.opacity = "1";
-      input.value = "";
-    }
-  });
+.password-wrapper {
+  position: relative;
 }
 
-async function classerDocumentAnalyseIa(file, data) {
-  if (!currentUser) {
-    throw new Error("Connecte-toi avant d'ajouter un document.");
-  }
+.password-wrapper input {
+  padding-right: 52px;
+}
 
-  const production = normalizeProductionName(
-  data.production ||
-  data.employeur ||
-  data.societe ||
-  data.entreprise ||
-  "Sans production"
-);
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  line-height: 1;
+}
 
-  const rawType = String(data.typeDocument || data.type_document || data.documentType || data.type || "").toLowerCase();
-  let documentType = "Autre";
+.password-toggle:hover {
+  background: transparent;
+}
 
-  if (rawType.includes("aem")) documentType = "AEM";
-  else if (rawType.includes("paie") || rawType.includes("bulletin")) documentType = "Fiche de paie";
-  else if (rawType.includes("congé") || rawType.includes("conge")) documentType = "Congés Spectacles";
-  else if (rawType.includes("contrat") || rawType.includes("cddu")) documentType = "Contrat";
+@media (max-width: 720px) {
+  .actualisation-summary {
+    grid-template-columns: 1fr;
+  }
+}
 
-  const dateValue = data.dateDebut || data.date_debut || data.date || data.mission_date;
-  const baseDate = dateValue ? new Date(dateValue + "T00:00:00") : new Date();
-  const month = baseDate.getMonth() + 1;
-  const year = baseDate.getFullYear();
+.actualisation-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
 
-  const cleanName = safeFileName(file.name);
-  const filePath = `${currentUser.id}/${year}/${String(month).padStart(2, "0")}/${Date.now()}_${cleanName}`;
+.actualisation-actions .primary,
+.actualisation-actions .ghost {
+  width: 100%;
+  margin-top: 0;
+}
 
-  const { error: uploadError } = await sb.storage
-    .from("documents")
-    .upload(filePath, file, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: file.type || "application/octet-stream"
-    });
+.actualisation-pdf-btn {
+  border: 1px solid var(--line);
+}
 
-  if (uploadError) {
-    throw new Error("Erreur upload document : " + uploadError.message);
+@media (max-width: 720px) {
+  .actualisation-actions {
+    grid-template-columns: 1fr;
   }
+}
+.auth-page {
+  min-height: calc(100vh - 120px);
+  display: grid;
+  place-items: center;
+}
 
-  const { error: insertError } = await sb.from("documents").insert({
-    user_id: currentUser.id,
-    file_name: file.name,
-    file_path: filePath,
-    document_type: documentType,
-    production,
-    doc_month: month,
-    doc_year: year,
-    mime_type: file.type || null
-  });
+.auth-layout {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 460px 1fr;
+  gap: 18px;
+  align-items: stretch;
+}
 
-  if (insertError) {
-    await sb.storage.from("documents").remove([filePath]);
-    throw new Error("Erreur sauvegarde document : " + insertError.message);
-  }
+.auth-info-card {
+  background: linear-gradient(145deg, #ffffff, #EEF4F1);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 22px;
+  box-shadow: 0 14px 34px rgba(31, 78, 95, .08);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
+.auth-info-card h2 {
+  font-size: 24px;
+  line-height: 1.08;
+  margin: 10px 0;
+}
 
-function calculateKmAmount() {
-  const distance = Number($("kmDistance")?.value || 0);
-  const rate = Number($("kmRate")?.value || 0);
-  return Math.round(distance * rate * 100) / 100;
+.auth-info-card p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
-function updateKmPreview() {
-  const preview = $("kmPreview");
-  if (!preview) return;
-  preview.textContent = "Frais km estimés : " + money(calculateKmAmount());
+.mini-label {
+  display: inline-flex;
+  width: fit-content;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--petrol);
+  font-weight: 900;
+  font-size: 12px;
 }
 
-function setAuthMode(mode) {
-  authMode = mode;
-  $("authButton").textContent = mode === "login" ? "Se connecter" : "Créer mon compte";
-  $("authMsg").textContent = mode === "login" ? "Mode : connexion" : "Mode : création de compte";
+.demo-chart {
+  margin: 12px auto;
+  width: 100%;
+  max-width: 230px;
 }
 
-function showAuth() {
-  $("authBox").classList.remove("hidden");
-  $("appBox").classList.add("hidden");
-  $("userbar").classList.add("hidden");
-  renderChart(0, 0);
+.demo-chart svg {
+  width: 100%;
+  display: block;
 }
 
-function showApp() {
-  $("authBox").classList.add("hidden");
-  $("appBox").classList.remove("hidden");
-  $("userbar").classList.remove("hidden");
-  $("userEmail").textContent = currentUser?.email || "";
-  if (typeof monterWidgetParser === "function") monterWidgetParser();
-  if (typeof monterWidgetParserDocuments === "function") monterWidgetParserDocuments();
+.demo-percent {
+  font-size: 28px;
+  font-weight: 900;
+  fill: var(--petrol);
 }
 
-async function init() {
-  setDefaultDates();
+.demo-sub {
+  font-size: 12px;
+  fill: var(--muted);
+}
 
-  const { data: { session } } = await sb.auth.getSession();
-  currentUser = session?.user || null;
+.mini-legend {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  font-size: 13px;
+  color: var(--muted);
+}
 
-  if (!currentUser) {
-    showAuth();
-    return;
-  }
+.mini-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 
-  showApp();
-  await loadMissions();
-  await loadDocuments();
-  render();
+.done-dot,
+.planned-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
 }
 
-async function logout() {
-  await sb.auth.signOut();
-  currentUser = null;
-  missions = [];
-  documents = [];
-  showAuth();
+.done-dot {
+  background: var(--petrol);
 }
 
-async function loadMissions() {
-  const { data, error } = await sb
-    .from("missions")
-    .select("*")
-    .order("mission_date", { ascending: false });
+.planned-dot {
+  background: var(--orange);
+}
 
-  if (error) {
-    alert("Erreur chargement missions : " + error.message);
-    return;
-  }
+.trust-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
 
-  missions = (data || []).map((x) => ({
-    id: x.id,
-    production: x.production,
-    type: x.mission_type,
-    date: x.mission_date,
-    endDate: x.end_date || x.mission_date,
-    hours: Number(x.hours || 0),
-    gross: Number(x.gross_amount || 0),
-    kmDistance: Number(x.km_distance || 0),
-    kmRate: Number(x.km_rate || 0),
-    kmAmount: Number(x.km_amount || 0)
-  }));
+.trust-list div {
+  background: #F8FAF9;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 13px;
+}
 
-  render();
+.trust-list strong {
+  display: block;
+  color: var(--petrol);
+  font-size: 14px;
 }
 
+.trust-list span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 3px;
+}
 
-async function loadDocuments() {
-  if (!currentUser) return;
+@media (max-width: 980px) {
+  .auth-layout {
+    grid-template-columns: 1fr;
+  }
 
-  const { data, error } = await sb
-    .from("documents")
-    .select("*")
-    .order("doc_year", { ascending: false })
-    .order("doc_month", { ascending: false })
-    .order("created_at", { ascending: false });
+  .auth-info-card {
+    display: none;
+  }
 
-  if (error) {
-    alert("Erreur chargement documents : " + error.message);
-    return;
+  .auth-card {
+    max-width: 460px;
+    margin: 0 auto;
   }
+}
+
+/* Vignettes par production dans l'onglet Missions */
+.production-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
 
-  documents = data || [];
-  renderDocuments();
+.production-card {
+  text-align: left;
+  background: #F8FAF9;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 16px;
+  color: var(--text);
+  box-shadow: 0 8px 20px rgba(31, 78, 95, .04);
 }
 
-function safeFileName(name) {
-  return String(name || "document")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9._-]/g, "_")
-    .slice(0, 90);
+.production-card strong {
+  display: block;
+  color: var(--petrol);
+  font-size: 17px;
+  margin-bottom: 8px;
 }
 
-async function uploadDocument(event) {
-  event.preventDefault();
+.production-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 3px;
+}
 
-  if (!currentUser) {
-    alert("Connecte-toi avant d'ajouter un document.");
-    return;
-  }
+.production-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
 
-  const fileInput = $("documentFile");
-  const file = fileInput?.files?.[0];
+.production-detail-head h2 {
+  margin: 0;
+}
 
-  if (!file) {
-    alert("Ajoute un fichier PDF ou une image.");
-    return;
+@media (max-width: 720px) {
+  .production-grid {
+    grid-template-columns: 1fr;
   }
-
-  const type = $("documentType").value;
-  const production = $("documentProduction").value.trim();
-  const month = Number($("documentMonth").value);
-  const year = Number($("documentYear").value);
 
-  if (!production || !month || !year) {
-    alert("Complète le type, la production, le mois et l'année.");
-    return;
+  .production-detail-head {
+    align-items: flex-start;
+    flex-direction: column;
   }
+}
+/* Rester connecté */
 
-  const submitBtn = $("documentSubmitBtn");
-  if (submitBtn) submitBtn.textContent = "Envoi en cours...";
+.remember-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 12px 0 18px;
+}
 
-  const cleanName = safeFileName(file.name);
-  const filePath = `${currentUser.id}/${year}/${String(month).padStart(2, "0")}/${Date.now()}_${cleanName}`;
+.remember-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+}
 
-  const { error: uploadError } = await sb.storage
-    .from("documents")
-    .upload(filePath, file, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: file.type || "application/octet-stream"
-    });
+.remember-label input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  cursor: pointer;
+}.landing-page {
+  min-height: calc(100vh - 120px);
+  display: grid;
+  place-items: center;
+}
 
-  if (uploadError) {
-    if (submitBtn) submitBtn.textContent = "Ajouter le document";
-    alert("Erreur upload document : " + uploadError.message);
-    return;
-  }
+.landing-layout {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1.1fr 430px 1fr;
+  gap: 18px;
+  align-items: stretch;
+}
 
-  const { error: insertError } = await sb.from("documents").insert({
-    user_id: currentUser.id,
-    file_name: file.name,
-    file_path: filePath,
-    document_type: type,
-    production,
-    doc_month: month,
-    doc_year: year,
-    mime_type: file.type || null
-  });
+.landing-hero,
+.landing-preview {
+  background: linear-gradient(145deg, #ffffff, #EEF4F1);
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  padding: 24px;
+  box-shadow: 0 16px 38px rgba(31, 78, 95, .08);
+}
 
-  if (insertError) {
-    await sb.storage.from("documents").remove([filePath]);
-    if (submitBtn) submitBtn.textContent = "Ajouter le document";
-    alert("Erreur sauvegarde document : " + insertError.message);
-    return;
-  }
+.landing-hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
 
-  $("documentForm").reset();
-  setDefaultDates();
-  if (submitBtn) submitBtn.textContent = "Ajouter le document";
-  await loadDocuments();
+.landing-hero h2 {
+  font-size: 34px;
+  line-height: 1.02;
+  margin: 14px 0;
+  letter-spacing: -.06em;
 }
 
-async function getDocumentSignedUrl(filePath) {
-  const { data, error } = await sb.storage
-    .from("documents")
-    .createSignedUrl(filePath, 120);
+.landing-text {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.5;
+  margin: 0 0 18px;
+}
 
-  if (error) {
-    alert("Erreur ouverture document : " + error.message);
-    return null;
-  }
+.landing-features {
+  display: grid;
+  gap: 10px;
+}
 
-  return data.signedUrl;
+.landing-features div {
+  background: #F8FAF9;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 13px;
 }
 
-async function openDocument(filePath) {
-  const url = await getDocumentSignedUrl(filePath);
-  if (!url) return;
-  window.open(url, "_blank");
+.landing-features strong {
+  display: block;
+  color: var(--petrol);
+  font-size: 14px;
+  margin-bottom: 4px;
 }
 
-async function downloadDocument(filePath, fileName) {
-  const url = await getDocumentSignedUrl(filePath);
-  if (!url) return;
+.landing-features span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
 
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName || "document";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
+.landing-preview {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
 }
 
-async function deleteDocument(id, filePath) {
-  if (!confirm("Supprimer ce document ?")) return;
+.preview-card {
+  background: #FFFFFF;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 10px 25px rgba(31, 78, 95, .06);
+}
 
-  const { error: storageError } = await sb.storage.from("documents").remove([filePath]);
-  if (storageError) {
-    alert("Erreur suppression fichier : " + storageError.message);
-    return;
-  }
+.preview-card span,
+.preview-card small {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+}
 
-  const { error: dbError } = await sb.from("documents").delete().eq("id", id);
-  if (dbError) {
-    alert("Erreur suppression document : " + dbError.message);
-    return;
-  }
+.preview-card strong {
+  display: block;
+  color: var(--petrol);
+  font-size: 30px;
+  line-height: 1;
+  margin: 8px 0 4px;
+}
 
-  await loadDocuments();
+.preview-card.big strong {
+  font-size: 54px;
+  letter-spacing: -.06em;
 }
 
-function monthName(monthNumber) {
-  const date = new Date(2026, Number(monthNumber) - 1, 1);
-  return date.toLocaleDateString("fr-FR", { month: "long" });
+.preview-bar {
+  height: 12px;
+  background: #D8E4DF;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 14px;
 }
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+.preview-bar i {
+  display: block;
+  width: 78%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--sage), var(--petrol));
+  border-radius: 999px;
 }
 
+.preview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
 
-function renderDocuments() {
-  const container = $("documentsList");
-  if (!container) return;
+.doc-pill {
+  display: inline-flex;
+  margin: 8px 6px 0 0;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--petrol);
+  font-weight: 800;
+  font-size: 12px;
+}
 
-  if (!documents.length) {
-    container.innerHTML = `<div class="empty">Aucun document enregistré pour le moment.</div>`;
-    return;
+@media (max-width: 980px) {
+  .landing-layout {
+    grid-template-columns: 1fr;
   }
-
-  const sorted = [...documents].sort((a, b) => {
-    if (String(a.production).localeCompare(String(b.production), "fr") !== 0) {
-      return String(a.production).localeCompare(String(b.production), "fr");
-    }
-    if (b.doc_year !== a.doc_year) return b.doc_year - a.doc_year;
-    if (b.doc_month !== a.doc_month) return b.doc_month - a.doc_month;
-    return String(a.document_type).localeCompare(String(b.document_type), "fr");
-  });
 
-  const groups = {};
-  sorted.forEach((doc) => {
-    const production = normalizeProductionName(doc.production || "Sans production");
-    if (!groups[production]) groups[production] = [];
-    groups[production].push(doc);
-  });
+  .landing-preview {
+    display: none;
+  }
 
-  if (!openDocumentProduction) {
-    container.innerHTML = `
-      <div class="document-folder-grid document-folder-grid-pro">
-        ${Object.keys(groups).sort((a, b) => a.localeCompare(b, "fr")).map((production) => {
-          const list = groups[production];
-          const counts = list.reduce((acc, doc) => {
-            acc[doc.document_type] = (acc[doc.document_type] || 0) + 1;
-            return acc;
-          }, {});
+  .landing-hero {
+    display: none;
+  }
 
-          const latest = [...list].sort((a, b) => {
-            if (b.doc_year !== a.doc_year) return b.doc_year - a.doc_year;
-            return b.doc_month - a.doc_month;
-          })[0];
+  .auth-card {
+    max-width: 460px;
+    margin: 0 auto;
+  }
+}.feature-list {
+  display: grid;
+  gap: 9px;
+  margin: 16px 0;
+}
 
-          const types = Object.keys(counts).sort();
+.feature-list div {
+  background: #F8FAF9;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 11px 12px;
+  color: var(--petrol);
+  font-size: 14px;
+  font-weight: 800;
+}/* Landing page plus large + mobile complet */
 
-          return `
-            <button class="document-folder-card document-folder-card-pro" type="button" data-doc-production-open="${escapeHtml(production)}">
-              <div class="document-folder-icon">📁</div>
+.app {
+  max-width: 1240px;
+}
 
-              <div class="document-folder-main">
-                <strong>${escapeHtml(production)}</strong>
-                <span>${list.length} document${list.length > 1 ? "s" : ""}</span>
-              </div>
+.auth-layout {
+  grid-template-columns: 1fr 430px 1fr;
+  gap: 24px;
+  align-items: stretch;
+}
 
-              <div class="document-folder-tags">
-                ${types.slice(0, 4).map((type) => `
-                  <em>${escapeHtml(type)} · ${counts[type]}</em>
-                `).join("")}
-              </div>
+.auth-info-card,
+.auth-card {
+  min-height: 520px;
+}
 
-              <small>
-                Dernier ajout : ${latest ? `${escapeHtml(monthName(latest.doc_month))} ${escapeHtml(latest.doc_year)}` : "—"}
-              </small>
-            </button>
-          `;
-        }).join("")}
-      </div>
-    `;
-    return;
+@media (max-width: 980px) {
+  .auth-layout {
+    grid-template-columns: 1fr;
+    gap: 14px;
   }
 
-  const productionDocs = groups[openDocumentProduction] || [];
-  const filters = ["Tous", "AEM", "Fiche de paie", "Congés Spectacles", "Contrat", "Autre"];
-  const filteredDocs = documentFilter === "Tous"
-    ? productionDocs
-    : productionDocs.filter((doc) => doc.document_type === documentFilter);
-
-  container.innerHTML = `
-    <div class="document-detail-head document-detail-head-pro">
-      <button class="ghost" type="button" data-doc-production-back>‹ Retour aux productions</button>
-      <div>
-        <h2>${escapeHtml(openDocumentProduction)}</h2>
-        <p class="sub">${productionDocs.length} document${productionDocs.length > 1 ? "s" : ""} classé${productionDocs.length > 1 ? "s" : ""}</p>
-      </div>
-    </div>
+  .auth-info-card {
+    display: flex !important;
+    min-height: auto;
+    padding: 18px;
+  }
 
-    <div class="document-filter-bar document-filter-bar-pro">
-      ${filters.map((filter) => `
-        <button
-          class="doc-filter ${documentFilter === filter ? "active" : ""}"
-          type="button"
-          data-doc-filter="${escapeHtml(filter)}"
-        >
-          ${escapeHtml(filter)}
-        </button>
-      `).join("")}
-    </div>
+  .auth-info-card h2 {
+    font-size: 22px;
+  }
 
-    <div class="documents-card-grid">
-      ${filteredDocs.length ? filteredDocs.map((doc) => `
-        <div class="document-card document-card-pro">
-          <div class="document-file-icon">${escapeHtml(String(doc.document_type || "Doc").slice(0, 3).toUpperCase())}</div>
+  .auth-card {
+    min-height: auto;
+    max-width: 100%;
+    margin: 0;
+  }
 
-          <div class="document-card-content">
-            <div class="document-card-head">
-              <div>
-                <strong>${escapeHtml(doc.document_type)} · ${escapeHtml(doc.production)}</strong>
-                <span>${escapeHtml(monthName(doc.doc_month))} ${escapeHtml(doc.doc_year)}</span>
-              </div>
-              <span class="pill">${escapeHtml(doc.document_type)}</span>
-            </div>
+  .demo-chart {
+    max-width: 190px;
+  }
 
-            <p class="document-file-name">${escapeHtml(doc.file_name)}</p>
+  .trust-list,
+  .feature-list {
+    gap: 8px;
+  }
 
-            <div class="document-actions">
-              <button class="ghost" type="button" data-doc-open="${escapeHtml(doc.file_path)}">Ouvrir</button>
-              <button class="ghost" type="button" data-doc-download="${escapeHtml(doc.file_path)}" data-doc-name="${escapeHtml(doc.file_name)}">Télécharger</button>
-              <button class="delete" type="button" data-doc-delete="${escapeHtml(doc.id)}" data-doc-path="${escapeHtml(doc.file_path)}">Supprimer</button>
-            </div>
-          </div>
-        </div>
-      `).join("") : `<div class="empty">Aucun document dans ce filtre.</div>`}
-    </div>
-  `;
+  .trust-list div,
+  .feature-list div {
+    padding: 11px;
+  }
 }
-
-async function addMission(event) {
-  event.preventDefault();
 
-  if (!currentUser) {
-    alert("Connecte-toi avant d'ajouter une mission.");
-    return;
+@media (max-width: 720px) {
+  .auth-page {
+    place-items: start;
   }
 
-  if ($("endDate").value < $("date").value) {
-    alert("La date de fin ne peut pas être avant la date de début.");
-    return;
+  .auth-layout {
+    gap: 12px;
   }
 
-  const payload = {
-    user_id: currentUser.id,
-    production: normalizeProductionName($("production").value),
-    mission_type: $("type").value,
-    mission_date: $("date").value,
-    end_date: $("endDate").value,
-    hours: Number($("hours").value),
-    gross_amount: Number($("gross").value),
-    km_distance: Number($("kmDistance")?.value || 0),
-    km_rate: Number($("kmRate")?.value || 0),
-    km_amount: calculateKmAmount()
-  };
-
-  let result;
-
-  if (editingMissionId) {
-    result = await sb
-      .from("missions")
-      .update(payload)
-      .eq("id", editingMissionId);
-  } else {
-    result = await sb.from("missions").insert(payload);
+  .auth-info-card:first-child {
+    order: 1;
   }
 
-  const { error } = result;
+  .auth-card {
+    order: 2;
+  }
 
-  if (error) {
-    alert("Erreur sauvegarde : " + error.message);
-    return;
+  .auth-info-card:last-child {
+    order: 3;
   }
 
-  $("missionForm").reset();
+  .home-mainline {
+    font-size: 20px;
+  }
 
-  editingMissionId = null;
+  .auth-info-card p {
+    font-size: 13px;
+  }
 
-  const submitBtn = document.querySelector("#missionForm button[type='submit']");
-  if (submitBtn) {
-    submitBtn.textContent = "Enregistrer la mission";
+  .feature-list div,
+  .trust-list span {
+    font-size: 12px;
   }
+}/* Ajustement accueil desktop */
+
+.app {
+  max-width: 1380px;
+}
 
-  setDefaultDates();
-  updateKmPreview();
-  current = new Date(payload.mission_date + "T00:00:00");
-  current.setDate(1);
+.auth-page {
+  min-height: calc(100vh - 90px);
+  align-items: start;
+  padding-top: 48px;
+}
 
-  await loadMissions();
-  activateView("dashboard");
+.auth-layout {
+  width: 100%;
+  max-width: 1260px;
+  margin: 0 auto;
+  grid-template-columns: 1.05fr 430px 1.05fr;
+  gap: 28px;
 }
 
-function editMission(id) {
-  const mission = missions.find((m) => String(m.id) === String(id));
+.auth-info-card,
+.auth-card {
+  min-height: 560px;
+  justify-content: center;
+}
 
-  if (!mission) {
-    alert("Mission introuvable.");
-    return;
+@media (max-width: 980px) {
+  .app {
+    max-width: 1060px;
   }
 
-  editingMissionId = mission.id;
+  .auth-page {
+    padding-top: 0;
+  }
 
-  $("production").value = mission.production || "";
-  $("type").value = mission.type || "Autre";
-  $("date").value = mission.date || "";
-  $("endDate").value = mission.endDate || mission.date || "";
-  $("hours").value = mission.hours || 0;
-  $("gross").value = mission.gross || 0;
-  if ($("kmDistance")) $("kmDistance").value = mission.kmDistance || "";
-  if ($("kmRate")) $("kmRate").value = mission.kmRate || "";
-  updateKmPreview();
+  .auth-layout {
+    max-width: 100%;
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
 
-  const submitBtn = document.querySelector("#missionForm button[type='submit']");
-  if (submitBtn) {
-    submitBtn.textContent = "Mettre à jour la mission";
+  .auth-info-card,
+  .auth-card {
+    min-height: auto;
   }
+}
 
-  activateView("missions");
+/* Correction calendrier cliquable */
+.calendar {
+  grid-auto-rows: 82px;
+}
+
+.day {
+  cursor: pointer;
+  transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
 
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
+.day:hover {
+  transform: translateY(-2px);
+  border-color: var(--sage);
+  box-shadow: 0 8px 18px rgba(31,78,95,.12);
 }
 
-async function deleteMission(id) {
-  if (!confirm("Supprimer cette mission ?")) return;
+.day[data-has-mission="1"] {
+  border: 2px solid rgba(122,158,126,.35);
+}
+
+.empty-day {
+  cursor: default;
+}
 
-  const { error } = await sb.from("missions").delete().eq("id", id);
+.empty-day:hover {
+  transform: none;
+  box-shadow: none;
+}
 
-  if (error) {
-    alert("Erreur suppression : " + error.message);
-    return;
+@media (max-width: 720px) {
+  .calendar {
+    grid-auto-rows: 64px !important;
   }
+}
+
 
-  await loadMissions();
+/* Panneau missions du jour depuis le calendrier */
+.calendar-day-panel {
+  margin-top: 18px;
+  background: #F8FAF9;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px;
 }
 
-function activateView(viewName) {
-  document.querySelectorAll(".tab").forEach((tab) => {
-    tab.classList.toggle("active", tab.dataset.view === viewName);
-  });
+.calendar-day-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
 
-  document.querySelectorAll(".view").forEach((view) => {
-    view.classList.toggle("active", view.id === "view-" + viewName);
-  });
+.calendar-day-panel-head strong {
+  display: block;
+  color: var(--petrol);
+  font-size: 16px;
+}
 
-  trackEvent("view_" + viewName);
+.calendar-day-panel-head span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 3px;
 }
 
-function money(n) {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0
-  }).format(n || 0);
+.calendar-day-missions {
+  display: grid;
+  gap: 10px;
 }
 
-function formatDate(s) {
-  return new Date(s + "T00:00:00").toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric"
-  });
+.calendar-day-mission {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
 }
 
-function formatPeriod(a, b) {
-  return !b || a === b ? formatDate(a) : formatDate(a) + " -> " + formatDate(b);
+.calendar-day-mission strong {
+  display: block;
+  color: var(--text);
 }
 
-function todayDateOnly() {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+.calendar-day-mission span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 3px;
 }
 
-function daysInclusive(a, b) {
-  return Math.max(1, Math.round((b - a) / 86400000) + 1);
+.calendar-day-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
+
+@media (max-width: 720px) {
+  .calendar-day-panel-head,
+  .calendar-day-mission {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 
-function missionDayCount(mission) {
-  const start = new Date(mission.date + "T00:00:00");
-  const end = new Date((mission.endDate || mission.date) + "T00:00:00");
-  return daysInclusive(start, end);
+  .calendar-day-actions {
+    justify-content: flex-start;
+  }
 }
+
 
-function isDateInPeriod(dateStr, mission) {
-  return dateStr >= mission.date && dateStr <= (mission.endDate || mission.date);
+/* RESTAURATION INTERMITRACK - grilles, calendrier, compte */
+
+/* Grilles Fiscalité et Prévisions */
+.fiscalite-grid,
+.previsions-grid {
+  display: grid !important;
+  gap: 14px !important;
+  margin: 16px 0 !important;
 }
 
-function overlapsMonth(mission, ref) {
-  const year = ref.getFullYear();
-  const month = ref.getMonth();
-  const start = new Date(mission.date + "T00:00:00");
-  const end = new Date((mission.endDate || mission.date) + "T00:00:00");
-  const monthStart = new Date(year, month, 1);
-  const monthEnd = new Date(year, month + 1, 0, 23, 59, 59);
-  return start <= monthEnd && end >= monthStart;
+.fiscalite-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
 }
 
-function monthMissions(ref) {
-  return missions.filter((mission) => overlapsMonth(mission, ref));
+.previsions-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
 }
 
-function splitMissionByTime(mission) {
-  const start = new Date(mission.date + "T00:00:00");
-  const end = new Date((mission.endDate || mission.date) + "T00:00:00");
-  const today = todayDateOnly();
-  const totalHours = Number(mission.hours || 0);
+.fiscalite-card,
+.prevision-card {
+  background: linear-gradient(145deg, #FFFFFF, #EEF4F1) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 18px !important;
+  padding: 16px !important;
+  box-shadow: 0 10px 24px rgba(31,78,95,.06) !important;
+}
 
-  if (end < today) return { done: totalHours, planned: 0 };
-  if (start > today) return { done: 0, planned: totalHours };
+.fiscalite-card h3,
+.prevision-card h3 {
+  color: var(--petrol) !important;
+  margin: 12px 0 8px !important;
+  font-size: 18px !important;
+}
 
-  const totalDays = daysInclusive(start, end);
-  const doneDays = daysInclusive(start, today);
-  const done = Math.min(totalHours, Math.round(totalHours * (doneDays / totalDays) * 10) / 10);
+.fiscalite-card p,
+.prevision-card p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
 
-  return {
-    done,
-    planned: Math.max(0, Math.round((totalHours - done) * 10) / 10)
-  };
+.fiscalite-card strong,
+.prevision-card strong {
+  display: block;
+  color: var(--petrol);
+  margin-top: 8px;
 }
 
-function sumDone(list) {
-  return list.reduce((total, mission) => total + splitMissionByTime(mission).done, 0);
+/* Calendrier style planning Intermitrack */
+#view-calendar .card {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 10% 15%, rgba(255,255,255,.26) 0 2px, transparent 3px),
+    radial-gradient(circle at 24% 10%, rgba(255,255,255,.20) 0 2px, transparent 3px),
+    radial-gradient(circle at 88% 18%, rgba(255,255,255,.18) 0 2px, transparent 3px),
+    linear-gradient(135deg, #1F4E5F 0%, #2A6174 46%, #7A9E7E 100%) !important;
+  border: none !important;
+  box-shadow: 0 24px 60px rgba(31, 78, 95, .24) !important;
 }
 
-function sumPlanned(list) {
-  return list.reduce((total, mission) => total + splitMissionByTime(mission).planned, 0);
+#view-calendar h2,
+#view-calendar .sub,
+#monthTitle {
+  color: #FFFFFF !important;
 }
 
-function sumMissionDays(list) {
-  return list.reduce((total, mission) => total + missionDayCount(mission), 0);
+#view-calendar .calhead .ghost {
+  background: rgba(255,255,255,.18) !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
 }
 
-function getProductionInitials(name) {
-  return String(name || "---")
-    .replace(/[^a-zA-ZÀ-ÿ0-9\s]/g, " ")
-    .trim()
-    .split(/\s+/)
-    .join("")
-    .slice(0, 3)
-    .toUpperCase() || "---";
+#view-calendar .calendar {
+  background: rgba(255,255,255,.92) !important;
+  border: 1px solid rgba(255,255,255,.45) !important;
+  border-radius: 4px !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  overflow: hidden;
+  box-shadow: 0 18px 42px rgba(14,45,58,.20);
 }
 
-function render() {
-  const now = new Date();
-  const year = now.getFullYear();
-  if ($("areAdmissionDate")) {
-  $("areAdmissionDate").value = areAdmissionDate || "";
+#view-calendar .dayname {
+  height: 42px !important;
+  background: #F8FAF9 !important;
+  color: var(--petrol) !important;
+  border-right: 1px solid rgba(31,78,95,.28);
+  border-bottom: 2px solid rgba(31,78,95,.30);
+  border-radius: 0 !important;
+  font-size: 13px !important;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  font-weight: 900 !important;
 }
 
-if ($("areAdmissionInfo") && areAdmissionDate) {
-  $("areAdmissionInfo").textContent =
-    "Calcul des heures effectué depuis le " +
-    new Date(areAdmissionDate).toLocaleDateString("fr-FR");
+#view-calendar .day {
+  height: 86px;
+  background: rgba(255,255,255,.96) !important;
+  border: 0 !important;
+  border-right: 1px solid rgba(31,78,95,.28) !important;
+  border-bottom: 1px solid rgba(31,78,95,.28) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 8px !important;
+  position: relative;
 }
 
-  const areStartDate = areAdmissionDate
-  ? new Date(areAdmissionDate + "T00:00:00")
-  : new Date(year, 0, 1);
+#view-calendar .day:hover {
+  z-index: 5;
+  background: #EEF4F1 !important;
+  outline: 3px solid var(--sage) !important;
+  outline-offset: -3px !important;
+  box-shadow: 0 8px 18px rgba(31,78,95,.15) !important;
+}
 
-const yearMissions = missions.filter((mission) => {
-  const missionDate = new Date(mission.date + "T00:00:00");
-  return missionDate >= areStartDate;
-});
+#view-calendar .day.today {
+  z-index: 6;
+  background: #EEF4F1 !important;
+  outline: 3px solid var(--petrol) !important;
+  outline-offset: -3px !important;
+  box-shadow: 0 10px 22px rgba(31,78,95,.20) !important;
+}
 
-  const selectedMonthMissions = monthMissions(current);
+#view-calendar .empty-day {
+  background: rgba(255,255,255,.58) !important;
+}
 
-  const yearHours = Math.round(sumDone(yearMissions) * 10) / 10;
-  const plannedHours = Math.round(sumPlanned(yearMissions) * 10) / 10;
+#view-calendar .empty-day:hover {
+  background: rgba(255,255,255,.58) !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
 
-  // Heures du mois affiché : on affiche le total du mois sélectionné,
-  // pas seulement les heures déjà passées dans le temps.
-  // Comme ça, juin affiche bien toutes les heures enregistrées en juin.
-  const monthHours = Math.round(
-    selectedMonthMissions.reduce((total, mission) => total + Number(mission.hours || 0), 0) * 10
-  ) / 10;
+/* Compte */
+.account-box {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0;
+  padding: 16px;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #FFFFFF, #EEF4F1);
+  border: 1px solid var(--line);
+}
 
-  const yearGross = yearMissions.reduce((a, x) => a + Number(x.gross || 0), 0);
-  const monthGross = selectedMonthMissions.reduce((a, x) => a + Number(x.gross || 0), 0);
+/* Projection */
+.projection-box {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(31, 78, 95, .07);
+  border: 1px solid rgba(31, 78, 95, .12);
+}
 
-  const percent = Math.round((yearHours / OBJECTIVE_HOURS) * 100);
-  const remaining = Math.max(0, Math.round((OBJECTIVE_HOURS - yearHours) * 10) / 10);
+.projection-box strong {
+  display: block;
+  color: var(--petrol);
+  margin-bottom: 6px;
+}
 
-  if ($("yearHours")) $("yearHours").textContent = yearHours;
-  if ($("monthHours")) $("monthHours").textContent = monthHours + "h";
-  if ($("monthGross")) $("monthGross").textContent = money(monthGross);
-  if ($("yearGross")) $("yearGross").textContent = money(yearGross);
-  if ($("remainingHours")) $("remainingHours").textContent = remaining;
-  if ($("missionCount")) $("missionCount").textContent = sumMissionDays(selectedMonthMissions);
-  if ($("progressText")) $("progressText").textContent = percent + "% de ton objectif intermittent";
+.projection-box p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
 
-  if ($("fiscaliteGrossPreview")) {
-    $("fiscaliteGrossPreview").textContent = "Brut annuel : " + money(yearGross);
+@media (max-width: 1100px) {
+  .fiscalite-grid,
+  .previsions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
+}
 
-  if ($("otherIncomeInput")) {
-    const savedOtherIncome = getOtherIncome();
-    if (!$("otherIncomeInput").value && savedOtherIncome) $("otherIncomeInput").value = savedOtherIncome;
+@media (max-width: 720px) {
+  .fiscalite-grid,
+  .previsions-grid {
+    grid-template-columns: 1fr !important;
   }
 
-  if ($("taxPartsInput")) {
-    const savedParts = getTaxParts();
-    if (!$("taxPartsInput").value && savedParts) $("taxPartsInput").value = savedParts;
+  #view-calendar .dayname {
+    height: 32px !important;
+    font-size: 10px !important;
   }
 
-  const totalKmAmountForTax = yearMissions.reduce((a, x) => a + Number(x.kmAmount || 0), 0);
-  const observedMonths = getObservedMissionMonths(yearMissions);
-  const projectedGross = estimateAnnualProjection(yearGross, observedMonths);
-  const projectedKmAmount = estimateAnnualProjection(totalKmAmountForTax, observedMonths);
-  const complementaryIncome = getOtherIncome();
-
-  if ($("fiscaliteNetPreview")) {
-    $("fiscaliteNetPreview").textContent =
-      "Net imposable estimé : " + money(estimateTaxableIncomeFromGross(yearGross));
+  #view-calendar .day {
+    height: 68px !important;
+    padding: 5px !important;
   }
+}
 
-  if ($("fiscaliteKmDeductionPreview")) {
-    $("fiscaliteKmDeductionPreview").textContent =
-      "Frais km déduits : " + money(totalKmAmountForTax);
-  }
 
-  if ($("fiscaliteOtherIncomePreview")) {
-    $("fiscaliteOtherIncomePreview").textContent =
-      "Revenus complémentaires : " + money(complementaryIncome);
-  }
+/* Visuel Intermitrack restauré */
+.fiscalite-grid,
+.previsions-grid {
+  display: grid;
+  gap: 14px;
+  margin: 16px 0;
+}
 
-  if ($("fiscaliteTotalIncomePreview")) {
-    const currentTaxableBase = Math.max(
-      0,
-      estimateTaxableIncomeFromGross(yearGross) + complementaryIncome - totalKmAmountForTax
-    );
+.fiscalite-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 
-    $("fiscaliteTotalIncomePreview").textContent =
-      "Base imposable estimée : " + money(currentTaxableBase);
-  }
+.previsions-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
 
-  if ($("fiscaliteProjectionPreview")) {
-    if (observedMonths > 0) {
-      const projectedBase = Math.max(
-        0,
-        estimateTaxableIncomeFromGross(projectedGross) + complementaryIncome - projectedKmAmount
-      );
+.fiscalite-card,
+.prevision-card {
+  background: linear-gradient(145deg, #FFFFFF, #EEF4F1);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 10px 24px rgba(31,78,95,.06);
+}
 
-      $("fiscaliteProjectionPreview").textContent =
-        "Projection annuelle : " + money(projectedBase) +
-        " sur " + observedMonths + " mois renseigné" + (observedMonths > 1 ? "s" : "");
-    } else {
-      $("fiscaliteProjectionPreview").textContent = "Projection annuelle : ajoute une mission";
-    }
-  }
+.fiscalite-card h3,
+.prevision-card h3 {
+  color: var(--petrol);
+  margin: 12px 0 8px;
+  font-size: 18px;
+}
 
-  if ($("fiscaliteTaxPreview")) {
-    const currentTaxableBase = Math.max(
-      0,
-      estimateTaxableIncomeFromGross(yearGross) + complementaryIncome - totalKmAmountForTax
-    );
-    const projectedTaxableBase = observedMonths > 0
-      ? Math.max(0, estimateTaxableIncomeFromGross(projectedGross) + complementaryIncome - projectedKmAmount)
-      : currentTaxableBase;
+.projection-box {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(31, 78, 95, .07);
+  border: 1px solid rgba(31, 78, 95, .12);
+}
 
-    const taxableIncome = projectedTaxableBase || currentTaxableBase;
-    const parts = getTaxParts();
+.projection-box strong {
+  display: block;
+  color: var(--petrol);
+  margin-bottom: 6px;
+}
 
-    if (taxableIncome > 0 && parts > 0) {
-      const taxResult = calculateProgressiveTax(taxableIncome, parts);
-      $("fiscaliteTaxPreview").textContent = "Impôt estimé projeté : " + money(taxResult.estimatedTax);
+.projection-box p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
 
-      if ($("fiscaliteRatePreview")) {
-        $("fiscaliteRatePreview").textContent =
-          "Taux moyen estimé : " + taxResult.averageRate.toFixed(1).replace(".", ",") + "%";
-      }
+#view-calendar .card {
+  background:
+    radial-gradient(circle at 10% 15%, rgba(255,255,255,.26) 0 2px, transparent 3px),
+    radial-gradient(circle at 24% 10%, rgba(255,255,255,.20) 0 2px, transparent 3px),
+    radial-gradient(circle at 88% 18%, rgba(255,255,255,.18) 0 2px, transparent 3px),
+    linear-gradient(135deg, #1F4E5F 0%, #2A6174 46%, #7A9E7E 100%);
+  border: none;
+  box-shadow: 0 24px 60px rgba(31, 78, 95, .24);
+}
 
-      if ($("fiscaliteBracketPreview")) {
-        $("fiscaliteBracketPreview").textContent =
-          "Tranche marginale estimée : " + Math.round(taxResult.marginalRate) + "%";
-      }
-    } else {
-      $("fiscaliteTaxPreview").textContent = "Impôt estimé : ajoute tes missions et tes parts";
-      if ($("fiscaliteRatePreview")) $("fiscaliteRatePreview").textContent = "Taux moyen estimé : -";
-      if ($("fiscaliteBracketPreview")) $("fiscaliteBracketPreview").textContent = "Tranche marginale estimée : -";
-    }
-  }
+#view-calendar h2,
+#view-calendar .sub,
+#monthTitle {
+  color: #FFFFFF;
+}
 
-  if ($("fiscaliteKmPreview")) {
-    const totalKm = Math.round(yearMissions.reduce((a, x) => a + Number(x.kmDistance || 0), 0));
-    $("fiscaliteKmPreview").textContent = totalKm + " km enregistrés";
-  }
+#view-calendar .calhead .ghost {
+  background: rgba(255,255,255,.18);
+  color: #FFFFFF;
+  border: 1px solid rgba(255,255,255,.22);
+}
 
-  if ($("fiscaliteKmAmountPreview")) {
-    const totalKmAmount = yearMissions.reduce((a, x) => a + Number(x.kmAmount || 0), 0);
-    $("fiscaliteKmAmountPreview").textContent = money(totalKmAmount) + " estimés";
-  }
+#view-calendar .calendar {
+  background: rgba(255,255,255,.92);
+  border: 1px solid rgba(255,255,255,.45);
+  border-radius: 4px;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  box-shadow: 0 18px 42px rgba(14,45,58,.20);
+}
 
-  if ($("fiscaliteDeclarationPreview")) {
-    const totalKmAmount = yearMissions.reduce((a, x) => a + Number(x.kmAmount || 0), 0);
-    $("fiscaliteDeclarationPreview").textContent = "Brut " + money(yearGross) + " · Frais km " + money(totalKmAmount);
-  }
+#view-calendar .dayname {
+  height: 42px;
+  background: #F8FAF9;
+  color: var(--petrol);
+  border-right: 1px solid rgba(31,78,95,.28);
+  border-bottom: 2px solid rgba(31,78,95,.30);
+  border-radius: 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  font-weight: 900;
+}
+
+#view-calendar .day {
+  height: 86px;
+  background: rgba(255,255,255,.96);
+  border: 0;
+  border-right: 1px solid rgba(31,78,95,.28);
+  border-bottom: 1px solid rgba(31,78,95,.28);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 8px;
+  position: relative;
+}
+
+#view-calendar .day:hover {
+  z-index: 5;
+  background: #EEF4F1;
+  outline: 3px solid var(--sage);
+  outline-offset: -3px;
+  box-shadow: 0 8px 18px rgba(31,78,95,.15);
+}
+
+#view-calendar .day.today {
+  z-index: 6;
+  background: #EEF4F1;
+  outline: 3px solid var(--petrol);
+  outline-offset: -3px;
+  box-shadow: 0 10px 22px rgba(31,78,95,.20);
+}
+
+#view-calendar .empty-day {
+  background: rgba(255,255,255,.58);
+}
+
+#view-calendar .empty-day:hover {
+  background: rgba(255,255,255,.58);
+  outline: none;
+  box-shadow: none;
+}
 
-  if ($("previsionConges")) {
-    const estimatedConges = Math.round(yearGross * 0.10);
-    $("previsionConges").textContent = yearGross > 0
-      ? "Environ " + money(estimatedConges) + " brut"
-      : "Estimation indicative";
+@media (max-width: 1100px) {
+  .fiscalite-grid,
+  .previsions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
 
-  if ($("previsionDroits")) {
-    $("previsionDroits").textContent = remaining + "h restantes";
+@media (max-width: 720px) {
+  .fiscalite-grid,
+  .previsions-grid {
+    grid-template-columns: 1fr;
   }
 
-  if ($("previsionTaux") && !$("areHours")?.value && !$("areDailyGross")?.value) {
-    $("previsionTaux").textContent = "Renseigne tes heures et ton brut journée";
+  #view-calendar .dayname {
+    height: 32px;
+    font-size: 10px;
   }
 
-  if ($("previsionCarence")) {
-    $("previsionCarence").textContent = "Non calculé pour le moment";
+  #view-calendar .day {
+    height: 68px;
+    padding: 5px;
   }
+}
 
-  renderChart(yearHours, plannedHours);
-  renderHistory();
-  renderAllMissions();
-  renderCalendar();
-  renderActualisation();
-  renderDocuments();
+
+/* Documents - affichage propre par production */
+.document-folder-grid-pro {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
 }
 
-function polarToCartesian(cx, cy, rx, ry, angle) {
-  const rad = (angle - 90) * Math.PI / 180;
-  return {
-    x: cx + rx * Math.cos(rad),
-    y: cy + ry * Math.sin(rad)
-  };
+.document-folder-card-pro {
+  text-align: left;
+  background: linear-gradient(145deg, #FFFFFF, #EEF4F1);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 16px;
+  color: var(--text);
+  box-shadow: 0 10px 24px rgba(31, 78, 95, .06);
+  display: grid;
+  gap: 10px;
+  min-height: 185px;
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
 }
 
-function renderChart(doneHours, plannedHours = 0) {
-  const total = OBJECTIVE_HOURS;
-  const maxPercent = MAX_DISPLAY_PERCENT;
-  const maxHours = total * (maxPercent / 100);
+.document-folder-card-pro:hover {
+  transform: translateY(-2px);
+  border-color: rgba(31, 78, 95, .22);
+  box-shadow: 0 16px 34px rgba(31, 78, 95, .12);
+}
 
-  const doneRaw = Math.max(0, Number(doneHours) || 0);
-  const plannedRaw = Math.max(0, Number(plannedHours) || 0);
-  const totalRaw = doneRaw + plannedRaw;
+.document-folder-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--petrol), var(--sage));
+  color: #FFFFFF;
+  font-size: 22px;
+  box-shadow: 0 10px 20px rgba(31, 78, 95, .16);
+}
 
-  const donePercent = Math.round((doneRaw / total) * 100);
-  const plannedPercent = Math.round((plannedRaw / total) * 100);
-  const totalPercent = donePercent + plannedPercent;
+.document-folder-main strong {
+  display: block;
+  color: var(--petrol);
+  font-size: 17px;
+  margin-bottom: 4px;
+}
 
-  const doneVisibleHours = Math.min(doneRaw, maxHours);
-  const plannedVisibleHours = Math.min(plannedRaw, Math.max(0, maxHours - doneVisibleHours));
-  const remainVisibleHours = Math.max(0, maxHours - doneVisibleHours - plannedVisibleHours);
+.document-folder-main span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+}
 
-  const cx = 250;
-  const cy = 118;
-  const rx = 150;
-  const ry = 92;
-  const depth = 28;
+.document-folder-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 
-  const doneAngle = (doneVisibleHours / maxHours) * 360;
-  const plannedAngle = (plannedVisibleHours / maxHours) * 360;
+.document-folder-tags em {
+  font-style: normal;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: rgba(31, 78, 95, .08);
+  color: var(--petrol);
+  font-size: 11px;
+  font-weight: 800;
+}
 
-  function polarLabel(angle, ratio = 0.58) {
-    const rad = (angle - 90) * Math.PI / 180;
-    return {
-      x: cx + rx * ratio * Math.cos(rad),
-      y: cy + ry * ratio * Math.sin(rad)
-    };
-  }
+.document-folder-card-pro small {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: auto;
+}
 
-  function wedge(startAngle, endAngle, fill) {
-    if (endAngle <= startAngle) return "";
+.document-detail-head-pro {
+  align-items: flex-start;
+}
+
+.document-filter-bar-pro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0;
+}
 
-    if (endAngle - startAngle >= 359.9) {
-      return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" stroke="#ffffff" stroke-width="3"/>`;
-    }
+.doc-filter {
+  border: 1px solid var(--line);
+  background: #FFFFFF;
+  color: var(--petrol);
+  padding: 9px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+}
 
-    const start = polarToCartesian(cx, cy, rx, ry, endAngle);
-    const end = polarToCartesian(cx, cy, rx, ry, startAngle);
-    const large = endAngle - startAngle <= 180 ? 0 : 1;
+.doc-filter.active {
+  background: var(--petrol);
+  color: #FFFFFF;
+  border-color: var(--petrol);
+}
 
-    return `<path d="M ${cx} ${cy} L ${start.x} ${start.y} A ${rx} ${ry} 0 ${large} 0 ${end.x} ${end.y} Z" fill="${fill}" stroke="#ffffff" stroke-width="3"/>`;
-  }
+.documents-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
 
-  const doneLabel = polarLabel(doneAngle / 2);
-  const plannedLabel = polarLabel(doneAngle + plannedAngle / 2);
+.document-card-pro {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  background: linear-gradient(145deg, #FFFFFF, #F8FAF9);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 15px;
+  box-shadow: 0 10px 24px rgba(31, 78, 95, .06);
+}
 
-  if (!$("chart")) return;
+.document-file-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: rgba(31, 78, 95, .10);
+  color: var(--petrol);
+  font-weight: 1000;
+  font-size: 12px;
+}
 
-  $("chart").innerHTML = `
-    <svg viewBox="0 0 520 305" role="img" aria-label="Camembert progression heures effectuées et prévues">
-      <defs>
-        <linearGradient id="doneTop" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#7A9E7E"/>
-          <stop offset="100%" stop-color="#1F4E5F"/>
-        </linearGradient>
-        <linearGradient id="plannedTop" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#FDBA74"/>
-          <stop offset="100%" stop-color="#F97316"/>
-        </linearGradient>
-        <linearGradient id="remainTop" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#EEF4F1"/>
-          <stop offset="100%" stop-color="#D8E4DF"/>
-        </linearGradient>
-        <linearGradient id="side" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#C7D8D1"/>
-          <stop offset="100%" stop-color="#AABDB5"/>
-        </linearGradient>
-      </defs>
+.document-card-content {
+  min-width: 0;
+}
 
-      <ellipse cx="250" cy="165" rx="168" ry="92" fill="rgba(31,78,95,.12)"/>
-      <ellipse cx="${cx}" cy="${cy + depth}" rx="${rx}" ry="${ry}" fill="url(#side)"/>
-      <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="url(#remainTop)" stroke="#ffffff" stroke-width="3"/>
+.document-card-pro .document-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
 
-      ${doneVisibleHours > 0 ? wedge(0, doneAngle, "url(#doneTop)") : ""}
-      ${plannedVisibleHours > 0 ? wedge(doneAngle, doneAngle + plannedAngle, "url(#plannedTop)") : ""}
+.document-card-pro .document-card-head strong {
+  display: block;
+  color: var(--petrol);
+  font-size: 15px;
+}
 
-      ${donePercent > 0 ? `<text x="${doneLabel.x}" y="${doneLabel.y + 7}" text-anchor="middle" class="piePercent">${donePercent}%</text>` : ""}
-      ${plannedPercent > 0 ? `<text x="${plannedLabel.x}" y="${plannedLabel.y + 7}" text-anchor="middle" class="piePercent">${plannedPercent}%</text>` : ""}
+.document-card-pro .document-card-head span:not(.pill) {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 3px;
+}
 
-      <text x="${cx}" y="252" text-anchor="middle" class="pieTotal">Total potentiel : ${totalPercent}%</text>
+.document-file-name {
+  margin: 10px 0 12px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+  word-break: break-word;
+}
 
-      <rect x="62" y="278" width="13" height="13" rx="4" fill="#1F4E5F"/>
-      <text x="82" y="289" class="legendText">Effectué</text>
+.document-card-pro .document-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 
-      <rect x="220" y="278" width="13" height="13" rx="4" fill="#F97316"/>
-      <text x="240" y="289" class="legendText">Prévu</text>
+.document-card-pro .document-actions button {
+  padding: 9px 10px;
+  font-size: 13px;
+}
 
-      <rect x="360" y="278" width="13" height="13" rx="4" fill="#D8E4DF"/>
-      <text x="380" y="289" class="legendMuted">Restant</text>
-    </svg>
-  `;
+@media (max-width: 980px) {
+  .document-folder-grid-pro,
+  .documents-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
+
+@media (max-width: 720px) {
+  .document-folder-grid-pro,
+  .documents-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .document-card-pro {
+    grid-template-columns: 1fr;
+  }
 
-function renderHistory() {
-  if ($("historyMonthPicker")) {
-    const year = current.getFullYear();
-    const month = String(current.getMonth() + 1).padStart(2, "0");
-    $("historyMonthPicker").value = `${year}-${month}`;
+  .document-file-icon {
+    width: 44px;
+    height: 44px;
   }
+}
+
+/* Missions - emoji production corrigé */
+.production-card .production-card-icon {
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px !important;
+  min-height: 46px !important;
+  border-radius: 16px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  background: linear-gradient(135deg, var(--petrol), var(--sage)) !important;
+  color: #FFFFFF !important;
+
+  font-size: 24px !important;
+  line-height: 1 !important;
+  font-weight: 400 !important;
+
+  box-shadow: 0 10px 20px rgba(31, 78, 95, .16) !important;
+  margin: 0 0 10px 0 !important;
+  padding: 0 !important;
+}
+
+.production-card {
+  display: grid !important;
+  align-content: start !important;
+}
+.tab {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+}
+
+.tab::before {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.tab[data-view="dashboard"]::before {
+  content: "📊";
+}
+
+.tab[data-view="missions"]::before {
+  content: "🎬";
+}
+
+.tab[data-view="calendar"]::before {
+  content: "📅";
+}
 
-  const sorted = [...monthMissions(current)].sort(
-    (a, b) => new Date(b.date) - new Date(a.date)
-  );
+.tab[data-view="actualisation"]::before {
+  content: "✅";
+}
+
+.tab[data-view="documents"]::before {
+  content: "📁";
+}
 
-  const missionsEl = $("missions");
-  if (!missionsEl) return;
+.tab[data-view="fiscalite"]::before {
+  content: "💰";
+}
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / HISTORY_PER_PAGE));
+.tab[data-view="previsions"]::before {
+  content: "📈";
+}
 
-  if (historyPage > totalPages) historyPage = totalPages;
-  if (historyPage < 1) historyPage = 1;
+/* Dashboard : camembert + historique côte à côte sur grand écran */
+@media (min-width: 980px) {
+  #view-dashboard.view.active {
+    grid-template-columns: minmax(0, 1.25fr) minmax(360px, .75fr) !important;
+    align-items: start !important;
+  }
 
-  const start = (historyPage - 1) * HISTORY_PER_PAGE;
-  const visible = sorted.slice(start, start + HISTORY_PER_PAGE);
+  #view-dashboard .hero {
+    min-width: 0 !important;
+  }
 
-  if (!sorted.length) {
-    missionsEl.innerHTML = `<div class="empty">Aucune mission sur ce mois.</div>`;
-    return;
+  #view-dashboard .hero + .card {
+    min-width: 0 !important;
+    height: 100% !important;
   }
 
-  missionsEl.innerHTML = `
-    <div class="mission-card-grid">
-      ${visible.map((mission) => `
-        <div class="mission-history-card">
-          <div class="mission-history-head">
-            <strong>${mission.production}</strong>
-            <span class="pill">${mission.type}</span>
-          </div>
+  #view-dashboard .chartWrap {
+    min-height: 330px !important;
+  }
 
-          <div class="mission-history-info">
-            <span>📅 ${formatPeriod(mission.date, mission.endDate)}</span>
-            <span>🕒 ${mission.hours}h</span>
-            <span>€ ${money(mission.gross)}</span>
-          </div>
+  #view-dashboard .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
 
-          <div class="mission-history-actions">
-            <button class="edit-icon-btn" data-edit="${mission.id}" type="button" title="Modifier">✏️</button>
-            <button class="delete-icon-btn" data-delete="${mission.id}" type="button" title="Supprimer">✕</button>
-          </div>
-        </div>
-      `).join("")}
-    </div>
+  #view-dashboard .row {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+    padding: 12px 0 !important;
+  }
 
-    ${totalPages > 1 ? `
-      <div class="history-pagination">
-        <button class="ghost" type="button" id="historyPagePrev" ${historyPage === 1 ? "disabled" : ""}>‹</button>
-        <span>Page ${historyPage} / ${totalPages}</span>
-        <button class="ghost" type="button" id="historyPageNext" ${historyPage === totalPages ? "disabled" : ""}>›</button>
-      </div>
-    ` : ""}
-  `;
+  #view-dashboard .row.header {
+    display: none !important;
+  }
 
-  if ($("historyPagePrev")) {
-    $("historyPagePrev").addEventListener("click", () => {
-      historyPage--;
-      renderHistory();
-    });
+  #view-dashboard .row > div {
+    min-width: 0 !important;
   }
 
-  if ($("historyPageNext")) {
-    $("historyPageNext").addEventListener("click", () => {
-      historyPage++;
-      renderHistory();
-    });
+  #view-dashboard .row > div:last-child {
+    display: flex !important;
+    gap: 8px !important;
+    flex-wrap: wrap !important;
   }
+}
+
+/* Missions : icône 🎬 sur les cartes production, façon Documents */
+.production-card {
+  position: relative !important;
+  display: grid !important;
+  gap: 6px !important;
+  align-content: start !important;
+}
+
+.production-card .production-card-icon {
+  width: 46px !important;
+  height: 46px !important;
+  border-radius: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: linear-gradient(135deg, var(--petrol), var(--sage)) !important;
+  color: #FFFFFF !important;
+  font-size: 24px !important;
+  box-shadow: 0 10px 20px rgba(31, 78, 95, .16) !important;
+  margin: 0 0 10px 0 !important;
 }
 
-function renderAllMissions() {
-  const allMissionsEl = $("allMissions");
-  const sorted = [...missions].sort((a, b) => new Date(b.date) - new Date(a.date));
+@media (max-width: 979px) {
+  #view-dashboard.view.active {
+    grid-template-columns: 1fr !important;
+  }
+}
 
-  if (!allMissionsEl) return;
+@media (max-width: 720px) {
+  .tab::before {
+    font-size: 15px;
+  }
 
-  if (!sorted.length) {
-    allMissionsEl.innerHTML = `<div class="empty">Aucune mission enregistrée.</div>`;
-    return;
+  .tab {
+    gap: 6px !important;
   }
+}.beta-banner {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 99999 !important;
 
-  const groups = {};
+  background: #fff3cd !important;
+  color: #856404 !important;
+  border-bottom: 1px solid #ffe69c !important;
 
-  sorted.forEach((mission) => {
-const key = normalizeProductionName(mission.production || "Sans production");    if (!groups[key]) groups[key] = [];
-    groups[key].push(mission);
-  });
+  padding: 9px 14px !important;
+  text-align: center !important;
 
-  allMissionsEl.innerHTML = `
-    <div class="production-grid">
-      ${Object.keys(groups).sort((a, b) => a.localeCompare(b, "fr")).map((production) => {
-        const list = groups[production];
-        const totalHours = Math.round(list.reduce((a, x) => a + Number(x.hours || 0), 0) * 10) / 10;
-        const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
-        const totalDays = sumMissionDays(list);
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  line-height: 1.4 !important;
+}.history-month-picker {
+  height: 43px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--petrol);
+  font-weight: 800;
+  font-size: 14px;
+  padding: 0 12px;
+  min-width: 150px;
+}
 
-        return `
-          <button class="production-card" type="button" data-production-open="${production.replace(/"/g, "&quot;")}">
-            <div class="production-card-icon" aria-hidden="true">🎬</div>
-            <strong>${production}</strong>
-            <span>${list.length} mission${list.length > 1 ? "s" : ""}</span>
-            <span>${totalDays} jour${totalDays > 1 ? "s" : ""}</span>
-            <span>${totalHours}h · ${money(totalGross)}</span>
-          </button>
-        `;
-      }).join("")}
-    </div>
-  `;
+.historyhead > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-function openProductionMissions(productionName) {
-  const allMissionsEl = $("allMissions");
-  if (!allMissionsEl) return;
+@media (max-width: 720px) {
+  .historyhead {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 
-  const list = missions
-    .filter((mission) => mission.production === productionName)
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
+  .historyhead > div {
+    width: 100%;
+  }
 
-  allMissionsEl.innerHTML = `
-    <div class="production-detail-head">
-      <button class="ghost" type="button" data-production-back>‹ Retour</button>
-      <div>
-        <h2>${productionName}</h2>
-        <p class="sub">${list.length} mission${list.length > 1 ? "s" : ""} enregistrée${list.length > 1 ? "s" : ""}</p>
-      </div>
-    </div>
+  .history-month-picker {
+    flex: 1;
+    min-width: 0;
+  }
+}/* Sélecteur mois/année propre */
+.historyhead > div,
+.calhead > div {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  flex-wrap: nowrap !important;
+}
 
-    <div class="row header">
-      <div>Période</div>
-      <div>Production</div>
-      <div>Mission</div>
-      <div>Heures</div>
-      <div>Brut</div>
-      <div></div>
-    </div>
+.historyhead .ghost,
+.calhead .ghost {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  padding: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 16px !important;
+}
 
-    <div id="productionMissionRows"></div>
-  `;
+.history-month-picker {
+  width: 170px !important;
+  height: 44px !important;
+  min-width: 170px !important;
+  padding: 0 12px !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  color: var(--petrol) !important;
+  font-weight: 800 !important;
+  font-size: 14px !important;
+}
 
-  const rows = $("productionMissionRows");
+/* Actualisation : évite le gros étirement horizontal */
+#view-actualisation .historyhead {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+  margin-bottom: 16px !important;
+}
 
-  list.forEach((mission) => {
-    const row = document.createElement("div");
-    row.className = "row";
-    row.innerHTML = `
-      <div>${formatPeriod(mission.date, mission.endDate)}</div>
-      <div><b>${mission.production}</b></div>
-      <div><span class="pill">${mission.type}</span></div>
-      <div>${mission.hours}h</div>
-      <div>${money(mission.gross)}</div>
-      <div>
-        <button class="ghost" data-edit="${mission.id}" type="button">Modifier</button>
-        <button class="delete" data-delete="${mission.id}" type="button">X</button>
-      </div>
-    `;
-    rows.appendChild(row);
-  });
+#view-actualisation .historyhead > div {
+  flex: 0 0 auto !important;
 }
+
+/* Mobile */
+@media (max-width: 720px) {
+  .historyhead,
+  .calhead {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+  }
+
+  .historyhead > div,
+  .calhead > div {
+    width: 100% !important;
+    justify-content: flex-start !important;
+  }
 
-function moveMonth(amount) {
-  current.setMonth(current.getMonth() + amount);
-  current.setDate(1);
-  render();
+  .history-month-picker {
+    flex: 1 !important;
+    min-width: 0 !important;
+    width: auto !important;
+  }
+}/* Correction sélecteur mois Dashboard */
+#view-dashboard .historyhead {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
 }
 
-function renderCalendar() {
-  const calendar = $("calendar");
-  calendar.innerHTML = "";
+#view-dashboard .historyhead > div {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  flex-wrap: nowrap !important;
+  flex-direction: row !important;
+}
 
-  const names = ["L", "M", "M", "J", "V", "S", "D"];
-  names.forEach((name) => {
-    const el = document.createElement("div");
-    el.className = "dayname";
-    el.textContent = name;
-    calendar.appendChild(el);
-  });
+#view-dashboard .historyhead .ghost {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+}
 
-  const year = current.getFullYear();
-  const month = current.getMonth();
+/* Correction complète Actualisation */
+#view-actualisation .card {
+  display: block !important;
+}
 
-  $("monthTitle").textContent = current.toLocaleDateString("fr-FR", {
-    month: "long",
-    year: "numeric"
-  });
-if ($("calendarMonthPicker")) {
-  const year = current.getFullYear();
-  const month = String(current.getMonth() + 1).padStart(2, "0");
-  $("calendarMonthPicker").value = `${year}-${month}`;
+#view-actualisation .historyhead {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+  margin-bottom: 14px !important;
 }
-  const first = new Date(year, month, 1);
-  const start = (first.getDay() + 6) % 7;
-  const days = new Date(year, month + 1, 0).getDate();
-  const totalSlots = Math.ceil((start + days) / 7) * 7;
 
-  for (let i = 0; i < start; i++) {
-    const empty = document.createElement("div");
-    empty.className = "day empty-day";
-    calendar.appendChild(empty);
-  }
+#view-actualisation .historyhead > div {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  flex-wrap: nowrap !important;
+  flex-direction: row !important;
+}
 
-  for (let d = 1; d <= days; d++) {
-    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-    const box = document.createElement("div");
-    box.className = "day";
+#view-actualisation .historyhead .ghost {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  padding: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+}
 
-    const now = new Date();
-    const today =
-      now.getFullYear() +
-      "-" +
-      String(now.getMonth() + 1).padStart(2, "0") +
-      "-" +
-      String(now.getDate()).padStart(2, "0");
+#view-actualisation .history-month-picker {
+  width: 170px !important;
+  min-width: 170px !important;
+  height: 44px !important;
+}
 
-    if (dateStr === today) {
-      box.classList.add("today");
-    }
+/* Actualisation : contenu propre */
+#view-actualisation .actualisation-summary {
+  margin-top: 18px !important;
+}
 
-    box.innerHTML = `<b>${d}</b>`;
-    box.dataset.calendarDate = dateStr;
+#view-actualisation .actualisation-list {
+  margin-top: 16px !important;
+}
 
-    const missionsOfDay = missions.filter((mission) =>
-      isDateInPeriod(dateStr, mission)
-    );
+/* Boutons actualisation en bas */
+#view-actualisation .actualisation-actions {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 12px !important;
+  margin-top: 22px !important;
+  width: 100% !important;
+}
 
-    if (missionsOfDay.length) {
-      box.dataset.hasMission = "1";
-    }
+#view-actualisation .actualisation-actions button {
+  width: 100% !important;
+  margin: 0 !important;
+}
 
-    missionsOfDay.forEach((mission) => {
-        const isFuture = new Date(dateStr + "T00:00:00") > todayDateOnly();
-        const initials = getProductionInitials(mission.production);
-        const days = missionDayCount(mission);
-        const dailyHours = Math.round((Number(mission.hours || 0) / days) * 10) / 10;
-        const dailyGross = Math.round(Number(mission.gross || 0) / days);
-        const hours = `${String(dailyHours).replace(".5", ",5")}H`;
-        const gross = `${dailyGross}€`;
+/* Mobile */
+@media (max-width: 720px) {
+  #view-dashboard .historyhead,
+  #view-actualisation .historyhead {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
 
-        box.innerHTML += `
-          <div class="dot ${isFuture ? "planned" : ""}" title="${mission.production} - ${mission.hours}h - ${money(mission.gross)}">
-            ${initials} ${hours} ${gross}
-          </div>
-        `;
-      });
+  #view-dashboard .historyhead > div,
+  #view-actualisation .historyhead > div {
+    width: 100% !important;
+    justify-content: flex-start !important;
+  }
 
-    calendar.appendChild(box);
+  #view-dashboard .history-month-picker,
+  #view-actualisation .history-month-picker {
+    flex: 1 !important;
+    min-width: 0 !important;
+    width: auto !important;
   }
 
-  const usedSlots = start + days;
-  for (let i = usedSlots; i < totalSlots; i++) {
-    const empty = document.createElement("div");
-    empty.className = "day empty-day";
-    calendar.appendChild(empty);
+  #view-actualisation .actualisation-actions {
+    grid-template-columns: 1fr !important;
   }
+}/* ===============================
+   CORRECTION ONGLET ACTUALISATION
+================================ */
+
+#view-actualisation .card {
+  display: block !important;
+  max-width: 1120px !important;
+  margin: 0 auto !important;
+  padding: 28px !important;
+  overflow: hidden !important;
 }
 
-function buildActualisationText() {
-  const list = monthMissions(current)
-    .filter((mission) => new Date(mission.date + "T00:00:00") <= todayDateOnly())
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+#view-actualisation .historyhead {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 20px !important;
+  margin-bottom: 18px !important;
+}
+
+#view-actualisation .historyhead h2 {
+  margin: 0 !important;
+  color: var(--petrol) !important;
+  font-size: 24px !important;
+}
+
+#view-actualisation .historyhead > div {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+/* mois à droite proprement */
+#actualisationMonthTitle {
+  text-align: right !important;
+  font-weight: 800 !important;
+  color: var(--petrol) !important;
+  margin: -8px 0 18px auto !important;
+  font-size: 15px !important;
+}
+
+/* texte descriptif sous le titre */
+#view-actualisation > .card > .sub:first-of-type {
+  max-width: 560px !important;
+  color: var(--muted) !important;
+  line-height: 1.5 !important;
+  margin-bottom: 8px !important;
+}
 
-  const title = current.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
-  const totalHours = Math.round(sumDone(list) * 10) / 10;
-  const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
-  const totalDays = sumMissionDays(list);
+/* bloc résumé */
+.actualisation-summary {
+  margin: 16px 0 18px !important;
+  padding: 14px 16px !important;
+  border-radius: 18px !important;
+  background: linear-gradient(145deg, #ffffff, #eef5f2) !important;
+  border: 1px solid rgba(31, 78, 95, 0.10) !important;
+  color: var(--petrol) !important;
+  font-weight: 800 !important;
+}
 
-  const lines = [`Actualisation ${title}`, "", `Total journées : ${totalDays}`, `Total heures : ${totalHours}h`, `Total brut : ${money(totalGross)}`, ""];
+/* tableau missions */
+.actualisation-list {
+  width: 100% !important;
+  margin: 18px auto 22px !important;
+  border-radius: 18px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(31, 78, 95, 0.12) !important;
+  background: #ffffff !important;
+  box-shadow: 0 12px 32px rgba(31, 78, 95, 0.06) !important;
+}
 
-  list.forEach((mission, index) => {
-    lines.push(`${index + 1}. ${mission.production}`);
-    lines.push(`Période : ${formatPeriod(mission.date, mission.endDate)}`);
-    lines.push(`Mission : ${mission.type}`);
-    lines.push(`Heures : ${mission.hours}h`);
-    lines.push(`Brut : ${money(mission.gross)}`);
-    lines.push("");
-  });
+/* si ton tableau utilise .row */
+#view-actualisation .row {
+  display: grid !important;
+  grid-template-columns: 1.4fr 1fr 1fr .7fr .7fr !important;
+  align-items: center !important;
+  padding: 14px 16px !important;
+  border-bottom: 1px solid rgba(31, 78, 95, 0.10) !important;
+}
 
-  return lines.join("\n");
+#view-actualisation .row.header {
+  background: #f8faf9 !important;
+  color: #667085 !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
 }
 
-function renderActualisation() {
-  if (!$("actualisationMonthPicker")) return;
+#view-actualisation .row:last-child {
+  border-bottom: none !important;
+}
 
-  const list = monthMissions(current)
-    .filter((mission) => new Date(mission.date + "T00:00:00") <= todayDateOnly())
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+#view-actualisation .row div {
+  min-width: 0 !important;
+}
 
-  const totalHours = Math.round(sumDone(list) * 10) / 10;
-  const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
-  const totalDays = sumMissionDays(list);
+/* boutons bas */
+.actualisation-actions {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 14px !important;
+  margin-top: 22px !important;
+}
 
- if ($("actualisationMonthPicker")) {
-  const year = current.getFullYear();
-  const month = String(current.getMonth() + 1).padStart(2, "0");
-  $("actualisationMonthPicker").value = `${year}-${month}`;
+#copyActualisationBtn,
+#pdfActualisationBtn {
+  height: 48px !important;
+  border-radius: 14px !important;
+  font-weight: 900 !important;
+  font-size: 15px !important;
 }
 
-  if ($('actualisationDays')) $('actualisationDays').textContent = totalDays;
-  if ($('actualisationHours')) $('actualisationHours').textContent = totalHours + 'h';
-  if ($('actualisationGross')) $('actualisationGross').textContent = money(totalGross);
-  if ($('actualisationCount')) $('actualisationCount').textContent = list.length;
+#copyActualisationBtn {
+  background: linear-gradient(135deg, var(--petrol-dark), var(--petrol)) !important;
+  color: #ffffff !important;
+}
 
-  const container = $('actualisationList');
-  if (!container) return;
+#pdfActualisationBtn {
+  background: #eef5f2 !important;
+  color: var(--petrol) !important;
+  border: 1px solid rgba(31, 78, 95, 0.12) !important;
+}
 
-  if (!list.length) {
-    container.innerHTML = `<div class="empty">Aucune mission effectuée sur ce mois.</div>`;
-    return;
+/* responsive */
+@media (max-width: 800px) {
+  #view-actualisation .historyhead {
+    flex-direction: column !important;
+    align-items: flex-start !important;
   }
 
-  const escapeHtml = (value) => String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+  #actualisationMonthTitle {
+    text-align: left !important;
+    margin: 0 0 14px 0 !important;
+  }
 
-  const rows = list.map((mission) => `
-    <tr>
-      <td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;white-space:nowrap;">${escapeHtml(formatPeriod(mission.date, mission.endDate))}</td>
-      <td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;"><strong style="color:#1F4E5F;">${escapeHtml(mission.production)}</strong></td>
-      <td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;">${escapeHtml(mission.type)}</td>
-      <td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;text-align:right;white-space:nowrap;">${escapeHtml(mission.hours)}h</td>
-      <td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;text-align:right;white-space:nowrap;">${escapeHtml(money(mission.gross))}</td>
-    </tr>
-  `).join('');
+  #view-actualisation .row {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+  }
 
-  container.innerHTML = `
-    <div style="margin-top:14px;border:1px solid #E2E8F0;border-radius:18px;overflow:hidden;background:#FFFFFF;box-shadow:0 8px 20px rgba(31,78,95,.04);">
-      <div style="padding:14px 16px;background:#F8FAF9;border-bottom:1px solid #E2E8F0;">
-        <strong style="display:block;color:#1F4E5F;font-size:16px;">Détail des missions du mois</strong>
-        <span style="display:block;color:#718096;font-size:12px;margin-top:3px;">Récapitulatif prêt pour l'actualisation</span>
-      </div>
+  .actualisation-actions {
+    grid-template-columns: 1fr !important;
+  }
+}/* ACTUALISATION PROPRE */
 
-      <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;min-width:620px;">
-          <thead>
-            <tr>
-              <th style="padding:11px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Période</th>
-              <th style="padding:11px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Production</th>
-              <th style="padding:11px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Mission</th>
-              <th style="padding:11px 10px;text-align:right;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Heures</th>
-              <th style="padding:11px 10px;text-align:right;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Brut</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
+.actualisation-card-clean {
+  max-width: 1120px !important;
+  margin: 0 auto !important;
+  padding: 28px !important;
 }
 
-async function copyActualisation() {
-  const text = buildActualisationText();
-  await navigator.clipboard.writeText(text);
-  alert("Récapitulatif copié.");
+.actualisation-top {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important;
+  gap: 24px !important;
+  margin-bottom: 22px !important;
 }
-
-function generateActualisationPDF() {
-  const list = monthMissions(current)
-    .filter((mission) => new Date(mission.date + "T00:00:00") <= todayDateOnly())
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  const title = current.toLocaleDateString("fr-FR", {
-    month: "long",
-    year: "numeric"
-  });
+.actualisation-top h2 {
+  margin: 0 0 8px !important;
+  color: var(--petrol) !important;
+}
 
-  const totalHours = Math.round(sumDone(list) * 10) / 10;
-  const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
-  const totalDays = sumMissionDays(list);
+.actualisation-month-control {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
 
-  const escapeHtml = (value) => String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+.actualisation-month-control strong {
+  min-width: 140px !important;
+  text-align: center !important;
+  color: var(--petrol) !important;
+  font-size: 16px !important;
+}
 
-  const rows = list.map((mission) => `
-    <tr>
-      <td>${escapeHtml(formatPeriod(mission.date, mission.endDate))}</td>
-      <td><strong>${escapeHtml(mission.production)}</strong></td>
-      <td>${escapeHtml(mission.type)}</td>
-      <td>${escapeHtml(mission.hours)}h</td>
-      <td>${escapeHtml(money(mission.gross))}</td>
-    </tr>
-  `).join("");
+.actualisation-month-control .ghost {
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+}
 
-  const win = window.open("", "_blank");
+.actualisation-table-wrap {
+  background: #ffffff !important;
+  border: 1px solid rgba(31, 78, 95, 0.12) !important;
+  border-radius: 20px !important;
+  padding: 20px !important;
+  box-shadow: 0 14px 34px rgba(31, 78, 95, 0.07) !important;
+}
 
-  if (!win) {
-    alert("Impossible d'ouvrir la fenêtre PDF. Autorise les pop-ups pour ce site.");
-    return;
-  }
+.actualisation-table-wrap h3 {
+  margin: 0 0 4px !important;
+  color: var(--petrol) !important;
+}
 
-  win.document.write(`
-    <!doctype html>
-    <html lang="fr">
-      <head>
-        <meta charset="utf-8" />
-        <title>Actualisation ${escapeHtml(title)}</title>
-        <style>
-          * {
-            box-sizing: border-box;
-          }
+#actualisationList {
+  margin-top: 18px !important;
+}
 
-          body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            color: #2D3748;
-            background: #ffffff;
-            padding: 34px;
-          }
+#view-actualisation .row {
+  display: grid !important;
+  grid-template-columns: 1.5fr 1fr 1fr .7fr .7fr !important;
+  align-items: center !important;
+  padding: 14px 10px !important;
+  border-bottom: 1px solid rgba(31, 78, 95, 0.10) !important;
+}
 
-          .header {
-            border-bottom: 3px solid #1F4E5F;
-            padding-bottom: 16px;
-            margin-bottom: 22px;
-          }
+#view-actualisation .row.header {
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  color: #667085 !important;
+  background: #f8faf9 !important;
+}
 
-          h1 {
-            margin: 0;
-            color: #1F4E5F;
-            font-size: 28px;
-            letter-spacing: -0.03em;
-          }
+.actualisation-actions-clean {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 14px !important;
+  margin-top: 22px !important;
+}
 
-          .subtitle {
-            color: #718096;
-            margin: 6px 0 0;
-            font-size: 14px;
-          }
+.actualisation-actions-clean button {
+  height: 48px !important;
+  border-radius: 14px !important;
+  font-weight: 900 !important;
+}/* Correction sélecteur mois historique dashboard */
+#view-dashboard .historyhead {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 16px !important;
+}
 
-          .summary {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            margin: 22px 0 24px;
-          }
+#view-dashboard .historyhead > div {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
 
-          .summary-box {
-            border: 1px solid #E2E8F0;
-            border-radius: 14px;
-            padding: 14px;
-            background: #F8FAF9;
-          }
+#view-dashboard .historyhead .ghost {
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  flex: 0 0 auto !important;
+}
 
-          .summary-box strong {
-            display: block;
-            color: #1F4E5F;
-            font-size: 24px;
-            line-height: 1.1;
-          }
+#view-dashboard .historyhead .month-picker,
+#view-dashboard .historyhead input[type="month"] {
+  height: 42px !important;
+  min-width: 160px !important;
+  margin: 0 !important;
+}/* Correction mois historique tableau de bord */
+#historyPrevBtn,
+#historyNextBtn,
+#historyMonthPicker {
+  vertical-align: middle !important;
+}
 
-          .summary-box span {
-            display: block;
-            margin-top: 4px;
-            color: #718096;
-            font-size: 12px;
-            text-transform: uppercase;
-            font-weight: 700;
-          }
+#historyPrevBtn,
+#historyNextBtn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 42px !important;
+  height: 42px !important;
+  margin: 0 6px !important;
+  border-radius: 50% !important;
+}
 
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-          }
+#historyMonthPicker {
+  display: inline-block !important;
+  height: 42px !important;
+  min-width: 160px !important;
+  margin: 0 6px !important;
+}
 
-          th {
-            text-align: left;
-            color: #718096;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-            padding: 10px 8px;
-            border-bottom: 2px solid #E2E8F0;
-          }
+/* force le parent à rester en ligne */
+#historyPrevBtn,
+#historyMonthPicker,
+#historyNextBtn {
+  position: relative !important;
+  top: 0 !important;
+}.history-month-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
-          td {
-            padding: 12px 8px;
-            border-bottom: 1px solid #E2E8F0;
-            font-size: 14px;
-            vertical-align: top;
-          }
+.history-month-picker {
+  height: 42px;
+  min-width: 160px;
+}
 
-          tr:nth-child(even) td {
-            background: #FBFCFC;
-          }
+.history-month-nav .ghost {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  padding: 0;
+}/* Historique missions - vignettes propres */
+.mission-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
 
-          .empty {
-            padding: 20px;
-            text-align: center;
-            color: #718096;
-            border: 1px solid #E2E8F0;
-            border-radius: 14px;
-            background: #F8FAF9;
-          }
+.mission-history-card {
+  min-height: 142px;
+  padding: 14px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid rgba(31, 78, 95, 0.12);
+  box-shadow: 0 10px 24px rgba(31, 78, 95, 0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
 
-          .footer {
-            margin-top: 26px;
-            padding-top: 12px;
-            border-top: 1px solid #E2E8F0;
-            font-size: 12px;
-            color: #718096;
-            line-height: 1.45;
-          }
+.mission-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
 
-          @media print {
-            body {
-              padding: 20px;
-            }
+.mission-history-head strong {
+  color: var(--petrol);
+  font-size: 15px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
 
-            .summary-box,
-            tr:nth-child(even) td {
-              print-color-adjust: exact;
-              -webkit-print-color-adjust: exact;
-            }
-          }
-        </style>
-      </head>
+.mission-history-info {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
 
-      <body>
-        <div class="header">
-          <h1>Récapitulatif actualisation</h1>
-          <p class="subtitle">${escapeHtml(title)} · Généré avec Intermitrack</p>
-        </div>
+.mission-history-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
 
-        <div class="summary">
-          <div class="summary-box">
-            <strong>${escapeHtml(totalDays)}</strong>
-            <span>Journées</span>
-          </div>
-          <div class="summary-box">
-            <strong>${escapeHtml(totalHours)}h</strong>
-            <span>Heures</span>
-          </div>
-          <div class="summary-box">
-            <strong>${escapeHtml(money(totalGross))}</strong>
-            <span>Brut total</span>
-          </div>
-        </div>
+.edit-icon-btn,
+.delete-icon-btn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  width: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer;
+  font-size: 15px !important;
+}
 
-        ${list.length ? `
-          <table>
-            <thead>
-              <tr>
-                <th>Période</th>
-                <th>Production</th>
-                <th>Mission</th>
-                <th>Heures</th>
-                <th>Brut</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows}
-            </tbody>
-          </table>
-        ` : `
-          <div class="empty">Aucune mission effectuée sur ce mois.</div>
-        `}
+.edit-icon-btn {
+  color: var(--petrol) !important;
+}
 
-        <p class="footer">
-          Ce document est un récapitulatif personnel destiné à faciliter l'actualisation mensuelle.
-          Les informations doivent être vérifiées par l'utilisateur avant déclaration officielle.
-        </p>
-      </body>
-    </html>
-  `);
+.delete-icon-btn {
+  color: #d93025 !important;
+}
 
-  win.document.close();
-  win.focus();
-  win.print();
+.edit-icon-btn:hover,
+.delete-icon-btn:hover {
+  transform: scale(1.15);
 }
+.history-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+}
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+.history-pagination span {
+  color: var(--petrol);
+  font-weight: 900;
 }
 
-function resetMissionFormForDate(dateStr) {
-  editingMissionId = null;
+.history-pagination button {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  padding: 0;
+}
 
-  if ($("missionForm")) $("missionForm").reset();
-  if ($("production")) $("production").value = "";
-  if ($("type")) $("type").value = "Montage";
-  if ($("date")) $("date").value = dateStr;
-  if ($("endDate")) $("endDate").value = dateStr;
-  if ($("hours")) $("hours").value = "";
-  if ($("gross")) $("gross").value = "";
+.history-pagination button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
 
-  const submitBtn = document.querySelector("#missionForm button[type='submit']");
-  if (submitBtn) {
-    submitBtn.textContent = "Enregistrer la mission";
+@media (max-width: 720px) {
+  .mission-card-grid {
+    grid-template-columns: 1fr;
   }
+}.are-admission-pill {
+  margin-top: 10px;
+  max-width: 360px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 16px;
+  background: #eef5f2;
+  border: 1px solid rgba(31, 78, 95, 0.12);
+}
+
+.are-admission-pill span {
+  color: var(--petrol);
+  font-weight: 900;
+  white-space: nowrap;
 }
 
-function renderCalendarDayPanel(dateStr) {
-  const form = $("missionForm");
-  if (!form) return;
+.are-admission-pill input {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(31, 78, 95, 0.14);
+  padding: 0 8px;
+  color: var(--petrol);
+  font-weight: 800;
+}
 
-  let panel = $("calendarDayPanel");
+.are-admission-pill button {
+  height: 34px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 10px;
+  background: var(--petrol);
+  color: white;
+  font-weight: 900;
+  cursor: pointer;
+}
 
-  if (!panel) {
-    panel = document.createElement("div");
-    panel.id = "calendarDayPanel";
-    panel.className = "calendar-day-panel";
-    form.insertAdjacentElement("afterend", panel);
-  }
+.are-admission-info {
+  display: block;
+  margin-top: 6px;
+  color: #667085;
+  font-size: 12px;
+}.heroTop {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 16px !important;
+}
+
+.are-admission-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
 
-  const dayMissions = missions
-    .filter((mission) => isDateInPeriod(dateStr, mission))
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+.are-admission-center label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--petrol);
+  margin: 0;
+}
+
+.remaining-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid rgba(31, 78, 95, 0.15);
+  border-radius: 20px;
+  padding: 18px 24px;
+  box-shadow: 0 10px 28px rgba(31, 78, 95, 0.08);
+  min-width: 140px;
+  text-align: center;
+}
+
+.remaining-badge b {
+  display: block;
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--petrol);
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.remaining-badge span {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .heroTop {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
 
-  const dateLabel = formatDate(dateStr);
+  .are-admission-center {
+    align-items: flex-start;
+    text-align: left;
+    width: 100%;
+  }
+}.remaining-badge b {
+  font-size: 54px !important;
+  font-weight: 900 !important;
+  color: var(--petrol) !important;
+  letter-spacing: -0.04em !important;
+  line-height: 1 !important;
+  display: block !important;
 
-  if (!dayMissions.length) {
-    panel.innerHTML = `
-      <div class="calendar-day-panel-head">
-        <div>
-          <strong>${escapeHtml(dateLabel)}</strong>
-          <span>Aucune mission prévue ce jour-là.</span>
-        </div>
-      </div>
-      <p class="hint">Le formulaire est prêt pour ajouter une mission à cette date.</p>
-    `;
-    return;
-  }
-
-  panel.innerHTML = `
-    <div class="calendar-day-panel-head">
-      <div>
-        <strong>Missions du ${escapeHtml(dateLabel)}</strong>
-        <span>${dayMissions.length} mission${dayMissions.length > 1 ? "s" : ""} prévue${dayMissions.length > 1 ? "s" : ""} ce jour-là.</span>
-      </div>
-      <button class="ghost" type="button" data-calendar-add-date="${escapeHtml(dateStr)}">Ajouter une autre mission</button>
-    </div>
-
-    <div class="calendar-day-missions">
-      ${dayMissions.map((mission) => {
-        const totalDays = missionDayCount(mission);
-        const dailyHours = Math.round((Number(mission.hours || 0) / totalDays) * 10) / 10;
-        const dailyGross = Math.round(Number(mission.gross || 0) / totalDays);
-
-        return `
-          <div class="calendar-day-mission">
-            <div>
-              <strong>${escapeHtml(mission.production)}</strong>
-              <span>${escapeHtml(mission.type)} · ${dailyHours}h · ${money(dailyGross)}</span>
-            </div>
-            <div class="calendar-day-actions">
-              <button class="ghost" type="button" data-edit="${escapeHtml(mission.id)}">Modifier</button>
-              <button class="delete" type="button" data-delete="${escapeHtml(mission.id)}">X</button>
-            </div>
-          </div>
-        `;
-      }).join("")}
-    </div>
-
-    <p class="hint">Pour ajouter une deuxième mission le même jour, remplis le formulaire au-dessus.</p>
-  `;
-}
-
-function openCalendarDay(dateStr) {
-  activateView("missions");
-  resetMissionFormForDate(dateStr);
-  renderCalendarDayPanel(dateStr);
-
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
-}
-
-
-function setupEvents() {
-  $("loginModeBtn").addEventListener("click", () => setAuthMode("login"));
-  $("signupModeBtn").addEventListener("click", () => setAuthMode("signup"));
-  $("logoutBtn").addEventListener("click", logout);
-  if ($("togglePassword")) {
-  $("togglePassword").addEventListener("click", () => {
-    const input = $("authPassword");
-    if (!input) return;
-
-    input.type = input.type === "password" ? "text" : "password";
-    $("togglePassword").textContent = input.type === "password" ? "👁" : "🙈";
-  });
-}
-
-  $("authForm").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    $("authMsg").textContent = "Chargement...";
-
-    const email = $("authEmail").value.trim();
-    const password = $("authPassword").value;
-    let result;
-    if (authMode === "signup" && password.length < 6) {
-  $("authMsg").textContent =
-    "Le mot de passe doit contenir au moins 6 caractères.";
-  return;
-}
-
-    if (authMode === "signup") result = await sb.auth.signUp({ email, password });
-    else result = await sb.auth.signInWithPassword({ email, password });
-
-    if (result.error) {
-      $("authMsg").textContent = "Erreur : " + result.error.message;
-      return;
-    }
-
-    if (authMode === "signup") {
-      $("authMsg").textContent = "Compte créé. Vérifiez votre boîte mail si une confirmation est demandée.";
-    }
-
-    await init();
-  });
-
-  $("missionForm").addEventListener("submit", addMission);
-  if ($("kmDistance")) $("kmDistance").addEventListener("input", updateKmPreview);
-  if ($("kmRate")) $("kmRate").addEventListener("input", updateKmPreview);
-  if ($("saveTaxSettingsBtn")) $("saveTaxSettingsBtn").addEventListener("click", () => {
-    setOtherIncome($("otherIncomeInput")?.value || 0);
-    setTaxParts($("taxPartsInput")?.value || 1);
-    render();
-    alert("Nombre de parts enregistré.");
-  });
-  if ($("documentForm")) $("documentForm").addEventListener("submit", uploadDocument);
-  if ($("refreshDocumentsBtn")) $("refreshDocumentsBtn").addEventListener("click", loadDocuments);
-if ($("calculateAreBtn")) $("calculateAreBtn").addEventListener("click", calculateEstimatedAreDailyRate);
-  $("date").addEventListener("change", () => {
-    if (!$("endDate").value || $("endDate").value < $("date").value) {
-      $("endDate").value = $("date").value;
-    }
-  });
-
-  document.querySelectorAll(".tab").forEach((tab) => {
-    tab.addEventListener("click", () => activateView(tab.dataset.view));
-  });
-
-  $("historyPrevBtn").addEventListener("click", () => moveMonth(-1));
-  $("historyNextBtn").addEventListener("click", () => moveMonth(1));
-  if ($("historyMonthPicker")) {
-  $("historyMonthPicker").addEventListener("change", () => {
-    const value = $("historyMonthPicker").value;
-    if (!value) return;
-
-    const [year, month] = value.split("-").map(Number);
-    current = new Date(year, month - 1, 1);
-    render();
-  });
-}
-  $("calendarPrevBtn").addEventListener("click", () => moveMonth(-1));
-  $("calendarNextBtn").addEventListener("click", () => moveMonth(1));
-if ($("calendarMonthPicker")) {
-  $("calendarMonthPicker").addEventListener("change", () => {
-    const value = $("calendarMonthPicker").value;
-    if (!value) return;
-
-    const [year, month] = value.split("-").map(Number);
-    current = new Date(year, month - 1, 1);
-    render();
-  });
-}
-  if ($("actualisationPrevBtn")) $("actualisationPrevBtn").addEventListener("click", () => moveMonth(-1));
-  if ($("actualisationNextBtn")) $("actualisationNextBtn").addEventListener("click", () => moveMonth(1));
-  if ($("actualisationMonthPicker")) {
-  $("actualisationMonthPicker").addEventListener("change", () => {
-    const value = $("actualisationMonthPicker").value;
-    if (!value) return;
-
-    const [year, month] = value.split("-");
-    current = new Date(Number(year), Number(month) - 1, 1);
-    render();
-  });
-}
-  if ($("copyActualisationBtn")) $("copyActualisationBtn").addEventListener("click", copyActualisation);
-  if ($("pdfActualisationBtn")) $("pdfActualisationBtn").addEventListener("click", generateActualisationPDF);
-
-  document.addEventListener("click", async (event) => {
-    const docProductionOpen = event.target.closest("[data-doc-production-open]");
-    if (docProductionOpen) {
-      openDocumentProduction = docProductionOpen.dataset.docProductionOpen;
-      documentFilter = "Tous";
-      renderDocuments();
-      return;
-    }
-
-    const docProductionBack = event.target.closest("[data-doc-production-back]");
-    if (docProductionBack) {
-      openDocumentProduction = null;
-      documentFilter = "Tous";
-      renderDocuments();
-      return;
-    }
-
-    const docFilterButton = event.target.closest("[data-doc-filter]");
-    if (docFilterButton) {
-      documentFilter = docFilterButton.dataset.docFilter;
-      renderDocuments();
-      return;
-    }
-
-    const calendarDay = event.target.closest("[data-calendar-date]");
-    if (calendarDay) {
-      openCalendarDay(calendarDay.dataset.calendarDate);
-      return;
-    }
-
-    const calendarAddButton = event.target.closest("[data-calendar-add-date]");
-    if (calendarAddButton) {
-      resetMissionFormForDate(calendarAddButton.dataset.calendarAddDate);
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-      });
-      return;
-    }
-    const productionOpenButton = event.target.closest("[data-production-open]");
-    if (productionOpenButton) {
-      openProductionMissions(productionOpenButton.dataset.productionOpen);
-      return;
-    }
-
-    const productionBackButton = event.target.closest("[data-production-back]");
-    if (productionBackButton) {
-      renderAllMissions();
-      return;
-    }
-
-    const openButton = event.target.closest("[data-doc-open]");
-    if (openButton) {
-      await openDocument(openButton.dataset.docOpen);
-      return;
-    }
-
-    const downloadButton = event.target.closest("[data-doc-download]");
-    if (downloadButton) {
-      await downloadDocument(downloadButton.dataset.docDownload, downloadButton.dataset.docName);
-      return;
-    }
-
-    const docDeleteButton = event.target.closest("[data-doc-delete]");
-    if (docDeleteButton) {
-      await deleteDocument(docDeleteButton.dataset.docDelete, docDeleteButton.dataset.docPath);
-      return;
-    }
-
-    const editButton = event.target.closest("[data-edit]");
-    if (editButton) {
-      editMission(editButton.dataset.edit);
-      return;
-    }
-
-    const deleteButton = event.target.closest("[data-delete]");
-    if (!deleteButton) return;
-    await deleteMission(deleteButton.dataset.delete);
-  });
-
-  window.addEventListener("beforeinstallprompt", (event) => {
-    event.preventDefault();
-    deferredInstallPrompt = event;
-  });
-
-  if ($("installBtn")) $("installBtn").addEventListener("click", async () => {
-    if (!deferredInstallPrompt) {
-      alert("Sur iPhone : ouvrez Safari, bouton Partager, puis Ajouter à l'écran d'accueil. Sur Android : menu du navigateur, puis Installer l'application.");
-      return;
-    }
-
-    deferredInstallPrompt.prompt();
-    await deferredInstallPrompt.userChoice;
-    deferredInstallPrompt = null;
-  });
-}
-
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("service-worker.js");
-  });
-}
-
-sb.auth.onAuthStateChange((_event, session) => {
-  currentUser = session?.user || null;
-  if (currentUser) {
-    showApp();
-    loadMissions();
-    loadDocuments();
-  } else {
-    showAuth();
-  }
-});
-
-setupEvents();
-init();
+}.remaining-badge b span {
+  font-size: 48px !important;
+  font-weight: 900 !important;
+}.remaining-badge b,
+.remaining-badge b span {
+  font-size: 48px !important;
+  font-weight: 900 !important;
+  color: var(--petrol) !important;
+}
+.remaining-badge b,
+.remaining-badge b span {
+  font-size: 28px !important;
+  font-weight: 900 !important;
+  color: var(--petrol) !important;
+}
