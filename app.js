@@ -75,7 +75,13 @@ const productionAliases = {
   "BBC FRANCE": "BBC",
 
   "CARSON PROD": "CARSON",
-  "CARSON PRODUCTION": "CARSON"
+  "CARSON PRODUCTION": "CARSON",
+  "D M L S TV": "DMLS",
+"D M L S": "DMLS",
+
+"VDLM": "LES VICTOIRES DE LA MUSIQUE",
+"VICTOIRES DE LA MUSIQUE": "LES VICTOIRES DE LA MUSIQUE",
+"LES VICTOIRES DE LA MUSIQUE": "LES VICTOIRES DE LA MUSIQUE"
 };
 
 const productionPrefixes = [
@@ -94,8 +100,12 @@ const productionPrefixes = [
   "NOVELTY",
   "SATEL",
   "BBC",
-  "CARSON"
-  
+  "CARSON",
+  "DMLS",
+"VDLM",
+"VICTOIRES DE LA MUSIQUE",
+"LES VICTOIRES DE LA MUSIQUE",
+
 
 
 
@@ -116,6 +126,15 @@ function normalizeProductionName(value) {
   if (productionAliases[name]) {
     return productionAliases[name];
   }
+  const compactName = name.replace(/\s+/g, "");
+
+if (compactName.startsWith("DMLS")) {
+  return "DMLS";
+}
+
+if (compactName.startsWith("VDLM")) {
+  return "LES VICTOIRES DE LA MUSIQUE";
+}
 
   for (const prefix of productionPrefixes) {
     if (name === prefix || name.startsWith(prefix + " ")) {
