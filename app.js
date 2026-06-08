@@ -1015,7 +1015,7 @@ function renderAllMissions() {
   container.innerHTML = `
     ${addBtnHtml}
     <div class="missions-stats-row">
-     <div class="mstat-box"><strong>${Math.round(totalHours / 8)}</strong><span>Jours (8h)</span></div>
+     <div class="mstat-box"><strong>${Math.round(totalHours / 8)}</strong><span>Vacations</span></div>
       <div class="mstat-box"><strong>${totalHours}h</strong><span>Heures totales</span></div>
       <div class="mstat-box highlight"><strong>${money(totalGross)}</strong><span>Brut total</span></div>
       <div class="mstat-box"><strong>${sorted.length}</strong><span>Productions</span></div>
