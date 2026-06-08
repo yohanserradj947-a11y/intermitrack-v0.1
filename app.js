@@ -908,8 +908,8 @@ function renderChart(doneHours, plannedHours = 0) {
   $("chart").innerHTML = `
     <svg viewBox="0 0 300 200" width="100%" role="img" aria-label="Arc progression heures">
       <defs>
-        <linearGradient id="g3done" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#7A9E7E"/><stop offset="100%" stop-color="#1F4E5F"/></linearGradient>
-        <linearGradient id="g3plan" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#FDBA74"/><stop offset="100%" stop-color="#F97316"/></linearGradient>
+        <linearGradient id="g3done" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1F4E5F"/><stop offset="100%" stop-color="#1F4E5F"/></linearGradient>
+        <linearGradient id="g3plan" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#F97316"/><stop offset="100%" stop-color="#F97316"/></linearGradient>
         <filter id="arcShadow"><feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.15"/></filter>
       </defs>
       <path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="#EEF4F1" stroke-width="30" stroke-linecap="round"/>
@@ -1177,10 +1177,10 @@ function renderCalMissions() {
   if (nextBtn) { nextBtn.disabled = calMissionPage >= total - 1; nextBtn.onclick = () => { calMissionPage++; renderCalMissions(); }; }
   const visible = list.slice(calMissionPage * CAL_MISSIONS_PER_PAGE, (calMissionPage + 1) * CAL_MISSIONS_PER_PAGE);
   if (!visible.length) { cards.innerHTML = `<div class="empty">Aucune mission ce mois.</div>`; return; }
-  cards.innerHTML = visible.map((m) => {
+cards.innerHTML = visible.map((m) => {
     const isFuture = new Date(m.date + "T00:00:00") >= todayDateOnly();
     return `
-      <div class="new-mission-card ${isFuture ? "planned" : "done"}">
+      <div class="new-mission-card ${isFuture ? "planned" : "done"}" data-calendar-date="${escapeHtml(m.date)}" style="cursor:pointer;">
         <div class="new-mission-body"><div class="new-mission-prod">${escapeHtml(m.production)}</div><div class="new-mission-dates">${escapeHtml(formatPeriod(m.date, m.endDate))}</div></div>
         <div class="new-mission-right"><span class="new-mission-hours">${m.hours}h</span><span class="new-mission-type ${isFuture ? "type-planned" : "type-done"}">${escapeHtml(m.type)}</span></div>
       </div>
@@ -1252,20 +1252,47 @@ function buildActualisationText() {
 
 function renderActualisation() {
   if (!$("actualisationMonthPicker")) return;
-  const list = monthMissions(current).filter((m) => new Date(m.date + "T00:00:00") <= todayDateOnly()).sort((a, b) => new Date(a.date) - new Date(b.date));
+  const list = monthMissions(current)
+    .filter((m) => new Date(m.date + "T00:00:00") <= todayDateOnly())
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
   const totalHours = Math.round(sumDone(list) * 10) / 10;
   const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
-  const totalDays = sumMissionDays(list);
-  if ($("actualisationMonthPicker")) $("actualisationMonthPicker").value = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}`;
-  if ($("actualisationDays")) $("actualisationDays").textContent = totalDays;
+
+  $("actualisationMonthPicker").value = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}`;
+  if ($("actualisationMonthTitle")) $("actualisationMonthTitle").textContent = current.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  if ($("actualisationCount")) $("actualisationCount").textContent = list.length;
   if ($("actualisationHours")) $("actualisationHours").textContent = totalHours + "h";
   if ($("actualisationGross")) $("actualisationGross").textContent = money(totalGross);
-  if ($("actualisationCount")) $("actualisationCount").textContent = list.length;
+
+  const stats = $("actualisationStats");
+  const tableWrap = $("actualisationTableWrap");
+  const actions = $("actualisationActions");
   const container = $("actualisationList");
   if (!container) return;
-  if (!list.length) { container.innerHTML = `<div class="empty">Aucune mission effectuée sur ce mois.</div>`; return; }
-  const rows = list.map((mission) => `<tr><td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;white-space:nowrap;">${escapeHtml(formatPeriod(mission.date, mission.endDate))}</td><td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;"><strong style="color:#1F4E5F;">${escapeHtml(mission.production)}</strong></td><td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;">${escapeHtml(mission.type)}</td><td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;text-align:right;white-space:nowrap;">${escapeHtml(mission.hours)}h</td><td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;text-align:right;white-space:nowrap;">${escapeHtml(money(mission.gross))}</td></tr>`).join("");
-  container.innerHTML = `<div style="margin-top:14px;border:1px solid #E2E8F0;border-radius:18px;overflow:hidden;background:#FFFFFF;box-shadow:0 8px 20px rgba(31,78,95,.04);"><div style="padding:14px 16px;background:#F8FAF9;border-bottom:1px solid #E2E8F0;"><strong style="display:block;color:#1F4E5F;font-size:16px;">Détail des missions du mois</strong><span style="display:block;color:#718096;font-size:12px;margin-top:3px;">Récapitulatif prêt pour l'actualisation</span></div><div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;min-width:620px;"><thead><tr><th style="padding:11px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Période</th><th style="padding:11px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Production</th><th style="padding:11px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Mission</th><th style="padding:11px 10px;text-align:right;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Heures</th><th style="padding:11px 10px;text-align:right;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Brut</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+
+  if (!list.length) {
+    if (stats) stats.style.display = "none";
+    if (tableWrap) tableWrap.style.display = "block";
+    if (actions) actions.style.display = "none";
+    container.innerHTML = `<div class="empty">Aucune mission effectuée sur ce mois.</div>`;
+    return;
+  }
+
+  if (stats) stats.style.display = "";
+  if (tableWrap) tableWrap.style.display = "block";
+  if (actions) actions.style.display = "";
+
+  const rows = list.map((mission) => `
+    <div class="mission-history-card">
+      <div class="mission-history-head"><strong>${escapeHtml(mission.production)}</strong><span class="pill">${escapeHtml(mission.type)}</span></div>
+      <div class="mission-history-info">
+        <span>📅 ${escapeHtml(formatPeriod(mission.date, mission.endDate))}</span>
+        <span>🕒 ${mission.hours}h</span>
+        <span>€ ${money(mission.gross)}</span>
+      </div>
+    </div>
+  `).join("");
+  container.innerHTML = `<div class="mission-card-grid">${rows}</div>`;
 }
 
 async function copyActualisation() {
