@@ -330,15 +330,21 @@
 
     <!-- ===== APP ===== -->
     <section class="appBox hidden" id="appBox">
-      <nav class="tabs">
-        <button class="tab active" type="button" data-view="dashboard">Tableau de bord</button>
-        <button class="tab" type="button" data-view="missions">Missions</button>
-        <button class="tab" type="button" data-view="calendar">Calendrier</button>
-        <button class="tab" type="button" data-view="actualisation">Actualisation</button>
-        <button class="tab" type="button" data-view="documents">Documents</button>
-        <button class="tab" type="button" data-view="fiscalite">Fiscalité</button>
-        <button class="tab" type="button" data-view="previsions">Prévisions</button>
-      </nav>
+    <nav class="tabs-wrapper">
+  <div class="fade-left" id="tabsFadeLeft"></div>
+  <div class="fade-right" id="tabsFadeRight"></div>
+  <div class="arrow-left" id="tabsArrowLeft">‹</div>
+  <div class="arrow-right" id="tabsArrowRight">›</div>
+  <div class="tabs" id="tabsScroll">
+    <button class="tab active" type="button" data-view="dashboard">Tableau de bord</button>
+    <button class="tab" type="button" data-view="missions">Missions</button>
+    <button class="tab" type="button" data-view="calendar">Calendrier</button>
+    <button class="tab" type="button" data-view="actualisation">Actualisation</button>
+    <button class="tab" type="button" data-view="documents">Documents</button>
+    <button class="tab" type="button" data-view="fiscalite">Fiscalité</button>
+    <button class="tab" type="button" data-view="previsions">Prévisions</button>
+  </div>
+</nav>
 
       <section class="view active" id="view-dashboard">
         <article class="card hero">
@@ -607,6 +613,25 @@
       </div>
     </div>
   </div>
-
+<script>
+(function() {
+  const scroll = document.getElementById('tabsScroll');
+  const fl = document.getElementById('tabsFadeLeft');
+  const fr = document.getElementById('tabsFadeRight');
+  const al = document.getElementById('tabsArrowLeft');
+  const ar = document.getElementById('tabsArrowRight');
+  if (!scroll) return;
+  function update() {
+    const atStart = scroll.scrollLeft <= 5;
+    const atEnd = scroll.scrollLeft + scroll.clientWidth >= scroll.scrollWidth - 5;
+    fl.style.opacity = atStart ? '0' : '1';
+    al.style.opacity = atStart ? '0' : '1';
+    fr.style.opacity = atEnd ? '0' : '1';
+    ar.style.opacity = atEnd ? '0' : '1';
+  }
+  scroll.addEventListener('scroll', update);
+  update();
+})();
+</script>
 </body>
 </html>
