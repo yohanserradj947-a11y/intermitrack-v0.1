@@ -956,4 +956,21 @@ button { border: 0; border-radius: 15px; padding: 13px 16px; font-weight: 800; f
   50% { transform: translateY(-50%) scale(1.1); }
 }
 
-.tabs { margin-bottom: 0 !important; }
+.tabs { margin-bottom: 0 !important; }/* Fix dezoom mobile calendrier + actualisation */
+@media (max-width: 720px) {
+  .app { overflow-x: hidden; }
+
+  /* Actualisation — tableau scroll interne uniquement */
+  .actualisation-card-clean { overflow: hidden; }
+  .actualisation-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .act-table { min-width: 480px; font-size: 12px; }
+  .act-td-periode, .act-td-prod, .act-td-type, .act-td-h, .act-td-brut { padding: 10px 8px !important; font-size: 12px !important; }
+
+  /* Calendrier — picker ne déborde pas */
+  .new-cal-header { flex-wrap: wrap; gap: 8px; }
+  #calendarMonthPicker { min-width: 0 !important; width: 130px !important; font-size: 12px !important; }
+
+  /* Actualisation top */
+  .actualisation-top { flex-direction: column !important; gap: 12px !important; }
+  .month-picker { min-width: 0 !important; width: 140px !important; }
+}
