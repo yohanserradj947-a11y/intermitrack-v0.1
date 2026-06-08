@@ -10,6 +10,7 @@ let documents = [];
 let documentFilter = "Tous";
 let openDocumentProduction = null;
 let editingMissionId = null;
+let addMissionReturnView = "calendar";
 let current = new Date();
 let deferredInstallPrompt = null;
 let historyPage = 1;
@@ -153,7 +154,7 @@ function calculateProgressiveTax(taxableIncome, parts) {
 function calculateEstimatedAreDailyRate() {
   const hours = Number($("areHours")?.value || 0);
   const brutTotal = Number($("areDailyGross")?.value || 0);
-
+ 
   if (!hours || !brutTotal) {
     if ($("previsionSJRText")) $("previsionSJRText").textContent = "SJR : renseigne tes données";
     if ($("previsionTaux")) $("previsionTaux").textContent = "Renseigne tes heures et ton brut total";
@@ -161,50 +162,49 @@ function calculateEstimatedAreDailyRate() {
     if ($("areProjectionText")) $("areProjectionText").textContent = "Renseigne tes données pour voir les projections.";
     return;
   }
-
-  // SJR = Brut total / nombre de vacations
-  const vacations = missions.length > 0
-    ? missions.reduce((a, x) => a + Number(x.vacations || 0), 0)
-    : Math.round(hours / 8);
-  const sjr = vacations > 0 ? brutTotal / vacations : brutTotal / (hours / 8);
-
-  // Formule AJ brut Annexe 8 2025
-  // AJ brut = 40,4% × SJR + 12,47 €
-  const ajBrutFormule = (0.404 * sjr) + 12.47;
-  // Plafond = 75% du SJR
-  const plafond = sjr * 0.75;
-  // Plancher = 57% du SJR
-  const plancher = sjr * 0.57;
-  // Application plafond/plancher
-  const ajBrut = Math.min(plafond, Math.max(plancher, ajBrutFormule));
-  // AJ net = AJ brut après CSG/CRDS 6,7%
-  const ajNet = ajBrut * 0.933;
-
+ 
+  // ----- Paramètres officiels (Annexe 8 · technicien) À ACTUALISER CHAQUE ANNÉE -----
+  const AJ_MIN = 31.96;        // allocation journalière minimale (montant de référence)
+  const NH = 507;             // heures exigées
+  const SMIC_H = 12.31;       // SMIC horaire brut
+  const PLAFOND = 174.80;     // plafond AJ brute
+  const PLANCHER = 38;        // plancher AJ brute (technicien)
+  const SMIC_J = SMIC_H * 151.67 / 30; // SMIC journalier (seuil exonération CSG/CRDS)
+ 
+  // AJ brute = A + B + C  (formule officielle, vérifiée sur notification France Travail)
+  function ajBrut(h, sr) {
+    const A = AJ_MIN * (0.42 * Math.min(sr, 14400) + 0.05 * Math.max(0, sr - 14400)) / 5000;
+    const B = AJ_MIN * (0.26 * Math.min(h, 720) + 0.08 * Math.max(0, h - 720)) / NH;
+    const C = AJ_MIN * 0.40;
+    return Math.max(PLANCHER, Math.min(PLAFOND, A + B + C));
+  }
+  // AJ nette = brute − retraite 3% − CSG 6,2% − CRDS 0,5% (avec abattement 1,75%
+  //           et plancher : pas de CSG/CRDS si l'AJ passe sous le SMIC journalier)
+  function ajNet(brut) {
+    const retraite = brut * 0.03;
+    const base = brut * 0.9825;
+    let csg = base * 0.062, crds = base * 0.005;
+    if (brut - retraite - csg - crds < SMIC_J) { csg = 0; crds = 0; }
+    return brut - retraite - csg - crds;
+  }
+ 
+  const brut = ajBrut(hours, brutTotal);
+  const net = ajNet(brut);
+  const sjr = brutTotal / (hours / 8); // SJR = salaire ÷ (heures ÷ 8)
+ 
   if ($("previsionSJRText")) $("previsionSJRText").textContent =
-    `SJR estimé : ${sjr.toFixed(2).replace(".", ",")} € (${vacations} vacation${vacations > 1 ? "s" : ""})`;
-  if ($("previsionTaux")) $("previsionTaux").textContent =
-    `${ajNet.toFixed(2).replace(".", ",")} €`;
-  if ($("prevAjBrut")) $("prevAjBrut").textContent = `${ajBrut.toFixed(2).replace(".", ",")} €`;
+    `SJR estimé : ${sjr.toFixed(2).replace(".", ",")} €`;
+  if ($("previsionTaux")) $("previsionTaux").textContent = `${net.toFixed(2).replace(".", ",")} €`;
+  if ($("prevAjBrut")) $("prevAjBrut").textContent = `${brut.toFixed(2).replace(".", ",")} €`;
   if ($("previsionSJR")) $("previsionSJR").textContent = `${sjr.toFixed(2).replace(".", ",")} €`;
   if ($("prevAreResult")) $("prevAreResult").style.display = "block";
   if ($("previsionTauxDetails")) $("previsionTauxDetails").textContent =
-    `AJ brut : ${ajBrut.toFixed(2).replace(".", ",")} € · Plafond : ${plafond.toFixed(2).replace(".", ",")} € · Plancher : ${plancher.toFixed(2).replace(".", ",")} €`;
-
+    `AJ brut : ${brut.toFixed(2).replace(".", ",")} € · Plafond : ${PLAFOND.toFixed(2).replace(".", ",")} € · Plancher : ${PLANCHER} €`;
+ 
+  // Projection : toujours AU-DESSUS des heures saisies (1300h -> 1400/1500/1600)
   if ($("areProjectionText")) {
-    let targets;
-    if (hours < 507) targets = [507, 600, 700];
-    else if (hours < 700) targets = [700, 800, 900];
-    else if (hours < 900) targets = [900, 1000, 1100];
-    else if (hours < 1200) targets = [1200, 1300, 1400];
-    else { const base = Math.ceil(hours / 100) * 100; targets = [base, base + 100, base + 200]; }
-
-    const lines = targets.map((targetH) => {
-      const targetVac = targetH / 8;
-      const targetSJR = brutTotal / (vacations > 0 ? vacations * (targetH / hours) : targetVac);
-      const targetAjBrut = (0.404 * targetSJR) + 12.47;
-      const targetNet = Math.min(targetSJR * 0.75, Math.max(targetSJR * 0.57, targetAjBrut)) * 0.933;
-      return `${targetH}h → ${targetNet.toFixed(2).replace(".", ",")} €/j net`;
-    });
+    const targets = [1, 2, 3].map((i) => Math.round((hours + i * 100) / 100) * 100);
+    const lines = targets.map((h) => `${h}h → ${ajNet(ajBrut(h, brutTotal)).toFixed(2).replace(".", ",")} €/j net`);
     $("areProjectionText").innerHTML = lines.join("<br>");
   }
 }
@@ -220,7 +220,7 @@ function calculateCarence() {
 
   const delaiAttente = 7;
   const franchiseCongesRaw = conges > 0 ? Math.round(conges / sjr) : 0;
-  const franchiseConges = Math.min(franchiseCongesRaw, 36);
+  const franchiseConges = Math.min(franchiseCongesRaw, 30);
   const franchiseSupraRaw = supra > 0 ? Math.round(supra / sjr) : 0;
   const franchiseSupra = Math.min(franchiseSupraRaw, 75);
   const total = delaiAttente + franchiseConges + franchiseSupra;
@@ -842,8 +842,8 @@ function renderFiscalite(yearGross, yearMissions) {
     $("carenceSJM").addEventListener("input", () => { $("carenceSJM").dataset.userEdited = "1"; });
   }
   if ($("previsionConges")) {
-    const ec = Math.round(yearGross * 0.10);
-    $("previsionConges").textContent = yearGross > 0 ? "Environ " + money(ec) + " brut" : "Estimation indicative";
+    const ecNet = Math.round(yearGross * 0.10 * 0.78);
+    $("previsionConges").textContent = yearGross > 0 ? "Environ " + money(ecNet) + " net" : "Estimation indicative";
   }
   if ($("previsionDroits") && typeof remaining !== "undefined") $("previsionDroits").textContent = remaining + "h restantes";
 
@@ -879,6 +879,7 @@ function render() {
   if ($("yearHours")) $("yearHours").textContent = yearHours;
   if ($("monthHours")) $("monthHours").textContent = monthHours + "h";
   if ($("monthGross")) $("monthGross").textContent = money(monthGross);
+  if ($("recapMonthPicker")) $("recapMonthPicker").value = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}`;
   if ($("yearGross")) $("yearGross").textContent = money(yearGross);
   if ($("remainingHours")) $("remainingHours").textContent = remaining;
   if ($("missionCount")) $("missionCount").textContent = sumMissionDays(selectedMonthMissions);
@@ -927,16 +928,18 @@ function renderChart(doneHours, plannedHours = 0) {
 }
 
 function renderHistory() {
-  if ($("historyMonthPicker")) { const year = current.getFullYear(); const month = String(current.getMonth() + 1).padStart(2, "0"); $("historyMonthPicker").value = `${year}-${month}`; }
-  const sorted = [...monthMissions(current)].sort((a, b) => new Date(b.date) - new Date(a.date));
   const missionsEl = $("missions");
   if (!missionsEl) return;
-  const totalPages = Math.max(1, Math.ceil(sorted.length / HISTORY_PER_PAGE));
+  const today = todayDateOnly();
+  const upcoming = missions
+    .filter((m) => new Date((m.endDate || m.date) + "T00:00:00") >= today)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  const totalPages = Math.max(1, Math.ceil(upcoming.length / HISTORY_PER_PAGE));
   if (historyPage > totalPages) historyPage = totalPages;
   if (historyPage < 1) historyPage = 1;
   const start = (historyPage - 1) * HISTORY_PER_PAGE;
-  const visible = sorted.slice(start, start + HISTORY_PER_PAGE);
-  if (!sorted.length) { missionsEl.innerHTML = `<div class="empty">Aucune mission sur ce mois.</div>`; return; }
+  const visible = upcoming.slice(start, start + HISTORY_PER_PAGE);
+  if (!upcoming.length) { missionsEl.innerHTML = `<div class="empty">Aucune mission à venir.</div>`; return; }
   missionsEl.innerHTML = `
     <div class="mission-card-grid">
       ${visible.map((mission) => `
@@ -965,11 +968,28 @@ function renderHistory() {
   if ($("historyPagePrev")) $("historyPagePrev").addEventListener("click", () => { historyPage--; renderHistory(); });
   if ($("historyPageNext")) $("historyPageNext").addEventListener("click", () => { historyPage++; renderHistory(); });
 }
-
 function renderAllMissions() {
   const container = $("missionsGraphContainer");
   if (!container) return;
-  if (!missions.length) { container.innerHTML = `<div class="empty">Aucune mission enregistrée. Ajoute des missions depuis le calendrier !</div>`; return; }
+
+  const addBtnHtml = `<button class="ghost" type="button" id="missionsAddBtn" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:16px;font-weight:700;">+ Ajouter une mission</button>`;
+  const bindAddBtn = () => {
+    const btn = $("missionsAddBtn");
+    if (!btn) return;
+   btn.addEventListener("click", () => {
+      addMissionReturnView = "missions";
+      activateView("add-mission");
+      resetMissionFormForDate(new Date().toISOString().slice(0, 10));
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  };
+
+  if (!missions.length) {
+    container.innerHTML = `${addBtnHtml}<div class="empty">Aucune mission enregistrée. Clique sur « Ajouter une mission » pour commencer.</div>`;
+    bindAddBtn();
+    return;
+  }
+
   const groups = {};
   missions.forEach((mission) => {
     const key = normalizeProductionName(mission.production || "Sans production");
@@ -984,7 +1004,7 @@ function renderAllMissions() {
   })).sort((a, b) => b.gross - a.gross);
   const totalGross = sorted.reduce((a, x) => a + x.gross, 0);
   const totalHours = Math.round(sorted.reduce((a, x) => a + x.hours, 0) * 10) / 10;
-  const totalMissions = missions.length;
+  const totalDays = sumMissionDays(missions);
   const COLORS = ["#1F4E5F","#2A6174","#3A7A8F","#7A9E7E","#8AB08E","#9AC09E","#F97316","#FDBA74","#4A8FA5","#5A9FB5"];
   const CIRC = 2 * Math.PI * 75;
   let offset = 0;
@@ -996,8 +1016,9 @@ function renderAllMissions() {
     return arc;
   });
   container.innerHTML = `
+    ${addBtnHtml}
     <div class="missions-stats-row">
-      <div class="mstat-box"><strong>${totalMissions}</strong><span>Missions</span></div>
+     <div class="mstat-box"><strong>${totalDays}</strong><span>Jours travaillés</span></div>
       <div class="mstat-box"><strong>${totalHours}h</strong><span>Heures totales</span></div>
       <div class="mstat-box highlight"><strong>${money(totalGross)}</strong><span>Brut total</span></div>
       <div class="mstat-box"><strong>${sorted.length}</strong><span>Productions</span></div>
@@ -1025,29 +1046,36 @@ function renderAllMissions() {
       </div>
     </div>
   `;
+  bindAddBtn();
 }
 
 function openProductionMissions(productionName) {
   const allMissionsEl = $("allMissions");
   if (!allMissionsEl) return;
-  const list = missions.filter((m) => m.production === productionName).sort((a, b) => new Date(b.date) - new Date(a.date));
-  allMissionsEl.innerHTML = `
-    <div class="production-detail-head">
+  if ($("missionsGraphContainer")) $("missionsGraphContainer").style.display = "none";
+const list = missions.filter((m) => normalizeProductionName(m.production || "Sans production") === productionName).sort((a, b) => new Date(b.date) - new Date(a.date));  allMissionsEl.innerHTML = `
+    <div class="production-detail-head" style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
       <button class="ghost" type="button" data-production-back>‹ Retour</button>
-      <div><h2>${productionName}</h2><p class="sub">${list.length} mission${list.length > 1 ? "s" : ""} enregistrée${list.length > 1 ? "s" : ""}</p></div>
+      <div><h2 style="margin:0;color:#1F4E5F;">${escapeHtml(productionName)}</h2><p class="sub" style="margin:2px 0 0;">${list.length} mission${list.length > 1 ? "s" : ""} enregistrée${list.length > 1 ? "s" : ""}</p></div>
     </div>
-    <div class="row header"><div>Période</div><div>Production</div><div>Mission</div><div>Heures</div><div>Brut</div><div></div></div>
-    <div id="productionMissionRows"></div>
+    <div class="mission-card-grid">
+      ${list.map((mission) => `
+        <div class="mission-history-card">
+          <div class="mission-history-head"><strong>${escapeHtml(mission.production)}</strong><span class="pill">${escapeHtml(mission.type)}</span></div>
+          <div class="mission-history-info">
+            <span>📅 ${formatPeriod(mission.date, mission.endDate)}</span>
+            <span>🕒 ${mission.hours}h</span>
+            <span>€ ${money(mission.gross)}</span>
+          </div>
+          <div class="mission-history-actions">
+            <button class="edit-icon-btn" data-edit="${mission.id}" type="button" title="Modifier">✏️</button>
+            <button class="delete-icon-btn" data-delete="${mission.id}" type="button" title="Supprimer">✕</button>
+          </div>
+        </div>
+      `).join("")}
+    </div>
   `;
-  const rows = $("productionMissionRows");
-  list.forEach((mission) => {
-    const row = document.createElement("div");
-    row.className = "row";
-    row.innerHTML = `<div>${formatPeriod(mission.date, mission.endDate)}</div><div><b>${mission.production}</b></div><div><span class="pill">${mission.type}</span></div><div>${mission.hours}h</div><div>${money(mission.gross)}</div><div><button class="ghost" data-edit="${mission.id}" type="button">Modifier</button><button class="delete" data-delete="${mission.id}" type="button">X</button></div>`;
-    rows.appendChild(row);
-  });
 }
-
 function moveMonth(amount) {
   current.setMonth(current.getMonth() + amount);
   current.setDate(1);
@@ -1055,7 +1083,7 @@ function moveMonth(amount) {
 }
 
 let calMissionPage = 0;
-const CAL_MISSIONS_PER_PAGE = 3;
+const CAL_MISSIONS_PER_PAGE = 6;
 
 function renderCalendar() {
   const calView = document.getElementById("view-calendar");
@@ -1111,14 +1139,23 @@ function renderCalendar() {
     const box = document.createElement("div");
     box.className = "new-cal-day"; box.dataset.calendarDate = dateStr;
     if (dateStr === todayStr) box.classList.add("today");
-    const missionsOfDay = missions.filter((m) => isDateInPeriod(dateStr, m));
+   const missionsOfDay = missions.filter((m) => isDateInPeriod(dateStr, m));
     if (missionsOfDay.length) {
       box.dataset.hasMission = "1";
       const isFuture = missionsOfDay.some((m) => new Date(m.date + "T00:00:00") >= todayDateOnly());
       const isPast = missionsOfDay.some((m) => new Date((m.endDate || m.date) + "T00:00:00") < todayDateOnly());
       if (isPast) box.classList.add("has-done");
       if (isFuture) box.classList.add("has-planned");
-      box.innerHTML = `<span class="new-cal-num">${d}</span><div class="new-cal-dot ${isFuture ? "dot-planned" : "dot-done"}"></div>`;
+      let dayHours = 0, dayGross = 0;
+      missionsOfDay.forEach((m) => {
+        const nbDays = missionDayCount(m);
+        dayHours += Number(m.hours || 0) / nbDays;
+        dayGross += Number(m.gross || 0) / nbDays;
+      });
+      dayHours = Math.round(dayHours * 10) / 10;
+      dayGross = Math.round(dayGross);
+      const label = missionsOfDay.length > 1 ? missionsOfDay.length + " miss." : getProductionInitials(missionsOfDay[0].production);
+      box.innerHTML = `<span class="new-cal-num">${d}</span><div class="new-cal-tag ${isFuture ? "tag-planned" : "tag-done"}"><span class="new-cal-tag-prod">${escapeHtml(label)}</span><span class="new-cal-tag-meta">${dayHours}h · ${money(dayGross)}</span></div>`;
     } else { box.innerHTML = `<span class="new-cal-num">${d}</span>`; }
     calendar.appendChild(box);
   }
@@ -1195,6 +1232,7 @@ function openCalendarDay(dateStr) {
     renderCalendarDayPanel(dateStr);
     setTimeout(() => { const panel = $("calendarDayPanel"); if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" }); }, 100);
   } else {
+    addMissionReturnView = "calendar";
     activateView("add-mission");
     resetMissionFormForDate(dateStr);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1253,7 +1291,7 @@ function setupEvents() {
   $("loginModeBtn").addEventListener("click", () => setAuthMode("login"));
   $("signupModeBtn").addEventListener("click", () => setAuthMode("signup"));
   $("logoutBtn").addEventListener("click", logout);
-
+ 
   if ($("togglePassword")) {
     $("togglePassword").addEventListener("click", () => {
       const input = $("authPassword");
@@ -1262,7 +1300,7 @@ function setupEvents() {
       $("togglePassword").textContent = input.type === "password" ? "👁" : "🙈";
     });
   }
-
+ 
   $("authForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     $("authMsg").textContent = "Chargement...";
@@ -1276,11 +1314,12 @@ function setupEvents() {
     if (authMode === "signup") $("authMsg").textContent = "Compte créé. Vérifiez votre boîte mail si une confirmation est demandée.";
     await init();
   });
-
+ 
   $("missionForm").addEventListener("submit", addMission);
+  if ($("addMissionBackBtn")) $("addMissionBackBtn").addEventListener("click", () => activateView(addMissionReturnView));
   if ($("kmDistance")) $("kmDistance").addEventListener("input", updateKmPreview);
   if ($("kmRate")) $("kmRate").addEventListener("input", updateKmPreview);
-
+ 
   if ($("saveTaxSettingsBtn")) $("saveTaxSettingsBtn").addEventListener("click", () => {
     setOtherIncome($("otherIncomeInput")?.value || 0);
     setTaxParts($("taxPartsInput")?.value || 1);
@@ -1292,30 +1331,43 @@ function setupEvents() {
     render();
     alert("Paramètres enregistrés.");
   });
-
+ 
   if ($("documentForm")) $("documentForm").addEventListener("submit", uploadDocument);
   if ($("refreshDocumentsBtn")) $("refreshDocumentsBtn").addEventListener("click", loadDocuments);
   if ($("calculateAreBtn")) $("calculateAreBtn").addEventListener("click", calculateEstimatedAreDailyRate);
   if ($("calculateCarenceBtn")) $("calculateCarenceBtn").addEventListener("click", calculateCarence);
-
+ 
   $("date").addEventListener("change", () => { if (!$("endDate").value || $("endDate").value < $("date").value) $("endDate").value = $("date").value; });
-
+ 
   document.querySelectorAll(".tab").forEach((tab) => { tab.addEventListener("click", () => activateView(tab.dataset.view)); });
 
-  $("historyPrevBtn").addEventListener("click", () => moveMonth(-1));
-  $("historyNextBtn").addEventListener("click", () => moveMonth(1));
-  if ($("historyMonthPicker")) {
-    $("historyMonthPicker").addEventListener("change", () => {
-      const value = $("historyMonthPicker").value;
+  const tabsWrap = document.querySelector(".tabs-wrap");
+  const tabsNav = document.querySelector(".tabs");
+  if (tabsWrap && tabsNav) {
+    const updateSwipeHints = () => {
+      const maxScroll = tabsNav.scrollWidth - tabsNav.clientWidth;
+      tabsWrap.classList.toggle("can-left", tabsNav.scrollLeft > 5);
+      tabsWrap.classList.toggle("can-right", tabsNav.scrollLeft < maxScroll - 5);
+    };
+    tabsNav.addEventListener("scroll", updateSwipeHints);
+    window.addEventListener("resize", updateSwipeHints);
+    updateSwipeHints();
+  }
+ 
+  if ($("recapPrevBtn")) $("recapPrevBtn").addEventListener("click", () => moveMonth(-1));
+  if ($("recapNextBtn")) $("recapNextBtn").addEventListener("click", () => moveMonth(1));
+  if ($("recapMonthPicker")) {
+    $("recapMonthPicker").addEventListener("change", () => {
+      const value = $("recapMonthPicker").value;
       if (!value) return;
       const [year, month] = value.split("-").map(Number);
       current = new Date(year, month - 1, 1); render();
     });
   }
-
+ 
   $("calendarPrevBtn") && $("calendarPrevBtn").addEventListener("click", () => moveMonth(-1));
   $("calendarNextBtn") && $("calendarNextBtn").addEventListener("click", () => moveMonth(1));
-
+ 
   if ($("actualisationPrevBtn")) $("actualisationPrevBtn").addEventListener("click", () => moveMonth(-1));
   if ($("actualisationNextBtn")) $("actualisationNextBtn").addEventListener("click", () => moveMonth(1));
   if ($("actualisationMonthPicker")) {
@@ -1326,10 +1378,10 @@ function setupEvents() {
       current = new Date(Number(year), Number(month) - 1, 1); render();
     });
   }
-
+ 
   if ($("copyActualisationBtn")) $("copyActualisationBtn").addEventListener("click", copyActualisation);
   if ($("pdfActualisationBtn")) $("pdfActualisationBtn").addEventListener("click", generateActualisationPDF);
-
+ 
   if ($("copyIcsBtn")) $("copyIcsBtn").addEventListener("click", () => {
     const url = getCalendarIcsUrl();
     if (!url) return;
@@ -1337,7 +1389,7 @@ function setupEvents() {
     $("copyIcsBtn").textContent = "✅ Lien copié !";
     setTimeout(() => { $("copyIcsBtn").textContent = "Copier le lien"; }, 2000);
   });
-
+ 
   document.addEventListener("click", async (event) => {
     const docProductionOpen = event.target.closest("[data-doc-production-open]");
     if (docProductionOpen) { openDocumentProduction = docProductionOpen.dataset.docProductionOpen; documentFilter = "Tous"; renderDocuments(); return; }
@@ -1348,11 +1400,11 @@ function setupEvents() {
     const calendarDay = event.target.closest("[data-calendar-date]");
     if (calendarDay) { openCalendarDay(calendarDay.dataset.calendarDate); return; }
     const calendarAddButton = event.target.closest("[data-calendar-add-date]");
-    if (calendarAddButton) { activateView("add-mission"); resetMissionFormForDate(calendarAddButton.dataset.calendarAddDate); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+    if (calendarAddButton) { addMissionReturnView = "calendar"; activateView("add-mission"); resetMissionFormForDate(calendarAddButton.dataset.calendarAddDate); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
     const productionOpenButton = event.target.closest("[data-production-open]");
     if (productionOpenButton) { openProductionMissions(productionOpenButton.dataset.productionOpen); return; }
     const productionBackButton = event.target.closest("[data-production-back]");
-    if (productionBackButton) { renderAllMissions(); return; }
+    if (productionBackButton) { if ($("allMissions")) $("allMissions").innerHTML = ""; if ($("missionsGraphContainer")) $("missionsGraphContainer").style.display = ""; renderAllMissions(); return; }
     const openButton = event.target.closest("[data-doc-open]");
     if (openButton) { await openDocument(openButton.dataset.docOpen); return; }
     const downloadButton = event.target.closest("[data-doc-download]");
@@ -1365,9 +1417,9 @@ function setupEvents() {
     if (!deleteButton) return;
     await deleteMission(deleteButton.dataset.delete);
   });
-
+ 
   window.addEventListener("beforeinstallprompt", (event) => { event.preventDefault(); deferredInstallPrompt = event; });
-
+ 
   if ($("installBtn")) $("installBtn").addEventListener("click", async () => {
     if (!deferredInstallPrompt) { alert("Sur iPhone : ouvrez Safari, bouton Partager, puis Ajouter à l'écran d'accueil. Sur Android : menu du navigateur, puis Installer l'application."); return; }
     deferredInstallPrompt.prompt();
@@ -1375,16 +1427,112 @@ function setupEvents() {
     deferredInstallPrompt = null;
   });
 }
-
+ 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => { navigator.serviceWorker.register("service-worker.js"); });
 }
-
+ 
 sb.auth.onAuthStateChange((_event, session) => {
   currentUser = session?.user || null;
   if (currentUser) { showApp(); loadMissions(); loadDocuments(); }
   else showAuth();
 });
-
+ 
+ 
 setupEvents();
 init();
+// ====================================================================
+// INTERMITRACK — JS des cartes Prévisions (à AJOUTER à ton app.js)
+// À coller TOUT EN BAS de app.js (après setupEvents(); init();).
+// Garde-fou inclus : si les cartes ne sont pas là, ne fait rien.
+// ====================================================================
+(function(){
+  "use strict";
+  // Garde-fou : si les calculateurs ne sont pas sur cette page, on ne fait rien.
+  if(!document.getElementById("itk-c1-go")) return;
+
+  /* ===== PARAMÈTRES OFFICIELS À ACTUALISER CHAQUE ANNÉE ===== */
+  var CONFIG = {
+    AJ_MIN:31.96, NH:507, SMIC_HORAIRE:12.31, DIV_A:5000, PLAFOND_AJ:174.80,
+    ARTISTE:   {aSeuil:13700,aHaut:0.36,aBas:0.05,bSeuil:690,bHaut:0.26,bBas:0.08,c:0.70,plancher:44,jourH:12},
+    TECHNICIEN:{aSeuil:14400,aHaut:0.42,aBas:0.05,bSeuil:720,bHaut:0.26,bBas:0.08,c:0.40,plancher:38,jourH:8},
+    TAUX_RETRAITE:0.03, ABATTEMENT:0.9825, CSG:{plein:0.062,reduit:0.038,exonere:0}, CRDS:0.005,
+    smicJournalier:function(){ return CONFIG.SMIC_HORAIRE*151.67/30; },
+    FRANCHISE_CP_MAX:30,
+    CONGES_TAUX:0.10,      // indemnité BRUTE = 10 % du salaire brut (exact)
+    CONGES_CHARGES:0.22    // charges salariales déduites pour le NET (~22 %, estimation ajustable)
+  };
+  function eur(n){ return n.toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})+" €"; }
+  function $(id){ return document.getElementById(id); }
+  function num(v){ if(v==null) return NaN; return parseFloat(String(v).replace(/\s/g,"").replace(",",".")); }
+
+  /* ===== CARTE 1 ===== */
+  function ajBrute(an,nht,sr){
+    var k=(an==="artiste")?CONFIG.ARTISTE:CONFIG.TECHNICIEN, m=CONFIG.AJ_MIN;
+    var A=m*(k.aHaut*Math.min(sr,k.aSeuil)+k.aBas*Math.max(0,sr-k.aSeuil))/CONFIG.DIV_A;
+    var B=m*(k.bHaut*Math.min(nht,k.bSeuil)+k.bBas*Math.max(0,nht-k.bSeuil))/CONFIG.NH;
+    return Math.max(k.plancher,Math.min(CONFIG.PLAFOND_AJ,A+B+m*k.c));
+  }
+  function ajNet(brute,csgKey){
+    var retraite=brute*CONFIG.TAUX_RETRAITE, base=brute*CONFIG.ABATTEMENT;
+    var csg=base*CONFIG.CSG[csgKey], crds=(csgKey==="exonere"?0:base*CONFIG.CRDS), exempt=false;
+    if(brute-retraite-csg-crds < CONFIG.smicJournalier()){ csg=0; crds=0; exempt=true; }
+    return {net:brute-retraite-csg-crds, retraite:retraite, csg:csg, crds:crds, exempt:exempt};
+  }
+  var annexe1="technicien";
+  $("itk-c1-annexe").addEventListener("click",function(e){
+    var b=e.target.closest("button"); if(!b) return;
+    annexe1=b.dataset.a;
+    [].forEach.call(this.children,function(x){x.classList.toggle("itk-on",x===b);});
+  });
+  $("itk-c1-go").addEventListener("click",function(){
+    var nht=num($("itk-c1-nht").value), sr=num($("itk-c1-sr").value), csgKey=$("itk-c1-csg").value;
+    if(!(nht>0)||!(sr>0)){ $("itk-c1-err").style.display="block"; return; }
+    $("itk-c1-err").style.display="none";
+    var k=(annexe1==="artiste")?CONFIG.ARTISTE:CONFIG.TECHNICIEN;
+    var brute=ajBrute(annexe1,nht,sr), d=ajNet(brute,csgKey);
+    $("itk-c1-net").textContent=eur(d.net);
+    $("itk-c1-sjr").textContent=eur(sr/(nht/k.jourH));
+    $("itk-c1-brut").textContent=eur(brute);
+    $("itk-c1-detail").innerHTML="AJ brut "+eur(brute)+" · Retraite "+eur(d.retraite)+
+      " · CSG "+(d.csg?eur(d.csg):"–")+" · CRDS "+(d.crds?eur(d.crds):"–")+
+      (d.exempt?"<br><em>CSG/CRDS exonérées : allocation sous le SMIC journalier — le taux CSG choisi n'a alors aucun effet.</em>":"");
+    var proj="";
+    [1,2,3].forEach(function(i){
+      var h=Math.round((nht+i*100)/100)*100;
+      proj += h+" h → "+eur(ajNet(ajBrute(annexe1,h,sr),csgKey).net)+" / j net"+(i<3?"<br>":"");
+    });
+    $("itk-c1-proj").innerHTML=proj;
+    $("itk-c1-out").classList.remove("itk-hide");
+  });
+
+  /* ===== CARTE 2 ===== */
+  function libelleMois(s){ if(!s) return "—"; var M=["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"],p=s.split("-"); return M[(+p[1])-1]+" "+p[0]; }
+  function joursMois(s){ if(!s) return null; var p=s.split("-"); return new Date(+p[0],+p[1],0).getDate(); }
+  $("itk-c2-go").addEventListener("click",function(){
+    var nht=num($("itk-c2-nht").value), prc=num($("itk-c2-prc").value),
+        jours=num($("itk-c2-jours").value), mois=$("itk-c2-mois").value;
+    if(!(nht>0)||!(prc>0)||!(jours>=0)||isNaN(jours)){ $("itk-c2-err").style.display="block"; return; }
+    $("itk-c2-err").style.display="none";
+    var smicH=CONFIG.SMIC_HORAIRE, smicMens=smicH*151.67, smicJour=smicMens/30;
+    var sjm=prc/(nht/8);
+    var fsal=Math.max(0, Math.round((prc/smicMens)*(sjm/(3*smicJour))-27));
+    var fcp=Math.min(CONFIG.FRANCHISE_CP_MAX, Math.floor(jours/24*2.5));
+    $("itk-c2-rmois").textContent=libelleMois(mois);
+    var jm=joursMois(mois); $("itk-c2-rjours").textContent=jm?"("+jm+" jours)":"";
+    $("itk-c2-smic").textContent=eur(smicH);
+    $("itk-c2-sjm").textContent=eur(sjm);
+    $("itk-c2-fsal").textContent=fsal+" j";
+    $("itk-c2-fcp").textContent=fcp+" j";
+    $("itk-c2-out").classList.remove("itk-hide");
+  });
+
+  /* ===== CARTE 3 ===== */
+  $("itk-c3-go").addEventListener("click",function(){
+    var b=num($("itk-c3-brut").value); if(!(b>0)) return;
+    var brut=b*CONFIG.CONGES_TAUX, net=brut*(1-CONFIG.CONGES_CHARGES);
+    $("itk-c3-val").textContent="Environ "+eur(net)+" net";
+    $("itk-c3-detail").innerHTML="Indemnité brute ≈ "+eur(brut)+" (10 % du salaire) · charges salariales ~"+Math.round(CONFIG.CONGES_CHARGES*100)+" % (estimation).";
+    $("itk-c3-out").classList.remove("itk-hide");
+  });
+})();

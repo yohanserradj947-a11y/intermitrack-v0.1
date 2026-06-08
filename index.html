@@ -334,16 +334,20 @@ z-index: 500 !important;
     </section>
 
     <!-- ===== APP ===== -->
+   <!-- ===== APP ===== -->
     <section class="appBox hidden" id="appBox">
-      <nav class="tabs">
-        <button class="tab active" type="button" data-view="dashboard">Tableau de bord</button>
-        <button class="tab" type="button" data-view="missions">Missions</button>
-        <button class="tab" type="button" data-view="calendar">Calendrier</button>
-        <button class="tab" type="button" data-view="actualisation">Actualisation</button>
-        <button class="tab" type="button" data-view="documents">Documents</button>
-        <button class="tab" type="button" data-view="fiscalite">Fiscalité</button>
-        <button class="tab" type="button" data-view="previsions">Prévisions</button>
-      </nav>
+      <div class="tabs-wrap">
+        <nav class="tabs">
+          <button class="tab active" type="button" data-view="dashboard">Tableau de bord</button>
+          <button class="tab" type="button" data-view="missions">Missions</button>
+          <button class="tab" type="button" data-view="calendar">Calendrier</button>
+          <button class="tab" type="button" data-view="actualisation">Actualisation</button>
+          <button class="tab" type="button" data-view="documents">Documents</button>
+          <button class="tab" type="button" data-view="previsions">Prévisions</button>
+        </nav>
+        <span class="swipe-hint left">‹</span>
+        <span class="swipe-hint right">›</span>
+      </div>
 
       <section class="view active" id="view-dashboard">
         <article class="card hero">
@@ -361,7 +365,15 @@ z-index: 500 !important;
             <div class="remaining-badge"><b><span id="remainingHours">507</span>h</b><span>Heures restantes</span></div>
           </div>
           <div class="chartWrap" id="chart"></div>
-          <div class="stats">
+        <div class="recap-mois-header" style="display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px;">
+    <span style="font-weight:800;color:#1F4E5F;font-size:16px;">Récap du mois</span>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button class="ghost new-cal-btn" type="button" id="recapPrevBtn">‹</button>
+      <input type="month" id="recapMonthPicker" class="history-month-picker"/>
+      <button class="ghost new-cal-btn" type="button" id="recapNextBtn">›</button>
+    </div>
+  </div>
+  <div class="stats">
             <div class="stat"><b id="monthHours">0h</b><span>Heures du mois</span></div>
             <div class="stat"><b id="monthGross">0 EUR</b><span>Brut du mois</span></div>
             <div class="stat"><b id="missionCount">0</b><span>Jours du mois</span></div>
@@ -370,12 +382,8 @@ z-index: 500 !important;
         </article>
         <article class="card">
           <div class="historyhead">
-            <h2>Historique des missions</h2>
-            <div class="history-month-nav">
-              <button class="ghost" type="button" id="historyPrevBtn">‹</button>
-              <input type="month" id="historyMonthPicker" class="history-month-picker" />
-              <button class="ghost" type="button" id="historyNextBtn">›</button>
-            </div>
+            <h2>Missions à venir</h2>
+            <div class="history-month-nav">  </div>
           </div>
           <p class="sub" id="historyMonthTitle"></p>
           <div class="row header"><div>Période</div><div>Production</div><div>Mission</div><div>Heures</div><div>Brut</div><div></div></div>
@@ -387,6 +395,7 @@ z-index: 500 !important;
         <article class="card">
           <div class="historyhead"><div><h2>Mes missions</h2><p class="sub">Répartition du brut par production</p></div></div>
           <div id="missionsGraphContainer"></div>
+          <div id="allMissions"></div>
         </article>
       </section>
 
@@ -394,7 +403,7 @@ z-index: 500 !important;
         <article class="card">
           <div class="historyhead" style="margin-bottom:16px;">
             <h2 id="addMissionTitle">Ajouter une mission</h2>
-            <button class="ghost" type="button" onclick="activateView('calendar')" style="display:flex;align-items:center;gap:6px;">‹ Retour au calendrier</button>
+            <button class="ghost" type="button" id="addMissionBackBtn" style="display:flex;align-items:center;gap:6px;">‹ Retour</button>
           </div>
           <form id="missionForm">
             <label for="production">Nom de la production</label>
@@ -423,16 +432,18 @@ z-index: 500 !important;
           </form>
         </article>
       </section>
-
-      <section class="view" id="view-calendar">
+<section class="view" id="view-calendar">
         <article class="card"></article>
-        <article class="card" style="padding:16px 24px;">
+        <article class="card" style="padding:16px 24px;opacity:.75;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">
             <div>
               <strong style="color:#1F4E5F;font-size:15px;">📅 Synchroniser avec mon calendrier</strong>
-              <p style="font-size:12px;color:#718096;margin-top:4px;">Abonne-toi pour voir tes missions sur iPhone, Android ou Google Calendar — mis à jour automatiquement.</p>
+              <p style="font-size:12px;color:#718096;margin-top:4px;">Bientôt : abonne-toi pour voir tes missions sur iPhone, Android ou Google Calendar — mis à jour automatiquement.</p>
             </div>
-            <button class="ghost" type="button" id="copyIcsBtn" style="white-space:nowrap;flex-shrink:0;">📅 Synchroniser iPhone / Android</button>
+            <button class="ghost" type="button" id="copyIcsBtn" disabled style="white-space:nowrap;flex-shrink:0;opacity:.6;cursor:not-allowed;">
+              📅 Synchroniser iPhone / Android
+              <span style="background:#FEEBDD;color:#F97316;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:6px;">Bientôt</span>
+            </button>
           </div>
         </article>
       </section>
@@ -653,103 +664,83 @@ z-index: 500 !important;
         </article>
       </section>
 
-      <section class="view" id="view-previsions">
-        <article class="card">
-          <h2>Prévisions</h2>
-          <p class="sub">Anticipe tes droits, tes congés, tes carences et ton taux journalier.</p>
-          <div class="previsions-grid">
+    <section class="view" id="view-previsions">
+<div class="itk-calc">
+  <p class="itk-intro">Anticipe tes droits, tes congés, tes carences et ton taux journalier.</p>
+  <div class="itk-grid">
 
-            <div class="prevision-card">
-              <span class="mini-label">Annexe 8 · Techniciens</span>
-              <h3>Simulation taux journalier ARE</h3>
-              <p>Formule officielle 2025 — simulation indicative uniquement.</p>
-              <label for="areHours">Heures retenues sur la période</label>
-              <input id="areHours" type="number" min="0" step="1" placeholder="Min 507h pour ouvrir les droits"/>
-              <label for="areDailyGross">Brut total sur la période (€)</label>
-              <input id="areDailyGross" type="number" min="0" step="0.01" placeholder="Ex : 8 510"/>
-              <p class="hint" id="sjrAutoHint">SJR calculé auto depuis vos vacations enregistrées.</p>
-              <button class="ghost fiscal-small-btn" type="button" id="calculateAreBtn">Calculer</button>
-              <div class="prev-are-result" id="prevAreResult" style="display:none;">
-                <div class="prev-are-main">
-                  <strong id="previsionTaux">—</strong>
-                  <span>AJ net estimé / jour</span>
-                </div>
-                <div class="prev-are-grid">
-                  <div class="prev-are-box"><strong id="previsionSJR">—</strong><span>SJR</span></div>
-                  <div class="prev-are-box"><strong id="prevAjBrut">—</strong><span>AJ brut</span></div>
-                </div>
-              </div>
-              <div id="previsionSJRText" style="margin-top:10px;font-size:13px;color:var(--petrol);font-weight:700;"></div>
-              <small id="previsionTauxDetails">Simulation indicative Annexe 8.</small>
-              <div class="projection-box" style="margin-top:12px;">
-                <strong>Projection rapide</strong>
-                <p id="areProjectionText">Renseigne tes données pour voir les projections.</p>
-              </div>
-            </div>
+    <!-- ===== CARTE 1 — TAUX JOURNALIER ARE ===== -->
+    <section class="itk-card">
+      <h2 class="itk-h2">Simulation taux journalier ARE</h2>
+      <div class="itk-tabs" id="itk-c1-annexe">
+        <button class="itk-tab itk-on" data-a="technicien">Annexe 8 · Technicien</button>
+        <button class="itk-tab" data-a="artiste">Annexe 10 · Artiste</button>
+      </div>
+      <label class="itk-label">Heures retenues sur la période (NHT)</label>
+      <input class="itk-in" type="number" id="itk-c1-nht" min="0" placeholder="ex : 600">
+      <label class="itk-label">Brut total sur la période (€) — SR</label>
+      <input class="itk-in" type="number" id="itk-c1-sr" min="0" placeholder="ex : 17000">
+      <p class="itk-hint">Total brut sur toute la période de référence (~12 mois), pas un montant mensuel.</p>
+      <label class="itk-label">Situation CSG (selon votre Revenu Fiscal de Référence)</label>
+      <select class="itk-sel" id="itk-c1-csg">
+        <option value="plein">Taux plein (6,2 %)</option>
+        <option value="reduit">Taux réduit (3,8 %)</option>
+        <option value="exonere">Exonéré (0 %)</option>
+      </select>
+      <div class="itk-err" id="itk-c1-err">Renseigne les heures et le brut total.</div>
+      <button class="itk-btn" id="itk-c1-go">Calculer</button>
+      <div class="itk-out itk-hide" id="itk-c1-out">
+        <div class="itk-hero"><b id="itk-c1-net">—</b><span>AJ net estimé / jour</span></div>
+        <div class="itk-duo">
+          <div class="itk-mini"><b id="itk-c1-sjr">—</b><span>SJR</span></div>
+          <div class="itk-mini"><b id="itk-c1-brut">—</b><span>AJ brut</span></div>
+        </div>
+        <div class="itk-info" id="itk-c1-detail"></div>
+        <div class="itk-proj"><b>Projection rapide</b><p id="itk-c1-proj"></p></div>
+      </div>
+    </section>
 
-            <div class="prevision-card">
-              <span class="mini-label">Annexe 8</span>
-              <h3>Calcul des franchises &amp; carence</h3>
-              <p>Jours avant votre 1er versement ARE.</p>
-              <label for="carenceSJM">SJR — Salaire Journalier de Référence (€)</label>
-              <input id="carenceSJM" type="number" min="0" step="0.01" placeholder="Auto-calculé depuis vos missions"/>
-              <p class="hint" id="carenceSJMHint">Brut total ÷ vacations. Auto-rempli si missions enregistrées.</p>
-              <label for="carenceConges">Indemnités Congés Payés reçues (€)</label>
-              <input id="carenceConges" type="number" min="0" step="0.01" placeholder="Ex : 800"/>
-              <label for="carenceSupra">Indemnités supra-légales (€)</label>
-              <input id="carenceSupra" type="number" min="0" step="0.01" placeholder="0 (souvent 0 en CDDU)"/>
-              <label for="carenceFinContrat">Date de fin de votre dernier contrat</label>
-              <input id="carenceFinContrat" type="date"/>
-              <p class="hint">Permet d'estimer votre date de 1er versement ARE.</p>
-              <button class="ghost fiscal-small-btn" type="button" id="calculateCarenceBtn">Calculer</button>
-              <div id="carenceResult" style="display:none;margin-top:16px;">
-                <div class="carence-timeline">
-                  <div class="ct-block ct-attente"><span class="ct-num" id="carenceAttente">7j</span><span class="ct-lbl">Attente</span></div>
-                  <div class="ct-plus">+</div>
-                  <div class="ct-block ct-conges"><span class="ct-num" id="carenceCongesResult">0j</span><span class="ct-lbl">Franchise CP</span></div>
-                  <div class="ct-plus">+</div>
-                  <div class="ct-block ct-supra"><span class="ct-num" id="carenceSupraResult">0j</span><span class="ct-lbl">Supra</span></div>
-                  <div class="ct-plus">=</div>
-                  <div class="ct-block ct-total"><span class="ct-num" id="carenceTotal">7j</span><span class="ct-lbl">Total</span></div>
-                </div>
-                <small id="carenceDetail" style="display:block;margin-top:10px;color:var(--muted);font-size:11px;line-height:1.5;"></small>
-                <div id="carenceDateEstimee" style="display:none;margin-top:12px;padding:12px;background:#EEF4F2;border-radius:12px;font-size:13px;color:#1F4E5F;line-height:1.6;border:1px solid rgba(31,78,95,.12);"></div>
-              </div>
-              <small>Calcul indicatif Annexe 8. Ne remplace pas France Travail.</small>
-            </div>
+    <!-- ===== CARTE 2 — FRANCHISES ===== -->
+    <section class="itk-card">
+      <h2 class="itk-h2">Calcul des franchises &amp; carence</h2>
+      <label class="itk-label">Mois de fin de droits *</label>
+      <input class="itk-in" type="month" id="itk-c2-mois">
+      <label class="itk-label">Nbre d'heures travaillées * (NHT)</label>
+      <input class="itk-in" type="number" id="itk-c2-nht" min="0" placeholder="ex : 600">
+      <label class="itk-label">Salaire période de référence * (S/PRC)</label>
+      <input class="itk-in" type="number" id="itk-c2-prc" min="0" placeholder="ex : 17000">
+      <p class="itk-hint">Total brut sur toute la période (~12 mois). Ex : 17 000 € → SJM ≈ 227 €.</p>
+      <label class="itk-label">Nbre de jours travaillés</label>
+      <input class="itk-in" type="number" id="itk-c2-jours" min="0" placeholder="ex : 70">
+      <div class="itk-err" id="itk-c2-err">Renseigne les heures, le salaire et les jours travaillés.</div>
+      <button class="itk-btn" id="itk-c2-go">Calculer</button>
+      <div class="itk-out itk-hide" id="itk-c2-out">
+        <div class="itk-resh">Vos résultats en : <span id="itk-c2-rmois"></span> <em id="itk-c2-rjours"></em></div>
+        <div class="itk-row"><span class="itk-k">SMIC Horaire</span><span class="itk-v" id="itk-c2-smic">—</span></div>
+        <div class="itk-row itk-hl"><span class="itk-k">Salaire Journalier Moyen</span><span class="itk-v" id="itk-c2-sjm">—</span></div>
+        <div class="itk-row"><span class="itk-k">Franchise Salaires</span><span class="itk-v" id="itk-c2-fsal">—</span></div>
+        <div class="itk-row"><span class="itk-k">Franchise Congés payés</span><span class="itk-v" id="itk-c2-fcp">—</span></div>
+      </div>
+    </section>
 
-            <div class="prevision-card">
-              <span class="mini-label">Congés</span>
-              <h3>Estimation Congés Spectacles</h3>
-              <p>Estimation brute indicative (~10% du brut). À vérifier sur audiens.org</p>
-              <div class="fi-result-row fi-highlight" style="margin-top:12px;">
-                <span class="fi-label">Estimation brute</span>
-                <span class="fi-value" id="previsionConges">—</span>
-              </div>
-              <div class="fi-info-box" style="margin-top:12px;">
-                <strong>⚠️ Imposable</strong>
-                Les Congés Spectacles sont imposables et doivent figurer dans votre déclaration de revenus.
-              </div>
-            </div>
+    <!-- ===== CARTE 3 — CONGÉS SPECTACLES (NET) ===== -->
+    <section class="itk-card">
+      <h2 class="itk-h2">Estimation Congés Spectacles</h2>
+      <p class="itk-hint">Estimation nette indicative (10 % du brut moins les charges salariales). À vérifier sur audiens.org.</p>
+      <label class="itk-label">Brut total déclaré sur la période (€)</label>
+      <input class="itk-in" type="number" id="itk-c3-brut" min="0" placeholder="ex : 6220">
+      <button class="itk-btn" id="itk-c3-go">Calculer</button>
+      <div class="itk-out itk-hide" id="itk-c3-out">
+        <div class="itk-row itk-hl"><span class="itk-k">Estimation nette</span><span class="itk-v" id="itk-c3-val">—</span></div>
+        <div class="itk-info" id="itk-c3-detail"></div>
+        <div class="itk-info"><b>⚠️ Imposable</b> Les Congés Spectacles sont imposables et doivent figurer dans votre déclaration de revenus.</div>
+      </div>
+    </section>
 
-            <div class="prevision-card">
-              <span class="mini-label">Droits</span>
-              <h3>Réouverture des droits</h3>
-              <p>507h requises sur 12 mois précédant la fin du dernier contrat.</p>
-              <div class="fi-result-row fi-highlight" style="margin-top:12px;">
-                <span class="fi-label">Heures restantes</span>
-                <span class="fi-value" id="previsionDroits">507h</span>
-              </div>
-              <div class="fi-info-box" style="margin-top:12px;">
-                <strong>📋 Annexe 8</strong>
-                Justifier 507h dans le spectacle vivant, cinéma, audiovisuel ou radio sur les 12 derniers mois.
-              </div>
-            </div>
-
-          </div>
-          <p class="hint">Estimations strictement indicatives. Aucun calcul France Travail officiel n'est remplacé par Intermitrack.</p>
-        </article>
-      </section>
+  </div>
+  <p class="itk-note">Résultats indicatifs — ils ne se substituent pas au calcul officiel de France Travail.</p>
+</div>
+</section>
 
     </section>
   </main>
