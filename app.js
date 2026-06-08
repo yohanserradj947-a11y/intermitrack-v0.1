@@ -14,7 +14,7 @@ let addMissionReturnView = "calendar";
 let current = new Date();
 let deferredInstallPrompt = null;
 let historyPage = 1;
-let areAdmissionDate = localStorage.getItem("areAdmissionDate") || "";
+let areAdmissionDate = "";
 const HISTORY_PER_PAGE = 6;
 let documentsPage = 1;
 const DOCS_PER_PAGE_DESKTOP = 9;
@@ -80,15 +80,6 @@ function setDefaultDates() {
   if ($("endDate")) $("endDate").valueAsDate = today;
   if ($("documentMonth")) $("documentMonth").value = String(today.getMonth() + 1);
   if ($("documentYear")) $("documentYear").value = String(today.getFullYear());
-  if ($("saveAreAdmissionDateBtn")) {
-    $("saveAreAdmissionDateBtn").addEventListener("click", () => {
-      const value = $("areAdmissionDate").value;
-      localStorage.setItem("areAdmissionDate", value);
-      areAdmissionDate = value;
-      render();
-      alert("Date d'admission ARE enregistrée.");
-    });
-  }
 }
 
 function storageKey(name) {
@@ -373,6 +364,7 @@ async function init() {
   currentUser = session?.user || null;
   if (!currentUser) { showAuth(); return; }
   showApp();
+  areAdmissionDate = localStorage.getItem(storageKey("areAdmissionDate")) || "";
   await loadMissions();
   await loadDocuments();
   render();
@@ -1346,18 +1338,15 @@ function setupEvents() {
   if ($("addMissionBackBtn")) $("addMissionBackBtn").addEventListener("click", () => activateView(addMissionReturnView));
   if ($("kmDistance")) $("kmDistance").addEventListener("input", updateKmPreview);
   if ($("kmRate")) $("kmRate").addEventListener("input", updateKmPreview);
- 
-  if ($("saveTaxSettingsBtn")) $("saveTaxSettingsBtn").addEventListener("click", () => {
-    setOtherIncome($("otherIncomeInput")?.value || 0);
-    setTaxParts($("taxPartsInput")?.value || 1);
-    setArePercue($("arePercue")?.value || 0);
-    const ci = $("congesSpectaclesInput")?.value;
-    if (ci !== undefined) setCongesSpectaclesInput(ci);
-    setAutresFraisReels($("autresFraisReels")?.value || 0);
-    setProfileType($("profileType")?.value || "technicien");
-    render();
-    alert("Paramètres enregistrés.");
-  });
+  if ($("saveAreAdmissionDateBtn")) {
+    $("saveAreAdmissionDateBtn").addEventListener("click", () => {
+      const value = $("areAdmissionDate").value;
+      localStorage.setItem(storageKey("areAdmissionDate"), value);
+      areAdmissionDate = value;
+      render();
+      alert("Date d'admission ARE enregistrée.");
+    });
+  }
  
   if ($("documentForm")) $("documentForm").addEventListener("submit", uploadDocument);
   if ($("refreshDocumentsBtn")) $("refreshDocumentsBtn").addEventListener("click", loadDocuments);

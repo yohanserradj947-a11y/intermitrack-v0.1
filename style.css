@@ -915,4 +915,29 @@ button { border: 0; border-radius: 15px; padding: 13px 16px; font-weight: 800; f
   .heroTop {
     align-items: stretch !important;
   }
+}@media (min-width: 721px) {
+  #view-previsions > .card,
+  #view-previsions > article {
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+}.itk-calc {
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+.itk-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));   /* le minmax(0,1fr) empêche le débordement */
+  gap: 20px;
+  align-items: start;
+}
+.itk-card {
+  min-width: 0;        /* crucial : permet aux cartes de rétrécir au lieu de pousser la grille */
+  box-sizing: border-box;
+}
+
+@media (max-width: 720px) {
+  .itk-grid { grid-template-columns: 1fr; }   /* une colonne sur mobile */
 }
