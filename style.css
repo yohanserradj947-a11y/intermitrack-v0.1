@@ -72,8 +72,17 @@ button { border: 0; border-radius: 15px; padding: 13px 16px; font-weight: 800; f
 
 .userbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
 
-.tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 18px; }
-.tab { background: white; color: var(--petrol); border: 1px solid var(--line); }
+.tabs {
+  display: flex;
+  overflow-x: auto;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab { background: white; color: var(--petrol); border: 1px solid var(--line); flex-shrink: 0; white-space: nowrap; }
 .tab.active { background: var(--petrol); color: white; }
 
 .view { display: none; }
@@ -899,4 +908,8 @@ button { border: 0; border-radius: 15px; padding: 13px 16px; font-weight: 800; f
   .actualisation-top { flex-direction: column; gap: 14px; }
   .act-table { min-width: 520px; }
   .actualisation-table-wrap { overflow-x: auto; }
+}@media (max-width: 720px) {
+  .new-cal-day { height: 64px !important; }
+  .new-cal-num { font-size: 13px !important; }
+  .mission-bar { height: 16px !important; font-size: 8px !important; bottom: 4px !important; }
 }
