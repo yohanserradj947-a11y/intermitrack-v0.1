@@ -15,8 +15,6 @@ let deferredInstallPrompt = null;
 let historyPage = 1;
 let areAdmissionDate = localStorage.getItem("areAdmissionDate") || "";
 const HISTORY_PER_PAGE = 6;
-let missionsDateFrom = null;
-let missionsDateTo = null;
 let documentsPage = 1;
 const DOCS_PER_PAGE_DESKTOP = 9;
 const DOCS_PER_PAGE_MOBILE = 5;
@@ -102,6 +100,15 @@ function getOtherIncome() { return Number(localStorage.getItem(storageKey("other
 function setOtherIncome(value) { localStorage.setItem(storageKey("other_income"), String(Number(value || 0))); }
 function getTaxParts() { return Number(localStorage.getItem(storageKey("tax_parts")) || 1); }
 function setTaxParts(value) { localStorage.setItem(storageKey("tax_parts"), String(Number(value || 1))); }
+function getArePercue() { return Number(localStorage.getItem(storageKey("are_percue")) || 0); }
+function setArePercue(v) { localStorage.setItem(storageKey("are_percue"), String(Number(v || 0))); }
+function getCongesSpectaclesInput() { return localStorage.getItem(storageKey("conges_spec")) || ""; }
+function setCongesSpectaclesInput(v) { localStorage.setItem(storageKey("conges_spec"), String(v)); }
+function getAutresFraisReels() { return Number(localStorage.getItem(storageKey("autres_frais")) || 0); }
+function setAutresFraisReels(v) { localStorage.setItem(storageKey("autres_frais"), String(Number(v || 0))); }
+function getProfileType() { return localStorage.getItem(storageKey("profile_type")) || "technicien"; }
+function setProfileType(v) { localStorage.setItem(storageKey("profile_type"), v || "technicien"); }
+
 function getTaxRate() { return Number(localStorage.getItem(storageKey("tax_rate")) || 0); }
 function setTaxRate(value) { localStorage.setItem(storageKey("tax_rate"), String(Number(value || 0))); }
 
@@ -145,22 +152,44 @@ function calculateProgressiveTax(taxableIncome, parts) {
 
 function calculateEstimatedAreDailyRate() {
   const hours = Number($("areHours")?.value || 0);
-  const dailyGross = Number($("areDailyGross")?.value || 0);
-  if (!hours || !dailyGross) {
-    if ($("previsionTaux")) $("previsionTaux").textContent = "Renseigne tes heures et ton brut journée";
+  const brutTotal = Number($("areDailyGross")?.value || 0);
+
+  if (!hours || !brutTotal) {
+    if ($("previsionSJRText")) $("previsionSJRText").textContent = "SJR : renseigne tes données";
+    if ($("previsionTaux")) $("previsionTaux").textContent = "Renseigne tes heures et ton brut total";
     if ($("previsionTauxDetails")) $("previsionTauxDetails").textContent = "Simulation indicative Annexe 8 technicien.";
     if ($("areProjectionText")) $("areProjectionText").textContent = "Renseigne tes données pour voir les projections.";
     return;
   }
-  const estimatedDays = hours / 8;
-  const referenceSalary = estimatedDays * dailyGross;
-  const MIN_ARE = 38, MAX_ARE = 174.8, AJ_MIN = 31.96;
-  const salaryPart = Math.min(referenceSalary, 14400) * 0.42 + Math.max(0, referenceSalary - 14400) * 0.05;
-  const hoursPart = Math.min(hours, 720) * 0.26 + Math.max(0, hours - 720) * 0.08;
-  const grossAre = (AJ_MIN * salaryPart / 5000) + (AJ_MIN * hoursPart / 507) + (AJ_MIN * 0.40);
-  const estimatedNetAre = Math.min(MAX_ARE, Math.max(MIN_ARE, grossAre)) * 0.89;
-  if ($("previsionTaux")) $("previsionTaux").textContent = "Environ " + estimatedNetAre.toFixed(2).replace(".", ",") + " € net / jour";
-  if ($("previsionTauxDetails")) $("previsionTauxDetails").textContent = "Jours estimés : " + estimatedDays.toFixed(1).replace(".", ",") + " • Salaire de référence : " + money(referenceSalary);
+
+  // SJR = Brut total / nombre de vacations
+  const vacations = missions.length > 0
+    ? missions.reduce((a, x) => a + Number(x.vacations || 0), 0)
+    : Math.round(hours / 8);
+  const sjr = vacations > 0 ? brutTotal / vacations : brutTotal / (hours / 8);
+
+  // Formule AJ brut Annexe 8 2025
+  // AJ brut = 40,4% × SJR + 12,47 €
+  const ajBrutFormule = (0.404 * sjr) + 12.47;
+  // Plafond = 75% du SJR
+  const plafond = sjr * 0.75;
+  // Plancher = 57% du SJR
+  const plancher = sjr * 0.57;
+  // Application plafond/plancher
+  const ajBrut = Math.min(plafond, Math.max(plancher, ajBrutFormule));
+  // AJ net = AJ brut après CSG/CRDS 6,7%
+  const ajNet = ajBrut * 0.933;
+
+  if ($("previsionSJRText")) $("previsionSJRText").textContent =
+    `SJR estimé : ${sjr.toFixed(2).replace(".", ",")} € (${vacations} vacation${vacations > 1 ? "s" : ""})`;
+  if ($("previsionTaux")) $("previsionTaux").textContent =
+    `${ajNet.toFixed(2).replace(".", ",")} €`;
+  if ($("prevAjBrut")) $("prevAjBrut").textContent = `${ajBrut.toFixed(2).replace(".", ",")} €`;
+  if ($("previsionSJR")) $("previsionSJR").textContent = `${sjr.toFixed(2).replace(".", ",")} €`;
+  if ($("prevAreResult")) $("prevAreResult").style.display = "block";
+  if ($("previsionTauxDetails")) $("previsionTauxDetails").textContent =
+    `AJ brut : ${ajBrut.toFixed(2).replace(".", ",")} € · Plafond : ${plafond.toFixed(2).replace(".", ",")} € · Plancher : ${plancher.toFixed(2).replace(".", ",")} €`;
+
   if ($("areProjectionText")) {
     let targets;
     if (hours < 507) targets = [507, 600, 700];
@@ -168,38 +197,66 @@ function calculateEstimatedAreDailyRate() {
     else if (hours < 900) targets = [900, 1000, 1100];
     else if (hours < 1200) targets = [1200, 1300, 1400];
     else { const base = Math.ceil(hours / 100) * 100; targets = [base, base + 100, base + 200]; }
-    const projectionLines = targets.map((targetHours) => {
-      const targetDays = targetHours / 8;
-      const targetSalary = targetDays * dailyGross;
-      const targetSalaryPart = Math.min(targetSalary, 14400) * 0.42 + Math.max(0, targetSalary - 14400) * 0.05;
-      const targetHoursPart = Math.min(targetHours, 720) * 0.26 + Math.max(0, targetHours - 720) * 0.08;
-      const targetGrossAre = (AJ_MIN * targetSalaryPart / 5000) + (AJ_MIN * targetHoursPart / 507) + (AJ_MIN * 0.40);
-      const targetNet = Math.min(MAX_ARE, Math.max(MIN_ARE, targetGrossAre)) * 0.89;
-      return `${targetHours}h → ${targetNet.toFixed(2).replace(".", ",")} € net/j`;
+
+    const lines = targets.map((targetH) => {
+      const targetVac = targetH / 8;
+      const targetSJR = brutTotal / (vacations > 0 ? vacations * (targetH / hours) : targetVac);
+      const targetAjBrut = (0.404 * targetSJR) + 12.47;
+      const targetNet = Math.min(targetSJR * 0.75, Math.max(targetSJR * 0.57, targetAjBrut)) * 0.933;
+      return `${targetH}h → ${targetNet.toFixed(2).replace(".", ",")} €/j net`;
     });
-    $("areProjectionText").innerHTML = projectionLines.join("<br>");
+    $("areProjectionText").innerHTML = lines.join("<br>");
   }
 }
 
+
 function calculateCarence() {
-  const sjm = Number($("carenceSJM")?.value || 0);
+  const sjr = Number($("carenceSJM")?.value || 0);
   const conges = Number($("carenceConges")?.value || 0);
   const supra = Number($("carenceSupra")?.value || 0);
-  if (!sjm) { alert("Renseigne ton Salaire Journalier Moyen."); return; }
+  const finContrat = $("carenceFinContrat")?.value;
+
+  if (!sjr) { alert("Renseigne ton SJR (Salaire Journalier de Référence)."); return; }
+
   const delaiAttente = 7;
-  const franchiseCongesRaw = conges > 0 ? Math.round(conges / sjm) : 0;
+  const franchiseCongesRaw = conges > 0 ? Math.round(conges / sjr) : 0;
   const franchiseConges = Math.min(franchiseCongesRaw, 36);
-  const franchiseSupraRaw = supra > 0 ? Math.round(supra / sjm) : 0;
+  const franchiseSupraRaw = supra > 0 ? Math.round(supra / sjr) : 0;
   const franchiseSupra = Math.min(franchiseSupraRaw, 75);
   const total = delaiAttente + franchiseConges + franchiseSupra;
-  $("carenceAttente").textContent = delaiAttente + "j";
-  $("carenceCongesResult").textContent = franchiseConges + "j";
-  $("carenceSupraResult").textContent = franchiseSupra + "j";
-  $("carenceTotal").textContent = total + "j";
-  $("carenceDetail").textContent = `Franchise congés : ${conges}€ ÷ ${sjm}€ = ${franchiseCongesRaw}j → plafonnée à ${franchiseConges}j` +
-    (supra > 0 ? ` | Franchise salaires : ${supra}€ ÷ ${sjm}€ = ${franchiseSupraRaw}j → plafonnée à ${franchiseSupra}j` : " | Franchise salaires : non applicable (0€)");
-  $("carenceResult").style.display = "block";
+
+  if ($("carenceAttente")) $("carenceAttente").textContent = delaiAttente + "j";
+  if ($("carenceCongesResult")) $("carenceCongesResult").textContent = franchiseConges + "j";
+  if ($("carenceSupraResult")) $("carenceSupraResult").textContent = franchiseSupra + "j";
+  if ($("carenceTotal")) $("carenceTotal").textContent = total + "j";
+
+  if ($("carenceDetail")) $("carenceDetail").textContent =
+    `Délai légal : 7j (fixe) | Franchise CP : ${conges}€ ÷ ${sjr.toFixed(2)}€ = ${franchiseCongesRaw}j → plafonnée à ${franchiseConges}j` +
+    (supra > 0
+      ? ` | Franchise supra : ${supra}€ ÷ ${sjr.toFixed(2)}€ = ${franchiseSupraRaw}j → plafonnée à ${franchiseSupra}j`
+      : " | Franchise supra : 0j (non applicable en CDDU)");
+
+  // Date estimation
+  if (finContrat && $("carenceDateEstimee")) {
+    const dateFin = new Date(finContrat + "T00:00:00");
+    const dateInscription = new Date(dateFin);
+    dateInscription.setDate(dateInscription.getDate() + 1);
+    const datePremier = new Date(dateInscription);
+    datePremier.setDate(datePremier.getDate() + total);
+    $("carenceDateEstimee").style.display = "block";
+    $("carenceDateEstimee").innerHTML =
+      `📅 <strong>Date estimée du 1er versement ARE</strong><br>` +
+      `Fin contrat : <strong>${formatDate(finContrat)}</strong> → ` +
+      `Inscription : <strong>${formatDate(dateInscription.toISOString().slice(0, 10))}</strong> → ` +
+      `1er versement estimé : <strong>${formatDate(datePremier.toISOString().slice(0, 10))}</strong><br>` +
+      `<small style="color:var(--muted);">Sous réserve du délai de traitement France Travail (variable).</small>`;
+  } else if ($("carenceDateEstimee")) {
+    $("carenceDateEstimee").style.display = "none";
+  }
+
+  if ($("carenceResult")) $("carenceResult").style.display = "block";
 }
+
 
 function monterWidgetParserDocuments() {
   const container = $("document-parser-container-documents");
@@ -334,8 +391,7 @@ async function loadMissions() {
     id: x.id, production: x.production, type: x.mission_type,
     date: x.mission_date, endDate: x.end_date || x.mission_date,
     hours: Number(x.hours || 0), gross: Number(x.gross_amount || 0),
-  kmDistance: Number(x.km_distance || 0), kmRate: Number(x.km_rate || 0), kmAmount: Number(x.km_amount || 0),
-vacations: Number(x.vacations || Math.round((x.hours || 0) / 8))
+    kmDistance: Number(x.km_distance || 0), kmRate: Number(x.km_rate || 0), kmAmount: Number(x.km_amount || 0)
   }));
   render();
 }
@@ -511,12 +567,11 @@ async function addMission(event) {
   if ($("endDate").value < $("date").value) { alert("La date de fin ne peut pas être avant la date de début."); return; }
   const payload = {
     user_id: currentUser.id, production: normalizeProductionName($("production").value),
-   mission_type: $("type").value, mission_date: $("date").value, end_date: $("endDate").value,
-hours: Number($("hours").value), gross_amount: Number($("gross").value),
-km_distance: Number($("kmDistance")?.value || 0), km_rate: Number($("kmRate")?.value || 0), km_amount: calculateKmAmount(),
-vacations: Number($("vacations")?.value || Math.round(Number($("hours").value || 0) / 8))
-};
-let result;
+    mission_type: $("type").value, mission_date: $("date").value, end_date: $("endDate").value,
+    hours: Number($("hours").value), gross_amount: Number($("gross").value),
+    km_distance: Number($("kmDistance")?.value || 0), km_rate: Number($("kmRate")?.value || 0), km_amount: calculateKmAmount()
+  };
+  let result;
   if (editingMissionId) result = await sb.from("missions").update(payload).eq("id", editingMissionId);
   else result = await sb.from("missions").insert(payload);
   const { error } = result;
@@ -625,6 +680,186 @@ function getProductionInitials(name) {
   return String(name || "---").replace(/[^a-zA-ZÀ-ÿ0-9\s]/g," ").trim().split(/\s+/).join("").slice(0, 3).toUpperCase() || "---";
 }
 
+
+function renderFiscalite(yearGross, yearMissions) {
+  const profileType = getProfileType();
+  const arePercue = getArePercue();
+  const congesInput = getCongesSpectaclesInput();
+  const congesSpec = congesInput !== "" ? Number(congesInput) : Math.round(yearGross * 0.10);
+  const otherIncome = getOtherIncome();
+  const taxParts = getTaxParts();
+  const totalKmAmount = yearMissions.reduce((a, x) => a + Number(x.kmAmount || 0), 0);
+  const autresFrais = getAutresFraisReels();
+
+  // Restaurer valeurs dans les champs
+  if ($("profileType") && !$("profileType").dataset.init) {
+    $("profileType").value = profileType;
+    $("profileType").dataset.init = "1";
+  }
+  if ($("arePercue") && !$("arePercue").dataset.init) {
+    if (arePercue) $("arePercue").value = arePercue;
+    $("arePercue").dataset.init = "1";
+  }
+  if ($("congesSpectaclesInput") && !$("congesSpectaclesInput").dataset.init) {
+    if (congesInput !== "") $("congesSpectaclesInput").value = congesInput;
+    $("congesSpectaclesInput").dataset.init = "1";
+  }
+  if ($("otherIncomeInput") && !$("otherIncomeInput").dataset.init) {
+    const s = otherIncome; if (s) $("otherIncomeInput").value = s;
+    $("otherIncomeInput").dataset.init = "1";
+  }
+  if ($("taxPartsInput") && !$("taxPartsInput").dataset.init) {
+    const s = taxParts; if (s) $("taxPartsInput").value = s;
+    $("taxPartsInput").dataset.init = "1";
+  }
+  if ($("autresFraisReels") && !$("autresFraisReels").dataset.init) {
+    if (autresFrais) $("autresFraisReels").value = autresFrais;
+    $("autresFraisReels").dataset.init = "1";
+  }
+
+  // Profil info + abattement spécifique
+  const profileInfos = {
+    technicien: {
+      hint: "Abattement forfaitaire standard : 10% du net imposable (plafonné à 14 555 €).",
+      forfait: (net) => Math.min(net * 0.10, 14555),
+      label: "Forfait 10% standard",
+      netCoeff: 0.775 // 22.5% cotisations salariales
+    },
+    musicien: {
+      hint: "Artiste musicien : forfait 14% (instruments, plafonné 14 555 €) + 5% (représentation) — cumulables.",
+      forfait: (net) => Math.min(net * 0.14, 14555) + (net * 0.05),
+      label: "Forfait 14% + 5% musicien",
+      netCoeff: 0.775
+    },
+    artiste: {
+      hint: "Artiste dramatique/lyrique/chorégraphique : abattement 18% sur cotisations (déjà inclus dans le net imposable de votre fiche de paie). Abattement déclaration : 10% standard.",
+      forfait: (net) => Math.min(net * 0.10, 14555),
+      label: "Forfait 10% (abattement 18% déjà dans fiche de paie)",
+      netCoeff: 0.79 // abattement 18% sur cotisations déjà appliqué
+    }
+  };
+  const profil = profileInfos[profileType] || profileInfos.technicien;
+
+  if ($("profileHint")) $("profileHint").textContent = profil.hint;
+  if ($("profileAbattementInfo")) {
+    $("profileAbattementInfo").className = "fi-info-box";
+    $("profileAbattementInfo").innerHTML =
+      `<strong>ℹ️ ${profil.label}</strong>${profil.hint}`;
+  }
+
+  // Calcul net imposable
+  const netSalaires = Math.round(yearGross * profil.netCoeff);
+  const netAre = arePercue; // ARE = net imposable direct
+  const netConges = Math.round(congesSpec * 0.88); // ~12% cotisations sur congés
+  const netTotal = netSalaires + netAre + netConges + otherIncome;
+  const totalFraisReels = totalKmAmount + autresFrais;
+
+  // Abattement forfaitaire vs frais réels
+  const forfait = Math.round(profil.forfait(netSalaires));
+  const baseAvecForfait = Math.max(0, netTotal - forfait);
+  const baseAvecReels = Math.max(0, netTotal - totalFraisReels);
+  const bestBase = Math.min(baseAvecForfait, baseAvecReels);
+  const useForfait = forfait >= totalFraisReels;
+
+  // CSG/CRDS non déductible (2.4% du brut salaires + 2.4% ARE)
+  const csgNonDed = Math.round((yearGross + arePercue) * 0.024);
+
+  // Projections
+  const observedMonths = getObservedMissionMonths(yearMissions);
+  const projectedGross = estimateAnnualProjection(yearGross, observedMonths);
+  const projectedBase = observedMonths > 0
+    ? Math.max(0, Math.round(projectedGross * profil.netCoeff) + netAre + netConges + otherIncome - (useForfait ? profil.forfait(Math.round(projectedGross * profil.netCoeff)) : totalFraisReels))
+    : bestBase;
+
+  // Impôt
+  const taxResult = (bestBase > 0 && taxParts > 0)
+    ? calculateProgressiveTax(bestBase, taxParts)
+    : null;
+
+  // Update DOM
+  if ($("fiscaliteGrossPreview")) $("fiscaliteGrossPreview").textContent = "Brut annuel (missions) : " + money(yearGross);
+  if ($("fiscaliteTotalRevenusPreview")) $("fiscaliteTotalRevenusPreview").textContent =
+    "Total revenus bruts estimés : " + money(yearGross + arePercue + congesSpec + otherIncome);
+  if ($("fiscaliteNetPreview")) $("fiscaliteNetPreview").textContent = "Net imposable estimé : " + money(netTotal);
+  if ($("fiscaliteKmDeductionPreview")) $("fiscaliteKmDeductionPreview").textContent = "Frais km déduits : " + money(totalKmAmount);
+  if ($("fiscaliteAbattementForfait")) $("fiscaliteAbattementForfait").textContent = money(forfait);
+  if ($("fiscaliteAbattementForfaitLabel")) $("fiscaliteAbattementForfaitLabel").textContent = profil.label;
+  if ($("fiscaliteAbattementReels")) $("fiscaliteAbattementReels").textContent =
+    `Frais réels totaux (km + autres) : ${money(totalFraisReels)}`;
+
+  if ($("fiscaliteComparaisonBox")) {
+    $("fiscaliteComparaisonBox").style.display = "grid";
+    $("fiscaliteComparaisonBox").className = "fi-comparaison";
+    $("fiscaliteComparaisonBox").innerHTML = `
+      <div class="fi-comp-card ${useForfait ? 'winner' : ''}">
+        <div class="fi-comp-title">Forfait</div>
+        <span class="fi-comp-badge ${useForfait ? 'rec' : 'alt'}">${useForfait ? '✓ Recommandé' : 'Standard'}</span>
+        <span class="fi-comp-amount">${money(forfait)}</span>
+        <div class="fi-comp-detail">${profil.label}</div>
+      </div>
+      <div class="fi-comp-card ${!useForfait && totalFraisReels > 0 ? 'winner' : ''}">
+        <div class="fi-comp-title">Frais réels</div>
+        <span class="fi-comp-badge ${!useForfait && totalFraisReels > 0 ? 'rec' : 'alt'}">${!useForfait && totalFraisReels > 0 ? '✓ Recommandé' : 'Alternative'}</span>
+        <span class="fi-comp-amount">${money(totalFraisReels)}</span>
+        <div class="fi-comp-detail">Km + autres frais</div>
+      </div>`;
+  }
+
+  if ($("fiscaliteOtherIncomePreview")) $("fiscaliteOtherIncomePreview").textContent = "Revenus complémentaires : " + money(otherIncome);
+  if ($("fiscaliteTotalIncomePreview")) $("fiscaliteTotalIncomePreview").textContent = "Base imposable estimée : " + money(bestBase);
+  if ($("fiscaliteCSGPreview")) $("fiscaliteCSGPreview").textContent = "CSG/CRDS non déductible (2,4%) : " + money(csgNonDed);
+
+  if ($("fiscaliteProjectionPreview")) {
+    $("fiscaliteProjectionPreview").textContent = observedMonths > 0
+      ? `Projection annuelle : ${money(projectedBase)} sur ${observedMonths} mois renseigné${observedMonths > 1 ? "s" : ""}`
+      : "Projection annuelle : ajoute une mission";
+  }
+
+  if (taxResult) {
+    if ($("fiscaliteTaxPreview")) $("fiscaliteTaxPreview").textContent = "Impôt estimé : " + money(taxResult.estimatedTax);
+    if ($("fiscaliteRatePreview")) $("fiscaliteRatePreview").textContent = "Taux moyen estimé : " + taxResult.averageRate.toFixed(1).replace(".", ",") + "%";
+    if ($("fiscaliteBracketPreview")) $("fiscaliteBracketPreview").textContent = "Tranche marginale : " + Math.round(taxResult.marginalRate) + "%";
+  } else {
+    if ($("fiscaliteTaxPreview")) $("fiscaliteTaxPreview").textContent = "Impôt estimé : renseigne tes parts";
+    if ($("fiscaliteRatePreview")) $("fiscaliteRatePreview").textContent = "Taux moyen estimé : -";
+    if ($("fiscaliteBracketPreview")) $("fiscaliteBracketPreview").textContent = "Tranche marginale : -";
+  }
+
+  if ($("fiscaliteKmPreview")) $("fiscaliteKmPreview").textContent = Math.round(yearMissions.reduce((a, x) => a + Number(x.kmDistance || 0), 0)) + " km enregistrés";
+  if ($("fiscaliteKmAmountPreview")) $("fiscaliteKmAmountPreview").textContent = money(totalKmAmount) + " estimés";
+  if ($("fiscaliteDeclarationPreview")) $("fiscaliteDeclarationPreview").textContent =
+    `Net imposable ~${money(netTotal)} · Frais ${useForfait ? "forfait" : "réels"} ${money(useForfait ? forfait : totalFraisReels)}`;
+  // Auto-remplir SJR carence depuis vacations
+  const totalVac = yearMissions.reduce((a, x) => a + Number(x.vacations || 0), 0);
+  const sjrAuto = totalVac > 0 ? yearGross / totalVac : 0;
+  if ($("carenceSJM") && !$("carenceSJM").dataset.userEdited && sjrAuto > 0) {
+    $("carenceSJM").value = sjrAuto.toFixed(2);
+    if ($("carenceSJMHint")) $("carenceSJMHint").textContent =
+      "Auto-calculé : " + money(yearGross) + " ÷ " + totalVac + " vacations = " + sjrAuto.toFixed(2).replace(".",",") + " €/vacation";
+  }
+  if ($("carenceSJM") && !$("carenceSJM").dataset.listenerSet) {
+    $("carenceSJM").dataset.listenerSet = "1";
+    $("carenceSJM").addEventListener("input", () => { $("carenceSJM").dataset.userEdited = "1"; });
+  }
+  if ($("previsionConges")) {
+    const ec = Math.round(yearGross * 0.10);
+    $("previsionConges").textContent = yearGross > 0 ? "Environ " + money(ec) + " brut" : "Estimation indicative";
+  }
+  if ($("previsionDroits") && typeof remaining !== "undefined") $("previsionDroits").textContent = remaining + "h restantes";
+
+  if ($("fiscalConseilBox") && yearGross > 0) {
+    const conseils = [];
+    if (!arePercue) conseils.push("💡 Pensez à renseigner votre ARE perçue — elle est imposable.");
+    if (!congesInput) conseils.push("💡 Vérifiez vos Congés Spectacles sur audiens.org — ils sont imposables.");
+    if (!useForfait && totalFraisReels > 0) conseils.push("✅ Vos frais réels dépassent le forfait. Déclarez-les !");
+    if (taxResult && taxResult.marginalRate >= 30) conseils.push("⚠️ Tranche à 30%+ : un conseiller fiscal peut vous aider à optimiser.");
+    if (conseils.length) {
+      $("fiscalConseilBox").className = "fi-conseil-box";
+      $("fiscalConseilBox").innerHTML = conseils.map(c => `<div style="margin-bottom:5px;">${c}</div>`).join("");
+    }
+  }
+}
+
 function render() {
   const now = new Date();
   const year = now.getFullYear();
@@ -648,48 +883,7 @@ function render() {
   if ($("remainingHours")) $("remainingHours").textContent = remaining;
   if ($("missionCount")) $("missionCount").textContent = sumMissionDays(selectedMonthMissions);
   if ($("progressText")) $("progressText").textContent = percent + "% de ton objectif intermittent";
-  if ($("fiscaliteGrossPreview")) $("fiscaliteGrossPreview").textContent = "Brut annuel : " + money(yearGross);
-
-  if ($("otherIncomeInput")) { const s = getOtherIncome(); if (!$("otherIncomeInput").value && s) $("otherIncomeInput").value = s; }
-  if ($("taxPartsInput")) { const s = getTaxParts(); if (!$("taxPartsInput").value && s) $("taxPartsInput").value = s; }
-
-  const totalKmAmountForTax = yearMissions.reduce((a, x) => a + Number(x.kmAmount || 0), 0);
-  const observedMonths = getObservedMissionMonths(yearMissions);
-  const projectedGross = estimateAnnualProjection(yearGross, observedMonths);
-  const projectedKmAmount = estimateAnnualProjection(totalKmAmountForTax, observedMonths);
-  const complementaryIncome = getOtherIncome();
-
-  if ($("fiscaliteNetPreview")) $("fiscaliteNetPreview").textContent = "Net imposable estimé : " + money(estimateTaxableIncomeFromGross(yearGross));
-  if ($("fiscaliteKmDeductionPreview")) $("fiscaliteKmDeductionPreview").textContent = "Frais km déduits : " + money(totalKmAmountForTax);
-  if ($("fiscaliteOtherIncomePreview")) $("fiscaliteOtherIncomePreview").textContent = "Revenus complémentaires : " + money(complementaryIncome);
-  if ($("fiscaliteTotalIncomePreview")) { const b = Math.max(0, estimateTaxableIncomeFromGross(yearGross) + complementaryIncome - totalKmAmountForTax); $("fiscaliteTotalIncomePreview").textContent = "Base imposable estimée : " + money(b); }
-  if ($("fiscaliteProjectionPreview")) {
-    if (observedMonths > 0) { const pb = Math.max(0, estimateTaxableIncomeFromGross(projectedGross) + complementaryIncome - projectedKmAmount); $("fiscaliteProjectionPreview").textContent = "Projection annuelle : " + money(pb) + " sur " + observedMonths + " mois renseigné" + (observedMonths > 1 ? "s" : ""); }
-    else $("fiscaliteProjectionPreview").textContent = "Projection annuelle : ajoute une mission";
-  }
-  if ($("fiscaliteTaxPreview")) {
-    const ctb = Math.max(0, estimateTaxableIncomeFromGross(yearGross) + complementaryIncome - totalKmAmountForTax);
-    const ptb = observedMonths > 0 ? Math.max(0, estimateTaxableIncomeFromGross(projectedGross) + complementaryIncome - projectedKmAmount) : ctb;
-    const taxableIncome = ptb || ctb;
-    const parts = getTaxParts();
-    if (taxableIncome > 0 && parts > 0) {
-      const taxResult = calculateProgressiveTax(taxableIncome, parts);
-      $("fiscaliteTaxPreview").textContent = "Impôt estimé projeté : " + money(taxResult.estimatedTax);
-      if ($("fiscaliteRatePreview")) $("fiscaliteRatePreview").textContent = "Taux moyen estimé : " + taxResult.averageRate.toFixed(1).replace(".", ",") + "%";
-      if ($("fiscaliteBracketPreview")) $("fiscaliteBracketPreview").textContent = "Tranche marginale estimée : " + Math.round(taxResult.marginalRate) + "%";
-    } else {
-      $("fiscaliteTaxPreview").textContent = "Impôt estimé : ajoute tes missions et tes parts";
-      if ($("fiscaliteRatePreview")) $("fiscaliteRatePreview").textContent = "Taux moyen estimé : -";
-      if ($("fiscaliteBracketPreview")) $("fiscaliteBracketPreview").textContent = "Tranche marginale estimée : -";
-    }
-  }
-  if ($("fiscaliteKmPreview")) $("fiscaliteKmPreview").textContent = Math.round(yearMissions.reduce((a, x) => a + Number(x.kmDistance || 0), 0)) + " km enregistrés";
-  if ($("fiscaliteKmAmountPreview")) $("fiscaliteKmAmountPreview").textContent = money(yearMissions.reduce((a, x) => a + Number(x.kmAmount || 0), 0)) + " estimés";
-  if ($("fiscaliteDeclarationPreview")) { const tkm = yearMissions.reduce((a, x) => a + Number(x.kmAmount || 0), 0); $("fiscaliteDeclarationPreview").textContent = "Brut " + money(yearGross) + " · Frais km " + money(tkm); }
-  if ($("previsionConges")) { const ec = Math.round(yearGross * 0.10); $("previsionConges").textContent = yearGross > 0 ? "Environ " + money(ec) + " brut" : "Estimation indicative"; }
-  if ($("previsionDroits")) $("previsionDroits").textContent = remaining + "h restantes";
-  if ($("previsionTaux") && !$("areHours")?.value && !$("areDailyGross")?.value) $("previsionTaux").textContent = "Renseigne tes heures et ton brut journée";
-  if ($("previsionCarence")) $("previsionCarence").textContent = "Non calculé pour le moment";
+  renderFiscalite(yearGross, yearMissions);
 
   renderChart(yearHours, plannedHours);
   renderHistory();
@@ -711,24 +905,24 @@ function renderChart(doneHours, plannedHours = 0) {
   const plannedDash = Math.min((plannedPercent / 100) * CIRC, CIRC - doneDash);
   if (!$("chart")) return;
   $("chart").innerHTML = `
-    <svg viewBox="0 0 300 215" width="100%" role="img" aria-label="Arc progression heures">
+    <svg viewBox="0 0 300 200" width="100%" role="img" aria-label="Arc progression heures">
       <defs>
-       <linearGradient id="g3done" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1F4E5F"/><stop offset="100%" stop-color="#1F4E5F"/></linearGradient>
-<linearGradient id="g3plan" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#F97316"/><stop offset="100%" stop-color="#F97316"/></linearGradient>
-<filter id="arcShadow"><feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.15"/></filter>
-</defs>
-<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="#EEF4F1" stroke-width="30" stroke-linecap="round"/>
-${doneDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3done)" stroke-width="30" stroke-linecap="round" stroke-dasharray="${doneDash} ${CIRC}" filter="url(#arcShadow)"/>` : ""}
-${plannedDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3plan)" stroke-width="30" stroke-linecap="round" stroke-dasharray="${plannedDash} ${CIRC}" stroke-dashoffset="${-doneDash}"/>` : ""}
-<text x="150" y="132" text-anchor="middle" font-size="44" font-weight="900" fill="#1F4E5F" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${totalPercent}%</text>
-<text x="150" y="155" text-anchor="middle" font-size="13" fill="#718096" font-family="-apple-system, BlinkMacSystemFont, sans-serif">potentiel total</text>
-<rect x="20" y="196" width="12" height="12" rx="3" fill="#1F4E5F"/>
-<text x="37" y="207" font-size="13" font-weight="700" fill="#2D3748" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Effectué · ${donePercent}%</text>
-<rect x="128" y="196" width="12" height="12" rx="3" fill="#F97316"/>
-<text x="145" y="207" font-size="13" font-weight="700" fill="#2D3748" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Prévu · ${plannedPercent}%</text>
-<rect x="228" y="196" width="12" height="12" rx="3" fill="#D8E4DF"/>
-<text x="245" y="207" font-size="13" font-weight="700" fill="#718096" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Restant</text>
-</svg>
+        <linearGradient id="g3done" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#7A9E7E"/><stop offset="100%" stop-color="#1F4E5F"/></linearGradient>
+        <linearGradient id="g3plan" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#FDBA74"/><stop offset="100%" stop-color="#F97316"/></linearGradient>
+        <filter id="arcShadow"><feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.15"/></filter>
+      </defs>
+      <path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="#EEF4F1" stroke-width="30" stroke-linecap="round"/>
+      ${doneDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3done)" stroke-width="30" stroke-linecap="round" stroke-dasharray="${doneDash} ${CIRC}" filter="url(#arcShadow)"/>` : ""}
+      ${plannedDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3plan)" stroke-width="30" stroke-linecap="round" stroke-dasharray="${plannedDash} ${CIRC}" stroke-dashoffset="${-doneDash}"/>` : ""}
+      <text x="150" y="132" text-anchor="middle" font-size="44" font-weight="900" fill="#1F4E5F" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${totalPercent}%</text>
+      <text x="150" y="155" text-anchor="middle" font-size="13" fill="#718096" font-family="-apple-system, BlinkMacSystemFont, sans-serif">potentiel total</text>
+      <rect x="20" y="182" width="12" height="12" rx="3" fill="#1F4E5F"/>
+      <text x="37" y="193" font-size="13" font-weight="700" fill="#2D3748" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Effectué · ${donePercent}%</text>
+      <rect x="128" y="182" width="12" height="12" rx="3" fill="#F97316"/>
+      <text x="145" y="193" font-size="13" font-weight="700" fill="#2D3748" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Prévu · ${plannedPercent}%</text>
+      <rect x="228" y="182" width="12" height="12" rx="3" fill="#D8E4DF"/>
+      <text x="245" y="193" font-size="13" font-weight="700" fill="#718096" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Restant</text>
+    </svg>
   `;
 }
 
@@ -775,111 +969,46 @@ function renderHistory() {
 function renderAllMissions() {
   const container = $("missionsGraphContainer");
   if (!container) return;
-
-  if (!missions.length) {
-    container.innerHTML = `<div class="empty">Aucune mission enregistrée. Ajoute des missions depuis le calendrier !</div>`;
-    return;
-  }
-
-  // Calcul période par défaut
-  const now = new Date();
-  const defaultStart = areAdmissionDate
-    ? new Date(areAdmissionDate + "T00:00:00")
-    : new Date(now.getFullYear(), 0, 1);
-
-  const fromDate = missionsDateFrom ? new Date(missionsDateFrom + "-01T00:00:00") : defaultStart;
-  const toDate = missionsDateTo ? new Date(missionsDateTo + "-01T00:00:00") : now;
-  // fin du mois to
-  const toDateEnd = missionsDateTo
-    ? new Date(toDate.getFullYear(), toDate.getMonth() + 1, 0, 23, 59, 59)
-    : now;
-
-  const isCustomPeriod = missionsDateFrom || missionsDateTo;
-
-  const periodeLabel = isCustomPeriod
-    ? `Période personnalisée : <em>${new Date(fromDate).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })} → ${new Date(toDateEnd).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}</em>`
-    : areAdmissionDate
-      ? `Depuis l'admission ARE : <em>${new Date(areAdmissionDate).toLocaleDateString("fr-FR")} → aujourd'hui</em>`
-      : `Depuis le 1er janvier ${now.getFullYear()} → aujourd'hui`;
-
-  // Filtrer missions selon période
-  const filteredMissions = missions.filter((m) => {
-    const d = new Date(m.date + "T00:00:00");
-    return d >= fromDate && d <= toDateEnd;
-  });
-
+  if (!missions.length) { container.innerHTML = `<div class="empty">Aucune mission enregistrée. Ajoute des missions depuis le calendrier !</div>`; return; }
   const groups = {};
-  filteredMissions.forEach((mission) => {
+  missions.forEach((mission) => {
     const key = normalizeProductionName(mission.production || "Sans production");
     if (!groups[key]) groups[key] = [];
     groups[key].push(mission);
   });
-
   const sorted = Object.keys(groups).map((name) => ({
     name, list: groups[name],
     gross: groups[name].reduce((a, x) => a + Number(x.gross || 0), 0),
     hours: Math.round(groups[name].reduce((a, x) => a + Number(x.hours || 0), 0) * 10) / 10,
-    vacations: groups[name].reduce((a, x) => a + Number(x.vacations || 0), 0),
-    count: groups[name].length
+    days: sumMissionDays(groups[name]), count: groups[name].length
   })).sort((a, b) => b.gross - a.gross);
-
   const totalGross = sorted.reduce((a, x) => a + x.gross, 0);
   const totalHours = Math.round(sorted.reduce((a, x) => a + x.hours, 0) * 10) / 10;
-  const totalVacations = sorted.reduce((a, x) => a + x.vacations, 0);
-  const totalMissions = filteredMissions.length;
-
+  const totalMissions = missions.length;
   const COLORS = ["#1F4E5F","#2A6174","#3A7A8F","#7A9E7E","#8AB08E","#9AC09E","#F97316","#FDBA74","#4A8FA5","#5A9FB5"];
   const CIRC = 2 * Math.PI * 75;
   let offset = 0;
   const arcs = sorted.map((p, i) => {
     const pct = totalGross > 0 ? p.gross / totalGross : 0;
     const dash = pct * CIRC;
-    const arc = `<circle cx="100" cy="100" r="75" fill="none" stroke="${COLORS[i % COLORS.length]}" stroke-width="28"
-      stroke-dasharray="${dash.toFixed(2)} ${CIRC.toFixed(2)}"
-      stroke-dashoffset="${(-offset).toFixed(2)}"
-      transform="rotate(-90 100 100)" stroke-linecap="butt"/>`;
+    const arc = `<circle cx="100" cy="100" r="75" fill="none" stroke="${COLORS[i % COLORS.length]}" stroke-width="28" stroke-dasharray="${dash.toFixed(2)} ${CIRC.toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}" transform="rotate(-90 100 100)" stroke-linecap="butt"/>`;
     offset += dash;
     return arc;
   });
-
-  const fromVal = missionsDateFrom || (areAdmissionDate ? areAdmissionDate.slice(0, 7) : `${now.getFullYear()}-01`);
-  const toVal = missionsDateTo || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-
   container.innerHTML = `
-    <div class="periode-bar">
-      <span class="periode-label">📅 Période</span>
-      <span class="periode-info" id="periodeInfo">${periodeLabel}</span>
-      <button class="btn-custom ${isCustomPeriod ? "active" : ""}" type="button" id="btnCustomPeriode">Personnaliser</button>
-      ${isCustomPeriod ? `<button class="btn-reset" type="button" id="btnResetPeriode">↺ Par défaut</button>` : ""}
-    </div>
-
-    <div class="custom-panel" id="customPanel" style="display:none;">
-      <label>De</label>
-      <input type="month" id="missionsFrom" value="${fromVal}"/>
-      <span style="color:var(--muted);font-size:16px;">→</span>
-      <label>À</label>
-      <input type="month" id="missionsTo" value="${toVal}"/>
-      <button class="btn-apply" type="button" id="btnApplyPeriode">Appliquer</button>
-    </div>
-
     <div class="missions-stats-row">
-      <div class="mstat-box"><strong>${sorted.length}</strong><span>Productions</span></div>
+      <div class="mstat-box"><strong>${totalMissions}</strong><span>Missions</span></div>
       <div class="mstat-box"><strong>${totalHours}h</strong><span>Heures totales</span></div>
       <div class="mstat-box highlight"><strong>${money(totalGross)}</strong><span>Brut total</span></div>
-      <div class="mstat-box"><strong>${totalVacations}</strong><span>Vacations</span></div>
+      <div class="mstat-box"><strong>${sorted.length}</strong><span>Productions</span></div>
     </div>
-
-    ${sorted.length ? `
     <div class="missions-graph-layout">
       <div class="missions-arc-wrap">
         <svg viewBox="0 0 200 200" width="100%">
           <circle cx="100" cy="100" r="75" fill="none" stroke="#F0F4F3" stroke-width="28"/>
           ${arcs.join("")}
         </svg>
-        <div class="missions-arc-center">
-          <strong>${money(totalGross)}</strong>
-          <span>brut total</span>
-        </div>
+        <div class="missions-arc-center"><strong>${money(totalGross)}</strong><span>brut total</span></div>
       </div>
       <div class="missions-legend">
         ${sorted.map((p, i) => `
@@ -895,98 +1024,27 @@ function renderAllMissions() {
         `).join("")}
       </div>
     </div>
-    ` : `<div class="empty">Aucune mission sur cette période.</div>`}
   `;
-
-  // Events
-  $("btnCustomPeriode").addEventListener("click", () => {
-    const panel = $("customPanel");
-    panel.style.display = panel.style.display === "none" ? "flex" : "none";
-  });
-
-  if ($("btnResetPeriode")) {
-    $("btnResetPeriode").addEventListener("click", () => {
-      missionsDateFrom = null;
-      missionsDateTo = null;
-      renderAllMissions();
-    });
-  }
-
-  $("btnApplyPeriode").addEventListener("click", () => {
-    missionsDateFrom = $("missionsFrom").value || null;
-    missionsDateTo = $("missionsTo").value || null;
-    renderAllMissions();
-  });
 }
 
 function openProductionMissions(productionName) {
-  const container = $("missionsGraphContainer");
-  if (!container) return;
-
-  const list = missions
-    .filter((m) => normalizeProductionName(m.production) === productionName)
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-  const totalVacations = list.reduce((a, x) => a + Number(x.vacations || 0), 0);
-  const totalHoursP = list.reduce((a, x) => a + Number(x.hours || 0), 0);
-  const totalGrossP = list.reduce((a, x) => a + Number(x.gross || 0), 0);
-
-  container.innerHTML = `
-    <div class="production-detail-head" style="margin-bottom:16px;">
-      <button class="ghost" type="button" id="backToGraphBtn">‹ Retour</button>
-      <div>
-        <h2>${escapeHtml(productionName)}</h2>
-        <p class="sub">${list.length} mission${list.length > 1 ? "s" : ""} · ${totalVacations} vacation${totalVacations > 1 ? "s" : ""} · ${totalHoursP}h · ${money(totalGrossP)}</p>
-      </div>
+  const allMissionsEl = $("allMissions");
+  if (!allMissionsEl) return;
+  const list = missions.filter((m) => m.production === productionName).sort((a, b) => new Date(b.date) - new Date(a.date));
+  allMissionsEl.innerHTML = `
+    <div class="production-detail-head">
+      <button class="ghost" type="button" data-production-back>‹ Retour</button>
+      <div><h2>${productionName}</h2><p class="sub">${list.length} mission${list.length > 1 ? "s" : ""} enregistrée${list.length > 1 ? "s" : ""}</p></div>
     </div>
-    <div class="mission-card-grid">
-      ${list.map((m) => `
-        <div class="mission-history-card">
-          <div class="mission-history-head">
-            <strong>${escapeHtml(formatPeriod(m.date, m.endDate))}</strong>
-            <span class="pill">${escapeHtml(m.type)}</span>
-          </div>
-          <div class="mission-history-info">
-            <span>🕒 ${m.hours}h</span>
-            <span>💼 <strong>${m.vacations || 0}</strong> vacation${(m.vacations || 0) > 1 ? "s" : ""}</span>
-            <span>€ ${money(m.gross)}</span>
-          </div>
-          <div class="mission-history-actions">
-            <button class="ghost" style="font-size:12px;padding:6px 10px;" type="button"
-              data-edit-vacation="${escapeHtml(m.id)}"
-              data-vacation-label="${escapeHtml(productionName + ' — ' + formatPeriod(m.date, m.endDate))}"
-              data-current-vacations="${m.vacations || 0}">✏️ Vacations</button>
-            <button class="edit-icon-btn" data-edit="${escapeHtml(m.id)}" type="button" title="Modifier">✏️</button>
-            <button class="delete-icon-btn" data-delete="${escapeHtml(m.id)}" type="button" title="Supprimer">✕</button>
-          </div>
-        </div>
-      `).join("")}
-    </div>
+    <div class="row header"><div>Période</div><div>Production</div><div>Mission</div><div>Heures</div><div>Brut</div><div></div></div>
+    <div id="productionMissionRows"></div>
   `;
-
-  $("backToGraphBtn").addEventListener("click", () => renderAllMissions());
-
-  container.querySelectorAll("[data-edit-vacation]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const id = btn.dataset.editVacation;
-      const label = btn.dataset.vacationLabel;
-      const current = btn.dataset.currentVacations;
-
-      $("modalVacationLabel").textContent = "Mission : " + label;
-      $("modalVacationInput").value = current;
-      $("modalVacations").classList.remove("hidden");
-
-      $("modalVacationCancel").onclick = () => $("modalVacations").classList.add("hidden");
-
-      $("modalVacationSave").onclick = async () => {
-        const vacations = Math.max(0, parseInt($("modalVacationInput").value) || 0);
-        const { error } = await sb.from("missions").update({ vacations }).eq("id", id);
-        if (error) { alert("Erreur : " + error.message); return; }
-        $("modalVacations").classList.add("hidden");
-        await loadMissions();
-        openProductionMissions(productionName);
-      };
-    });
+  const rows = $("productionMissionRows");
+  list.forEach((mission) => {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = `<div>${formatPeriod(mission.date, mission.endDate)}</div><div><b>${mission.production}</b></div><div><span class="pill">${mission.type}</span></div><div>${mission.hours}h</div><div>${money(mission.gross)}</div><div><button class="ghost" data-edit="${mission.id}" type="button">Modifier</button><button class="delete" data-delete="${mission.id}" type="button">X</button></div>`;
+    rows.appendChild(row);
   });
 }
 
@@ -997,7 +1055,7 @@ function moveMonth(amount) {
 }
 
 let calMissionPage = 0;
-const CAL_MISSIONS_PER_PAGE = window.innerWidth <= 720 ? 5 : 10;
+const CAL_MISSIONS_PER_PAGE = 3;
 
 function renderCalendar() {
   const calView = document.getElementById("view-calendar");
@@ -1051,53 +1109,17 @@ function renderCalendar() {
   for (let d = 1; d <= days; d++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
     const box = document.createElement("div");
-    box.className = "new-cal-day";
-    box.dataset.calendarDate = dateStr;
+    box.className = "new-cal-day"; box.dataset.calendarDate = dateStr;
     if (dateStr === todayStr) box.classList.add("today");
-
     const missionsOfDay = missions.filter((m) => isDateInPeriod(dateStr, m));
-    const col = (new Date(dateStr + "T00:00:00").getDay() + 6) % 7;
-    const isRowEnd = col === 6;
-    const isRowStart = col === 0;
-
-    box.innerHTML = `<span class="new-cal-num">${d}</span>`;
-
-    if (missionsOfDay.length > 0) {
+    if (missionsOfDay.length) {
       box.dataset.hasMission = "1";
-      const m = missionsOfDay[0];
-      const isFuture = new Date(m.date + "T00:00:00") >= todayDateOnly();
-      const isStart = dateStr === m.date;
-      const isEnd = dateStr === (m.endDate || m.date);
-      const isSingle = m.date === (m.endDate || m.date);
-      const colorClass = isFuture ? "planned" : "done";
-      const initials = getProductionInitials(m.production);
-      const totalH = missionsOfDay.reduce((a, x) => a + Number(x.hours || 0), 0);
-
-      let posClass = "";
-      let label = "";
-
-      if (isSingle) {
-        posClass = "single";
-        label = `<span class="mbar-label">${initials} · ${totalH}h</span>`;
-      } else if (isStart) {
-        posClass = isRowEnd ? "single" : "start";
-        label = `<span class="mbar-label">${initials} · ${totalH}h</span>`;
-      } else if (isEnd) {
-        posClass = "end";
-      } else if (isRowStart) {
-        posClass = "row-continue";
-      } else if (isRowEnd) {
-        posClass = "end";
-      } else {
-        posClass = "middle";
-      }
-
+      const isFuture = missionsOfDay.some((m) => new Date(m.date + "T00:00:00") >= todayDateOnly());
+      const isPast = missionsOfDay.some((m) => new Date((m.endDate || m.date) + "T00:00:00") < todayDateOnly());
+      if (isPast) box.classList.add("has-done");
       if (isFuture) box.classList.add("has-planned");
-      else box.classList.add("has-done");
-
-      box.innerHTML += `<div class="mission-bar ${colorClass} ${posClass}">${label}</div>`;
-    }
-
+      box.innerHTML = `<span class="new-cal-num">${d}</span><div class="new-cal-dot ${isFuture ? "dot-planned" : "dot-done"}"></div>`;
+    } else { box.innerHTML = `<span class="new-cal-num">${d}</span>`; }
     calendar.appendChild(box);
   }
   const usedSlots = start + days;
@@ -1121,7 +1143,7 @@ function renderCalMissions() {
   cards.innerHTML = visible.map((m) => {
     const isFuture = new Date(m.date + "T00:00:00") >= todayDateOnly();
     return `
-      <div class="new-mission-card ${isFuture ? "planned" : "done"}" style="cursor:pointer;" data-calendar-date="${escapeHtml(m.date)}">
+      <div class="new-mission-card ${isFuture ? "planned" : "done"}">
         <div class="new-mission-body"><div class="new-mission-prod">${escapeHtml(m.production)}</div><div class="new-mission-dates">${escapeHtml(formatPeriod(m.date, m.endDate))}</div></div>
         <div class="new-mission-right"><span class="new-mission-hours">${m.hours}h</span><span class="new-mission-type ${isFuture ? "type-planned" : "type-done"}">${escapeHtml(m.type)}</span></div>
       </div>
@@ -1192,78 +1214,22 @@ function buildActualisationText() {
 
 function renderActualisation() {
   if (!$("actualisationMonthPicker")) return;
-
-  let searchDate = new Date(current.getFullYear(), current.getMonth(), 1);
-  let list = [];
-  let attempts = 0;
-
-  while (attempts < 24) {
-    list = monthMissions(searchDate)
-      .filter((m) => new Date(m.date + "T00:00:00") <= todayDateOnly())
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
-    if (list.length > 0) break;
-    searchDate.setMonth(searchDate.getMonth() - 1);
-    attempts++;
-  }
-
+  const list = monthMissions(current).filter((m) => new Date(m.date + "T00:00:00") <= todayDateOnly()).sort((a, b) => new Date(a.date) - new Date(b.date));
   const totalHours = Math.round(sumDone(list) * 10) / 10;
   const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
-
-  $("actualisationMonthPicker").value = `${searchDate.getFullYear()}-${String(searchDate.getMonth() + 1).padStart(2, "0")}`;
-
-  const monthLabel = searchDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
-  if ($("actualisationMonthTitle")) $("actualisationMonthTitle").textContent = monthLabel;
-
-  if (!list.length) {
-    if ($("actualisationStats")) $("actualisationStats").style.display = "none";
-    if ($("actualisationTableWrap")) $("actualisationTableWrap").style.display = "none";
-    if ($("actualisationActions")) $("actualisationActions").style.display = "none";
-    return;
-  }
-
-  if ($("actualisationStats")) $("actualisationStats").style.display = "grid";
-  if ($("actualisationTableWrap")) $("actualisationTableWrap").style.display = "block";
-  if ($("actualisationActions")) $("actualisationActions").style.display = "grid";
-
-  if ($("actualisationCount")) $("actualisationCount").textContent = list.length;
+  const totalDays = sumMissionDays(list);
+  if ($("actualisationMonthPicker")) $("actualisationMonthPicker").value = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}`;
+  if ($("actualisationDays")) $("actualisationDays").textContent = totalDays;
   if ($("actualisationHours")) $("actualisationHours").textContent = totalHours + "h";
   if ($("actualisationGross")) $("actualisationGross").textContent = money(totalGross);
-
+  if ($("actualisationCount")) $("actualisationCount").textContent = list.length;
   const container = $("actualisationList");
   if (!container) return;
-
-  const rows = list.map((mission) => `
-    <tr>
-      <td class="act-td-periode">${escapeHtml(formatPeriod(mission.date, mission.endDate))}</td>
-      <td class="act-td-prod">${escapeHtml(mission.production)}</td>
-      <td class="act-td-type"><span class="pill">${escapeHtml(mission.type)}</span></td>
-      <td class="act-td-h">${escapeHtml(String(mission.hours))}h</td>
-      <td class="act-td-brut">${escapeHtml(money(mission.gross))}</td>
-    </tr>
-  `).join("");
-
-  container.innerHTML = `
-    <table class="act-table">
-      <thead>
-        <tr>
-          <th>Période</th>
-          <th>Production</th>
-          <th>Mission</th>
-          <th>Heures</th>
-          <th>Brut</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows}
-        <tr class="act-total-row">
-          <td colspan="3"><strong>Total</strong></td>
-          <td><strong>${totalHours}h</strong></td>
-          <td><strong>${money(totalGross)}</strong></td>
-        </tr>
-      </tbody>
-    </table>
-  `;
+  if (!list.length) { container.innerHTML = `<div class="empty">Aucune mission effectuée sur ce mois.</div>`; return; }
+  const rows = list.map((mission) => `<tr><td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;white-space:nowrap;">${escapeHtml(formatPeriod(mission.date, mission.endDate))}</td><td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;"><strong style="color:#1F4E5F;">${escapeHtml(mission.production)}</strong></td><td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;">${escapeHtml(mission.type)}</td><td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;text-align:right;white-space:nowrap;">${escapeHtml(mission.hours)}h</td><td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;font-size:14px;text-align:right;white-space:nowrap;">${escapeHtml(money(mission.gross))}</td></tr>`).join("");
+  container.innerHTML = `<div style="margin-top:14px;border:1px solid #E2E8F0;border-radius:18px;overflow:hidden;background:#FFFFFF;box-shadow:0 8px 20px rgba(31,78,95,.04);"><div style="padding:14px 16px;background:#F8FAF9;border-bottom:1px solid #E2E8F0;"><strong style="display:block;color:#1F4E5F;font-size:16px;">Détail des missions du mois</strong><span style="display:block;color:#718096;font-size:12px;margin-top:3px;">Récapitulatif prêt pour l'actualisation</span></div><div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;min-width:620px;"><thead><tr><th style="padding:11px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Période</th><th style="padding:11px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Production</th><th style="padding:11px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Mission</th><th style="padding:11px 10px;text-align:right;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Heures</th><th style="padding:11px 10px;text-align:right;font-size:11px;text-transform:uppercase;color:#718096;border-bottom:2px solid #E2E8F0;">Brut</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
+
 async function copyActualisation() {
   const text = buildActualisationText();
   await navigator.clipboard.writeText(text);
@@ -1318,7 +1284,13 @@ function setupEvents() {
   if ($("saveTaxSettingsBtn")) $("saveTaxSettingsBtn").addEventListener("click", () => {
     setOtherIncome($("otherIncomeInput")?.value || 0);
     setTaxParts($("taxPartsInput")?.value || 1);
-    render(); alert("Nombre de parts enregistré.");
+    setArePercue($("arePercue")?.value || 0);
+    const ci = $("congesSpectaclesInput")?.value;
+    if (ci !== undefined) setCongesSpectaclesInput(ci);
+    setAutresFraisReels($("autresFraisReels")?.value || 0);
+    setProfileType($("profileType")?.value || "technicien");
+    render();
+    alert("Paramètres enregistrés.");
   });
 
   if ($("documentForm")) $("documentForm").addEventListener("submit", uploadDocument);
@@ -1344,27 +1316,19 @@ function setupEvents() {
   $("calendarPrevBtn") && $("calendarPrevBtn").addEventListener("click", () => moveMonth(-1));
   $("calendarNextBtn") && $("calendarNextBtn").addEventListener("click", () => moveMonth(1));
 
-  if ($("actualisationPrevBtn")) $("actualisationPrevBtn").addEventListener("click", () => { moveMonth(-1); renderActualisation(); });
-if ($("actualisationNextBtn")) $("actualisationNextBtn").addEventListener("click", () => { moveMonth(1); renderActualisation(); });
- if ($("actualisationMonthPicker")) {
-  $("actualisationMonthPicker").addEventListener("change", () => {
-    const value = $("actualisationMonthPicker").value;
-    if (!value) return;
-    const [year, month] = value.split("-");
-    current = new Date(Number(year), Number(month) - 1, 1);
-    renderActualisation();
-  });
-}
+  if ($("actualisationPrevBtn")) $("actualisationPrevBtn").addEventListener("click", () => moveMonth(-1));
+  if ($("actualisationNextBtn")) $("actualisationNextBtn").addEventListener("click", () => moveMonth(1));
+  if ($("actualisationMonthPicker")) {
+    $("actualisationMonthPicker").addEventListener("change", () => {
+      const value = $("actualisationMonthPicker").value;
+      if (!value) return;
+      const [year, month] = value.split("-");
+      current = new Date(Number(year), Number(month) - 1, 1); render();
+    });
   }
 
   if ($("copyActualisationBtn")) $("copyActualisationBtn").addEventListener("click", copyActualisation);
   if ($("pdfActualisationBtn")) $("pdfActualisationBtn").addEventListener("click", generateActualisationPDF);
-  if ($("franceTravailBtn")) $("franceTravailBtn").addEventListener("click", () => {
-  $("modalFranceTravail").classList.remove("hidden");
-});
-if ($("modalFtClose")) $("modalFtClose").addEventListener("click", () => {
-  $("modalFranceTravail").classList.add("hidden");
-});
 
   if ($("copyIcsBtn")) $("copyIcsBtn").addEventListener("click", () => {
     const url = getCalendarIcsUrl();
@@ -1410,7 +1374,7 @@ if ($("modalFtClose")) $("modalFtClose").addEventListener("click", () => {
     await deferredInstallPrompt.userChoice;
     deferredInstallPrompt = null;
   });
-
+}
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => { navigator.serviceWorker.register("service-worker.js"); });

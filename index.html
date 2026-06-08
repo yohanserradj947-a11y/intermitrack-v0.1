@@ -7,6 +7,10 @@
   <meta name="description" content="Le tableau de bord des intermittents." />
   <meta name="theme-color" content="#1F4E5F" />
   <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="style.css?v=3" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -14,7 +18,7 @@
     #authBox {
       position: fixed !important;
       inset: 0 !important;
-      z-index: 500 !important;
+z-index: 500 !important;
       overflow-y: auto !important;
       background: #F2F6F5 !important;
       display: block !important;
@@ -154,8 +158,7 @@
   <main class="app">
     <header class="top">
       <div class="brand">
-        <div class="logo">I</div>
-        <div>
+<div class="logo"><img src="icon-512.png" alt="Intermitrack" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></div>        <div>
           <h1>Intermitrack</h1>
           <p class="tag">Le tableau de bord des intermittents.</p>
         </div>
@@ -172,7 +175,7 @@
       <!-- NAV -->
       <nav class="lp-nav">
         <div class="lp-brand">
-          <div class="lp-logo">I</div>
+         <div class="lp-logo"><img src="icon-512.png" alt="Intermitrack" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></div>
           <span class="lp-brand-name">Intermitrack</span>
         </div>
         <div class="lp-nav-btns">
@@ -265,8 +268,7 @@
 
       <!-- FOOTER -->
       <div class="lp-footer">
-        <div class="lp-footer-brand"><div class="lp-footer-logo">I</div>Intermitrack · Version Beta</div>
-        <nav>
+<div class="lp-logo"><img src="icon-512.png" alt="Intermitrack" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></div>        <nav>
           <a href="mentions-legales.html" target="_blank">Mentions légales</a>
           <a href="confidentialite.html" target="_blank">Confidentialité</a>
           <a href="cgu.html" target="_blank">CGU</a>
@@ -280,8 +282,7 @@
       <div class="lp-modal-overlay" id="loginModal">
         <div class="lp-modal-box">
           <button class="lp-modal-close" onclick="closeLoginModal()">✕</button>
-          <div class="home-brandmark">I</div>
-          <h2>Intermitrack</h2>
+<div class="home-brandmark"><img src="icon-512.png" alt="Intermitrack" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></div>
           <p class="home-mainline">Toute votre intermittence au même endroit.</p>
           <div class="authTabs">
             <button type="button" class="ghost" id="loginModeBtn">Connexion</button>
@@ -330,21 +331,15 @@
 
     <!-- ===== APP ===== -->
     <section class="appBox hidden" id="appBox">
-    <nav class="tabs-wrapper">
-  <div class="fade-left" id="tabsFadeLeft"></div>
-  <div class="fade-right" id="tabsFadeRight"></div>
-  <div class="arrow-left" id="tabsArrowLeft">‹</div>
-  <div class="arrow-right" id="tabsArrowRight">›</div>
-  <div class="tabs" id="tabsScroll">
-    <button class="tab active" type="button" data-view="dashboard">Tableau de bord</button>
-    <button class="tab" type="button" data-view="missions">Missions</button>
-    <button class="tab" type="button" data-view="calendar">Calendrier</button>
-    <button class="tab" type="button" data-view="actualisation">Actualisation</button>
-    <button class="tab" type="button" data-view="documents">Documents</button>
-    <button class="tab" type="button" data-view="fiscalite">Fiscalité</button>
-    <button class="tab" type="button" data-view="previsions">Prévisions</button>
-  </div>
-</nav>
+      <nav class="tabs">
+        <button class="tab active" type="button" data-view="dashboard">Tableau de bord</button>
+        <button class="tab" type="button" data-view="missions">Missions</button>
+        <button class="tab" type="button" data-view="calendar">Calendrier</button>
+        <button class="tab" type="button" data-view="actualisation">Actualisation</button>
+        <button class="tab" type="button" data-view="documents">Documents</button>
+        <button class="tab" type="button" data-view="fiscalite">Fiscalité</button>
+        <button class="tab" type="button" data-view="previsions">Prévisions</button>
+      </nav>
 
       <section class="view active" id="view-dashboard">
         <article class="card hero">
@@ -518,34 +513,139 @@
         </article>
       </section>
 
+      <!-- FISCALITE -->
       <section class="view" id="view-fiscalite">
         <article class="card">
           <h2>Fiscalité</h2>
-          <p class="sub">Prépare tes informations fiscales à partir de tes missions, revenus et frais professionnels.</p>
+          <p class="sub">Estimations indicatives pour intermittents du spectacle. À toujours vérifier avant déclaration officielle sur impots.gouv.fr</p>
           <div class="fiscalite-grid">
+
             <div class="fiscalite-card">
-              <span class="mini-label">Estimation</span><h3>Estimation d'impôt</h3>
-              <p>Estimation indicative calculée automatiquement à partir du brut enregistré dans tes missions.</p>
-              <label for="otherIncomeInput">Revenus complémentaires imposables annuels (€)</label>
-              <input id="otherIncomeInput" type="number" min="0" step="1" placeholder="ARE, autres salaires, activité indépendante..." />
+              <span class="mini-label">Profil &amp; Revenus</span>
+              <h3>Vos revenus imposables</h3>
+              <p>Tous les revenus à déclarer en traitements et salaires.</p>
+              <label for="profileType">Votre statut</label>
+              <select id="profileType">
+                <option value="technicien">Technicien du spectacle</option>
+                <option value="musicien">Artiste musicien / choriste</option>
+                <option value="artiste">Artiste dramatique / lyrique / chorégraphique</option>
+              </select>
+              <div class="fi-result-row fi-highlight" style="margin-top:14px;">
+                <span class="fi-label">Brut annuel (missions) <span class="fi-auto">✓ auto</span></span>
+                <span class="fi-value" id="fiscaliteGrossPreview">0 €</span>
+              </div>
+              <label for="arePercue" style="margin-top:12px;">ARE perçue sur l'année (€)</label>
+              <input id="arePercue" type="number" min="0" step="1" placeholder="Ex : 4 200"/>
+              <p class="hint">⚠️ L'ARE est imposable — à ne pas oublier !</p>
+              <label for="congesSpectaclesInput">Congés Spectacles reçus (€)</label>
+              <input id="congesSpectaclesInput" type="number" min="0" step="1" placeholder="Estimé auto (~10% du brut)"/>
+              <p class="hint">⚠️ Les Congés Spectacles sont imposables. Vérifiez sur audiens.org</p>
+              <label for="otherIncomeInput">Autres revenus imposables (€)</label>
+              <input id="otherIncomeInput" type="number" min="0" step="1" placeholder="0"/>
+              <div class="fi-result-row fi-highlight" style="margin-top:14px;">
+                <span class="fi-label">Total revenus bruts estimés</span>
+                <span class="fi-value" id="fiscaliteTotalRevenusPreview">0 €</span>
+              </div>
+            </div>
+
+            <div class="fiscalite-card">
+              <span class="mini-label">Déductions</span>
+              <h3>Abattements &amp; frais réels</h3>
+              <div id="profileAbattementInfo" class="fi-info-box"></div>
               <label for="taxPartsInput">Nombre de parts fiscales</label>
-              <input id="taxPartsInput" type="number" min="0.5" step="0.5" placeholder="Ex : 1" />
+              <input id="taxPartsInput" type="number" min="0.5" step="0.5" placeholder="Ex : 1"/>
+              <p class="hint">1 = célibataire · 2 = couple · +0,5 par enfant</p>
+              <label for="autresFraisReels">Autres frais réels (repas, matériel…) (€)</label>
+              <input id="autresFraisReels" type="number" min="0" step="1" placeholder="0"/>
+              <div style="margin-top:16px;display:grid;gap:8px;">
+                <div class="fi-result-row">
+                  <span class="fi-label">Frais km déduits <span class="fi-auto">✓ auto</span></span>
+                  <span class="fi-value" id="fiscaliteKmDeductionPreview">0 €</span>
+                </div>
+                <div class="fi-result-row">
+                  <span class="fi-label" id="fiscaliteAbattementForfaitLabel">Forfait 10%</span>
+                  <span class="fi-value" id="fiscaliteAbattementForfait">0 €</span>
+                </div>
+                <div class="fi-result-row">
+                  <span class="fi-label">Frais réels totaux</span>
+                  <span class="fi-value" id="fiscaliteAbattementReels">0 €</span>
+                </div>
+              </div>
+              <div id="fiscaliteComparaisonBox" class="fi-comparaison" style="display:none;"></div>
+              <div class="fi-result-row fi-highlight" style="margin-top:12px;">
+                <span class="fi-label">Net imposable estimé</span>
+                <span class="fi-value" id="fiscaliteNetPreview">0 €</span>
+              </div>
               <button class="ghost fiscal-small-btn" type="button" id="saveTaxSettingsBtn">Calculer / enregistrer</button>
-              <strong id="fiscaliteGrossPreview">Brut annuel : 0 EUR</strong>
-              <strong id="fiscaliteNetPreview">Net imposable estimé : 0 EUR</strong>
-              <strong id="fiscaliteKmDeductionPreview">Frais km déduits : 0 EUR</strong>
-              <strong id="fiscaliteOtherIncomePreview">Revenus complémentaires : 0 EUR</strong>
-              <strong id="fiscaliteTotalIncomePreview">Base imposable estimée : 0 EUR</strong>
-              <strong id="fiscaliteProjectionPreview">Projection annuelle : données insuffisantes</strong>
-              <strong id="fiscaliteTaxPreview">Impôt estimé : renseigne tes parts</strong>
-              <strong id="fiscaliteRatePreview">Taux moyen estimé : -</strong>
-              <strong id="fiscaliteBracketPreview">Tranche marginale estimée : -</strong>
+            </div>
+
+            <div class="fiscalite-card">
+              <span class="mini-label">Impôt estimé 2025</span>
+              <h3>Estimation indicative</h3>
+              <p>Barème progressif 2025. Ne remplace pas votre déclaration sur impots.gouv.fr</p>
+              <div style="display:grid;gap:8px;margin-top:12px;">
+                <div class="fi-result-row">
+                  <span class="fi-label">Revenus complémentaires</span>
+                  <span class="fi-value" id="fiscaliteOtherIncomePreview">0 €</span>
+                </div>
+                <div class="fi-result-row fi-highlight">
+                  <span class="fi-label">Base imposable estimée</span>
+                  <span class="fi-value" id="fiscaliteTotalIncomePreview">0 €</span>
+                </div>
+                <div class="fi-result-row">
+                  <span class="fi-label">Projection annuelle</span>
+                  <span class="fi-value fi-muted" id="fiscaliteProjectionPreview">—</span>
+                </div>
+                <div class="fi-result-row fi-big">
+                  <span class="fi-label">Impôt estimé</span>
+                  <span class="fi-value" id="fiscaliteTaxPreview">Renseigne tes parts</span>
+                </div>
+                <div class="fi-result-row">
+                  <span class="fi-label">Taux moyen estimé</span>
+                  <span class="fi-value" id="fiscaliteRatePreview">—</span>
+                </div>
+                <div class="fi-result-row">
+                  <span class="fi-label">Tranche marginale</span>
+                  <span class="fi-value" id="fiscaliteBracketPreview">—</span>
+                </div>
+                <div class="fi-result-row fi-warning">
+                  <span class="fi-label">CSG/CRDS non déductible (2,4%)</span>
+                  <span class="fi-value" id="fiscaliteCSGPreview">—</span>
+                </div>
+              </div>
+              <div id="fiscalConseilBox"></div>
               <small>Estimation non officielle — indicative uniquement.</small>
             </div>
-            <div class="fiscalite-card"><span class="mini-label">Frais réels</span><h3>Frais kilométriques</h3><p>Totalise les kilomètres et frais estimés renseignés dans tes missions.</p><strong id="fiscaliteKmPreview">0 km</strong><strong id="fiscaliteKmAmountPreview">0 EUR estimés</strong></div>
-            <div class="fiscalite-card"><span class="mini-label">Déclaration</span><h3>Déclaration pré-remplie</h3><p>Récapitulatif préparatoire à vérifier avant déclaration officielle.</p><strong id="fiscaliteDeclarationPreview">Brut + frais km à vérifier</strong></div>
+
+            <div class="fiscalite-card">
+              <span class="mini-label">Frais réels</span>
+              <h3>Frais kilométriques</h3>
+              <p>Totalisés depuis vos missions enregistrées.</p>
+              <div class="fi-result-row fi-highlight" style="margin-top:12px;">
+                <span class="fi-label">Kilomètres</span>
+                <span class="fi-value" id="fiscaliteKmPreview">0 km</span>
+              </div>
+              <div class="fi-result-row" style="margin-top:8px;">
+                <span class="fi-label">Montant estimé</span>
+                <span class="fi-value" id="fiscaliteKmAmountPreview">0 €</span>
+              </div>
+            </div>
+
+            <div class="fiscalite-card">
+              <span class="mini-label">Déclaration</span>
+              <h3>Récapitulatif déclaratif</h3>
+              <p>Préparatoire — à vérifier avant déclaration officielle.</p>
+              <div class="fi-result-row fi-highlight" style="margin-top:12px;">
+                <span class="fi-label" id="fiscaliteDeclarationPreview">Net imposable à vérifier</span>
+              </div>
+              <div class="fi-info-box" style="margin-top:12px;">
+                <strong>📋 À déclarer en traitements &amp; salaires</strong>
+                Brut intermittent + ARE + Congés Spectacles + autres revenus.
+              </div>
+            </div>
+
           </div>
-          <p class="hint">Les montants affichés seront des estimations indicatives. Ils devront toujours être vérifiés avant toute déclaration fiscale.</p>
+          <p class="hint">Les montants affichés sont des estimations indicatives. Ils devront toujours être vérifiés avant toute déclaration fiscale.</p>
         </article>
       </section>
 
@@ -554,39 +654,96 @@
           <h2>Prévisions</h2>
           <p class="sub">Anticipe tes droits, tes congés, tes carences et ton taux journalier.</p>
           <div class="previsions-grid">
+
             <div class="prevision-card">
-              <span class="mini-label">Annexe 8</span><h3>Prévision taux journalier</h3>
-              <p>Simulation indicative technicien basée sur une journée de référence de 8h.</p>
-              <label for="areHours">Nombre d'heures retenues</label><input id="areHours" type="number" min="0" step="1" placeholder="Ex : 580" />
-              <label for="areDailyGross">Brut moyen par journée de 8h (€)</label><input id="areDailyGross" type="number" min="0" step="0.01" placeholder="Ex : 230" />
-              <p class="hint">Le salaire de référence est estimé automatiquement : heures ÷ 8 × brut journée.</p>
+              <span class="mini-label">Annexe 8 · Techniciens</span>
+              <h3>Simulation taux journalier ARE</h3>
+              <p>Formule officielle 2025 — simulation indicative uniquement.</p>
+              <label for="areHours">Heures retenues sur la période</label>
+              <input id="areHours" type="number" min="0" step="1" placeholder="Min 507h pour ouvrir les droits"/>
+              <label for="areDailyGross">Brut total sur la période (€)</label>
+              <input id="areDailyGross" type="number" min="0" step="0.01" placeholder="Ex : 8 510"/>
+              <p class="hint" id="sjrAutoHint">SJR calculé auto depuis vos vacations enregistrées.</p>
               <button class="ghost fiscal-small-btn" type="button" id="calculateAreBtn">Calculer</button>
-              <strong id="previsionTaux">Renseigne tes heures et ton brut journée</strong>
-              <small id="previsionTauxDetails">Simulation indicative. Ne remplace pas le calcul officiel France Travail.</small>
-              <div class="projection-box"><strong>Projection rapide</strong><p id="areProjectionText">Renseigne tes données pour voir les projections.</p></div>
-            </div>
-            <div class="prevision-card"><span class="mini-label">Congés</span><h3>Estimation Congés Spectacles</h3><p>Estimation brute indicative basée sur environ 10% du brut enregistré.</p><strong id="previsionConges">Estimation indicative</strong><small>Hors cotisations, régularisations et règles particulières.</small></div>
-            <div class="prevision-card"><span class="mini-label">Droits</span><h3>Réouverture des droits</h3><p>Suis ton avancement vers les 507 heures.</p><strong id="previsionDroits">507h restantes</strong></div>
-            <div class="prevision-card">
-              <span class="mini-label">Annexe 8</span><h3>Calcul des franchises</h3>
-              <p>Estimation des jours de carence avant le versement de ton ARE.</p>
-              <label for="carenceSJM">Salaire Journalier Moyen (€)</label><input id="carenceSJM" type="number" min="0" step="0.01" placeholder="Ex : 230" />
-              <label for="carenceConges">Indemnités congés payés reçues (€)</label><input id="carenceConges" type="number" min="0" step="0.01" placeholder="Ex : 800" />
-              <label for="carenceSupra">Indemnités supra-légales (€)</label><input id="carenceSupra" type="number" min="0" step="0.01" placeholder="Ex : 0 (souvent 0 en CDDU)" />
-              <button class="ghost fiscal-small-btn" type="button" id="calculateCarenceBtn">Calculer</button>
-              <div id="carenceResult" style="display:none;margin-top:14px;">
-                <div class="carence-grid">
-                  <div class="carence-box"><strong id="carenceAttente">7j</strong><span>Délai d'attente</span></div>
-                  <div class="carence-box"><strong id="carenceCongesResult">0j</strong><span>Franchise congés</span></div>
-                  <div class="carence-box"><strong id="carenceSupraResult">0j</strong><span>Franchise salaires</span></div>
-                  <div class="carence-box carence-total"><strong id="carenceTotal">7j</strong><span>Total jours de carence</span></div>
+              <div class="prev-are-result" id="prevAreResult" style="display:none;">
+                <div class="prev-are-main">
+                  <strong id="previsionTaux">—</strong>
+                  <span>AJ net estimé / jour</span>
                 </div>
-                <small id="carenceDetail" style="display:block;margin-top:10px;color:var(--muted);font-size:12px;"></small>
+                <div class="prev-are-grid">
+                  <div class="prev-are-box"><strong id="previsionSJR">—</strong><span>SJR</span></div>
+                  <div class="prev-are-box"><strong id="prevAjBrut">—</strong><span>AJ brut</span></div>
+                </div>
               </div>
-              <small>Calcul indicatif Annexe 8. Ne remplace pas le calcul officiel France Travail.</small>
+              <div id="previsionSJRText" style="margin-top:10px;font-size:13px;color:var(--petrol);font-weight:700;"></div>
+              <small id="previsionTauxDetails">Simulation indicative Annexe 8.</small>
+              <div class="projection-box" style="margin-top:12px;">
+                <strong>Projection rapide</strong>
+                <p id="areProjectionText">Renseigne tes données pour voir les projections.</p>
+              </div>
             </div>
+
+            <div class="prevision-card">
+              <span class="mini-label">Annexe 8</span>
+              <h3>Calcul des franchises &amp; carence</h3>
+              <p>Jours avant votre 1er versement ARE.</p>
+              <label for="carenceSJM">SJR — Salaire Journalier de Référence (€)</label>
+              <input id="carenceSJM" type="number" min="0" step="0.01" placeholder="Auto-calculé depuis vos missions"/>
+              <p class="hint" id="carenceSJMHint">Brut total ÷ vacations. Auto-rempli si missions enregistrées.</p>
+              <label for="carenceConges">Indemnités Congés Payés reçues (€)</label>
+              <input id="carenceConges" type="number" min="0" step="0.01" placeholder="Ex : 800"/>
+              <label for="carenceSupra">Indemnités supra-légales (€)</label>
+              <input id="carenceSupra" type="number" min="0" step="0.01" placeholder="0 (souvent 0 en CDDU)"/>
+              <label for="carenceFinContrat">Date de fin de votre dernier contrat</label>
+              <input id="carenceFinContrat" type="date"/>
+              <p class="hint">Permet d'estimer votre date de 1er versement ARE.</p>
+              <button class="ghost fiscal-small-btn" type="button" id="calculateCarenceBtn">Calculer</button>
+              <div id="carenceResult" style="display:none;margin-top:16px;">
+                <div class="carence-timeline">
+                  <div class="ct-block ct-attente"><span class="ct-num" id="carenceAttente">7j</span><span class="ct-lbl">Attente</span></div>
+                  <div class="ct-plus">+</div>
+                  <div class="ct-block ct-conges"><span class="ct-num" id="carenceCongesResult">0j</span><span class="ct-lbl">Franchise CP</span></div>
+                  <div class="ct-plus">+</div>
+                  <div class="ct-block ct-supra"><span class="ct-num" id="carenceSupraResult">0j</span><span class="ct-lbl">Supra</span></div>
+                  <div class="ct-plus">=</div>
+                  <div class="ct-block ct-total"><span class="ct-num" id="carenceTotal">7j</span><span class="ct-lbl">Total</span></div>
+                </div>
+                <small id="carenceDetail" style="display:block;margin-top:10px;color:var(--muted);font-size:11px;line-height:1.5;"></small>
+                <div id="carenceDateEstimee" style="display:none;margin-top:12px;padding:12px;background:#EEF4F2;border-radius:12px;font-size:13px;color:#1F4E5F;line-height:1.6;border:1px solid rgba(31,78,95,.12);"></div>
+              </div>
+              <small>Calcul indicatif Annexe 8. Ne remplace pas France Travail.</small>
+            </div>
+
+            <div class="prevision-card">
+              <span class="mini-label">Congés</span>
+              <h3>Estimation Congés Spectacles</h3>
+              <p>Estimation brute indicative (~10% du brut). À vérifier sur audiens.org</p>
+              <div class="fi-result-row fi-highlight" style="margin-top:12px;">
+                <span class="fi-label">Estimation brute</span>
+                <span class="fi-value" id="previsionConges">—</span>
+              </div>
+              <div class="fi-info-box" style="margin-top:12px;">
+                <strong>⚠️ Imposable</strong>
+                Les Congés Spectacles sont imposables et doivent figurer dans votre déclaration de revenus.
+              </div>
+            </div>
+
+            <div class="prevision-card">
+              <span class="mini-label">Droits</span>
+              <h3>Réouverture des droits</h3>
+              <p>507h requises sur 12 mois précédant la fin du dernier contrat.</p>
+              <div class="fi-result-row fi-highlight" style="margin-top:12px;">
+                <span class="fi-label">Heures restantes</span>
+                <span class="fi-value" id="previsionDroits">507h</span>
+              </div>
+              <div class="fi-info-box" style="margin-top:12px;">
+                <strong>📋 Annexe 8</strong>
+                Justifier 507h dans le spectacle vivant, cinéma, audiovisuel ou radio sur les 12 derniers mois.
+              </div>
+            </div>
+
           </div>
-          <p class="hint">Les montants de cette rubrique sont strictement indicatifs. Aucun calcul France Travail officiel n'est remplacé par Intermitrack.</p>
+          <p class="hint">Estimations strictement indicatives. Aucun calcul France Travail officiel n'est remplacé par Intermitrack.</p>
         </article>
       </section>
 
@@ -613,25 +770,6 @@
       </div>
     </div>
   </div>
-<script>
-(function() {
-  const scroll = document.getElementById('tabsScroll');
-  const fl = document.getElementById('tabsFadeLeft');
-  const fr = document.getElementById('tabsFadeRight');
-  const al = document.getElementById('tabsArrowLeft');
-  const ar = document.getElementById('tabsArrowRight');
-  if (!scroll) return;
-  function update() {
-    const atStart = scroll.scrollLeft <= 5;
-    const atEnd = scroll.scrollLeft + scroll.clientWidth >= scroll.scrollWidth - 5;
-    fl.style.opacity = atStart ? '0' : '1';
-    al.style.opacity = atStart ? '0' : '1';
-    fr.style.opacity = atEnd ? '0' : '1';
-    ar.style.opacity = atEnd ? '0' : '1';
-  }
-  scroll.addEventListener('scroll', update);
-  update();
-})();
-</script>
+
 </body>
 </html>
