@@ -383,7 +383,8 @@ async function loadMissions() {
     id: x.id, production: x.production, type: x.mission_type,
     date: x.mission_date, endDate: x.end_date || x.mission_date,
     hours: Number(x.hours || 0), gross: Number(x.gross_amount || 0),
-    kmDistance: Number(x.km_distance || 0), kmRate: Number(x.km_rate || 0), kmAmount: Number(x.km_amount || 0)
+    kmDistance: Number(x.km_distance || 0), kmRate: Number(x.km_rate || 0), kmAmount: Number(x.km_amount || 0),
+    vacations: Number(x.vacations || Math.round((x.hours || 0) / 8))
   }));
   render();
 }
@@ -874,7 +875,10 @@ function render() {
   if ($("recapMonthPicker")) $("recapMonthPicker").value = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}`;
   if ($("yearGross")) $("yearGross").textContent = money(yearGross);
   if ($("remainingHours")) $("remainingHours").textContent = remaining;
-  if ($("missionCount")) $("missionCount").textContent = sumMissionDays(selectedMonthMissions);
+  if ($("missionCount")) {
+  const totalVac = selectedMonthMissions.reduce((a, x) => a + Number(x.vacations || 0), 0);
+  $("missionCount").textContent = totalVac;
+}
   if ($("progressText")) $("progressText").textContent = percent + "% de ton objectif intermittent";
   renderFiscalite(yearGross, yearMissions);
 
@@ -992,11 +996,12 @@ function renderAllMissions() {
     name, list: groups[name],
     gross: groups[name].reduce((a, x) => a + Number(x.gross || 0), 0),
     hours: Math.round(groups[name].reduce((a, x) => a + Number(x.hours || 0), 0) * 10) / 10,
-    days: sumMissionDays(groups[name]), count: groups[name].length
+    vacations: groups[name].reduce((a, x) => a + Number(x.vacations || Math.round(Number(x.hours || 0) / 8)), 0),
+    count: groups[name].length
   })).sort((a, b) => b.gross - a.gross);
   const totalGross = sorted.reduce((a, x) => a + x.gross, 0);
   const totalHours = Math.round(sorted.reduce((a, x) => a + x.hours, 0) * 10) / 10;
-  const totalDays = sumMissionDays(missions);
+  const totalVacations = sorted.reduce((a, x) => a + x.vacations, 0);
   const COLORS = ["#1F4E5F","#2A6174","#3A7A8F","#7A9E7E","#8AB08E","#9AC09E","#F97316","#FDBA74","#4A8FA5","#5A9FB5"];
   const CIRC = 2 * Math.PI * 75;
   let offset = 0;
@@ -1010,7 +1015,7 @@ function renderAllMissions() {
   container.innerHTML = `
     ${addBtnHtml}
     <div class="missions-stats-row">
-     <div class="mstat-box"><strong>${totalDays}</strong><span>Jours travaillés</span></div>
+     <div class="mstat-box"><strong>${Math.round(totalHours / 8)}</strong><span>Jours (8h)</span></div>
       <div class="mstat-box"><strong>${totalHours}h</strong><span>Heures totales</span></div>
       <div class="mstat-box highlight"><strong>${money(totalGross)}</strong><span>Brut total</span></div>
       <div class="mstat-box"><strong>${sorted.length}</strong><span>Productions</span></div>
