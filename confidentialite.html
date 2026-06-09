@@ -4,91 +4,107 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Politique de confidentialité - Intermitrack</title>
-
 <style>
-body{
-    max-width:900px;
-    margin:40px auto;
-    padding:20px;
-    font-family:Arial,sans-serif;
-    line-height:1.6;
-    color:#222;
-}
-h1,h2{
-    color:#1F4E5F;
-}
+* { box-sizing: border-box; }
+body { max-width: 860px; margin: 40px auto; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; line-height: 1.7; color: #2D3748; background: #F5F7F6; }
+.card { background: white; border-radius: 18px; padding: 36px 40px; box-shadow: 0 4px 20px rgba(31,78,95,.07); margin-bottom: 20px; }
+h1 { color: #1F4E5F; font-size: 28px; margin: 0 0 6px; letter-spacing: -.03em; }
+h2 { color: #1F4E5F; font-size: 17px; margin: 28px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #E2E8F0; }
+p { margin: 0 0 12px; font-size: 15px; }
+ul { margin: 0 0 12px; padding-left: 22px; font-size: 15px; }
+li { margin-bottom: 6px; }
+.badge { display: inline-flex; padding: 5px 12px; border-radius: 99px; background: rgba(31,78,95,.08); color: #1F4E5F; font-size: 12px; font-weight: 700; margin-bottom: 18px; }
+.warning { background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 12px; padding: 14px 16px; margin: 16px 0; font-size: 14px; color: #78350F; }
+.warning strong { display: block; margin-bottom: 4px; color: #92400E; }
+.tiers-card { background: #F8FAF9; border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+.tiers-card strong { display: block; color: #1F4E5F; font-size: 14px; margin-bottom: 3px; }
+.tiers-card span { font-size: 13px; color: #718096; }
+.footer-credit { text-align: center; margin-top: 32px; font-size: 11px; color: #A0AEC0; }
+.back { display: inline-flex; align-items: center; gap: 6px; color: #1F4E5F; text-decoration: none; font-size: 14px; font-weight: 700; margin-bottom: 20px; }
 </style>
 </head>
-
 <body>
 
-<h1>Politique de confidentialité</h1>
+<a href="/" class="back">← Retour à l'application</a>
 
-<p>
-Intermitrack est actuellement proposé dans le cadre d'une phase bêta de développement.
-</p>
+<div class="card">
+  <span class="badge">🔒 RGPD</span>
+  <h1>Politique de confidentialité</h1>
+  <p style="color:#718096;font-size:14px;">Dernière mise à jour : juin 2026</p>
 
-<h2>Données collectées</h2>
+  <h2>1. Responsable du traitement</h2>
+  <p>Le responsable du traitement des données collectées via Intermitrack est l'éditeur du service, personne physique, joignable à l'adresse <a href="mailto:intermitrack@gmail.com" style="color:#1F4E5F;">intermitrack@gmail.com</a>.</p>
 
-<p>
-Intermitrack peut collecter les informations nécessaires au fonctionnement du service :
-</p>
+  <h2>2. Données collectées</h2>
+  <p>Dans le cadre du fonctionnement du service, Intermitrack collecte les données suivantes :</p>
+  <ul>
+    <li><strong>Données de compte :</strong> adresse email, mot de passe chiffré</li>
+    <li><strong>Données professionnelles :</strong> missions, heures, bruts, productions, types de contrats</li>
+    <li><strong>Documents :</strong> fichiers uploadés volontairement (AEM, fiches de paie, contrats, etc.)</li>
+    <li><strong>Données de navigation :</strong> onglets consultés, actions dans l'application (analytics anonymisés)</li>
+    <li><strong>Paramètres personnels :</strong> date d'admission ARE, parts fiscales, préférences</li>
+  </ul>
 
-<ul>
-<li>Adresse email</li>
-<li>Informations liées aux missions</li>
-<li>Documents importés volontairement par l'utilisateur</li>
-<li>Données de connexion nécessaires à l'authentification</li>
-</ul>
+  <h2>3. Accès administrateur — transparence importante</h2>
+  <div class="warning">
+    <strong>⚠️ Information importante sur l'accès aux données</strong>
+    Intermitrack est hébergé sur Supabase. En tant qu'administrateur du projet, l'éditeur dispose techniquement d'un accès aux données stockées (missions, documents, paramètres) dans le cadre de la maintenance, du support technique et de la correction d'erreurs.
+    <br><br>
+    L'éditeur s'engage formellement à ne pas consulter, utiliser ou transmettre les données personnelles des utilisateurs en dehors de ce cadre strictement technique.
+    <br><br>
+    <strong>Recommandation :</strong> ne déposez pas de documents contenant des données bancaires, médicales ou d'autres informations très sensibles.
+  </div>
 
-<h2>Documents importés</h2>
+  <h2>4. Finalités du traitement</h2>
+  <ul>
+    <li>Fonctionnement du tableau de bord et suivi des missions</li>
+    <li>Authentification et sécurité du compte</li>
+    <li>Organisation et consultation des documents</li>
+    <li>Calculs indicatifs (ARE, fiscalité, franchises)</li>
+    <li>Amélioration du service via des analytics anonymisés</li>
+  </ul>
 
-<p>
-Les documents déposés par l'utilisateur peuvent être stockés sur les services utilisés par Intermitrack afin d'assurer leur consultation et leur organisation dans l'application.
-</p>
+  <h2>5. Services tiers utilisés</h2>
 
-<p>
-Certains documents peuvent être analysés automatiquement par des services d'intelligence artificielle afin d'extraire les informations utiles au pré-remplissage des missions et à l'organisation documentaire.
-</p>
+  <div class="tiers-card">
+    <strong>Supabase</strong>
+    <span>Hébergement de la base de données, authentification et stockage des fichiers. Serveurs localisés en Europe (UE). <a href="https://supabase.com/privacy" target="_blank" style="color:#1F4E5F;">Politique de confidentialité Supabase</a></span>
+  </div>
+  <div class="tiers-card">
+    <strong>GitHub Pages</strong>
+    <span>Hébergement du site web statique. <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" style="color:#1F4E5F;">Politique GitHub</a></span>
+  </div>
+  <div class="tiers-card">
+    <strong>OpenAI / Mistral AI</strong>
+    <span>Utilisés uniquement pour la fonctionnalité d'analyse automatique de documents (optionnelle et clairement identifiée comme expérimentale). Les documents analysés transitent par ces services — <strong>confidentialité non garantie à 100%</strong>.</span>
+  </div>
 
-<h2>Services tiers utilisés</h2>
+  <h2>6. Durée de conservation</h2>
+  <p>Les données sont conservées aussi longtemps que le compte utilisateur est actif ou jusqu'à leur suppression explicite. Sur demande à <a href="mailto:intermitrack@gmail.com" style="color:#1F4E5F;">intermitrack@gmail.com</a>, toutes les données peuvent être supprimées dans un délai de 30 jours.</p>
 
-<ul>
-<li>Supabase</li>
-<li>GitHub Pages</li>
-<li>OpenAI</li>
-<li>Mistral AI</li>
-</ul>
+  <h2>7. Vos droits (RGPD)</h2>
+  <p>Conformément au Règlement Général sur la Protection des Données (RGPD), vous disposez des droits suivants :</p>
+  <ul>
+    <li><strong>Droit d'accès</strong> : obtenir une copie de vos données</li>
+    <li><strong>Droit de rectification</strong> : corriger des données inexactes</li>
+    <li><strong>Droit à l'effacement</strong> : supprimer l'ensemble de vos données</li>
+    <li><strong>Droit à la portabilité</strong> : récupérer vos données dans un format lisible</li>
+    <li><strong>Droit d'opposition</strong> : vous opposer à certains traitements</li>
+  </ul>
+  <p>Pour exercer ces droits : <a href="mailto:intermitrack@gmail.com" style="color:#1F4E5F;">intermitrack@gmail.com</a><br>
+  Vous pouvez également introduire une réclamation auprès de la <a href="https://www.cnil.fr" target="_blank" style="color:#1F4E5F;">CNIL</a>.</p>
 
-<h2>Conservation des données</h2>
+  <h2>8. Cookies</h2>
+  <p>Intermitrack utilise uniquement des données de session nécessaires au fonctionnement de l'authentification (localStorage). Aucun cookie publicitaire ou traceur tiers n'est utilisé.</p>
 
-<p>
-Les données sont conservées aussi longtemps que nécessaire au fonctionnement du service ou jusqu'à leur suppression par l'utilisateur ou sur demande.
-</p>
+  <h2>9. Sécurité</h2>
+  <p>Les mesures de sécurité mises en place incluent : authentification par email/mot de passe, chiffrement des communications (HTTPS), isolation des données par utilisateur via les policies Supabase (RLS). Malgré ces mesures, aucun système n'est infaillible à 100%.</p>
 
-<h2>Vos droits</h2>
+  <h2>10. Évolution de cette politique</h2>
+  <p>Cette politique peut être mise à jour en fonction de l'évolution du service. Les utilisateurs seront informés par email en cas de changement significatif.</p>
+</div>
 
-<p>
-Conformément à la réglementation applicable, vous pouvez demander :
-</p>
-
-<ul>
-<li>L'accès à vos données</li>
-<li>La rectification de vos données</li>
-<li>La suppression de vos données</li>
-</ul>
-
-<p>
-Pour toute demande :
-<br><br>
-intermitrack@gmail.com
-</p>
-
-<h2>Version bêta</h2>
-
-<p>
-Intermitrack est actuellement en phase bêta. Les fonctionnalités et les modalités de traitement des données sont susceptibles d'évoluer au fur et à mesure du développement du projet.
-</p>
+<p class="footer-credit">Intermitrack — <a href="cgu.html" style="color:#A0AEC0;">CGU</a> · <a href="mentions-legales.html" style="color:#A0AEC0;">Mentions légales</a> · Éditeur : Y. Serradj</p>
 
 </body>
 </html>
