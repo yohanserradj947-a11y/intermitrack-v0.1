@@ -168,9 +168,22 @@ z-index: 500 !important;
         </div>
       </div>
       <div class="userbar hidden" id="userbar">
-        <span class="email" id="userEmail"></span>
-        <button class="ghost" id="logoutBtn" type="button">Déconnexion</button>
+  <div style="position:relative;">
+    <button class="account-avatar-btn" id="accountAvatarBtn" type="button" id="accountAvatarBtn">
+      <span id="userInitials">?</span>
+    </button>
+    <div class="account-dropdown hidden" id="accountDropdown">
+      <div class="account-dd-email" id="userEmail"></div>
+      <div class="account-dd-plan">
+        <span class="account-dd-plan-label">Offre actuelle</span>
+        <span class="account-dd-badge">🚧 Open Bêta</span>
       </div>
+      <button class="account-dd-logout" type="button" id="logoutBtn">
+        <span>🚪</span> Déconnexion
+      </button>
+    </div>
+  </div>
+</div>
     </header>
 
     <!-- ===== LANDING PAGE ===== -->

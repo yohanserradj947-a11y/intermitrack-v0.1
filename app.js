@@ -355,6 +355,25 @@ function showApp() {
   $("appBox").classList.remove("hidden");
   $("userbar").classList.remove("hidden");
   $("userEmail").textContent = currentUser?.email || "";
+  // Initiales avatar
+  const email = currentUser?.email || "";
+  const parts = email.split("@")[0].replace(/[0-9]/g, "").match(/[a-zA-Z]+/g) || ["?"];
+const initials = parts.length >= 2
+  ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  : parts[0].slice(0, 2).toUpperCase();
+  if ($("userInitials")) $("userInitials").textContent = initials;
+
+  // Toggle dropdown
+  if ($("accountAvatarBtn") && !$("accountAvatarBtn").dataset.init) {
+    $("accountAvatarBtn").dataset.init = "1";
+    $("accountAvatarBtn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      $("accountDropdown").classList.toggle("hidden");
+    });
+    document.addEventListener("click", () => {
+      if ($("accountDropdown")) $("accountDropdown").classList.add("hidden");
+    });
+  }
   if (typeof monterWidgetParser === "function") monterWidgetParser();
   if (typeof monterWidgetParserDocuments === "function") monterWidgetParserDocuments();
 }
