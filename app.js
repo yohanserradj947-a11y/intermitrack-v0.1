@@ -147,113 +147,93 @@ function calculateProgressiveTax(taxableIncome, parts) {
   const averageRate = safeIncome ? (estimatedTax / safeIncome) * 100 : 0;
   return { estimatedTax, averageRate, marginalRate: marginalRate * 100, incomePerPart };
 }
-
 function calculateEstimatedAreDailyRate() {
-  const hours = Number($("areHours")?.value || 0);
-  const brutTotal = Number($("areDailyGross")?.value || 0);
- 
+  const hours = Number($("itk-c1-nht")?.value || 0);
+  const brutTotal = Number($("itk-c1-sr")?.value || 0);
+  const csgTaux = $("itk-c1-csg")?.value || "plein";
+  const err = $("itk-c1-err");
+  const out = $("itk-c1-out");
+
   if (!hours || !brutTotal) {
-    if ($("previsionSJRText")) $("previsionSJRText").textContent = "SJR : renseigne tes données";
-    if ($("previsionTaux")) $("previsionTaux").textContent = "Renseigne tes heures et ton brut total";
-    if ($("previsionTauxDetails")) $("previsionTauxDetails").textContent = "Simulation indicative Annexe 8 technicien.";
-    if ($("areProjectionText")) $("areProjectionText").textContent = "Renseigne tes données pour voir les projections.";
+    if (err) err.style.display = "block";
+    if (out) out.classList.add("itk-hide");
     return;
   }
- 
-  // ----- Paramètres officiels (Annexe 8 · technicien) À ACTUALISER CHAQUE ANNÉE -----
-  const AJ_MIN = 31.96;        // allocation journalière minimale (montant de référence)
-  const NH = 507;             // heures exigées
-  const SMIC_H = 12.31;       // SMIC horaire brut
-  const PLAFOND = 174.80;     // plafond AJ brute
-  const PLANCHER = 38;        // plancher AJ brute (technicien)
-  const SMIC_J = SMIC_H * 151.67 / 30; // SMIC journalier (seuil exonération CSG/CRDS)
- 
-  // AJ brute = A + B + C  (formule officielle, vérifiée sur notification France Travail)
+  if (err) err.style.display = "none";
+
+  const AJ_MIN = 31.96;
+  const NH = 507;
+  const SMIC_H = 12.31;
+  const PLAFOND = 174.80;
+  const PLANCHER = 38;
+  const SMIC_J = SMIC_H * 151.67 / 30;
+
   function ajBrut(h, sr) {
     const A = AJ_MIN * (0.42 * Math.min(sr, 14400) + 0.05 * Math.max(0, sr - 14400)) / 5000;
     const B = AJ_MIN * (0.26 * Math.min(h, 720) + 0.08 * Math.max(0, h - 720)) / NH;
     const C = AJ_MIN * 0.40;
     return Math.max(PLANCHER, Math.min(PLAFOND, A + B + C));
   }
-  // AJ nette = brute − retraite 3% − CSG 6,2% − CRDS 0,5% (avec abattement 1,75%
-  //           et plancher : pas de CSG/CRDS si l'AJ passe sous le SMIC journalier)
+
   function ajNet(brut) {
     const retraite = brut * 0.03;
     const base = brut * 0.9825;
-    let csg = base * 0.062, crds = base * 0.005;
+    let csg = base * (csgTaux === "plein" ? 0.062 : csgTaux === "reduit" ? 0.038 : 0);
+    let crds = base * (csgTaux === "exonere" ? 0 : 0.005);
     if (brut - retraite - csg - crds < SMIC_J) { csg = 0; crds = 0; }
     return brut - retraite - csg - crds;
   }
- 
+
   const brut = ajBrut(hours, brutTotal);
   const net = ajNet(brut);
-  const sjr = brutTotal / (hours / 8); // SJR = salaire ÷ (heures ÷ 8)
- 
-  if ($("previsionSJRText")) $("previsionSJRText").textContent =
-    `SJR estimé : ${sjr.toFixed(2).replace(".", ",")} €`;
-  if ($("previsionTaux")) $("previsionTaux").textContent = `${net.toFixed(2).replace(".", ",")} €`;
-  if ($("prevAjBrut")) $("prevAjBrut").textContent = `${brut.toFixed(2).replace(".", ",")} €`;
-  if ($("previsionSJR")) $("previsionSJR").textContent = `${sjr.toFixed(2).replace(".", ",")} €`;
-  if ($("prevAreResult")) $("prevAreResult").style.display = "block";
-  if ($("previsionTauxDetails")) $("previsionTauxDetails").textContent =
-    `AJ brut : ${brut.toFixed(2).replace(".", ",")} € · Plafond : ${PLAFOND.toFixed(2).replace(".", ",")} € · Plancher : ${PLANCHER} €`;
- 
-  // Projection : toujours AU-DESSUS des heures saisies (1300h -> 1400/1500/1600)
-  if ($("areProjectionText")) {
-    const targets = [1, 2, 3].map((i) => Math.round((hours + i * 100) / 100) * 100);
-    const lines = targets.map((h) => `${h}h → ${ajNet(ajBrut(h, brutTotal)).toFixed(2).replace(".", ",")} €/j net`);
-    $("areProjectionText").innerHTML = lines.join("<br>");
-  }
-}
+  const sjr = brutTotal / (hours / 8);
 
+  if ($("itk-c1-net")) $("itk-c1-net").textContent = net.toFixed(2).replace(".", ",") + " €";
+  if ($("itk-c1-sjr")) $("itk-c1-sjr").textContent = sjr.toFixed(2).replace(".", ",") + " €";
+  if ($("itk-c1-brut")) $("itk-c1-brut").textContent = brut.toFixed(2).replace(".", ",") + " €";
+  if ($("itk-c1-detail")) $("itk-c1-detail").textContent =
+    `AJ brut : ${brut.toFixed(2)}€ · Plafond : ${PLAFOND}€ · Plancher : ${PLANCHER}€ · SJR : ${sjr.toFixed(2)}€`;
+  if ($("itk-c1-proj")) {
+    const targets = [1,2,3].map(i => Math.round((hours + i*100)/100)*100);
+    $("itk-c1-proj").innerHTML = targets.map(h =>
+      `${h}h → ${ajNet(ajBrut(h, brutTotal)).toFixed(2).replace(".",",")} €/j net`
+    ).join("<br>");
+  }
+  if (out) out.classList.remove("itk-hide");
+}
 
 function calculateCarence() {
-  const sjr = Number($("carenceSJM")?.value || 0);
-  const conges = Number($("carenceConges")?.value || 0);
-  const supra = Number($("carenceSupra")?.value || 0);
-  const finContrat = $("carenceFinContrat")?.value;
+  const nht = Number($("itk-c2-nht")?.value || 0);
+  const prc = Number($("itk-c2-prc")?.value || 0);
+  const jours = Number($("itk-c2-jours")?.value || 0);
+  const mois = $("itk-c2-mois")?.value;
+  const err = $("itk-c2-err");
+  const out = $("itk-c2-out");
 
-  if (!sjr) { alert("Renseigne ton SJR (Salaire Journalier de Référence)."); return; }
-
-  const delaiAttente = 7;
-  const franchiseCongesRaw = conges > 0 ? Math.round(conges / sjr) : 0;
-  const franchiseConges = Math.min(franchiseCongesRaw, 30);
-  const franchiseSupraRaw = supra > 0 ? Math.round(supra / sjr) : 0;
-  const franchiseSupra = Math.min(franchiseSupraRaw, 75);
-  const total = delaiAttente + franchiseConges + franchiseSupra;
-
-  if ($("carenceAttente")) $("carenceAttente").textContent = delaiAttente + "j";
-  if ($("carenceCongesResult")) $("carenceCongesResult").textContent = franchiseConges + "j";
-  if ($("carenceSupraResult")) $("carenceSupraResult").textContent = franchiseSupra + "j";
-  if ($("carenceTotal")) $("carenceTotal").textContent = total + "j";
-
-  if ($("carenceDetail")) $("carenceDetail").textContent =
-    `Délai légal : 7j (fixe) | Franchise CP : ${conges}€ ÷ ${sjr.toFixed(2)}€ = ${franchiseCongesRaw}j → plafonnée à ${franchiseConges}j` +
-    (supra > 0
-      ? ` | Franchise supra : ${supra}€ ÷ ${sjr.toFixed(2)}€ = ${franchiseSupraRaw}j → plafonnée à ${franchiseSupra}j`
-      : " | Franchise supra : 0j (non applicable en CDDU)");
-
-  // Date estimation
-  if (finContrat && $("carenceDateEstimee")) {
-    const dateFin = new Date(finContrat + "T00:00:00");
-    const dateInscription = new Date(dateFin);
-    dateInscription.setDate(dateInscription.getDate() + 1);
-    const datePremier = new Date(dateInscription);
-    datePremier.setDate(datePremier.getDate() + total);
-    $("carenceDateEstimee").style.display = "block";
-    $("carenceDateEstimee").innerHTML =
-      `📅 <strong>Date estimée du 1er versement ARE</strong><br>` +
-      `Fin contrat : <strong>${formatDate(finContrat)}</strong> → ` +
-      `Inscription : <strong>${formatDate(dateInscription.toISOString().slice(0, 10))}</strong> → ` +
-      `1er versement estimé : <strong>${formatDate(datePremier.toISOString().slice(0, 10))}</strong><br>` +
-      `<small style="color:var(--muted);">Sous réserve du délai de traitement France Travail (variable).</small>`;
-  } else if ($("carenceDateEstimee")) {
-    $("carenceDateEstimee").style.display = "none";
+  if (!nht || !prc || !jours) {
+    if (err) err.style.display = "block";
+    if (out) out.classList.add("itk-hide");
+    return;
   }
+  if (err) err.style.display = "none";
 
-  if ($("carenceResult")) $("carenceResult").style.display = "block";
+  const SMIC_H = 12.31;
+  const sjm = Math.round(prc / jours);
+  const cp = Math.round(prc * 0.10);
+  const franchiseCP = Math.min(Math.round(cp / sjm), 36);
+  const franchiseSal = Math.min(Math.round(prc / sjm), 75);
+
+  if ($("itk-c2-smic")) $("itk-c2-smic").textContent = SMIC_H.toFixed(2) + " €/h";
+  if ($("itk-c2-sjm")) $("itk-c2-sjm").textContent = sjm + " €/jour";
+  if ($("itk-c2-fsal")) $("itk-c2-fsal").textContent = franchiseSal + " jours (plafond 75j)";
+  if ($("itk-c2-fcp")) $("itk-c2-fcp").textContent = franchiseCP + " jours (plafond 36j)";
+
+  if ($("itk-c2-rmois")) $("itk-c2-rmois").textContent = mois || "—";
+  const totalCarence = 7 + franchiseCP + franchiseSal;
+  if ($("itk-c2-rjours")) $("itk-c2-rjours").textContent = `Total carence estimée : ${totalCarence} jours`;
+
+  if (out) out.classList.remove("itk-hide");
 }
-
 
 function monterWidgetParserDocuments() {
   const container = $("document-parser-container-documents");
@@ -1495,8 +1475,15 @@ function setupEvents() {
  
   if ($("documentForm")) $("documentForm").addEventListener("submit", uploadDocument);
   if ($("refreshDocumentsBtn")) $("refreshDocumentsBtn").addEventListener("click", loadDocuments);
-  if ($("calculateAreBtn")) $("calculateAreBtn").addEventListener("click", calculateEstimatedAreDailyRate);
-  if ($("calculateCarenceBtn")) $("calculateCarenceBtn").addEventListener("click", calculateCarence);
+  if ($("itk-c1-go")) $("itk-c1-go").addEventListener("click", calculateEstimatedAreDailyRate);
+  if ($("itk-c2-go")) $("itk-c2-go").addEventListener("click", calculateCarence);
+  if ($("itk-c3-go")) $("itk-c3-go").addEventListener("click", () => {
+    const brut = Number($("itk-c3-brut")?.value || 0);
+    if (!brut) return;
+    const net = Math.round(brut * 0.10 * 0.88);
+    if ($("itk-c3-val")) $("itk-c3-val").textContent = money(net);
+    if ($("itk-c3-out")) $("itk-c3-out").classList.remove("itk-hide");
+  });
  
   $("date").addEventListener("change", () => { if (!$("endDate").value || $("endDate").value < $("date").value) $("endDate").value = $("date").value; });
  
