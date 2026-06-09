@@ -113,7 +113,7 @@ button { border: 0; border-radius: 15px; padding: 13px 16px; font-weight: 800; f
 
 @media (max-width: 720px) {
   .app { padding: 14px; }
-  .top { align-items: flex-start; flex-direction: column; }
+  .top { align-items: center; flex-direction: row; justify-content: space-between; }
   h1 { font-size: 24px; }
   .heroTop { display: block; }
   .chartWrap { min-height: 330px; padding: 6px; }
@@ -952,7 +952,7 @@ button { border: 0; border-radius: 15px; padding: 13px 16px; font-weight: 800; f
 .account-avatar-btn:hover { transform: scale(1.06); }
 
 .account-dropdown {
-  position: absolute; top: calc(100% + 10px); right: 0;
+  position: fixed; top: 60px; right: 14px;
   width: 220px; background: white; border-radius: 16px;
   box-shadow: 0 16px 48px rgba(31,78,95,.16);
   border: 1px solid var(--line); z-index: 9999; overflow: hidden;
