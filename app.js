@@ -364,11 +364,17 @@ const initials = parts.length >= 2
   if ($("userInitials")) $("userInitials").textContent = initials;
 
   // Toggle dropdown
-  if ($("accountAvatarBtn") && !$("accountAvatarBtn").dataset.init) {
+ if ($("accountAvatarBtn") && !$("accountAvatarBtn").dataset.init) {
     $("accountAvatarBtn").dataset.init = "1";
     $("accountAvatarBtn").addEventListener("click", (e) => {
       e.stopPropagation();
-      $("accountDropdown").classList.toggle("hidden");
+      const btn = $("accountAvatarBtn");
+      const rect = btn.getBoundingClientRect();
+      const dd = $("accountDropdown");
+      dd.style.top = (rect.bottom + 8) + "px";
+      dd.style.right = (window.innerWidth - rect.right) + "px";
+      dd.style.left = "auto";
+      dd.classList.toggle("hidden");
     });
     document.addEventListener("click", () => {
       if ($("accountDropdown")) $("accountDropdown").classList.add("hidden");
@@ -1024,7 +1030,7 @@ function renderChart(doneHours, plannedHours = 0) {
   if (!$("chart")) return;
  const isDark = document.body.classList.contains('theme-dark');
   $("chart").innerHTML = `
- <svg viewBox="0 0 300 200" width="100%" role="img" aria-label="Arc progression heures">
+ <svg viewBox="0 0 340 210" width="100%" role="img" aria-label="Arc progression heures">
       <defs>
         <linearGradient id="g3done" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stop-color="${isDark ? '#1F6E8F' : '#1F4E5F'}"/>
@@ -1036,17 +1042,17 @@ function renderChart(doneHours, plannedHours = 0) {
         </linearGradient>
         <filter id="arcShadow"><feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.15"/></filter>
       </defs>
-      <path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="${isDark ? 'rgba(255,255,255,.06)' : '#EEF4F1'}" stroke-width="30" stroke-linecap="round"/>
-      ${doneDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3done)" stroke-width="30" stroke-linecap="round" stroke-dasharray="${doneDash} ${CIRC}" filter="url(#arcShadow)"/>` : ""}
-      ${plannedDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3plan)" stroke-width="30" stroke-linecap="round" stroke-dasharray="${plannedDash} ${CIRC}" stroke-dashoffset="${-doneDash}"/>` : ""}
+      <path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="${isDark ? 'rgba(255,255,255,.12)' : '#EEF4F1'}" stroke-width="30" stroke-linecap="butt"/>
+      ${doneDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3done)" stroke-width="30" stroke-linecap="butt" stroke-dasharray="${doneDash} ${CIRC}" filter="url(#arcShadow)"/>` : ""}
+      ${plannedDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3plan)" stroke-width="30" stroke-linecap="butt" stroke-dasharray="${plannedDash} ${CIRC}" stroke-dashoffset="${-doneDash}"/>` : ""}
       <text x="150" y="132" text-anchor="middle" font-size="44" font-weight="900" fill="${isDark ? '#7ACCE0' : '#1F4E5F'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${totalPercent}%</text>
       <text x="150" y="155" text-anchor="middle" font-size="13" fill="${isDark ? 'rgba(255,255,255,.4)' : '#718096'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">potentiel total</text>
-      <rect x="20" y="182" width="12" height="12" rx="3" fill="${isDark ? '#7ACCE0' : '#1F4E5F'}"/>
-      <text x="37" y="193" font-size="11" font-weight="700" fill="${isDark ? '#E0F4FF' : '#2D3748'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Effectué · ${donePercent}%</text>
-      <rect x="118" y="182" width="12" height="12" rx="3" fill="#F97316"/>
-      <text x="135" y="193" font-size="11" font-weight="700" fill="${isDark ? '#E0F4FF' : '#2D3748'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Prévu · ${plannedPercent}%</text>
-      <rect x="218" y="182" width="12" height="12" rx="3" fill="${isDark ? 'rgba(255,255,255,.08)' : '#D8E4DF'}"/>
-      <text x="235" y="193" font-size="11" font-weight="700" fill="${isDark ? 'rgba(255,255,255,.4)' : '#718096'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Restant</text>
+      <rect x="10" y="188" width="11" height="11" rx="3" fill="${isDark ? '#7ACCE0' : '#1F4E5F'}"/>
+      <text x="26" y="198" font-size="10" font-weight="700" fill="${isDark ? '#E0F4FF' : '#2D3748'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Effectué · ${donePercent}%</text>
+      <rect x="130" y="188" width="11" height="11" rx="3" fill="#F97316"/>
+      <text x="146" y="198" font-size="10" font-weight="700" fill="${isDark ? '#E0F4FF' : '#2D3748'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Prévu · ${plannedPercent}%</text>
+      <rect x="245" y="188" width="11" height="11" rx="3" fill="${isDark ? 'rgba(255,255,255,.08)' : '#D8E4DF'}"/>
+      <text x="261" y="198" font-size="10" font-weight="700" fill="${isDark ? 'rgba(255,255,255,.4)' : '#718096'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Restant</text>
     </svg>
 
   `;}
@@ -1437,10 +1443,14 @@ function generateActualisationPDF() {
   win.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"/><title>Actualisation ${escapeHtml(title)}</title><style>*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#2D3748;background:#fff;padding:34px}.header{border-bottom:3px solid #1F4E5F;padding-bottom:16px;margin-bottom:22px}h1{margin:0;color:#1F4E5F;font-size:28px;letter-spacing:-.03em}.subtitle{color:#718096;margin:6px 0 0;font-size:14px}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0 24px}.summary-box{border:1px solid #E2E8F0;border-radius:14px;padding:14px;background:#F8FAF9}.summary-box strong{display:block;color:#1F4E5F;font-size:24px;line-height:1.1}.summary-box span{display:block;margin-top:4px;color:#718096;font-size:12px;text-transform:uppercase;font-weight:700}table{width:100%;border-collapse:collapse;margin-top:10px}th{text-align:left;color:#718096;font-size:12px;text-transform:uppercase;letter-spacing:.03em;padding:10px 8px;border-bottom:2px solid #E2E8F0}td{padding:12px 8px;border-bottom:1px solid #E2E8F0;font-size:14px;vertical-align:top}tr:nth-child(even) td{background:#FBFCFC}.footer{margin-top:26px;padding-top:12px;border-top:1px solid #E2E8F0;font-size:12px;color:#718096;line-height:1.45}@media print{body{padding:20px}.summary-box,tr:nth-child(even) td{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body><div class="header"><h1>Récapitulatif actualisation</h1><p class="subtitle">${escapeHtml(title)} · Généré avec Intermitrack</p></div><div class="summary"><div class="summary-box"><strong>${escapeHtml(totalDays)}</strong><span>Journées</span></div><div class="summary-box"><strong>${escapeHtml(totalHours)}h</strong><span>Heures</span></div><div class="summary-box"><strong>${escapeHtml(money(totalGross))}</strong><span>Brut total</span></div></div>${list.length ? `<table><thead><tr><th>Période</th><th>Production</th><th>Mission</th><th>Heures</th><th>Brut</th></tr></thead><tbody>${rows}</tbody></table>` : `<div class="empty">Aucune mission effectuée sur ce mois.</div>`}<p class="footer">Ce document est un récapitulatif personnel destiné à faciliter l'actualisation mensuelle. Les informations doivent être vérifiées par l'utilisateur avant déclaration officielle.</p></body></html>`);
   win.document.close(); win.focus(); win.print();
 }
+
+
 function applyTheme(theme) {
   document.body.classList.remove("theme-dark");
   if (theme === "dark") document.body.classList.add("theme-dark");
+  if (typeof render === "function") render();
 }
+
 function setupEvents() {
   $("loginModeBtn").addEventListener("click", () => setAuthMode("login"));
   $("signupModeBtn").addEventListener("click", () => setAuthMode("signup"));

@@ -954,8 +954,8 @@ button { border: 0; border-radius: 15px; padding: 13px 16px; font-weight: 800; f
 .account-avatar-btn:hover { transform: scale(1.06); }
 
 .account-dropdown {
-  position: fixed; top: 60px; right: 14px;
-  width: 220px; background: white; border-radius: 16px;
+  position: fixed; top: 70px; right: 14px;
+  width: 240px; background: white; border-radius: 16px;
   box-shadow: 0 16px 48px rgba(31,78,95,.16);
   border: 1px solid var(--line); z-index: 9999; overflow: hidden;
 }
