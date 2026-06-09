@@ -172,19 +172,26 @@ z-index: 500 !important;
     <button class="account-avatar-btn" id="accountAvatarBtn" type="button" id="accountAvatarBtn">
       <span id="userInitials">?</span>
     </button>
-    <div class="account-dropdown hidden" id="accountDropdown">
-      <div class="account-dd-email" id="userEmail"></div>
-      <div class="account-dd-plan">
-        <span class="account-dd-plan-label">Offre actuelle</span>
-        <span class="account-dd-badge">🚧 Open Bêta</span>
-      </div>
-      <button class="account-dd-logout" type="button" id="logoutBtn">
-        <span>🚪</span> Déconnexion
-      </button>
-    </div>
+   <div class="account-dropdown hidden" id="accountDropdown">
+  <div class="account-dd-email" id="userEmail"></div>
+  <div class="account-dd-plan">
+    <span class="account-dd-plan-label">Offre actuelle</span>
+    <span class="account-dd-badge">🚧 Open Bêta</span>
+  </div>
+  <div class="account-dd-themes">
+  <span class="account-dd-theme-label">Thème</span>
+  <div class="account-dd-theme-btns">
+    <button class="theme-btn" data-theme="light" title="Clair" onclick="applyTheme('light');localStorage.setItem('intermitrack_theme','light');document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme==='light'))">☀️</button>
+    <button class="theme-btn" data-theme="dark" title="Sombre" onclick="applyTheme('dark');localStorage.setItem('intermitrack_theme','dark');document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme==='dark'))">🌙</button>
   </div>
 </div>
-    </header>
+<button class="account-dd-logout" type="button" id="logoutBtn">
+  <span>🚪</span> Déconnexion
+</button>
+</div>
+</div>
+</div>
+</header>
 
     <!-- ===== LANDING PAGE ===== -->
     <section id="authBox">
@@ -770,6 +777,6 @@ z-index: 500 !important;
       </div>
     </div>
   </div>
-
+<button class="theme-toggle-float hidden" id="themeToggleFloat" title="Changer de thème">☀️</button>
 </body>
 </html>

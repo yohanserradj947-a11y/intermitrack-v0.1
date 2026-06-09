@@ -833,11 +833,13 @@ button { border: 0; border-radius: 15px; padding: 13px 16px; font-weight: 800; f
 .new-cal-day.today { background: #1F4E5F; }
 .new-cal-day.today .new-cal-num { color: #fff; }
 
-/* Effectué — vert-bleu */
-.new-cal-day.has-done { background: #EAF1EF; }
+/* Effectué */
+.new-cal-day.has-done { background: #EAF1EF; border: 2px solid rgba(31,78,95,.35) !important; border-radius: 10px; }
 .new-cal-day.has-done .new-cal-tag-prod,
 .new-cal-day.has-done .new-cal-tag-meta { color: #1F4E5F; }
 
+/* Prévu */
+.new-cal-day.has-planned { border: 2px solid rgba(249,115,22,.4) !important; border-radius: 10px; }
 /* Prévu — orange */
 .new-cal-day.has-planned { background: #FFF3EA; }
 .new-cal-day.has-planned .new-cal-tag-prod,
@@ -1018,4 +1020,114 @@ button { border: 0; border-radius: 15px; padding: 13px 16px; font-weight: 800; f
 .app-notif-text  { font-size: 12px; color: #4A5568; line-height: 1.45; }
 .app-notif-progress { margin-top: 8px; height: 5px; background: rgba(0,0,0,.08); border-radius: 99px; overflow: hidden; }
 .app-notif-fill { height: 100%; border-radius: 99px; transition: width .6s ease; }
-.app-notif-close { font-size: 16px; color: var(--muted); flex-shrink: 0; line-height: 1; }
+.app-notif-close { font-size: 16px; color: var(--muted); flex-shrink: 0; line-height: 1; }/* ===== THÈMES ===== */
+body.theme-dark {
+  --petrol: #7ACCE0;
+  --sage: #7ABA8E;
+  --bg: #0A1520;
+  --card: #112030;
+  --text: #E0F4FF;
+  --muted: rgba(255,255,255,.4);
+  --line: rgba(255,255,255,.08);
+  --soft: rgba(255,255,255,.06);
+  --danger: #FC8181;
+  --orange: #F97316;
+  background: linear-gradient(160deg, #0D2030, #0A1A28, #0F2535) !important;
+  min-height: 100vh;
+  color: #E0F4FF;
+}
+body.theme-dark .card,
+body.theme-dark .auth-card { background: #112030 !important; border-color: rgba(255,255,255,.08) !important; }
+body.theme-dark .stat,
+body.theme-dark .remaining-badge,
+body.theme-dark .mstat-box,
+body.theme-dark .fiscalite-card,
+body.theme-dark .prevision-card,
+body.theme-dark .mission-history-card,
+body.theme-dark .new-mission-card,
+body.theme-dark .carence-box,
+body.theme-dark .projection-box,
+body.theme-dark .act-stat-box,
+body.theme-dark .are-admission-pill,
+body.theme-dark .document-folder-card-pro,
+body.theme-dark .document-card-pro { background: #162840 !important; border-color: rgba(255,255,255,.08) !important; color: #E0F4FF !important; }
+body.theme-dark .tab { background: rgba(255,255,255,.06) !important; color: #7ACCE0 !important; border-color: rgba(255,255,255,.08) !important; }
+body.theme-dark .tab.active { background: linear-gradient(135deg,#1F5E7F,#2A7A9F) !important; color: white !important; border: none !important; }
+body.theme-dark input,
+body.theme-dark select { background: #162840 !important; color: #E0F4FF !important; border-color: rgba(255,255,255,.1) !important; }
+body.theme-dark .ghost { background: rgba(255,255,255,.06) !important; color: #7ACCE0 !important; }
+body.theme-dark h1,
+body.theme-dark h2,
+body.theme-dark h3 { color: #7ACCE0 !important; }
+body.theme-dark .hero { background: #112030 !important; }
+body.theme-dark .chartWrap { background: linear-gradient(145deg, #162840, #112030) !important; border-color: rgba(255,255,255,.06) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 18px 40px rgba(0,0,0,.4) !important; }body.theme-dark .beta-banner { background: #112030 !important; color: #7ACCE0 !important; border-color: rgba(255,255,255,.08) !important; }
+body.theme-dark .pill { background: rgba(122,204,224,.15) !important; color: #7ACCE0 !important; }
+body.theme-dark .top { background: #0A1520; }
+body.theme-dark .new-mission-card { border-left-color: #7ACCE0 !important; }
+body.theme-dark .new-mission-card.planned { border-left-color: var(--orange) !important; }
+body.theme-dark .act-table th,
+body.theme-dark .act-table td { border-color: rgba(255,255,255,.06) !important; color: #E0F4FF !important; }
+body.theme-dark .act-table thead tr,
+body.theme-dark .act-table-head { background: #162840 !important; }
+body.theme-dark .missions-legend-row { background: #162840 !important; border-color: rgba(255,255,255,.08) !important; }
+body.theme-dark .fi-info-box,
+body.theme-dark .fi-comparaison,
+body.theme-dark .fi-conseil-box { background: rgba(255,255,255,.04) !important; border-color: rgba(255,255,255,.08) !important; }
+body.theme-dark .account-dropdown { background: #112030 !important; border-color: rgba(255,255,255,.08) !important; }
+body.theme-dark .account-dd-email,
+body.theme-dark .account-dd-plan,
+body.theme-dark .account-dd-themes { border-color: rgba(255,255,255,.08) !important; }
+/* Calendrier dark */
+/* Calendrier dark */
+body.theme-dark .new-cal-day { background: rgba(255,255,255,.03); }
+body.theme-dark .new-cal-day:hover { background: rgba(255,255,255,.07) !important; }
+body.theme-dark .new-cal-day.today { background: #1F6E8F !important; }
+body.theme-dark .new-cal-num { color: #E0F4FF; }
+body.theme-dark .new-cal-day.has-done { background: rgba(31,110,143,.15) !important; border: 2px solid rgba(122,204,224,.3) !important; border-radius: 10px; }
+body.theme-dark .new-cal-day.has-planned { border: 2px solid rgba(249,115,22,.4) !important; border-radius: 10px; }
+body.theme-dark .mission-bar.done { background: rgba(31,110,143,.5); color: white !important; font-weight: 900; }
+body.theme-dark .mission-bar.planned { background: rgba(249,115,22,.4); color: white !important; font-weight: 900; }
+body.theme-dark .mbar-label { color: white !important; font-weight: 900 !important; }
+body.theme-dark .new-cal-daynames div { color: rgba(255,255,255,.3); }
+body.theme-dark .new-cal-header { border-left-color: #7ACCE0; }
+/* Actualisation dark */
+body.theme-dark .actualisation-card-clean { background: #112030 !important; }
+body.theme-dark .actualisation-table-wrap { background: #162840 !important; border-color: rgba(255,255,255,.06) !important; }
+body.theme-dark .act-table-head { background: rgba(255,255,255,.04) !important; }
+body.theme-dark .act-table tbody tr:hover { background: rgba(255,255,255,.04) !important; }
+body.theme-dark .act-total-row td { background: rgba(122,204,224,.08) !important; }
+body.theme-dark .act-stat-box.highlight { background: linear-gradient(145deg,#1F5E7F,#2A7A9F) !important; }
+body.theme-dark .btn-act-pdf { background: linear-gradient(135deg,#1F5E7F,#2A7A9F) !important; }
+body.theme-dark .btn-act-ft { background: rgba(255,255,255,.04) !important; border-color: rgba(255,255,255,.1) !important; }
+
+/* Calendar day panel dark */
+body.theme-dark .calendar-day-panel { background: #162840 !important; border-color: rgba(255,255,255,.06) !important; }
+body.theme-dark .calendar-day-mission { background: #1A2E44 !important; border-color: rgba(255,255,255,.06) !important; }
+
+.account-dd-themes { padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+.account-dd-theme-label { font-size: 12px; color: var(--muted); font-weight: 600; }
+.account-dd-theme-btns { display: flex; gap: 6px; }
+.theme-btn { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--line); background: var(--soft); cursor: pointer; font-size: 14px; display: grid; place-items: center; transition: all .15s; }
+.theme-btn:hover { border-color: var(--petrol); transform: scale(1.1); }
+.theme-btn.active { border-color: var(--petrol); }
+
+.theme-toggle-float {
+  position: fixed;
+  bottom: 80px;
+  right: 16px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--petrol);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(31,78,95,.3);
+  z-index: 7000;
+  transition: all .15s;
+}
+.theme-toggle-float:hover { transform: scale(1.1); }
