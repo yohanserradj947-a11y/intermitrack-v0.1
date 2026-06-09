@@ -420,7 +420,10 @@ if (typeof monterWidgetParser === "function") monterWidgetParser();
       floatBtn.textContent = next === "dark" ? "☀️" : "🌙";
     };
   }
+
+  if ($("feedbackBtn")) $("feedbackBtn").classList.remove("hidden");
 }
+
 
 function getCalendarIcsUrl() {
   if (!currentUser) return null;
@@ -453,7 +456,8 @@ async function loadMissions() {
     date: x.mission_date, endDate: x.end_date || x.mission_date,
     hours: Number(x.hours || 0), gross: Number(x.gross_amount || 0),
     kmDistance: Number(x.km_distance || 0), kmRate: Number(x.km_rate || 0), kmAmount: Number(x.km_amount || 0),
-    vacations: Number(x.vacations || Math.round((x.hours || 0) / 8))
+    vacations: Number(x.vacations || Math.round((x.hours || 0) / 8)),
+    emission: x.emission || ""
   }));
   render();
 }
@@ -627,8 +631,9 @@ async function addMission(event) {
   event.preventDefault();
   if (!currentUser) { alert("Connecte-toi avant d'ajouter une mission."); return; }
   if ($("endDate").value < $("date").value) { alert("La date de fin ne peut pas être avant la date de début."); return; }
-  const payload = {
+ const payload = {
     user_id: currentUser.id, production: normalizeProductionName($("production").value),
+    emission: $("emission")?.value || "",
     mission_type: $("type").value, mission_date: $("date").value, end_date: $("endDate").value,
     hours: Number($("hours").value), gross_amount: Number($("gross").value),
     km_distance: Number($("kmDistance")?.value || 0), km_rate: Number($("kmRate")?.value || 0), km_amount: calculateKmAmount()
@@ -953,10 +958,10 @@ function render() {
   renderFiscalite(yearGross, yearMissions);
 
   renderChart(yearHours, plannedHours);
-  renderHistory();
+  ;
   renderAllMissions();
   renderCalendar();
-  renderActualisation();
+  renderActualisation();renderHistory()
   renderDocuments();
 }
 function showAppNotification(type, icon, title, text, progressPct, progressColor) {
@@ -1095,9 +1100,13 @@ function renderHistory() {
     <div class="mission-card-grid">
       ${visible.map((mission) => `
         <div class="mission-history-card">
-          <div class="mission-history-head"><strong>${mission.production}</strong><span class="pill">${mission.type}</span></div>
+          <div class="mission-history-head">
+            <strong>${escapeHtml(mission.production)}</strong>
+            <span class="pill">${escapeHtml(mission.type)}</span>
+          </div>
           <div class="mission-history-info">
             <span>📅 ${formatPeriod(mission.date, mission.endDate)}</span>
+            ${mission.emission ? `<span>🎬 ${escapeHtml(mission.emission)}</span>` : ""}
             <span>🕒 ${mission.hours}h</span>
             <span>€ ${money(mission.gross)}</span>
           </div>
@@ -1105,16 +1114,14 @@ function renderHistory() {
             <button class="edit-icon-btn" data-edit="${mission.id}" type="button" title="Modifier">✏️</button>
             <button class="delete-icon-btn" data-delete="${mission.id}" type="button" title="Supprimer">✕</button>
           </div>
-        </div>
-      `).join("")}
+        </div>`).join("")}
     </div>
     ${totalPages > 1 ? `
       <div class="history-pagination">
         <button class="ghost" type="button" id="historyPagePrev" ${historyPage === 1 ? "disabled" : ""}>‹</button>
         <span>Page ${historyPage} / ${totalPages}</span>
         <button class="ghost" type="button" id="historyPageNext" ${historyPage === totalPages ? "disabled" : ""}>›</button>
-      </div>
-    ` : ""}
+      </div>` : ""}
   `;
   if ($("historyPagePrev")) $("historyPagePrev").addEventListener("click", () => { historyPage--; renderHistory(); });
   if ($("historyPageNext")) $("historyPageNext").addEventListener("click", () => { historyPage++; renderHistory(); });
@@ -1212,10 +1219,11 @@ const list = missions.filter((m) => normalizeProductionName(m.production || "San
     </div>
     <div class="mission-card-grid">
       ${list.map((mission) => `
-        <div class="mission-history-card">
+       <div class="mission-history-card">
           <div class="mission-history-head"><strong>${escapeHtml(mission.production)}</strong><span class="pill">${escapeHtml(mission.type)}</span></div>
           <div class="mission-history-info">
             <span>📅 ${formatPeriod(mission.date, mission.endDate)}</span>
+            ${mission.emission ? `<span>🎬 ${escapeHtml(mission.emission)}</span>` : ""}
             <span>🕒 ${mission.hours}h</span>
             <span>€ ${money(mission.gross)}</span>
           </div>

@@ -1178,4 +1178,23 @@ body.theme-dark .lp-modal-box .msg { color: #718096 !important; }
 .itk-table thead tr { background: #16263f; color: #fff; }
 .itk-table th, .itk-table td { padding: 10px 12px; text-align: left; }
 .itk-table td { border-top: 1px solid #dfe4ea; }
-.itk-table tbody tr:nth-child(even) { background: #f3f5f8; }
+.itk-table tbody tr:nth-child(even) { background: #f3f5f8; }.feedback-float-btn {
+  position: fixed;
+  bottom: 80px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 99px;
+  background: var(--petrol);
+  color: white;
+  font-size: 13px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(31,78,95,.3);
+  z-index: 7000;
+  transition: all .15s;
+}
+.feedback-float-btn:hover { transform: scale(1.05); }

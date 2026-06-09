@@ -427,9 +427,11 @@ z-index: 500 !important;
           </div>
           <form id="missionForm">
             <label for="production">Nom de la production</label>
-            <input id="production" placeholder="Ex : PRODUCTION" required />
+            <input id="production" placeholder="Ex : Production " required />
             <label for="type">Type de mission</label>
-            <select id="type"><option>Montage</option><option>Tournage</option><option>Démontage</option><option>Régie</option><option>Son</option><option>Lumière</option><option>Autre</option></select>
+            <label for="emission">Émission</label>
+            <input id="emission" placeholder="Ex :The voice..." />
+            <select id="type"><option>Montage</option><option>Tournage</option><option>Démontage</option><option>Régie</option><option>Son</option><option>Lumière</option><option>Autres</option></select>
             <label for="date">Date début</label><input id="date" type="date" required />
             <label for="endDate">Date fin</label><input id="endDate" type="date" required />
             <label for="hours">Nombre d'heures cumulées sur la période</label>
@@ -810,6 +812,7 @@ z-index: 500 !important;
       </div>
     </div>
   </div>
+<button class="feedback-float-btn hidden" id="feedbackBtn" onclick="window.open('https://forms.gle/vadarsUu66Pq2U4s5', '_blank')">💬 Donner mon avis</button>
 <button class="theme-toggle-float hidden" id="themeToggleFloat" title="Changer de thème">☀️</button>
 </body>
 </html>
