@@ -70,10 +70,16 @@ function normalizeProductionName(value) {
 async function trackEvent(eventName, eventData = {}) {
   try {
     if (!currentUser) return;
-    await sb.from("analytics_events").insert({ user_id: currentUser.id, event_name: eventName, event_data: eventData });
-  } catch (error) { console.warn("Analytics non bloquant :", error.message); }
+    const { error } = await sb.from("analytics_events").insert({ 
+      user_id: currentUser.id, 
+      event_name: eventName, 
+      event_data: eventData 
+    });
+    if (error) console.warn("Analytics error:", error.message);
+  } catch (error) { 
+    console.warn("Analytics non bloquant :", error.message); 
+  }
 }
-
 function setDefaultDates() {
   const today = new Date();
   if ($("date")) $("date").valueAsDate = today;
