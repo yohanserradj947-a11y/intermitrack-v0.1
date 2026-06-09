@@ -1,5 +1,5 @@
 // ─── FIX : version incrémentée pour forcer la mise à jour du cache
-const CACHE_NAME = "intermitrack-v2";
+const CACHE_NAME = "intermitrack-v" + Date.now();
 
 const FILES_TO_CACHE = [
   "./",
