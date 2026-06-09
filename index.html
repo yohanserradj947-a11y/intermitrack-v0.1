@@ -713,27 +713,60 @@ z-index: 500 !important;
     </section>
 
     <!-- ===== CARTE 2 — FRANCHISES ===== -->
-    <section class="itk-card">
-      <h2 class="itk-h2">Calcul des franchises &amp; carence</h2>
-      <label class="itk-label">Mois de fin de droits *</label>
-      <input class="itk-in" type="month" id="itk-c2-mois">
-      <label class="itk-label">Nbre d'heures travaillées * (NHT)</label>
-      <input class="itk-in" type="number" id="itk-c2-nht" min="0" placeholder="ex : 600">
-      <label class="itk-label">Salaire période de référence * (S/PRC)</label>
-      <input class="itk-in" type="number" id="itk-c2-prc" min="0" placeholder="ex : 17000">
-      <p class="itk-hint">Total brut sur toute la période (~12 mois). Ex : 17 000 € → SJM ≈ 227 €.</p>
-      <label class="itk-label">Nbre de jours travaillés</label>
-      <input class="itk-in" type="number" id="itk-c2-jours" min="0" placeholder="ex : 70">
-      <div class="itk-err" id="itk-c2-err">Renseigne les heures, le salaire et les jours travaillés.</div>
-      <button class="itk-btn" id="itk-c2-go">Calculer</button>
-      <div class="itk-out itk-hide" id="itk-c2-out">
-        <div class="itk-resh">Vos résultats en : <span id="itk-c2-rmois"></span> <em id="itk-c2-rjours"></em></div>
-        <div class="itk-row"><span class="itk-k">SMIC Horaire</span><span class="itk-v" id="itk-c2-smic">—</span></div>
-        <div class="itk-row itk-hl"><span class="itk-k">Salaire Journalier Moyen</span><span class="itk-v" id="itk-c2-sjm">—</span></div>
-        <div class="itk-row"><span class="itk-k">Franchise Salaires</span><span class="itk-v" id="itk-c2-fsal">—</span></div>
-        <div class="itk-row"><span class="itk-k">Franchise Congés payés</span><span class="itk-v" id="itk-c2-fcp">—</span></div>
+    <<section class="itk-card">
+  <h2 class="itk-h2">Calcul des franchises &amp; carence</h2>
+
+  <label class="itk-label">Vous êtes majoritairement *</label>
+  <div class="itk-seg" id="itk-c2-annexe">
+    <button type="button" data-a="artiste">Artiste (annexe 10)</button>
+    <button type="button" data-a="technicien" class="itk-on">Technicien (annexe 8)</button>
+  </div>
+
+  <label class="itk-label">Mois de fin de droits *</label>
+  <input class="itk-in" type="month" id="itk-c2-mois">
+
+  <label class="itk-label">Nbre d'heures travaillées * (NHT)</label>
+  <input class="itk-in" type="number" id="itk-c2-nht" min="0" placeholder="ex : 1302">
+
+  <label class="itk-label">Salaire période de référence * (S/PRC)</label>
+  <input class="itk-in" type="number" id="itk-c2-prc" min="0" placeholder="ex : 41132">
+  <p class="itk-hint">Total brut sur toute la période (~12 mois) soumis à contribution.</p>
+
+  <label class="itk-label">Nbre de jours travaillés</label>
+  <input class="itk-in" type="number" id="itk-c2-jours" min="0" placeholder="ex : 170">
+
+  <label class="itk-label">Déjà intermittent ?</label>
+  <div class="itk-seg" id="itk-c2-deja">
+    <button type="button" data-v="non" class="itk-on">Non — 1re ouverture</button>
+    <button type="button" data-v="oui">Oui — déjà des droits</button>
+  </div>
+  <p class="itk-hint">Oui = réadmission moins de 12 mois après la précédente : le délai d'attente de 7 jours ne s'applique pas.</p>
+
+  <div class="itk-err" id="itk-c2-err">Renseigne les heures, le salaire et les jours travaillés.</div>
+  <button class="itk-btn" id="itk-c2-go">Calculer</button>
+
+  <div class="itk-out itk-hide" id="itk-c2-out">
+    <div class="itk-resh">Vos résultats en : <span id="itk-c2-rmois"></span> <em id="itk-c2-rjours"></em></div>
+    <div class="itk-row"><span class="itk-k">SMIC Horaire</span><span class="itk-v" id="itk-c2-smic">—</span></div>
+    <div class="itk-row itk-hl"><span class="itk-k">Salaire Journalier Moyen</span><span class="itk-v" id="itk-c2-sjm">—</span></div>
+    <div class="itk-row"><span class="itk-k">Délai d'attente</span><span class="itk-v" id="itk-c2-delai">—</span></div>
+    <div class="itk-row"><span class="itk-k">Franchise Salaires</span><span class="itk-v" id="itk-c2-fsal">—</span></div>
+    <div class="itk-row"><span class="itk-k">Franchise Congés payés</span><span class="itk-v" id="itk-c2-fcp">—</span></div>
+
+    <button type="button" class="itk-toggle" id="itk-c2-toggle">
+      <span>Voir le détail mois par mois</span><span class="itk-chev">▾</span>
+    </button>
+    <div class="itk-tablebox itk-hide" id="itk-c2-tablebox">
+      <p class="itk-hint">Projection indicative : la consommation réelle dépend de tes jours non travaillés chaque mois (report sur le mois suivant).</p>
+      <div class="itk-scroll">
+        <table class="itk-table">
+          <thead><tr><th>Mois</th><th>Délai</th><th>Fr. sal.</th><th>Fr. CP</th><th>Total</th><th>Cumul</th></tr></thead>
+          <tbody id="itk-c2-tbody"></tbody>
+        </table>
       </div>
-    </section>
+    </div>
+  </div>
+</section>
 
     <!-- ===== CARTE 3 — CONGÉS SPECTACLES (NET) ===== -->
     <section class="itk-card">

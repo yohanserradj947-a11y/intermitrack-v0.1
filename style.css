@@ -1157,3 +1157,25 @@ body.theme-dark .lp-modal-box .primary { background: #1F4E5F !important; color: 
 body.theme-dark .lp-modal-box .ghost { background: #EEF4F2 !important; color: #1F4E5F !important; }
 body.theme-dark .lp-modal-box .home-mainline { color: #2D3748 !important; }
 body.theme-dark .lp-modal-box .msg { color: #718096 !important; }
+.itk-seg { display: flex; gap: 8px; margin-bottom: 14px; }
+.itk-seg button {
+  flex: 1; padding: 12px; border-radius: 10px; border: 2px solid #dfe4ea;
+  background: #fff; color: #16263f; font-weight: 700; font-size: 14px; cursor: pointer;
+}
+.itk-seg button.itk-on { background: #16263f; color: #fff; border-color: #45c4d6; }
+
+.itk-toggle {
+  width: 100%; display: flex; justify-content: space-between; align-items: center;
+  margin-top: 12px; padding: 12px 16px; border: 2px solid #dfe4ea; border-radius: 10px;
+  background: #fff; color: #16263f; font-weight: 700; font-size: 14px; cursor: pointer;
+}
+.itk-toggle .itk-chev { transition: transform .2s; }
+.itk-toggle.itk-open .itk-chev { transform: rotate(180deg); }
+
+.itk-tablebox { margin-top: 12px; }
+.itk-scroll { overflow-x: auto; border: 1px solid #dfe4ea; border-radius: 10px; }
+.itk-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 460px; }
+.itk-table thead tr { background: #16263f; color: #fff; }
+.itk-table th, .itk-table td { padding: 10px 12px; text-align: left; }
+.itk-table td { border-top: 1px solid #dfe4ea; }
+.itk-table tbody tr:nth-child(even) { background: #f3f5f8; }

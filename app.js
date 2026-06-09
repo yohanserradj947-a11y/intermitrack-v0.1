@@ -218,19 +218,61 @@ function calculateCarence() {
   if (err) err.style.display = "none";
 
   const SMIC_H = 12.31;
-  const sjm = Math.round(prc / jours);
-  const cp = Math.round(prc * 0.10);
-  const franchiseCP = Math.min(Math.round(cp / sjm), 36);
-  const franchiseSal = Math.min(Math.round(prc / sjm), 75);
+  const SMIC_MENS = SMIC_H * 151.67;
+  const SMIC_JOUR = SMIC_MENS / 30;            // ≈ 62,24 €
 
-  if ($("itk-c2-smic")) $("itk-c2-smic").textContent = SMIC_H.toFixed(2) + " €/h";
-  if ($("itk-c2-sjm")) $("itk-c2-sjm").textContent = sjm + " €/jour";
-  if ($("itk-c2-fsal")) $("itk-c2-fsal").textContent = franchiseSal + " jours (plafond 75j)";
-  if ($("itk-c2-fcp")) $("itk-c2-fcp").textContent = franchiseCP + " jours (plafond 36j)";
+  // lecture des deux boutons (annexe + déjà intermittent)
+  const annexeBtn = document.querySelector("#itk-c2-annexe .itk-on");
+  const diviseur = (annexeBtn && annexeBtn.dataset.a === "artiste") ? 10 : 8;
+  const dejaBtn = document.querySelector("#itk-c2-deja .itk-on");
+  const dejaInt = (dejaBtn && dejaBtn.dataset.v === "oui");
 
-  if ($("itk-c2-rmois")) $("itk-c2-rmois").textContent = mois || "—";
-  const totalCarence = 7 + franchiseCP + franchiseSal;
-  if ($("itk-c2-rjours")) $("itk-c2-rjours").textContent = `Total carence estimée : ${totalCarence} jours`;
+  // calculs corrigés
+  const sjm   = prc / (nht / diviseur);
+  const franchiseSal = Math.max(0, Math.round((prc / SMIC_MENS) * (sjm / (3 * SMIC_JOUR)) - 27));
+  const franchiseCP  = Math.min(30, Math.floor((jours * 2.5) / 24));
+  const delai = dejaInt ? 0 : 7;
+  const totalCarence = delai + franchiseSal + franchiseCP;
+
+  const MOIS = ["janvier","février","mars","avril","mai","juin",
+                "juillet","août","septembre","octobre","novembre","décembre"];
+  const moisLabel = mois
+    ? (MOIS[Number(mois.split("-")[1]) - 1] + " " + mois.split("-")[0])
+    : "—";
+
+  if ($("itk-c2-smic"))  $("itk-c2-smic").textContent  = SMIC_H.toFixed(2).replace(".", ",") + " €/h";
+  if ($("itk-c2-sjm"))   $("itk-c2-sjm").textContent   = sjm.toFixed(2).replace(".", ",") + " €/jour";
+  if ($("itk-c2-delai")) $("itk-c2-delai").textContent = delai + " jours";
+  if ($("itk-c2-fsal"))  $("itk-c2-fsal").textContent  = franchiseSal === 0 ? "0 jour" : franchiseSal + " jours";
+  if ($("itk-c2-fcp"))   $("itk-c2-fcp").textContent   = franchiseCP + " jours (plafond 30j)";
+  if ($("itk-c2-rmois")) $("itk-c2-rmois").textContent = moisLabel;
+  if ($("itk-c2-rjours"))$("itk-c2-rjours").textContent = `Total carence estimée : ${totalCarence} jours`;
+
+  // tableau mois par mois
+  const tbody = $("itk-c2-tbody");
+  if (tbody) {
+    const debut = mois ? (Number(mois.split("-")[1]) - 1) : 0;
+    const repartir = (t, max) => {
+      const r = []; if (t <= 0) return r;
+      const nb = Math.min(max, t), base = Math.floor(t / nb); let reste = t - base * nb;
+      for (let i = 0; i < nb; i++) { r.push(base + (reste > 0 ? 1 : 0)); if (reste > 0) reste--; }
+      return r;
+    };
+    const consoCP = (t) => {
+      const f = t <= 24 ? 2 : 3, r = []; let reste = t;
+      while (reste > 0) { const m = Math.min(f, reste); r.push(m); reste -= m; }
+      return r;
+    };
+    const fsM = repartir(franchiseSal, 8), cpM = consoCP(franchiseCP);
+    const n = Math.max(fsM.length, cpM.length, delai > 0 ? 1 : 0);
+    let cumul = 0, html = "";
+    for (let i = 0; i < n; i++) {
+      const d = i === 0 ? delai : 0, f = fsM[i] || 0, c = cpM[i] || 0, tt = d + f + c;
+      cumul += tt;
+      html += `<tr><td style="text-transform:capitalize">${MOIS[(debut + i) % 12]}</td><td>${d || "—"}</td><td>${f || "—"}</td><td>${c || "—"}</td><td><strong>${tt}</strong></td><td>${cumul}</td></tr>`;
+    }
+    tbody.innerHTML = html;
+  }
 
   if (out) out.classList.remove("itk-hide");
 }
@@ -1476,7 +1518,23 @@ function setupEvents() {
   if ($("documentForm")) $("documentForm").addEventListener("submit", uploadDocument);
   if ($("refreshDocumentsBtn")) $("refreshDocumentsBtn").addEventListener("click", loadDocuments);
   if ($("itk-c1-go")) $("itk-c1-go").addEventListener("click", calculateEstimatedAreDailyRate);
-  if ($("itk-c2-go")) $("itk-c2-go").addEventListener("click", calculateCarence);
+ if ($("itk-c2-go")) $("itk-c2-go").addEventListener("click", calculateCarence);
+
+  // boutons annexe (Artiste/Technicien) + déjà intermittent (Oui/Non)
+  ["itk-c2-annexe", "itk-c2-deja"].forEach(function (id) {
+    var box = $(id); if (!box) return;
+    box.addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b) return;
+      [].forEach.call(box.children, function (x) { x.classList.toggle("itk-on", x === b); });
+    });
+  });
+
+  // dépliage du tableau mois par mois
+  if ($("itk-c2-toggle")) $("itk-c2-toggle").addEventListener("click", function () {
+    this.classList.toggle("itk-open");
+    if ($("itk-c2-tablebox")) $("itk-c2-tablebox").classList.toggle("itk-hide");
+  });
+
   if ($("itk-c3-go")) $("itk-c3-go").addEventListener("click", () => {
     const brut = Number($("itk-c3-brut")?.value || 0);
     if (!brut) return;
@@ -1484,7 +1542,6 @@ function setupEvents() {
     if ($("itk-c3-val")) $("itk-c3-val").textContent = money(net);
     if ($("itk-c3-out")) $("itk-c3-out").classList.remove("itk-hide");
   });
- 
   $("date").addEventListener("change", () => { if (!$("endDate").value || $("endDate").value < $("date").value) $("endDate").value = $("date").value; });
  
   document.querySelectorAll(".tab").forEach((tab) => { tab.addEventListener("click", () => activateView(tab.dataset.view)); });
@@ -1568,21 +1625,13 @@ function setupEvents() {
  
   window.addEventListener("beforeinstallprompt", (event) => { event.preventDefault(); deferredInstallPrompt = event; });
  
- if ($("installBtn")) $("installBtn").addEventListener("click", async () => {
+if ($("installBtn")) $("installBtn").addEventListener("click", async () => {
     if (!deferredInstallPrompt) { alert("Sur iPhone..."); return; }
     deferredInstallPrompt.prompt();
     await deferredInstallPrompt.userChoice;
     deferredInstallPrompt = null;
   });
-const themeBtn = event.target.closest(".theme-btn");
-    if (themeBtn) {
-      const theme = themeBtn.dataset.theme;
-      applyTheme(theme);
-      localStorage.setItem("intermitrack_theme", theme);
-      document.querySelectorAll(".theme-btn").forEach(b =>
-        b.classList.toggle("active", b.dataset.theme === theme));
-      return;
-    }
+
   document.addEventListener("click", (e) => {
     const themeBtn = e.target.closest(".theme-btn");
     if (themeBtn) {
@@ -1675,25 +1724,7 @@ init();
   });
 
   /* ===== CARTE 2 ===== */
-  function libelleMois(s){ if(!s) return "—"; var M=["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"],p=s.split("-"); return M[(+p[1])-1]+" "+p[0]; }
-  function joursMois(s){ if(!s) return null; var p=s.split("-"); return new Date(+p[0],+p[1],0).getDate(); }
-  $("itk-c2-go").addEventListener("click",function(){
-    var nht=num($("itk-c2-nht").value), prc=num($("itk-c2-prc").value),
-        jours=num($("itk-c2-jours").value), mois=$("itk-c2-mois").value;
-    if(!(nht>0)||!(prc>0)||!(jours>=0)||isNaN(jours)){ $("itk-c2-err").style.display="block"; return; }
-    $("itk-c2-err").style.display="none";
-    var smicH=CONFIG.SMIC_HORAIRE, smicMens=smicH*151.67, smicJour=smicMens/30;
-    var sjm=prc/(nht/8);
-    var fsal=Math.max(0, Math.round((prc/smicMens)*(sjm/(3*smicJour))-27));
-    var fcp=Math.min(CONFIG.FRANCHISE_CP_MAX, Math.floor(jours/24*2.5));
-    $("itk-c2-rmois").textContent=libelleMois(mois);
-    var jm=joursMois(mois); $("itk-c2-rjours").textContent=jm?"("+jm+" jours)":"";
-    $("itk-c2-smic").textContent=eur(smicH);
-    $("itk-c2-sjm").textContent=eur(sjm);
-    $("itk-c2-fsal").textContent=fsal+" j";
-    $("itk-c2-fcp").textContent=fcp+" j";
-    $("itk-c2-out").classList.remove("itk-hide");
-  });
+
 
   /* ===== CARTE 3 ===== */
   $("itk-c3-go").addEventListener("click",function(){
