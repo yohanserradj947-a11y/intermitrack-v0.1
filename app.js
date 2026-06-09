@@ -899,6 +899,7 @@ function render() {
   if ($("monthGross")) $("monthGross").textContent = money(monthGross);
   if ($("recapMonthPicker")) $("recapMonthPicker").value = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}`;
   if ($("yearGross")) $("yearGross").textContent = money(yearGross);
+  checkAndShowNotification(remaining, yearHours);
   if ($("remainingHours")) $("remainingHours").textContent = remaining;
   if ($("missionCount")) {
   const totalVac = selectedMonthMissions.reduce((a, x) => a + Number(x.vacations || 0), 0);
@@ -914,7 +915,86 @@ function render() {
   renderActualisation();
   renderDocuments();
 }
+function showAppNotification(type, icon, title, text, progressPct, progressColor) {
+  const existing = document.getElementById("appNotif");
+  if (existing) existing.remove();
 
+  const notif = document.createElement("div");
+  notif.id = "appNotif";
+  notif.className = `app-notif ${type}`;
+  notif.innerHTML = `
+    <span class="app-notif-icon">${icon}</span>
+    <div class="app-notif-body">
+      <div class="app-notif-title">${title}</div>
+      <div class="app-notif-text">${text}</div>
+      ${progressPct !== null ? `
+        <div class="app-notif-progress">
+          <div class="app-notif-fill" style="width:${progressPct}%;background:${progressColor}"></div>
+        </div>` : ""}
+    </div>
+    <span class="app-notif-close">✕</span>
+  `;
+  notif.addEventListener("click", () => notif.remove());
+  document.body.appendChild(notif);
+  setTimeout(() => { if (document.getElementById("appNotif")) notif.remove(); }, 8000);
+}
+
+function checkAndShowNotification(remaining, yearHours) {
+  const key = `notif_dismissed_${Math.floor(remaining)}`;
+  if (localStorage.getItem(key)) return;
+  localStorage.setItem(key, "1");
+
+  const pct = Math.round((yearHours / 507) * 100);
+
+  if (yearHours >= 507) {
+    showAppNotification("success", "🎉",
+      "Félicitations ! Vous êtes éligible",
+      "Vous avez validé vos 507h. Vous êtes éligible au statut d'intermittent. Pensez à contacter France Travail.",
+      100, "#22C55E");
+  } else if (remaining <= 30) {
+    showAppNotification("urgent", "⚠️",
+      `Sprint final — encore ${remaining}h !`,
+      `${yearHours}h effectuées. Il ne te manque plus que ${remaining}h pour être éligible.`,
+      pct, "#EF4444");
+  } else if (remaining <= 100) {
+    showAppNotification("warning", "🔥",
+      `Plus que ${remaining}h pour valider tes droits !`,
+      `Tu es à ${yearHours}h sur 507h. Continue comme ça, tu y es presque.`,
+      pct, "#F97316");
+  }
+
+  // Rappel actualisation France Travail (28 du mois → 15 du mois suivant)
+  const today = new Date();
+  const dayOfMonth = today.getDate();
+  const monthDays = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const openDay = monthDays === 28 ? 26 : 28;
+  const actuKey = `notif_actua_${today.getFullYear()}_${today.getMonth()}_${dayOfMonth}`;
+
+  if (!localStorage.getItem(actuKey)) {
+    localStorage.setItem(actuKey, "1");
+    if (dayOfMonth === 15) {
+      showAppNotification("urgent", "🚨",
+        "Dernier jour pour actualiser !",
+        "C'est le 15 — dernière chance pour déclarer sur France Travail avant minuit.",
+        null, null);
+    } else if (dayOfMonth === 14) {
+      showAppNotification("urgent", "⏰",
+        "Plus qu'1 jour pour actualiser !",
+        "Demain c'est le 15, dernier délai. Votre récap est prêt dans l'onglet Actualisation.",
+        null, null);
+    } else if (dayOfMonth === 12) {
+      showAppNotification("warning", "📅",
+        "Actualisation — 3 jours restants",
+        "Deadline le 15. Votre récap du mois est prêt dans l'onglet Actualisation.",
+        null, null);
+    } else if (dayOfMonth === openDay) {
+      showAppNotification("info", "📅",
+        "C'est l'heure de l'actualisation !",
+        "L'actualisation est ouverte depuis aujourd'hui jusqu'au 15. Votre récap est prêt.",
+        null, null);
+    }
+  }
+}
 function renderChart(doneHours, plannedHours = 0) {
   const total = OBJECTIVE_HOURS;
   const doneRaw = Math.max(0, Number(doneHours) || 0);
