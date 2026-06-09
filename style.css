@@ -1130,4 +1130,30 @@ body.theme-dark .calendar-day-mission { background: #1A2E44 !important; border-c
   z-index: 7000;
   transition: all .15s;
 }
-.theme-toggle-float:hover { transform: scale(1.1); }
+.theme-toggle-float:hover { transform: scale(1.1); }/* Exclure modale login du thème sombre */
+body.theme-dark .lp-modal-box,
+body.theme-dark .lp-modal-box input,
+body.theme-dark .lp-modal-box select,
+body.theme-dark .lp-modal-box h2,
+body.theme-dark .lp-modal-box label,
+body.theme-dark .lp-modal-box .home-mainline,
+body.theme-dark .lp-modal-box .authTabs button,
+body.theme-dark .lp-modal-box .primary,
+body.theme-dark .lp-modal-box .ghost { 
+  all: revert; 
+}
+body.theme-dark .lp-modal-box {
+  background: white !important;
+  color: #2D3748 !important;
+}
+body.theme-dark .lp-modal-box input {
+  background: white !important;
+  color: #2D3748 !important;
+  border: 1px solid #E2E8F0 !important;
+}
+body.theme-dark .lp-modal-box h2,
+body.theme-dark .lp-modal-box label { color: #1F4E5F !important; }
+body.theme-dark .lp-modal-box .primary { background: #1F4E5F !important; color: white !important; }
+body.theme-dark .lp-modal-box .ghost { background: #EEF4F2 !important; color: #1F4E5F !important; }
+body.theme-dark .lp-modal-box .home-mainline { color: #2D3748 !important; }
+body.theme-dark .lp-modal-box .msg { color: #718096 !important; }
