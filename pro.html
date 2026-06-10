@@ -791,9 +791,18 @@ window.sendInvitations = async (projectId) => {
 };
 
 // Init
-sb.auth.getSession().then(({ data: { session } }) => {
+sb.auth.getSession().then(async ({ data: { session } }) => {
   currentUser = session?.user || null;
   if (currentUser) {
+    // Vérification rôle Pro au chargement
+    const { data: profile } = await sb.from('profiles').select('role').eq('id', currentUser.id).single();
+    if (profile?.role !== 'pro') {
+      await sb.auth.signOut();
+      document.getElementById('authPage').style.display = 'flex';
+      document.getElementById('proApp').style.display = 'none';
+      document.getElementById('authMsg').textContent = '⛔ Accès réservé aux comptes Pro.';
+      return;
+    }
     document.getElementById('authPage').style.display = 'none';
     document.getElementById('proApp').style.display = 'block';
     document.getElementById('logoutBtn').style.display = 'flex';
