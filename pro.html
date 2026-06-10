@@ -329,19 +329,21 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
 // ── Load ──────────────────────────────────────────────────
 async function loadAll() {
-  try {
-    const [r1, r2] = await Promise.all([
-      sb.from('pro_contacts').select('*').order('nom'),
-      sb.from('pro_projects').select('*').order('date_debut', { ascending: true })
-    ]);
-    if (r1.error) { console.error('Contacts error:', r1.error); }
-    if (r2.error) { console.error('Projets error:', r2.error); }
-    contacts = r1.data || [];
-    projets = r2.data || [];
-    renderContacts();
-    renderProjets();
-    updateCounters();
-  } catch(e) { console.error('loadAll error:', e); }
+  const session = await sb.auth.getSession();
+  const token = session.data.session?.access_token || SUPABASE_ANON;
+  const headers = {
+    'apikey': SUPABASE_ANON,
+    'Authorization': 'Bearer ' + token
+  };
+  const [r1, r2] = await Promise.all([
+    fetch(SUPABASE_URL + '/rest/v1/pro_contacts?select=*&order=nom.asc', { headers }).then(r => r.json()),
+    fetch(SUPABASE_URL + '/rest/v1/pro_projects?select=*&order=date_debut.asc', { headers }).then(r => r.json())
+  ]);
+  contacts = Array.isArray(r1) ? r1 : [];
+  projets = Array.isArray(r2) ? r2 : [];
+  renderContacts();
+  renderProjets();
+  updateCounters();
 }
 
 function updateCounters() {
@@ -477,20 +479,25 @@ document.getElementById('saveContactBtn').addEventListener('click', async () => 
     prenom: document.getElementById('cPrenom').value.trim(),
     email: document.getElementById('cEmail').value.trim(),
     telephone: document.getElementById('cTel').value.trim(),
-    poste: selectedPostes.length > 0 ? selectedPostes.join(', ') : '',
+    poste: selectedPostes.join(', '),
     notes: document.getElementById('cNotes').value.trim()
   };
-  let result;
-  if (editContactId) {
-    result = await sb.from('pro_contacts').update(payload).eq('id', editContactId);
-  } else {
-    result = await sb.from('pro_contacts').insert(payload);
-  }
-  if (result.error) { alert('Erreur : ' + result.error.message); return; }
+  const url = SUPABASE_URL + '/rest/v1/pro_contacts' + (editContactId ? '?id=eq.' + editContactId : '');
+  const method = editContactId ? 'PATCH' : 'POST';
+  const res = await fetch(url, {
+    method,
+    headers: {
+      'apikey': SUPABASE_ANON,
+      'Authorization': 'Bearer ' + SUPABASE_ANON,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) { const e = await res.text(); alert('Erreur : ' + e); return; }
   closeContactModal();
   await loadAll();
 });
-
 window.editContact = (id) => openContactModal(id);
 window.deleteContact = async (id) => {
   if (!confirm('Supprimer ce contact ?')) return;
@@ -614,7 +621,7 @@ document.getElementById('saveProjetBtn').addEventListener('click', async () => {
     const fin = document.getElementById('pFin').value;
     statut = (!fin || fin >= today) ? 'en_cours' : 'termine';
   }
-  const result = await sb.from('pro_projects').insert({
+  const payload = {
     user_id: currentUser.id,
     nom,
     production: document.getElementById('pProd').value.trim(),
@@ -623,8 +630,18 @@ document.getElementById('saveProjetBtn').addEventListener('click', async () => {
     lieu: document.getElementById('pLieu').value.trim(),
     notes: document.getElementById('pNotes').value.trim(),
     statut
+  };
+  const res = await fetch(SUPABASE_URL + '/rest/v1/pro_projects', {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_ANON,
+      'Authorization': 'Bearer ' + SUPABASE_ANON,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify(payload)
   });
-  if (result.error) { alert('Erreur : ' + result.error.message); return; }
+  if (!res.ok) { const e = await res.text(); alert('Erreur : ' + e); return; }
   document.getElementById('modalProjet').classList.add('hidden');
   await loadAll();
 });
