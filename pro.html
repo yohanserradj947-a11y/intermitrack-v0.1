@@ -9,15 +9,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-:root{
-  --p:#0D4F6C;--p2:#1A7FA8;--g:#12754A;--o:#E8650A;
-  --bg:#F0F2F5;--card:#fff;--text:#0D1B2A;--muted:#64748B;
-  --line:rgba(13,27,42,.09);--soft:rgba(13,79,108,.06);
-}
+:root{--p:#0D4F6C;--p2:#1A7FA8;--g:#12754A;--o:#E8650A;--bg:#F0F2F5;--card:#fff;--text:#0D1B2A;--muted:#64748B;--line:rgba(13,27,42,.09);--soft:rgba(13,79,108,.06);}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
 .app{max-width:1100px;margin:0 auto;padding:20px;}
-
-/* Header */
 .header{display:flex;justify-content:space-between;align-items:center;background:var(--card);border-radius:16px;padding:14px 20px;border:1px solid var(--line);margin-bottom:18px;}
 .brand{display:flex;align-items:center;gap:12px;}
 .logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(150deg,var(--p),var(--g));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;}
@@ -25,8 +19,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .brand-tag{font-size:11px;color:var(--muted);}
 .header-right{display:flex;gap:10px;align-items:center;}
 .badge-pro{background:linear-gradient(135deg,var(--p),var(--p2));color:white;padding:4px 12px;border-radius:99px;font-size:11px;font-weight:800;letter-spacing:.04em;}
-
-/* Auth */
 .auth-page{min-height:80vh;display:flex;align-items:center;justify-content:center;}
 .auth-card{background:var(--card);border-radius:20px;padding:32px;width:100%;max-width:420px;border:1px solid var(--line);box-shadow:0 8px 32px rgba(13,27,42,.08);}
 .auth-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:var(--p);margin-bottom:4px;letter-spacing:-.04em;}
@@ -36,18 +28,12 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .form-input:focus{border-color:var(--p2);box-shadow:0 0 0 3px rgba(26,127,168,.1);}
 .btn-primary{width:100%;background:var(--p);color:white;border:none;border-radius:11px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Inter',sans-serif;}
 .btn-primary:hover{filter:brightness(1.08);}
-
-/* Tabs nav */
 .tabs-nav{display:flex;gap:6px;margin-bottom:18px;background:var(--card);padding:8px;border-radius:14px;border:1px solid var(--line);}
 .tab-btn{flex:1;padding:10px;border-radius:10px;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:7px;}
 .tab-btn.active{background:var(--p);color:white;}
 .tab-btn span{font-size:16px;}
-
-/* Content */
 .tab-content{display:none;}
 .tab-content.active{display:block;}
-
-/* Toolbar */
 .toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
 .search-wrap{flex:1;position:relative;min-width:200px;}
 .search-input{width:100%;padding:10px 14px 10px 38px;border:1px solid var(--line);border-radius:11px;font-size:13px;font-family:'Inter',sans-serif;outline:none;background:var(--card);}
@@ -57,12 +43,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .btn-ghost{padding:10px 16px;border-radius:11px;border:1px solid var(--line);background:var(--card);color:var(--p);font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:6px;}
 .btn-ghost:hover{background:var(--soft);}
 .btn-action{padding:10px 16px;border-radius:11px;border:none;background:var(--p);color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:6px;}
-
-/* Contact list */
 .contacts-list{display:grid;gap:8px;}
 .contact-card{background:var(--card);border-radius:14px;padding:14px 16px;border:1px solid var(--line);display:flex;align-items:center;gap:14px;transition:all .15s;}
 .contact-card:hover{border-color:rgba(13,79,108,.2);box-shadow:0 2px 10px rgba(13,27,42,.06);}
-.contact-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--p2));display:flex;align-items:center;justify-content:center;color:white;font-size:13px;font-weight:800;flex-shrink:0;}
+.contact-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--p2));display:flex;align-items:center;justify-content:center;color:white;font-size:13px;font-weight:800;flex-shrink:0;cursor:pointer;transition:all .15s;}
+.contact-avatar:hover{transform:scale(1.08);}
 .contact-info{flex:1;min-width:0;}
 .contact-name{font-size:14px;font-weight:800;color:var(--text);}
 .contact-meta{font-size:12px;color:var(--muted);margin-top:2px;}
@@ -70,14 +55,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .contact-actions{display:flex;gap:6px;flex-shrink:0;}
 .btn-icon{width:32px;height:32px;border-radius:8px;border:none;background:var(--soft);color:var(--p);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;}
 .btn-icon.del{background:#FEF2F2;color:#DC2626;}
-
-/* Empty */
 .empty{text-align:center;padding:48px 20px;color:var(--muted);}
 .empty-icon{font-size:40px;margin-bottom:12px;}
 .empty-title{font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;}
 .empty-sub{font-size:13px;}
-
-/* Projects */
 .projects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
 .project-card{background:var(--card);border-radius:16px;padding:18px;border:1px solid var(--line);box-shadow:0 2px 8px rgba(13,27,42,.04);cursor:pointer;transition:all .15s;}
 .project-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(13,27,42,.08);border-color:rgba(13,79,108,.2);}
@@ -88,13 +69,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .status-avenir{background:rgba(26,127,168,.1);color:var(--p2);}
 .status-encours{background:rgba(18,117,74,.1);color:var(--g);}
 .status-termine{background:rgba(13,27,42,.07);color:var(--muted);}
-.project-dates{font-size:12px;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:5px;}
-.project-stats{display:flex;gap:10px;}
-.pstat{background:var(--bg);border-radius:8px;padding:8px 12px;text-align:center;flex:1;}
-.pstat-val{font-size:16px;font-weight:800;color:var(--p);display:block;letter-spacing:-.03em;}
-.pstat-lbl{font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-top:2px;}
-
-/* Modal */
+.project-dates{font-size:12px;color:var(--muted);margin-bottom:10px;}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;}
 .modal-overlay.hidden{display:none;}
 .modal{background:white;border-radius:20px;padding:24px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);}
@@ -108,33 +83,23 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;}
 .btn-cancel{padding:12px;border-radius:11px;border:1px solid var(--line);background:var(--bg);color:var(--muted);font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;}
 .btn-save{padding:12px;border-radius:11px;border:none;background:var(--p);color:white;font-size:14px;font-weight:800;cursor:pointer;font-family:'Inter',sans-serif;}
-
-/* Import zone */
 .import-zone{border:2px dashed var(--line);border-radius:14px;padding:28px;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:14px;}
 .import-zone:hover{border-color:var(--p2);background:var(--soft);}
 .import-zone-icon{font-size:28px;margin-bottom:8px;}
 .import-zone-title{font-size:14px;font-weight:700;color:var(--p);}
 .import-zone-sub{font-size:12px;color:var(--muted);margin-top:4px;}
-
-/* Counter */
 .counter-bar{background:var(--card);border-radius:14px;padding:12px 16px;border:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
 .counter-stat{text-align:center;}
 .counter-val{font-size:20px;font-weight:800;color:var(--p);letter-spacing:-.04em;}
 .counter-lbl{font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-top:2px;}
-
-@media(max-width:640px){
-  .app{padding:12px;}
-  .form-grid{grid-template-columns:1fr;}
-  .projects-grid{grid-template-columns:1fr;}
-  .toolbar{flex-direction:column;}
-  .search-wrap{min-width:0;}
-}
+.sel-bar{background:linear-gradient(135deg,var(--p),var(--p2));border-radius:12px;padding:12px 16px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;gap:10px;}
+.sel-bar.show{display:flex;}
+@media(max-width:640px){.app{padding:12px;}.form-grid{grid-template-columns:1fr;}.projects-grid{grid-template-columns:1fr;}.toolbar{flex-direction:column;}.search-wrap{min-width:0;}}
 </style>
 </head>
 <body>
 <div class="app">
 
-<!-- Header -->
 <div class="header">
   <div class="brand">
     <div class="logo">iT</div>
@@ -149,39 +114,33 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   </div>
 </div>
 
-<!-- Auth -->
 <div class="auth-page" id="authPage">
   <div class="auth-card">
     <div class="auth-title">Connexion Pro</div>
     <div class="auth-sub">Accès réservé aux chefs de projet</div>
     <label class="form-label">Email</label>
-    <input class="form-input" id="authEmail" type="email" placeholder="votre@email.com"/>
+    <input class="form-input" id="authEmail" type="email" placeholder="votre@email.com" autocomplete="email"/>
     <label class="form-label">Mot de passe</label>
-    <input class="form-input" id="authPassword" type="password" placeholder="Mot de passe"/>
+    <input class="form-input" id="authPassword" type="password" placeholder="Mot de passe" autocomplete="current-password"/>
     <button class="btn-primary" id="authBtn">Se connecter</button>
     <div id="authMsg" style="font-size:12px;color:#DC2626;margin-top:10px;text-align:center;"></div>
   </div>
 </div>
 
-<!-- App -->
 <div id="proApp" style="display:none">
-
-  <!-- Stats bar -->
-  <div class="counter-bar" id="counterBar">
+  <div class="counter-bar">
     <div class="counter-stat"><div class="counter-val" id="cntContacts">0</div><div class="counter-lbl">Contacts</div></div>
     <div class="counter-stat"><div class="counter-val" id="cntProjets">0</div><div class="counter-lbl">Projets actifs</div></div>
-    <div class="counter-stat"><div class="counter-val" id="cntConfirmes">0</div><div class="counter-lbl">Confirmations</div></div>
+    <div class="counter-stat"><div class="counter-val" id="cntConfirmes">—</div><div class="counter-lbl">Confirmations</div></div>
     <div class="counter-stat"><div class="counter-val" id="cntHistorique">0</div><div class="counter-lbl">Terminés</div></div>
   </div>
 
-  <!-- Tabs -->
   <div class="tabs-nav">
     <button class="tab-btn active" data-tab="contacts"><span>👥</span> Mes contacts</button>
     <button class="tab-btn" data-tab="projets"><span>🎬</span> Projets en cours</button>
     <button class="tab-btn" data-tab="historique"><span>📁</span> Historique</button>
   </div>
 
-  <<!-- TAB CONTACTS -->
   <div class="tab-content active" id="tab-contacts">
     <div class="toolbar">
       <div class="search-wrap">
@@ -190,29 +149,21 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       </div>
       <select class="filter-select" id="filterPoste">
         <option value="">Tous les postes</option>
-        <option>Chef Électro</option>
-        <option>Bloqueur</option>
-        <option>Tech-auto</option>
-        <option>Pupitreur</option>
-        <option>Electro</option>
-        <option>Top Poursuite </option>
-        <option>Robospot</option>
-        <option>Poursuite</option>
-        <option>Chef Road</option>
-        <option>Road</option>
+        <option>Électro</option><option>Poursuiteur</option><option>Technicien plateau</option>
+        <option>Régisseur</option><option>Son</option><option>Lumière</option>
+        <option>Caméra</option><option>Machiniste</option><option>Autre</option>
       </select>
       <button class="btn-ghost" id="importBtn"><span>📥</span> Importer Excel</button>
       <button class="btn-action" id="addContactBtn"><span>+</span> Ajouter</button>
     </div>
 
-    <!-- Barre sélection + envoi -->
-    <div id="selectionBar" style="display:none;background:linear-gradient(135deg,#0D4F6C,#1A7FA8);border-radius:12px;padding:12px 16px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;gap:10px;">
-      <span id="selectionCount" style="color:white;font-size:13px;font-weight:700;">0 sélectionné(s)</span>
-      <div style="display:flex;gap:8px;">
+    <div class="sel-bar" id="selBar">
+      <span id="selCount" style="color:white;font-size:13px;font-weight:700;">0 sélectionné(s)</span>
+      <div style="display:flex;gap:8px;align-items:center;">
         <select id="sendToProject" style="padding:8px 12px;border-radius:8px;border:none;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;">
           <option value="">Choisir un projet...</option>
         </select>
-        <button id="sendBtn" onclick="sendToSelectedProject()" style="background:white;color:#0D4F6C;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;">🚀 Envoyer</button>
+        <button onclick="sendToSelectedProject()" style="background:white;color:#0D4F6C;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;">🚀 Envoyer</button>
         <button onclick="clearSelection()" style="background:rgba(255,255,255,.2);color:white;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;">✕</button>
       </div>
     </div>
@@ -222,7 +173,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     </div>
   </div>
 
-  <!-- TAB PROJETS -->
   <div class="tab-content" id="tab-projets">
     <div class="toolbar">
       <button class="btn-action" id="addProjetBtn" style="margin-left:auto"><span>+</span> Nouveau projet</button>
@@ -232,31 +182,26 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     </div>
   </div>
 
-  <!-- TAB HISTORIQUE -->
   <div class="tab-content" id="tab-historique">
     <div class="projects-grid" id="historiqueList">
-      <div class="empty" style="grid-column:1/-1"><div class="empty-icon">📁</div><div class="empty-title">Aucun projet terminé</div><div class="empty-sub">L'historique apparaît ici</div></div>
+      <div class="empty" style="grid-column:1/-1"><div class="empty-icon">📁</div><div class="empty-title">Aucun projet terminé</div></div>
     </div>
   </div>
-
 </div>
 </div>
 
 <!-- Modal contact -->
 <div class="modal-overlay hidden" id="modalContact">
   <div class="modal">
-    <div class="modal-title">
-      <span id="modalContactTitle">Nouveau contact</span>
-      <button class="modal-close" id="closeContactModal">✕</button>
-    </div>
+    <div class="modal-title"><span id="modalContactTitle">Nouveau contact</span><button class="modal-close" id="closeContactModal">✕</button></div>
     <div class="form-grid">
       <div><label class="form-label">Nom *</label><input class="form-input" id="cNom" placeholder="Dupont"/></div>
       <div><label class="form-label">Prénom</label><input class="form-input" id="cPrenom" placeholder="Marc"/></div>
       <div><label class="form-label">Email</label><input class="form-input" id="cEmail" type="email" placeholder="marc@email.com"/></div>
       <div><label class="form-label">Téléphone</label><input class="form-input" id="cTel" placeholder="06 XX XX XX XX"/></div>
       <div class="full">
-        <label class="form-label">Poste</label>
-        <div class="postes-grid" id="postesGrid">
+        <label class="form-label">Poste(s)</label>
+        <div class="postes-grid">
           <div class="poste-chip" data-p="Électro">Électro</div>
           <div class="poste-chip" data-p="Poursuiteur">Poursuiteur</div>
           <div class="poste-chip" data-p="Technicien plateau">Technicien plateau</div>
@@ -280,10 +225,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 <!-- Modal import -->
 <div class="modal-overlay hidden" id="modalImport">
   <div class="modal">
-    <div class="modal-title">
-      <span>Importer des contacts</span>
-      <button class="modal-close" id="closeImportModal">✕</button>
-    </div>
+    <div class="modal-title"><span>Importer des contacts</span><button class="modal-close" id="closeImportModal">✕</button></div>
     <div class="import-zone" id="importZone">
       <div class="import-zone-icon">📊</div>
       <div class="import-zone-title">Glisse ton fichier Excel ou CSV ici</div>
@@ -292,7 +234,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     </div>
     <div id="importPreview" style="display:none">
       <div style="font-size:13px;font-weight:700;color:var(--p);margin-bottom:10px;" id="importInfo"></div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Associe les colonnes de ton fichier :</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Associe les colonnes :</div>
       <div id="mappingFields" style="display:grid;gap:8px;margin-bottom:16px;"></div>
     </div>
     <div class="modal-actions">
@@ -305,15 +247,12 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 <!-- Modal projet -->
 <div class="modal-overlay hidden" id="modalProjet">
   <div class="modal">
-    <div class="modal-title">
-      <span id="modalProjetTitle">Nouveau projet</span>
-      <button class="modal-close" id="closeProjetModal">✕</button>
-    </div>
+    <div class="modal-title"><span>Nouveau projet</span><button class="modal-close" id="closeProjetModal">✕</button></div>
     <div class="form-grid">
-      <div class="full"><label class="form-label">Nom du projet *</label><input class="form-input" id="pNom" placeholder="Ex : Secret Story S16"/></div>
+      <div class="full"><label class="form-label">Nom du projet *</label><input class="form-input" id="pNom" placeholder="Ex : Secret Story S17"/></div>
       <div class="full"><label class="form-label">Production</label><input class="form-input" id="pProd" placeholder="Ex : Endemol"/></div>
-      <div><label class="form-label">Date de début</label><input class="form-input" id="pDebut" type="date"/></div>
-      <div><label class="form-label">Date de fin</label><input class="form-input" id="pFin" type="date"/></div>
+      <div><label class="form-label">Date début</label><input class="form-input" id="pDebut" type="date"/></div>
+      <div><label class="form-label">Date fin</label><input class="form-input" id="pFin" type="date"/></div>
       <div class="full"><label class="form-label">Lieu</label><input class="form-input" id="pLieu" placeholder="Ex : Studios Bry-sur-Marne"/></div>
       <div class="full"><label class="form-label">Notes</label><input class="form-input" id="pNotes" placeholder="Infos complémentaires..."/></div>
     </div>
@@ -326,17 +265,21 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 
 <script>
 const SUPABASE_URL = "https://upeogpgczoghlfwblnkb.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwZW9ncGdjem9naGxmd2JsbmtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MjkyMDQsImV4cCI6MjA5NjEwNTIwNH0.6535_0KMaEDLxTMhz_OX-4OqC_tpQsPJR5jkFQL7UqI";
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwZW9ncGdjem9naGxmd2JsbmtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MjkyMDQsImV4cCI6MjA5NjEwNTIwNH0.6535_0KMaEDLxTMhz_OX-4OqC_tpQsPJR5jkFQL7UqI";
+const FUNC_URL = "https://upeogpgczoghlfwblnkb.supabase.co/functions/v1";
+const PRO_USERS = ['4a2ad03b-252a-4eba-b3ee-a52b69e81984'];
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 window.sb = sb;
 
 let currentUser = null;
 let contacts = [];
 let projets = [];
 let editContactId = null;
-let selectedPoste = '';
+let selectedPostes = [];
 let importData = [];
 let importColumns = [];
+let selectedContacts = [];
 
 // ── Auth ──────────────────────────────────────────────────
 document.getElementById('authBtn').addEventListener('click', async () => {
@@ -344,21 +287,23 @@ document.getElementById('authBtn').addEventListener('click', async () => {
   const pw = document.getElementById('authPassword').value;
   const msg = document.getElementById('authMsg');
   msg.textContent = 'Connexion...';
-
   const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
   if (error) { msg.textContent = 'Erreur : ' + error.message; return; }
-
-const PRO_USERS = ['4a2ad03b-252a-4eba-b3ee-a52b69e81984'];
-if (!PRO_USERS.includes(data.user.id)) {
-  await sb.auth.signOut();
-  msg.textContent = '⛔ Accès réservé aux comptes Pro.';
-  return;
-}
+  if (!PRO_USERS.includes(data.user.id)) {
+    await sb.auth.signOut();
+    msg.textContent = '⛔ Accès réservé aux comptes Pro.';
+    return;
+  }
   msg.textContent = '';
 });
+
 sb.auth.onAuthStateChange(async (_e, session) => {
   currentUser = session?.user || null;
   if (currentUser) {
+    if (!PRO_USERS.includes(currentUser.id)) {
+      await sb.auth.signOut();
+      return;
+    }
     document.getElementById('authPage').style.display = 'none';
     document.getElementById('proApp').style.display = 'block';
     document.getElementById('logoutBtn').style.display = 'flex';
@@ -384,50 +329,49 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
 // ── Load ──────────────────────────────────────────────────
 async function loadAll() {
-  const [{ data: c }, { data: p }] = await Promise.all([
-    sb.from('pro_contacts').select('*').order('nom'),
-    sb.from('pro_projects').select('*').order('date_debut', { ascending: true })
-  ]);
-  contacts = c || [];
-  projets = p || [];
-  renderContacts();
-  renderProjets();
-  updateCounters();
+  try {
+    const [r1, r2] = await Promise.all([
+      sb.from('pro_contacts').select('*').order('nom'),
+      sb.from('pro_projects').select('*').order('date_debut', { ascending: true })
+    ]);
+    if (r1.error) { console.error('Contacts error:', r1.error); }
+    if (r2.error) { console.error('Projets error:', r2.error); }
+    contacts = r1.data || [];
+    projets = r2.data || [];
+    renderContacts();
+    renderProjets();
+    updateCounters();
+  } catch(e) { console.error('loadAll error:', e); }
 }
 
 function updateCounters() {
   document.getElementById('cntContacts').textContent = contacts.length;
-  const actifs = projets.filter(p => p.statut !== 'termine');
-  const termines = projets.filter(p => p.statut === 'termine');
-  document.getElementById('cntProjets').textContent = actifs.length;
-  document.getElementById('cntHistorique').textContent = termines.length;
-  document.getElementById('cntConfirmes').textContent = '—';
+  document.getElementById('cntProjets').textContent = projets.filter(p => p.statut !== 'termine').length;
+  document.getElementById('cntHistorique').textContent = projets.filter(p => p.statut === 'termine').length;
 }
 
 // ── Contacts ──────────────────────────────────────────────
-function initials(c) {
-  return ((c.nom||'?')[0] + (c.prenom||'?')[0]).toUpperCase();
-}
+function initials(c) { return ((c.nom||'?')[0] + (c.prenom||'?')[0]).toUpperCase(); }
+function esc(v) { return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmt(d) { if (!d) return ''; return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}); }
 
 function renderContacts() {
   const search = document.getElementById('searchContact').value.toLowerCase();
   const posteFilter = document.getElementById('filterPoste').value;
   let list = contacts.filter(c => {
-    const match = !search ||
-      (c.nom||'').toLowerCase().includes(search) ||
-      (c.prenom||'').toLowerCase().includes(search) ||
-      (c.email||'').toLowerCase().includes(search);
-    const posteMatch = !posteFilter || c.poste === posteFilter;
-    return match && posteMatch;
+    const match = !search || (c.nom||'').toLowerCase().includes(search) || (c.prenom||'').toLowerCase().includes(search) || (c.email||'').toLowerCase().includes(search);
+    const pm = !posteFilter || c.poste === posteFilter;
+    return match && pm;
   });
   const el = document.getElementById('contactsList');
   if (!list.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Aucun résultat</div><div class="empty-sub">Modifie ta recherche ou importe des contacts</div></div>`;
+    el.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Aucun résultat</div><div class="empty-sub">Modifie ta recherche ou importe des contacts</div></div>';
     return;
   }
-  el.innerHTML = list.map(c => `
-    <div class="contact-card" id="card-${c.id}">
-      <div class="contact-avatar" style="cursor:pointer;transition:all .15s;" onclick="toggleSelect('${c.id}')" id="av-${c.id}">${initials(c)}</div>
+  el.innerHTML = list.map(c => {
+    const sel = selectedContacts.includes(c.id);
+    return `<div class="contact-card" id="card-${c.id}" style="${sel ? 'border-color:#12754A;' : ''}">
+      <div class="contact-avatar" onclick="toggleSelect('${c.id}')" id="av-${c.id}" style="${sel ? 'background:#12754A;transform:scale(1.1);' : ''}">${initials(c)}</div>
       <div class="contact-info">
         <div class="contact-name">${esc(c.nom)} ${esc(c.prenom||'')}</div>
         <div class="contact-meta">${c.email ? '✉️ '+esc(c.email) : ''}${c.telephone ? ' · 📞 '+esc(c.telephone) : ''}</div>
@@ -437,71 +381,58 @@ function renderContacts() {
         <button class="btn-icon" onclick="editContact('${c.id}')">✏️</button>
         <button class="btn-icon del" onclick="deleteContact('${c.id}')">🗑️</button>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
-
-window.selectedContacts = [];
-
-window.toggleSelect = (id) => {
-  const idx = window.selectedContacts.indexOf(id);
-  const av = document.getElementById('av-'+id);
-  const card = document.getElementById('card-'+id);
-  if (idx === -1) {
-    window.selectedContacts.push(id);
-    av.style.background = '#12754A';
-    av.style.transform = 'scale(1.1)';
-    card.style.borderColor = '#12754A';
-  } else {
-    window.selectedContacts.splice(idx, 1);
-    av.style.background = '';
-    av.style.transform = '';
-    card.style.borderColor = '';
-  }
-  updateSelectionBar();
-};
-
-window.clearSelection = () => {
-  window.selectedContacts = [];
-  document.querySelectorAll('.contact-avatar').forEach(av => {
-    av.style.background = '';
-    av.style.transform = '';
-  });
-  document.querySelectorAll('.contact-card').forEach(c => c.style.borderColor = '');
-  updateSelectionBar();
-};
-
-function updateSelectionBar() {
-  const bar = document.getElementById('selectionBar');
-  const count = window.selectedContacts.length;
-  document.getElementById('selectionCount').textContent = `${count} sélectionné${count > 1 ? 's' : ''}`;
-  bar.style.display = count > 0 ? 'flex' : 'none';
-  const select = document.getElementById('sendToProject');
-  const actifs = projets.filter(p => p.statut !== 'termine');
-  select.innerHTML = '<option value="">Choisir un projet...</option>' +
-    actifs.map(p => `<option value="${p.id}">${esc(p.nom)}</option>`).join('');
-}
-
-window.sendToSelectedProject = async () => {
-  const projectId = document.getElementById('sendToProject').value;
-  if (!projectId) { alert('Choisis un projet.'); return; }
-  await sendInvitations(projectId);
-  clearSelection();
-};
 
 document.getElementById('searchContact').addEventListener('input', renderContacts);
 document.getElementById('filterPoste').addEventListener('change', renderContacts);
 
-// ── Add / Edit contact ────────────────────────────────────
+// Sélection
+window.toggleSelect = (id) => {
+  const idx = selectedContacts.indexOf(id);
+  if (idx === -1) selectedContacts.push(id);
+  else selectedContacts.splice(idx, 1);
+  renderContacts();
+  updateSelBar();
+};
+
+window.clearSelection = () => {
+  selectedContacts = [];
+  renderContacts();
+  updateSelBar();
+};
+
+function updateSelBar() {
+  const bar = document.getElementById('selBar');
+  const n = selectedContacts.length;
+  document.getElementById('selCount').textContent = n + ' sélectionné' + (n > 1 ? 's' : '');
+  if (n > 0) {
+    bar.classList.add('show');
+    const sel = document.getElementById('sendToProject');
+    const actifs = projets.filter(p => p.statut !== 'termine');
+    sel.innerHTML = '<option value="">Choisir un projet...</option>' + actifs.map(p => `<option value="${p.id}">${esc(p.nom)}</option>`).join('');
+  } else {
+    bar.classList.remove('show');
+  }
+}
+
+window.sendToSelectedProject = async () => {
+  const pid = document.getElementById('sendToProject').value;
+  if (!pid) { alert('Choisis un projet.'); return; }
+  await sendInvitations(pid);
+};
+
+// ── Add/Edit contact ─────────────────────────────────────
 document.getElementById('addContactBtn').addEventListener('click', () => openContactModal());
-document.getElementById('closeContactModal').addEventListener('click', () => closeContactModal());
-document.getElementById('cancelContactModal').addEventListener('click', () => closeContactModal());
+document.getElementById('closeContactModal').addEventListener('click', closeContactModal);
+document.getElementById('cancelContactModal').addEventListener('click', closeContactModal);
 
 function openContactModal(id = null) {
   editContactId = id;
+  selectedPostes = [];
   document.getElementById('modalContactTitle').textContent = id ? 'Modifier le contact' : 'Nouveau contact';
   document.querySelectorAll('.poste-chip').forEach(c => c.classList.remove('on'));
-  selectedPoste = '';
   if (id) {
     const c = contacts.find(x => x.id === id);
     document.getElementById('cNom').value = c.nom || '';
@@ -510,13 +441,14 @@ function openContactModal(id = null) {
     document.getElementById('cTel').value = c.telephone || '';
     document.getElementById('cNotes').value = c.notes || '';
     if (c.poste) {
-      selectedPoste = c.poste;
+      const postes = Array.isArray(c.poste) ? c.poste : [c.poste];
+      selectedPostes = postes;
       document.querySelectorAll('.poste-chip').forEach(chip => {
-        if (chip.dataset.p === c.poste) chip.classList.add('on');
+        if (postes.includes(chip.dataset.p)) chip.classList.add('on');
       });
     }
   } else {
-    ['cNom','cPrenom','cEmail','cTel','cNotes'].forEach(id => document.getElementById(id).value = '');
+    ['cNom','cPrenom','cEmail','cTel','cNotes'].forEach(i => document.getElementById(i).value = '');
   }
   document.getElementById('modalContact').classList.remove('hidden');
 }
@@ -528,9 +460,11 @@ function closeContactModal() {
 
 document.querySelectorAll('.poste-chip').forEach(chip => {
   chip.addEventListener('click', () => {
-    document.querySelectorAll('.poste-chip').forEach(c => c.classList.remove('on'));
-    chip.classList.add('on');
-    selectedPoste = chip.dataset.p;
+    chip.classList.toggle('on');
+    const p = chip.dataset.p;
+    const idx = selectedPostes.indexOf(p);
+    if (idx === -1) selectedPostes.push(p);
+    else selectedPostes.splice(idx, 1);
   });
 });
 
@@ -539,24 +473,20 @@ document.getElementById('saveContactBtn').addEventListener('click', async () => 
   if (!nom) { alert('Le nom est obligatoire.'); return; }
   const payload = {
     user_id: currentUser.id,
-    nom, prenom: document.getElementById('cPrenom').value.trim(),
+    nom,
+    prenom: document.getElementById('cPrenom').value.trim(),
     email: document.getElementById('cEmail').value.trim(),
     telephone: document.getElementById('cTel').value.trim(),
-    poste: selectedPoste,
+    poste: selectedPostes.length > 0 ? selectedPostes.join(', ') : '',
     notes: document.getElementById('cNotes').value.trim()
   };
-  console.log('Saving contact:', payload, 'currentUser:', currentUser);
   let result;
   if (editContactId) {
     result = await sb.from('pro_contacts').update(payload).eq('id', editContactId);
   } else {
     result = await sb.from('pro_contacts').insert(payload);
   }
-  console.log('Result:', result);
-  if (result.error) {
-    alert('Erreur : ' + result.error.message);
-    return;
-  }
+  if (result.error) { alert('Erreur : ' + result.error.message); return; }
   closeContactModal();
   await loadAll();
 });
@@ -577,9 +507,8 @@ document.getElementById('importBtn').addEventListener('click', () => {
 });
 document.getElementById('closeImportModal').addEventListener('click', () => document.getElementById('modalImport').classList.add('hidden'));
 document.getElementById('cancelImportModal').addEventListener('click', () => document.getElementById('modalImport').classList.add('hidden'));
-
 document.getElementById('importZone').addEventListener('click', () => document.getElementById('importFile').click());
-document.getElementById('importZone').addEventListener('dragover', e => { e.preventDefault(); document.getElementById('importZone').style.borderColor = 'var(--p2)'; });
+document.getElementById('importZone').addEventListener('dragover', e => { e.preventDefault(); });
 document.getElementById('importZone').addEventListener('drop', e => { e.preventDefault(); processImportFile(e.dataTransfer.files[0]); });
 document.getElementById('importFile').addEventListener('change', e => processImportFile(e.target.files[0]));
 
@@ -590,35 +519,28 @@ function processImportFile(file) {
     const wb = XLSX.read(e.target.result, { type: 'binary' });
     const ws = wb.Sheets[wb.SheetNames[0]];
     const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
-    if (data.length < 2) { alert('Fichier vide ou invalide.'); return; }
+    if (data.length < 2) { alert('Fichier vide.'); return; }
     importColumns = data[0].map(String);
-    importData = data.slice(1).filter(row => row.some(cell => cell));
-    document.getElementById('importInfo').textContent = `${importData.length} contacts détectés — associe les colonnes :`;
-    const fields = [
-      { key: 'nom', label: 'Nom *' },
-      { key: 'prenom', label: 'Prénom' },
-      { key: 'email', label: 'Email' },
-      { key: 'telephone', label: 'Téléphone' },
-      { key: 'poste', label: 'Poste' }
-    ];
-    const guesses = { nom: '', prenom: '', email: '', telephone: '', poste: '' };
-    importColumns.forEach((col, i) => {
+    importData = data.slice(1).filter(row => row.some(c => c));
+    document.getElementById('importInfo').textContent = importData.length + ' contacts détectés';
+    const fields = [{key:'nom',label:'Nom *'},{key:'prenom',label:'Prénom'},{key:'email',label:'Email'},{key:'telephone',label:'Téléphone'},{key:'poste',label:'Poste'}];
+    const g = {nom:'',prenom:'',email:'',telephone:'',poste:''};
+    importColumns.forEach((col,i) => {
       const c = col.toLowerCase();
-      if (c.includes('nom') && !c.includes('pre')) guesses.nom = i;
-      if (c.includes('pre')) guesses.prenom = i;
-      if (c.includes('mail') || c.includes('email')) guesses.email = i;
-      if (c.includes('tel') || c.includes('phone') || c.includes('mobile')) guesses.telephone = i;
-      if (c.includes('poste') || c.includes('metier') || c.includes('fonction')) guesses.poste = i;
+      if (c.includes('nom') && !c.includes('pre')) g.nom = i;
+      if (c.includes('pre')) g.prenom = i;
+      if (c.includes('mail') || c.includes('email')) g.email = i;
+      if (c.includes('tel') || c.includes('phone')) g.telephone = i;
+      if (c.includes('poste') || c.includes('metier')) g.poste = i;
     });
     document.getElementById('mappingFields').innerHTML = fields.map(f => `
       <div style="display:grid;grid-template-columns:120px 1fr;align-items:center;gap:10px;">
         <label style="font-size:12px;font-weight:700;color:var(--p);">${f.label}</label>
         <select class="form-input" id="map_${f.key}" style="margin-bottom:0;padding:8px 12px;">
           <option value="">— Ignorer —</option>
-          ${importColumns.map((col, i) => `<option value="${i}" ${guesses[f.key] === i ? 'selected' : ''}>${col}</option>`).join('')}
+          ${importColumns.map((col,i) => `<option value="${i}" ${g[f.key]===i?'selected':''}>${col}</option>`).join('')}
         </select>
-      </div>
-    `).join('');
+      </div>`).join('');
     document.getElementById('importPreview').style.display = 'block';
     document.getElementById('confirmImportBtn').style.display = 'block';
   };
@@ -626,61 +548,61 @@ function processImportFile(file) {
 }
 
 document.getElementById('confirmImportBtn').addEventListener('click', async () => {
-  const getCol = key => { const v = document.getElementById('map_' + key)?.value; return v !== '' ? Number(v) : null; };
+  const getCol = k => { const v = document.getElementById('map_'+k)?.value; return v !== '' ? Number(v) : null; };
   const nomCol = getCol('nom');
   if (nomCol === null) { alert('La colonne Nom est obligatoire.'); return; }
   const rows = importData.map(row => ({
     user_id: currentUser.id,
-    nom: String(row[nomCol] || '').trim(),
-    prenom: getCol('prenom') !== null ? String(row[getCol('prenom')] || '').trim() : '',
-    email: getCol('email') !== null ? String(row[getCol('email')] || '').trim() : '',
-    telephone: getCol('telephone') !== null ? String(row[getCol('telephone')] || '').trim() : '',
-    poste: getCol('poste') !== null ? String(row[getCol('poste')] || '').trim() : ''
+    nom: String(row[nomCol]||'').trim(),
+    prenom: getCol('prenom')!==null ? String(row[getCol('prenom')]||'').trim() : '',
+    email: getCol('email')!==null ? String(row[getCol('email')]||'').trim() : '',
+    telephone: getCol('telephone')!==null ? String(row[getCol('telephone')]||'').trim() : '',
+    poste: getCol('poste')!==null ? String(row[getCol('poste')]||'').trim() : ''
   })).filter(r => r.nom);
-  if (!rows.length) { alert('Aucun contact valide trouvé.'); return; }
+  if (!rows.length) { alert('Aucun contact valide.'); return; }
   const { error } = await sb.from('pro_contacts').insert(rows);
   if (error) { alert('Erreur import : ' + error.message); return; }
   document.getElementById('modalImport').classList.add('hidden');
   await loadAll();
-  alert(`✅ ${rows.length} contacts importés !`);
+  alert('✅ ' + rows.length + ' contacts importés !');
 });
 
 // ── Projets ───────────────────────────────────────────────
 function renderProjets() {
-  const actifs = projets.filter(p => p.statut !== 'termine');
-  const termines = projets.filter(p => p.statut === 'termine');
-  renderProjectList('projetsList', actifs, false);
-  renderProjectList('historiqueList', termines, true);
+  renderProjectList('projetsList', projets.filter(p => p.statut !== 'termine'), false);
+  renderProjectList('historiqueList', projets.filter(p => p.statut === 'termine'), true);
 }
 
-function renderProjectList(elId, list, isHistorique) {
+function renderProjectList(elId, list, isH) {
   const el = document.getElementById(elId);
   if (!list.length) {
-    el.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">${isHistorique ? '📁' : '🎬'}</div><div class="empty-title">${isHistorique ? 'Aucun projet terminé' : 'Aucun projet en cours'}</div><div class="empty-sub">${isHistorique ? "L'historique apparaît ici" : 'Crée ton premier projet'}</div></div>`;
+    el.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">${isH?'📁':'🎬'}</div><div class="empty-title">${isH?'Aucun projet terminé':'Aucun projet en cours'}</div></div>`;
     return;
   }
   el.innerHTML = list.map(p => {
-    const statusClass = p.statut === 'en_cours' ? 'status-encours' : p.statut === 'termine' ? 'status-termine' : 'status-avenir';
-    const statusLabel = p.statut === 'en_cours' ? 'En cours' : p.statut === 'termine' ? 'Terminé' : 'À venir';
-    const dateStr = p.date_debut ? `📅 ${fmt(p.date_debut)}${p.date_fin && p.date_fin !== p.date_debut ? ' → ' + fmt(p.date_fin) : ''}` : '';
-    return `
-      <div class="project-card">
-        <div class="project-header">
-          <div>
-            <div class="project-nom">${esc(p.nom)}</div>
-            ${p.production ? `<div class="project-prod">${esc(p.production)}</div>` : ''}
-          </div>
-          <span class="status-pill ${statusClass}">${statusLabel}</span>
-        </div>
-        ${dateStr ? `<div class="project-dates">${dateStr}${p.lieu ? ' · 📍 '+esc(p.lieu) : ''}</div>` : ''}
-        <div style="display:flex;gap:8px;margin-top:10px;">
-          ${p.statut !== 'termine' ? `<button class="btn-ghost" style="font-size:11px;padding:7px 12px;" onclick="setStatut('${p.id}','termine')">✓ Terminer</button>` : ''}
-          <button class="btn-icon del" onclick="deleteProjet('${p.id}')">🗑️</button>
-        </div>
+    const sc = p.statut==='en_cours'?'status-encours':p.statut==='termine'?'status-termine':'status-avenir';
+    const sl = p.statut==='en_cours'?'En cours':p.statut==='termine'?'Terminé':'À venir';
+    const d = p.date_debut ? '📅 '+fmt(p.date_debut)+(p.date_fin&&p.date_fin!==p.date_debut?' → '+fmt(p.date_fin):'') : '';
+    return `<div class="project-card">
+      <div class="project-header">
+        <div><div class="project-nom">${esc(p.nom)}</div>${p.production?`<div class="project-prod">${esc(p.production)}</div>`:''}</div>
+        <span class="status-pill ${sc}">${sl}</span>
       </div>
-    `;
+      ${d?`<div class="project-dates">${d}${p.lieu?' · 📍 '+esc(p.lieu):''}</div>`:''}
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        ${p.statut!=='termine'?`<button class="btn-ghost" style="font-size:11px;padding:7px 12px;" onclick="setStatut('${p.id}','termine')">✓ Terminer</button>`:''}
+        <button class="btn-icon del" onclick="deleteProjet('${p.id}')">🗑️</button>
+      </div>
+    </div>`;
   }).join('');
 }
+
+document.getElementById('addProjetBtn').addEventListener('click', () => {
+  ['pNom','pProd','pDebut','pFin','pLieu','pNotes'].forEach(i => document.getElementById(i).value = '');
+  document.getElementById('modalProjet').classList.remove('hidden');
+});
+document.getElementById('closeProjetModal').addEventListener('click', () => document.getElementById('modalProjet').classList.add('hidden'));
+document.getElementById('cancelProjetModal').addEventListener('click', () => document.getElementById('modalProjet').classList.add('hidden'));
 
 document.getElementById('saveProjetBtn').addEventListener('click', async () => {
   const nom = document.getElementById('pNom').value.trim();
@@ -692,7 +614,7 @@ document.getElementById('saveProjetBtn').addEventListener('click', async () => {
     const fin = document.getElementById('pFin').value;
     statut = (!fin || fin >= today) ? 'en_cours' : 'termine';
   }
-  const payload = {
+  const result = await sb.from('pro_projects').insert({
     user_id: currentUser.id,
     nom,
     production: document.getElementById('pProd').value.trim(),
@@ -701,17 +623,16 @@ document.getElementById('saveProjetBtn').addEventListener('click', async () => {
     lieu: document.getElementById('pLieu').value.trim(),
     notes: document.getElementById('pNotes').value.trim(),
     statut
-  };
-  console.log('Saving projet:', payload);
-  const result = await sb.from('pro_projects').insert(payload);
-  console.log('Projet result:', result);
-  if (result.error) {
-    alert('Erreur : ' + result.error.message);
-    return;
-  }
+  });
+  if (result.error) { alert('Erreur : ' + result.error.message); return; }
   document.getElementById('modalProjet').classList.add('hidden');
   await loadAll();
 });
+
+window.setStatut = async (id, statut) => {
+  await sb.from('pro_projects').update({ statut }).eq('id', id);
+  await loadAll();
+};
 
 window.deleteProjet = async (id) => {
   if (!confirm('Supprimer ce projet ?')) return;
@@ -720,41 +641,25 @@ window.deleteProjet = async (id) => {
 };
 
 // ── Envoi invitations ─────────────────────────────────────
-window.sendInvitations = async (projectId) => {
+async function sendInvitations(projectId) {
   const projet = projets.find(p => p.id === projectId);
   if (!projet) return;
-
-  const selected = window.selectedContacts || [];
-  if (!selected.length) { alert('Sélectionne au moins un contact.'); return; }
-
-  const btn = document.getElementById('sendBtn');
-  if (btn) btn.textContent = 'Envoi en cours...';
-
+  if (!selectedContacts.length) { alert('Sélectionne au moins un contact.'); return; }
   let sent = 0;
-  for (const contactId of selected) {
+  for (const contactId of selectedContacts) {
     const contact = contacts.find(c => c.id === contactId);
     if (!contact) continue;
-
-    // Créer le membre dans Supabase
-    const { data: member } = await sb.from('pro_project_members').upsert({
-      project_id: projectId,
-      contact_id: contactId,
-      statut: 'invite'
+    const { data: member, error: me } = await sb.from('pro_project_members').upsert({
+      project_id: projectId, contact_id: contactId, statut: 'invite'
     }, { onConflict: 'project_id,contact_id' }).select().single();
-
-    if (!member) continue;
-
-    // Envoyer le mail
+    if (me || !member) { console.error('Member error:', me); continue; }
     if (contact.email) {
-      await fetch('https://upeogpgczoghlfwblnkb.supabase.co/functions/v1/send-invitation', {
+      await fetch(FUNC_URL + '/send-invitation', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwZW9ncGdjem9naGxmd2JsbmtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MjkyMDQsImV4cCI6MjA5NjEwNTIwNH0.6535_0KMaEDLxTMhz_OX-4OqC_tpQsPJR5jkFQL7UqI`
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON },
         body: JSON.stringify({
           to_email: contact.email,
-          to_name: `${contact.prenom || ''} ${contact.nom}`.trim(),
+          to_name: ((contact.prenom||'') + ' ' + contact.nom).trim(),
           poste: contact.poste || 'Technicien',
           projet_nom: projet.nom,
           production: projet.production || '',
@@ -765,18 +670,13 @@ window.sendInvitations = async (projectId) => {
         })
       });
     }
-
-    // Envoyer le SMS
     if (contact.telephone) {
-      await fetch('https://upeogpgczoghlfwblnkb.supabase.co/functions/v1/send-sms', {
+      await fetch(FUNC_URL + '/send-sms', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwZW9ncGdjem9naGxmd2JsbmtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MjkyMDQsImV4cCI6MjA5NjEwNTIwNH0.6535_0KMaEDLxTMhz_OX-4OqC_tpQsPJR5jkFQL7UqI`
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON },
         body: JSON.stringify({
           to_phone: contact.telephone,
-          to_name: `${contact.prenom || ''} ${contact.nom}`.trim(),
+          to_name: ((contact.prenom||'') + ' ' + contact.nom).trim(),
           projet_nom: projet.nom,
           date_debut: projet.date_debut || '',
           date_fin: projet.date_fin || '',
@@ -787,32 +687,12 @@ window.sendInvitations = async (projectId) => {
     }
     sent++;
   }
-
-  window.selectedContacts = [];
-  if (btn) btn.textContent = 'Envoyer';
-  alert(`✅ ${sent} invitation${sent > 1 ? 's' : ''} envoyée${sent > 1 ? 's' : ''} !`);
+  selectedContacts = [];
+  updateSelBar();
+  renderContacts();
+  alert('✅ ' + sent + ' invitation' + (sent > 1 ? 's' : '') + ' envoyée' + (sent > 1 ? 's' : '') + ' !');
   await loadAll();
-};
-
-// Init
-sb.auth.getSession().then(async ({ data: { session } }) => {
-  currentUser = session?.user || null;
-  if (currentUser) {
-    // Vérification rôle Pro au chargement
-    const PRO_USERS = ['4a2ad03b-252a-4eba-b3ee-a52b69e81984'];
-if (!PRO_USERS.includes(currentUser.id)) {
-  await sb.auth.signOut();
-  document.getElementById('authPage').style.display = 'flex';
-  document.getElementById('proApp').style.display = 'none';
-  document.getElementById('authMsg').textContent = '⛔ Accès réservé aux comptes Pro.';
-  return;
 }
-    document.getElementById('authPage').style.display = 'none';
-    document.getElementById('proApp').style.display = 'block';
-    document.getElementById('logoutBtn').style.display = 'flex';
-    loadAll();
-  }
-});
 </script>
 </body>
 </html>
