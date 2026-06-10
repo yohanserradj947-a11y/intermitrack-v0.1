@@ -327,10 +327,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
-// ── Load ──────────────────────────────────────────────────
-async function loadAll() {
-  const session = await sb.auth.getSession();
-  const token = session.data.session?.access_token || SUPABASE_ANON;
+
+window.loadAll = async function() {
+  const { data: { session } } = await sb.auth.getSession();
+  const token = session ? session.access_token : SUPABASE_ANON;
   const headers = {
     'apikey': SUPABASE_ANON,
     'Authorization': 'Bearer ' + token
