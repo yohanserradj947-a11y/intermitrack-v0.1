@@ -181,7 +181,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <button class="tab-btn" data-tab="historique"><span>📁</span> Historique</button>
   </div>
 
-  <!-- TAB CONTACTS -->
+  <<!-- TAB CONTACTS -->
   <div class="tab-content active" id="tab-contacts">
     <div class="toolbar">
       <div class="search-wrap">
@@ -190,19 +190,33 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       </div>
       <select class="filter-select" id="filterPoste">
         <option value="">Tous les postes</option>
-        <option>Électro</option>
-        <option>Poursuiteur</option>
-        <option>Technicien plateau</option>
-        <option>Régisseur</option>
-        <option>Son</option>
-        <option>Lumière</option>
-        <option>Caméra</option>
-        <option>Machiniste</option>
-        <option>Autre</option>
+        <option>Chef Électro</option>
+        <option>Bloqueur</option>
+        <option>Tech-auto</option>
+        <option>Pupitreur</option>
+        <option>Electro</option>
+        <option>Top Poursuite </option>
+        <option>Robospot</option>
+        <option>Poursuite</option>
+        <option>Chef Road</option>
+        <option>Road</option>
       </select>
       <button class="btn-ghost" id="importBtn"><span>📥</span> Importer Excel</button>
       <button class="btn-action" id="addContactBtn"><span>+</span> Ajouter</button>
     </div>
+
+    <!-- Barre sélection + envoi -->
+    <div id="selectionBar" style="display:none;background:linear-gradient(135deg,#0D4F6C,#1A7FA8);border-radius:12px;padding:12px 16px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;gap:10px;">
+      <span id="selectionCount" style="color:white;font-size:13px;font-weight:700;">0 sélectionné(s)</span>
+      <div style="display:flex;gap:8px;">
+        <select id="sendToProject" style="padding:8px 12px;border-radius:8px;border:none;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;">
+          <option value="">Choisir un projet...</option>
+        </select>
+        <button id="sendBtn" onclick="sendToSelectedProject()" style="background:white;color:#0D4F6C;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;">🚀 Envoyer</button>
+        <button onclick="clearSelection()" style="background:rgba(255,255,255,.2);color:white;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;">✕</button>
+      </div>
+    </div>
+
     <div class="contacts-list" id="contactsList">
       <div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Aucun contact</div><div class="empty-sub">Importe ton Excel ou ajoute manuellement</div></div>
     </div>
@@ -411,8 +425,8 @@ function renderContacts() {
     return;
   }
   el.innerHTML = list.map(c => `
-    <div class="contact-card">
-      <div class="contact-avatar">${initials(c)}</div>
+    <div class="contact-card" id="card-${c.id}">
+      <div class="contact-avatar" style="cursor:pointer;transition:all .15s;" onclick="toggleSelect('${c.id}')" id="av-${c.id}">${initials(c)}</div>
       <div class="contact-info">
         <div class="contact-name">${esc(c.nom)} ${esc(c.prenom||'')}</div>
         <div class="contact-meta">${c.email ? '✉️ '+esc(c.email) : ''}${c.telephone ? ' · 📞 '+esc(c.telephone) : ''}</div>
@@ -425,6 +439,54 @@ function renderContacts() {
     </div>
   `).join('');
 }
+
+window.selectedContacts = [];
+
+window.toggleSelect = (id) => {
+  const idx = window.selectedContacts.indexOf(id);
+  const av = document.getElementById('av-'+id);
+  const card = document.getElementById('card-'+id);
+  if (idx === -1) {
+    window.selectedContacts.push(id);
+    av.style.background = '#12754A';
+    av.style.transform = 'scale(1.1)';
+    card.style.borderColor = '#12754A';
+  } else {
+    window.selectedContacts.splice(idx, 1);
+    av.style.background = '';
+    av.style.transform = '';
+    card.style.borderColor = '';
+  }
+  updateSelectionBar();
+};
+
+window.clearSelection = () => {
+  window.selectedContacts = [];
+  document.querySelectorAll('.contact-avatar').forEach(av => {
+    av.style.background = '';
+    av.style.transform = '';
+  });
+  document.querySelectorAll('.contact-card').forEach(c => c.style.borderColor = '');
+  updateSelectionBar();
+};
+
+function updateSelectionBar() {
+  const bar = document.getElementById('selectionBar');
+  const count = window.selectedContacts.length;
+  document.getElementById('selectionCount').textContent = `${count} sélectionné${count > 1 ? 's' : ''}`;
+  bar.style.display = count > 0 ? 'flex' : 'none';
+  const select = document.getElementById('sendToProject');
+  const actifs = projets.filter(p => p.statut !== 'termine');
+  select.innerHTML = '<option value="">Choisir un projet...</option>' +
+    actifs.map(p => `<option value="${p.id}">${esc(p.nom)}</option>`).join('');
+}
+
+window.sendToSelectedProject = async () => {
+  const projectId = document.getElementById('sendToProject').value;
+  if (!projectId) { alert('Choisis un projet.'); return; }
+  await sendInvitations(projectId);
+  clearSelection();
+};
 
 document.getElementById('searchContact').addEventListener('input', renderContacts);
 document.getElementById('filterPoste').addEventListener('change', renderContacts);
@@ -650,6 +712,81 @@ window.setStatut = async (id, statut) => {
 window.deleteProjet = async (id) => {
   if (!confirm('Supprimer ce projet ?')) return;
   await sb.from('pro_projects').delete().eq('id', id);
+  await loadAll();
+};
+
+// ── Envoi invitations ─────────────────────────────────────
+window.sendInvitations = async (projectId) => {
+  const projet = projets.find(p => p.id === projectId);
+  if (!projet) return;
+
+  const selected = window.selectedContacts || [];
+  if (!selected.length) { alert('Sélectionne au moins un contact.'); return; }
+
+  const btn = document.getElementById('sendBtn');
+  if (btn) btn.textContent = 'Envoi en cours...';
+
+  let sent = 0;
+  for (const contactId of selected) {
+    const contact = contacts.find(c => c.id === contactId);
+    if (!contact) continue;
+
+    // Créer le membre dans Supabase
+    const { data: member } = await sb.from('pro_project_members').upsert({
+      project_id: projectId,
+      contact_id: contactId,
+      statut: 'invite'
+    }, { onConflict: 'project_id,contact_id' }).select().single();
+
+    if (!member) continue;
+
+    // Envoyer le mail
+    if (contact.email) {
+      await fetch('https://upeogpgczoghlfwblnkb.supabase.co/functions/v1/send-invitation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwZW9ncGdjem9naGxmd2JsbmtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MjkyMDQsImV4cCI6MjA5NjEwNTIwNH0.6535_0KMaEDLxTMhz_OX-4OqC_tpQsPJR5jkFQL7UqI`
+        },
+        body: JSON.stringify({
+          to_email: contact.email,
+          to_name: `${contact.prenom || ''} ${contact.nom}`.trim(),
+          poste: contact.poste || 'Technicien',
+          projet_nom: projet.nom,
+          production: projet.production || '',
+          date_debut: projet.date_debut || '',
+          date_fin: projet.date_fin || '',
+          lieu: projet.lieu || '',
+          token: member.token
+        })
+      });
+    }
+
+    // Envoyer le SMS
+    if (contact.telephone) {
+      await fetch('https://upeogpgczoghlfwblnkb.supabase.co/functions/v1/send-sms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwZW9ncGdjem9naGxmd2JsbmtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MjkyMDQsImV4cCI6MjA5NjEwNTIwNH0.6535_0KMaEDLxTMhz_OX-4OqC_tpQsPJR5jkFQL7UqI`
+        },
+        body: JSON.stringify({
+          to_phone: contact.telephone,
+          to_name: `${contact.prenom || ''} ${contact.nom}`.trim(),
+          projet_nom: projet.nom,
+          date_debut: projet.date_debut || '',
+          date_fin: projet.date_fin || '',
+          lieu: projet.lieu || '',
+          token: member.token
+        })
+      });
+    }
+    sent++;
+  }
+
+  window.selectedContacts = [];
+  if (btn) btn.textContent = 'Envoyer';
+  alert(`✅ ${sent} invitation${sent > 1 ? 's' : ''} envoyée${sent > 1 ? 's' : ''} !`);
   await loadAll();
 };
 
