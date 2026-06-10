@@ -162,36 +162,46 @@ z-index: 500 !important;
   <main class="app">
     <header class="top">
       <div class="brand">
-<div class="logo"><img src="icon-512.png" alt="Intermitrack" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></div>        <div>
+        <div class="logo"><img src="icon-512.png" alt="Intermitrack" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></div>
+        <div>
           <h1>Intermitrack</h1>
           <p class="tag">Le tableau de bord des intermittents.</p>
         </div>
       </div>
       <div class="userbar hidden" id="userbar">
-  <div style="position:relative;">
-    <button class="account-avatar-btn" id="accountAvatarBtn" type="button" id="accountAvatarBtn">
-      <span id="userInitials">?</span>
-    </button>
-   <div class="account-dropdown hidden" id="accountDropdown">
-  <div class="account-dd-email" id="userEmail"></div>
-  <div class="account-dd-plan">
-    <span class="account-dd-plan-label">Offre actuelle</span>
-    <span class="account-dd-badge">🚧 Open Bêta</span>
-  </div>
-  <div class="account-dd-themes">
-  <span class="account-dd-theme-label">Thème</span>
-  <div class="account-dd-theme-btns">
-    <button class="theme-btn" data-theme="light" title="Clair" onclick="applyTheme('light');localStorage.setItem('intermitrack_theme','light');document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme==='light'))">☀️</button>
-    <button class="theme-btn" data-theme="dark" title="Sombre" onclick="applyTheme('dark');localStorage.setItem('intermitrack_theme','dark');document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme==='dark'))">🌙</button>
-  </div>
-</div>
-<button class="account-dd-logout" type="button" id="logoutBtn">
-  <span>🚪</span> Déconnexion
-</button>
-</div>
-</div>
-</div>
-</header>
+        <div style="position:relative;">
+          <button class="account-avatar-btn" id="accountAvatarBtn" type="button">
+            <span id="userInitials">?</span>
+          </button>
+          <div class="account-dropdown hidden" id="accountDropdown">
+
+            <!-- Email -->
+            <div class="account-dd-email" id="userEmail"></div>
+
+            <!-- Plan -->
+            <div class="account-dd-plan">
+              <span class="account-dd-plan-label">Offre actuelle</span>
+              <span class="account-dd-badge">🚧 Open Bêta</span>
+            </div>
+
+            <!-- Thème -->
+            <div class="account-dd-themes">
+              <span class="account-dd-theme-label">Apparence</span>
+              <div class="account-dd-theme-btns">
+                <button class="theme-btn" data-theme="light" title="Mode clair" onclick="applyTheme('light');localStorage.setItem('intermitrack_theme','light');document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme==='light'))">☀️</button>
+                <button class="theme-btn" data-theme="dark" title="Mode sombre" onclick="applyTheme('dark');localStorage.setItem('intermitrack_theme','dark');document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme==='dark'))">🌙</button>
+              </div>
+            </div>
+
+            <!-- Déconnexion -->
+            <button class="account-dd-logout" type="button" id="logoutBtn">
+              <span>🚪</span> Se déconnecter
+            </button>
+
+          </div>
+        </div>
+      </div>
+    </header>
 
     <!-- ===== LANDING PAGE ===== -->
     <section id="authBox">

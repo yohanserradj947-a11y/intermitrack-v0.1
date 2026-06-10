@@ -43,7 +43,7 @@ body {
 /* ── Logo ───────────────────────────────────────────────────────── */
 .logo, .home-brandmark {
   width: 46px; height: 46px; border-radius: 14px;
-  background: linear-gradient(150deg, var(--petrol) 0%, var(--sage) 100%);
+  background: #0D4F6C;
   display: grid; place-items: center; color: white;
   font-weight: 800; font-size: 22px;
   box-shadow: 0 6px 18px rgba(13,79,108,.22);
@@ -330,15 +330,94 @@ button {
 }
 
 /* ── Tabs icons ──────────────────────────────────────────────────── */
-.tab { display: inline-flex !important; align-items: center !important; justify-content: center !important; gap: 7px !important; }
-.tab::before { font-size: 15px; line-height: 1; }
-.tab[data-view="dashboard"]::before { content: "📊"; }
-.tab[data-view="missions"]::before { content: "🎬"; }
-.tab[data-view="calendar"]::before { content: "📅"; }
-.tab[data-view="actualisation"]::before { content: "✅"; }
-.tab[data-view="documents"]::before { content: "📁"; }
-.tab[data-view="fiscalite"]::before { content: "💰"; }
-.tab[data-view="previsions"]::before { content: "📈"; }
+/* ═══════════════════════════════════════════════════════
+   INTERMITRACK — Icônes premium + Animations
+   Remplace uniquement le bloc tab icons dans style.css
+   ═══════════════════════════════════════════════════════ */
+
+/* Base icône */
+.tab::before {
+  content: '';
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  vertical-align: middle;
+  flex-shrink: 0;
+  border-radius: 6px;
+  transition: transform .28s cubic-bezier(.34,1.56,.64,1);
+}
+
+/* Tilt au survol */
+.tab:hover:not(.active)::before {
+  transform: scale(1.12) rotate(-4deg);
+}
+
+/* Animation tab entière au clic */
+.tab {
+  transition:
+    transform .22s cubic-bezier(.34,1.56,.64,1),
+    box-shadow .2s ease,
+    background .15s ease,
+    border-color .15s ease !important;
+}
+.tab:active { transform: scale(.94) !important; }
+.tab.active { animation: tabPop .32s cubic-bezier(.34,1.56,.64,1); }
+
+/* Animation icône au clic */
+.tab.active::before {
+  animation: iconPop .38s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+
+@keyframes tabPop {
+  0%   { transform: scale(.92); }
+  55%  { transform: scale(1.05); }
+  80%  { transform: scale(.98); }
+  100% { transform: scale(1); }
+}
+
+@keyframes iconPop {
+  0%   { transform: scale(.6) rotate(-12deg); }
+  55%  { transform: scale(1.22) rotate(6deg); }
+  80%  { transform: scale(.94) rotate(-2deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+/* ── Dashboard — Violet / 4 carrés colorés ── */
+.tab[data-view="dashboard"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 64 64' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='64' height='64' rx='16' fill='%230D4F6C'/%3E%3Crect x='8' y='8' width='22' height='22' rx='7' fill='%231A7FA8'/%3E%3Crect x='8' y='8' width='22' height='6' rx='4' fill='rgba(255,255,255,.22)'/%3E%3Crect x='34' y='8' width='22' height='22' rx='7' fill='%2312754A'/%3E%3Crect x='34' y='8' width='22' height='6' rx='4' fill='rgba(255,255,255,.22)'/%3E%3Crect x='8' y='34' width='22' height='22' rx='7' fill='%231A7FA8' opacity='.6'/%3E%3Crect x='8' y='34' width='22' height='6' rx='4' fill='rgba(255,255,255,.15)'/%3E%3Crect x='34' y='34' width='22' height='22' rx='7' fill='%2312754A' opacity='.5'/%3E%3Crect x='34' y='34' width='22' height='6' rx='4' fill='rgba(255,255,255,.1)'/%3E%3C/svg%3E");
+}
+/* ── Missions — Noir cinéma + or ── */
+.tab[data-view="missions"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 64 64' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='64' height='64' rx='16' fill='%231C1C28'/%3E%3Crect x='6' y='28' width='52' height='28' rx='6' fill='%232A2A3A'/%3E%3Crect x='6' y='28' width='52' height='6' rx='3' fill='rgba(255,255,255,.05)'/%3E%3Crect x='14' y='38' width='36' height='2.5' rx='1.2' fill='rgba(252,211,77,.3)'/%3E%3Crect x='14' y='44' width='26' height='2.5' rx='1.2' fill='rgba(252,211,77,.18)'/%3E%3Crect x='14' y='50' width='32' height='2.5' rx='1.2' fill='rgba(252,211,77,.1)'/%3E%3Crect x='6' y='14' width='52' height='17' rx='5' fill='%23F59E0B'/%3E%3Cpolygon points='11,14 17,14 11,31 5,31' fill='rgba(0,0,0,.25)'/%3E%3Cpolygon points='22,14 28,14 22,31 16,31' fill='rgba(255,255,255,.2)'/%3E%3Cpolygon points='33,14 39,14 33,31 27,31' fill='rgba(0,0,0,.25)'/%3E%3Cpolygon points='44,14 50,14 44,31 38,31' fill='rgba(255,255,255,.2)'/%3E%3Crect x='6' y='14' width='52' height='5' rx='4' fill='rgba(255,255,255,.3)'/%3E%3Cline x1='6' y1='31' x2='58' y2='31' stroke='rgba(0,0,0,.3)' stroke-width='2'/%3E%3C/svg%3E");
+}
+
+/* ── Calendrier — Rouge Apple ── */
+.tab[data-view="calendar"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 64 64' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4' y='22' width='56' height='38' rx='10' fill='white'/%3E%3Crect width='64' height='26' rx='16' fill='%23DC2626'/%3E%3Crect width='64' height='8' rx='6' fill='rgba(255,255,255,.15)'/%3E%3Crect x='20' y='6' width='5' height='13' rx='2.5' fill='white' opacity='.9'/%3E%3Crect x='39' y='6' width='5' height='13' rx='2.5' fill='white' opacity='.9'/%3E%3Ctext x='32' y='54' text-anchor='middle' font-size='26' font-weight='900' fill='%23DC2626' font-family='Inter,-apple-system,sans-serif'%3E10%3C/text%3E%3Ctext x='32' y='34' text-anchor='middle' font-size='9' font-weight='800' fill='%23DC2626' font-family='Inter,-apple-system,sans-serif' letter-spacing='1'%3EMER%3C/text%3E%3C/svg%3E");
+}
+
+/* ── Actualisation — Émeraude ── */
+.tab[data-view="actualisation"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 64 64' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='64' height='64' rx='16' fill='%23ECFDF5'/%3E%3Crect width='64' height='17' rx='10' fill='%23059669'/%3E%3Crect width='64' height='8' rx='6' fill='rgba(255,255,255,.2)'/%3E%3Ccircle cx='18' cy='32' r='7' fill='%23059669'/%3E%3Cpath d='M14.5 32l2.5 2.5 5-5' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Crect x='30' y='29' width='26' height='6' rx='3' fill='rgba(5,150,105,.2)'/%3E%3Ccircle cx='18' cy='47' r='7' fill='%23059669'/%3E%3Cpath d='M14.5 47l2.5 2.5 5-5' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Crect x='30' y='44' width='20' height='6' rx='3' fill='rgba(5,150,105,.15)'/%3E%3C/svg%3E");
+}
+
+/* ── Documents — Ambre ── */
+.tab[data-view="documents"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 64 64' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4' y='24' width='56' height='36' rx='8' fill='%23F59E0B'/%3E%3Cpath d='M4 30C4 26 7 24 10 24H28L34 30H4Z' fill='%23D97706'/%3E%3Crect x='10' y='29' width='44' height='27' rx='5' fill='%23FFFBEB'/%3E%3Crect x='10' y='29' width='44' height='6' rx='4' fill='rgba(255,255,255,.7)'/%3E%3Crect x='16' y='39' width='32' height='3' rx='1.5' fill='rgba(180,83,9,.2)'/%3E%3Crect x='16' y='45' width='24' height='3' rx='1.5' fill='rgba(180,83,9,.15)'/%3E%3Crect x='16' y='51' width='28' height='3' rx='1.5' fill='rgba(180,83,9,.1)'/%3E%3C/svg%3E");
+}
+
+/* ── Fiscalité — Violet + pièce d'or ── */
+.tab[data-view="fiscalite"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 64 64' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='64' height='64' rx='16' fill='%234C1D95'/%3E%3Crect width='64' height='12' rx='8' fill='rgba(255,255,255,.1)'/%3E%3Ccircle cx='32' cy='38' r='18' fill='rgba(0,0,0,.35)'/%3E%3Ccircle cx='32' cy='36' r='18' fill='%23D97706'/%3E%3Ccircle cx='32' cy='35' r='14' fill='%23FCD34D'/%3E%3Cellipse cx='27' cy='25' rx='9' ry='5' fill='rgba(255,255,255,.35)' transform='rotate(-25 27 25)'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-size='22' font-weight='900' fill='%237C2D12' font-family='Inter,-apple-system,sans-serif'%3E%E2%82%AC%3C/text%3E%3C/svg%3E");
+}
+
+/* ── Prévisions — Bleu électrique ── */
+.tab[data-view="previsions"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 64 64' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='64' height='64' rx='16' fill='%231D4ED8'/%3E%3Crect width='64' height='12' rx='8' fill='rgba(255,255,255,.12)'/%3E%3Cpath d='M8,54 L18,42 L28,46 L38,30 L52,18 L56,18 L56,54 Z' fill='rgba(96,165,250,.25)'/%3E%3Cpolyline points='8,54 18,42 28,46 38,30 52,18' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Ccircle cx='18' cy='42' r='4' fill='white' opacity='.8'/%3E%3Ccircle cx='28' cy='46' r='4' fill='white' opacity='.8'/%3E%3Ccircle cx='38' cy='30' r='4' fill='white' opacity='.8'/%3E%3Ccircle cx='52' cy='18' r='7' fill='rgba(255,255,255,.2)'/%3E%3Ccircle cx='52' cy='18' r='4.5' fill='white'/%3E%3Ccircle cx='52' cy='18' r='2' fill='%231D4ED8'/%3E%3C/svg%3E");
+}
 
 /* ── Dashboard desktop ───────────────────────────────────────────── */
 @media (min-width: 980px) {
@@ -775,31 +854,51 @@ button {
 
 /* ── Account menu ────────────────────────────────────────────────── */
 .account-avatar-btn {
-  width: 38px; height: 38px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--petrol), var(--sage));
+  width: 40px; height: 40px; border-radius: 50%;
+  background: #0D4F6C;
   display: flex; align-items: center; justify-content: center;
-  color: white; font-size: 13px; font-weight: 800; border: none; cursor: pointer;
-  box-shadow: 0 3px 10px rgba(13,79,108,.22); transition: all .15s; line-height: 1;
+  color: white; font-size: 14px; font-weight: 800;
+  border: 2px solid rgba(255,255,255,.15);
+  cursor: pointer; box-shadow: 0 4px 14px rgba(13,79,108,.3);
+  transition: all .18s; line-height: 1;
 }
-.account-avatar-btn:hover { transform: scale(1.06); }
+.account-avatar-btn:hover { transform: scale(1.07); box-shadow: 0 6px 18px rgba(13,79,108,.35); }
 .account-dropdown {
-  position: fixed; top: 70px; right: 14px; width: 240px;
-  background: white; border-radius: 14px;
-  box-shadow: 0 14px 40px rgba(13,27,42,.14);
-  border: 1px solid var(--line); z-index: 9999; overflow: hidden;
+  position: fixed; top: 70px; right: 14px; width: 260px;
+  background: white; border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(13,27,42,.16), 0 4px 16px rgba(13,27,42,.08);
+  border: 1px solid rgba(13,27,42,.08); z-index: 9999; overflow: hidden;
 }
-.account-dd-email { padding: 12px 14px; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.account-dd-plan { padding: 11px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+.account-dd-email {
+  padding: 14px 16px; font-size: 12px; font-weight: 600;
+  color: var(--muted); border-bottom: 1px solid var(--line);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: linear-gradient(135deg, #F8FAF9, #F0F4F2);
+}
+.account-dd-plan { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .account-dd-plan-label { font-size: 12px; color: var(--muted); font-weight: 600; }
-.account-dd-badge { padding: 3px 9px; border-radius: 7px; font-size: 10px; font-weight: 800; background: rgba(232,101,10,.08); color: #9A4600; border: 1px solid rgba(232,101,10,.18); }
-.account-dd-logout { display: flex; align-items: center; gap: 8px; padding: 12px 14px; font-size: 13px; font-weight: 700; color: #DC2626; border: none; background: transparent; width: 100%; cursor: pointer; text-align: left; }
-.account-dd-logout:hover { background: #FEF2F2; }
-.account-dd-themes { padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+.account-dd-badge {
+  padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 800;
+  background: linear-gradient(135deg, rgba(232,101,10,.10), rgba(232,101,10,.06));
+  color: #9A4600; border: 1px solid rgba(232,101,10,.18);
+}
+.account-dd-themes { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .account-dd-theme-label { font-size: 12px; color: var(--muted); font-weight: 600; }
 .account-dd-theme-btns { display: flex; gap: 6px; }
-.theme-btn { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--line); background: var(--soft); cursor: pointer; font-size: 14px; display: grid; place-items: center; transition: all .15s; }
-.theme-btn:hover { border-color: var(--petrol); transform: scale(1.1); }
-.theme-btn.active { border-color: var(--petrol); }
+.theme-btn {
+  width: 32px; height: 32px; border-radius: 10px;
+  border: 1.5px solid var(--line); background: #F0F2F5;
+  cursor: pointer; font-size: 15px; display: grid; place-items: center; transition: all .15s;
+}
+.theme-btn:hover { border-color: var(--petrol); transform: scale(1.1); background: white; }
+.theme-btn.active { border-color: var(--petrol); background: white; box-shadow: 0 2px 8px rgba(13,79,108,.15); }
+.account-dd-logout {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px; font-size: 13px; font-weight: 700;
+  color: #DC2626; border: none; background: transparent;
+  width: 100%; cursor: pointer; text-align: left; transition: background .15s;
+}
+.account-dd-logout:hover { background: #FEF2F2; }
 
 /* ── Notifications ───────────────────────────────────────────────── */
 .app-notif {
