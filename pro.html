@@ -545,8 +545,18 @@ document.getElementById('saveContactBtn').addEventListener('click', async () => 
     poste: selectedPoste,
     notes: document.getElementById('cNotes').value.trim()
   };
-  if (editContactId) await sb.from('pro_contacts').update(payload).eq('id', editContactId);
-  else await sb.from('pro_contacts').insert(payload);
+  console.log('Saving contact:', payload, 'currentUser:', currentUser);
+  let result;
+  if (editContactId) {
+    result = await sb.from('pro_contacts').update(payload).eq('id', editContactId);
+  } else {
+    result = await sb.from('pro_contacts').insert(payload);
+  }
+  console.log('Result:', result);
+  if (result.error) {
+    alert('Erreur : ' + result.error.message);
+    return;
+  }
   closeContactModal();
   await loadAll();
 });
@@ -672,16 +682,6 @@ function renderProjectList(elId, list, isHistorique) {
   }).join('');
 }
 
-function fmt(d) { if (!d) return ''; return new Date(d+'T00:00:00').toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',year:'numeric'}); }
-function esc(v) { return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-document.getElementById('addProjetBtn').addEventListener('click', () => {
-  ['pNom','pProd','pDebut','pFin','pLieu','pNotes'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('modalProjet').classList.remove('hidden');
-});
-document.getElementById('closeProjetModal').addEventListener('click', () => document.getElementById('modalProjet').classList.add('hidden'));
-document.getElementById('cancelProjetModal').addEventListener('click', () => document.getElementById('modalProjet').classList.add('hidden'));
-
 document.getElementById('saveProjetBtn').addEventListener('click', async () => {
   const nom = document.getElementById('pNom').value.trim();
   if (!nom) { alert('Le nom du projet est obligatoire.'); return; }
@@ -692,23 +692,26 @@ document.getElementById('saveProjetBtn').addEventListener('click', async () => {
     const fin = document.getElementById('pFin').value;
     statut = (!fin || fin >= today) ? 'en_cours' : 'termine';
   }
-  await sb.from('pro_projects').insert({
+  const payload = {
     user_id: currentUser.id,
-    nom, production: document.getElementById('pProd').value.trim(),
+    nom,
+    production: document.getElementById('pProd').value.trim(),
     date_debut: debut || null,
     date_fin: document.getElementById('pFin').value || null,
     lieu: document.getElementById('pLieu').value.trim(),
     notes: document.getElementById('pNotes').value.trim(),
     statut
-  });
+  };
+  console.log('Saving projet:', payload);
+  const result = await sb.from('pro_projects').insert(payload);
+  console.log('Projet result:', result);
+  if (result.error) {
+    alert('Erreur : ' + result.error.message);
+    return;
+  }
   document.getElementById('modalProjet').classList.add('hidden');
   await loadAll();
 });
-
-window.setStatut = async (id, statut) => {
-  await sb.from('pro_projects').update({ statut }).eq('id', id);
-  await loadAll();
-};
 
 window.deleteProjet = async (id) => {
   if (!confirm('Supprimer ce projet ?')) return;
