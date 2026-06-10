@@ -347,7 +347,8 @@ document.getElementById('authBtn').addEventListener('click', async () => {
   const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
   if (error) { msg.textContent = 'Erreur : ' + error.message; return; }
 
-  const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).single();
+  const { data: profile, error: profileError } = await sb.from('profiles').select('role').eq('id', data.user.id).single();
+console.log('Profile:', profile, 'Error:', profileError);
   if (profile?.role !== 'pro') {
     await sb.auth.signOut();
     msg.textContent = '⛔ Accès réservé aux comptes Pro.';
