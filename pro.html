@@ -307,7 +307,7 @@ sb.auth.onAuthStateChange(async (_e, session) => {
     document.getElementById('authPage').style.display = 'none';
     document.getElementById('proApp').style.display = 'block';
     document.getElementById('logoutBtn').style.display = 'flex';
-    await loadAll();
+    await loadAllWithToken(session.access_token);
   } else {
     document.getElementById('authPage').style.display = 'flex';
     document.getElementById('proApp').style.display = 'none';
@@ -330,7 +330,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
 window.loadAll = async function() {
   const { data: { session } } = await sb.auth.getSession();
-  const token = session ? session.access_token : SUPABASE_ANON;
+  if (session) await loadAllWithToken(session.access_token);
+}
+
+async function loadAllWithToken(token) {
   const headers = {
     'apikey': SUPABASE_ANON,
     'Authorization': 'Bearer ' + token
@@ -345,7 +348,6 @@ window.loadAll = async function() {
   renderProjets();
   updateCounters();
 }
-
 function updateCounters() {
   document.getElementById('cntContacts').textContent = contacts.length;
   document.getElementById('cntProjets').textContent = projets.filter(p => p.statut !== 'termine').length;
