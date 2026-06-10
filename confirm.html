@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Intermitrack — Confirmation</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:#F0F2F5;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.card{background:white;border-radius:24px;padding:32px;max-width:420px;width:100%;text-align:center;box-shadow:0 8px 32px rgba(13,27,42,.1);}
+.logo{width:56px;height:56px;border-radius:16px;background:linear-gradient(150deg,#0D4F6C,#12754A);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:20px;margin:0 auto 16px;}
+.icon{font-size:52px;margin-bottom:16px;}
+.title{font-size:22px;font-weight:800;color:#0D1B2A;margin-bottom:8px;letter-spacing:-.04em;}
+.sub{font-size:14px;color:#64748B;margin-bottom:24px;line-height:1.6;}
+.mission-box{background:#F0F2F5;border-radius:14px;padding:16px;margin-bottom:24px;text-align:left;}
+.mission-nom{font-size:16px;font-weight:800;color:#0D4F6C;margin-bottom:6px;}
+.mission-info{font-size:13px;color:#64748B;margin:3px 0;}
+.btn{display:block;width:100%;padding:14px;border-radius:12px;font-size:15px;font-weight:800;border:none;cursor:pointer;font-family:'Inter',sans-serif;text-decoration:none;}
+.btn-green{background:#12754A;color:white;}
+.btn-red{background:#DC2626;color:white;}
+.btn-home{background:#F0F2F5;color:#64748B;margin-top:10px;font-size:13px;}
+.loading{color:#64748B;font-size:14px;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">iT</div>
+  <div id="content">
+    <div class="loading">Chargement...</div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://upeogpgczoghlfwblnkb.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwZW9ncGdjem9naGxmd2JsbmtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MjkyMDQsImV4cCI6MjA5NjEwNTIwNH0.6535_0KMaEDLxTMhz_OX-4OqC_tpQsPJR5jkFQL7UqI";
+
+const params = new URLSearchParams(window.location.search);
+const token = params.get('token');
+const action = params.get('action');
+
+async function init() {
+  if (!token || !action) {
+    showError("Lien invalide.");
+    return;
+  }
+
+  // Récupère les infos du membre
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/pro_project_members?token=eq.${token}&select=*,pro_projects(*),pro_contacts(*)`, {
+    headers: {
+      "apikey": SUPABASE_ANON_KEY,
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+    }
+  });
+
+  const data = await res.json();
+  if (!data || !data[0]) { showError("Invitation introuvable."); return; }
+
+  const member = data[0];
+  const projet = member.pro_projects;
+  const contact = member.pro_contacts;
+
+  if (member.statut === 'confirme') {
+    showAlready('confirme', projet, contact);
+    return;
+  }
+  if (member.statut === 'refuse') {
+    showAlready('refuse', projet, contact);
+    return;
+  }
+
+  // Met à jour le statut
+  const newStatut = action === 'confirm' ? 'confirme' : 'refuse';
+  await fetch(`${SUPABASE_URL}/rest/v1/pro_project_members?token=eq.${token}`, {
+    method: 'PATCH',
+    headers: {
+      "apikey": SUPABASE_ANON_KEY,
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": "return=minimal"
+    },
+    body: JSON.stringify({ statut: newStatut })
+  });
+
+  showResult(action, projet, contact);
+}
+
+function showResult(action, projet, contact) {
+  const isConfirm = action === 'confirm';
+  document.getElementById('content').innerHTML = `
+    <div class="icon">${isConfirm ? '✅' : '❌'}</div>
+    <div class="title">${isConfirm ? 'Mission confirmée !' : 'Mission déclinée'}</div>
+    <div class="sub">${isConfirm ? 'Tu es bien enregistré(e) sur ce projet. Le chef de projet a été notifié.' : 'Ta réponse a été enregistrée. Merci de ta réponse.'}</div>
+    <div class="mission-box">
+      <div class="mission-nom">${projet.nom}</div>
+      <div class="mission-info">🎬 ${projet.production || ''}</div>
+      <div class="mission-info">📅 ${projet.date_debut || ''} ${projet.date_fin ? '→ ' + projet.date_fin : ''}</div>
+      <div class="mission-info">📍 ${projet.lieu || ''}</div>
+    </div>
+    <a href="https://intermitrack.fr" class="btn btn-home">Accéder à Intermitrack</a>
+  `;
+}
+
+function showAlready(statut, projet, contact) {
+  document.getElementById('content').innerHTML = `
+    <div class="icon">${statut === 'confirme' ? '✅' : '❌'}</div>
+    <div class="title">Déjà répondu</div>
+    <div class="sub">Tu as déjà ${statut === 'confirme' ? 'confirmé' : 'décliné'} cette mission.</div>
+    <div class="mission-box">
+      <div class="mission-nom">${projet.nom}</div>
+    </div>
+    <a href="https://intermitrack.fr" class="btn btn-home">Accéder à Intermitrack</a>
+  `;
+}
+
+function showError(msg) {
+  document.getElementById('content').innerHTML = `
+    <div class="icon">⚠️</div>
+    <div class="title">Erreur</div>
+    <div class="sub">${msg}</div>
+  `;
+}
+
+init();
+</script>
+</body>
+</html>
