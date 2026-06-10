@@ -989,29 +989,112 @@ function showAppNotification(type, icon, title, text, progressPct, progressColor
 }
 
 function checkAndShowNotification(remaining, yearHours) {
-  const key = `notif_dismissed_${Math.floor(remaining)}`;
-  if (localStorage.getItem(key)) return;
-  localStorage.setItem(key, "1");
-
+  const totalVac = Math.round(yearHours / 8);
+  const remainingVac = Math.round(remaining / 8);
   const pct = Math.round((yearHours / 507) * 100);
 
+  // ── 507h atteintes ────────────────────────────────────────────
   if (yearHours >= 507) {
-    showAppNotification("success", "🎉",
-      "Félicitations ! Vous êtes éligible",
-      "Vous avez validé vos 507h. Vous êtes éligible au statut d'intermittent. Pensez à contacter France Travail.",
-      100, "#22C55E");
-  } else if (remaining <= 30) {
-    showAppNotification("urgent", "⚠️",
-      `Sprint final — encore ${remaining}h !`,
-      `${yearHours}h effectuées. Il ne te manque plus que ${remaining}h pour être éligible.`,
-      pct, "#EF4444");
-  } else if (remaining <= 100) {
-    showAppNotification("warning", "🔥",
-      `Plus que ${remaining}h pour valider tes droits !`,
-      `Tu es à ${yearHours}h sur 507h. Continue comme ça, tu y es presque.`,
-      pct, "#F97316");
+    const key = 'notif_eligible';
+    if (!localStorage.getItem(key)) {
+      localStorage.setItem(key, '1');
+      showAppNotification("success", "🎉",
+        "Félicitations ! Vous êtes éligible",
+        `Vous avez validé vos 507h soit ${totalVac} vacations. Pensez à contacter France Travail.`,
+        100, "#22C55E");
+    }
+    return;
   }
 
+  // ── Notifications existantes (remaining <= 100) ───────────────
+  if (remaining <= 30) {
+    const key = `notif_sprint_${Math.floor(remaining)}`;
+    if (!localStorage.getItem(key)) {
+      localStorage.setItem(key, '1');
+      showAppNotification("urgent", "⚠️",
+        `Sprint final — encore ${remaining}h !`,
+        `${yearHours}h effectuées. Il ne te manque plus que ${remaining}h pour être éligible.`,
+        pct, "#EF4444");
+    }
+    return;
+  }
+  if (remaining <= 100) {
+    const key = `notif_warning_${Math.floor(remaining)}`;
+    if (!localStorage.getItem(key)) {
+      localStorage.setItem(key, '1');
+      showAppNotification("warning", "🔥",
+        `Plus que ${remaining}h pour valider tes droits !`,
+        `Tu es à ${yearHours}h sur 507h. Continue comme ça, tu y es presque.`,
+        pct, "#F97316");
+    }
+    return;
+  }
+
+  // ── Avant 400h : encouragements ──────────────────────────────
+  const milestones = [
+    { h: 50,  icon: '🎬', title: '50h effectuées !',
+      msg: `${totalVac} vacations au compteur — tu démarres bien !` },
+    { h: 150, icon: '💪', title: '150h effectuées !',
+      msg: `${totalVac} vacations faites. Beau rythme, continue !` },
+    { h: 250, icon: '🔥', title: '250h effectuées !',
+      msg: `${totalVac} vacations au compteur — tu avances sérieusement !` },
+    { h: 350, icon: '⭐', title: '350h effectuées !',
+      msg: `${totalVac} vacations. La ligne d'arrivée approche !` },
+  ];
+  for (const m of milestones) {
+    if (yearHours >= m.h && yearHours < 400) {
+      const key = `notif_milestone_${m.h}`;
+      if (!localStorage.getItem(key)) {
+        localStorage.setItem(key, '1');
+        showAppNotification('info', m.icon, m.title, m.msg, pct, '#1A7FA8');
+        return;
+      }
+    }
+  }
+
+  // ── Sprint 400h → 507h ────────────────────────────────────────
+  const sprint = [
+    { h: 400, icon: '⚡', title: 'Sprint final lancé !',
+      msg: () => `${remaining}h restantes soit ${remainingVac} vacations. Tu y es presque !`,
+      color: '#F59E0B' },
+    { h: 450, icon: '🔥', title: 'Dernière ligne droite !',
+      msg: () => `Il te reste ${remaining}h soit ${remainingVac} vacations. Accroche-toi !`,
+      color: '#F97316' },
+    { h: 480, icon: '🚨', title: 'Presque là !',
+      msg: () => `Plus que ${remaining}h soit ${remainingVac} vacation${remainingVac > 1 ? 's' : ''}. Ne lâche pas !`,
+      color: '#EF4444' },
+  ];
+  for (const m of sprint) {
+    const key = `notif_sprint_${m.h}`;
+    if (yearHours >= m.h && !localStorage.getItem(key)) {
+      localStorage.setItem(key, '1');
+      showAppNotification('warning', m.icon, m.title, m.msg(), pct, m.color);
+      return;
+    }
+  }
+
+  // ── Rappels actualisation (inchangés) ────────────────────────
+  const today = new Date();
+  const day = today.getDate();
+  const monthKey = `${today.getFullYear()}_${today.getMonth()}`;
+  const actuKey = `notif_actua_${monthKey}_${day}`;
+  if (!localStorage.getItem(actuKey)) {
+    localStorage.setItem(actuKey, '1');
+    if (day === 15) {
+      showAppNotification('urgent', '🚨', 'Dernier jour pour actualiser !',
+        "C'est le 15 — dernière chance pour déclarer sur France Travail avant minuit.", null, null);
+    } else if (day === 14) {
+      showAppNotification('urgent', '⏰', "Plus qu'1 jour pour actualiser !",
+        "Demain c'est le 15, dernier délai. Votre récap est prêt dans l'onglet Actualisation.", null, null);
+    } else if (day === 12) {
+      showAppNotification('warning', '📅', 'Actualisation — 3 jours restants',
+        "Deadline le 15. Votre récap du mois est prêt dans l'onglet Actualisation.", null, null);
+    } else if (day === 28) {
+      showAppNotification('info', '📣', "C'est l'heure de l'actualisation !",
+        "L'actualisation est ouverte depuis aujourd'hui jusqu'au 15. Votre récap est prêt.", null, null);
+    }
+  }
+}
   // Rappel actualisation France Travail (28 du mois → 15 du mois suivant)
   const today = new Date();
   const dayOfMonth = today.getDate();
@@ -1043,7 +1126,7 @@ function checkAndShowNotification(remaining, yearHours) {
         null, null);
     }
   }
-}
+
 function renderChart(doneHours, plannedHours = 0) {
   const total = OBJECTIVE_HOURS;
   const doneRaw = Math.max(0, Number(doneHours) || 0);
