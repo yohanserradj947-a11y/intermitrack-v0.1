@@ -116,26 +116,39 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 
 /* Detail */
 .detail-layout{display:grid;grid-template-columns:1fr 300px;gap:20px;}
-.counter-box{background:white;border-radius:16px;border:1px solid var(--line);padding:20px;margin-bottom:16px;}
-.counter-grid{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;margin-bottom:14px;}
-.cg{padding:0 16px;}
+.counter-box{background:white;border-radius:20px;border:1px solid var(--line);padding:24px;margin-bottom:16px;box-shadow:0 2px 12px rgba(13,27,42,.06);}
+.counter-grid{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;margin-bottom:16px;}
+.cg{padding:0 20px;}
 .cg+.cg{border-left:1px solid var(--line);}
-.cg-val{font-size:32px;font-weight:800;letter-spacing:-.05em;}
-.cg-lbl{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:3px;}
-.section-lbl{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;margin-top:16px;}
-.member-row{background:white;border-radius:12px;border:1px solid var(--line);padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:6px;}
-.ml-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:800;flex-shrink:0;}
-.ml-name{font-size:13px;font-weight:700;color:var(--text);}
-.ml-post{font-size:11px;color:var(--muted);}
-.tag-ok{background:rgba(18,117,74,.1);color:var(--g);padding:4px 10px;border-radius:7px;font-size:11px;font-weight:700;}
-.tag-wait{background:rgba(100,116,139,.1);color:var(--muted);padding:4px 10px;border-radius:7px;font-size:11px;font-weight:700;}
-.tag-no{background:#FEF2F2;color:#DC2626;padding:4px 10px;border-radius:7px;font-size:11px;font-weight:700;}
-.sidebar-detail{background:white;border-radius:16px;border:1px solid var(--line);padding:18px;}
-.di-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);}
+.cg-val{font-size:40px;font-weight:800;letter-spacing:-.05em;line-height:1;}
+.cg-lbl{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-top:6px;}
+.section-lbl{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;margin-top:20px;display:flex;align-items:center;gap:6px;}
+.section-lbl::after{content:'';flex:1;height:1px;background:var(--line);}
+.member-row{background:white;border-radius:14px;border:1px solid var(--line);padding:13px 16px;display:flex;align-items:center;gap:12px;margin-bottom:6px;transition:all .15s;box-shadow:0 1px 4px rgba(13,27,42,.03);}
+.member-row:hover{border-color:rgba(13,79,108,.2);box-shadow:0 3px 10px rgba(13,27,42,.08);}
+.ml-av{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:white;font-size:13px;font-weight:800;flex-shrink:0;}
+.ml-name{font-size:14px;font-weight:700;color:var(--text);}
+.ml-post{font-size:11px;color:var(--muted);margin-top:2px;}
+.tag-ok{background:rgba(18,117,74,.1);color:var(--g);padding:5px 12px;border-radius:8px;font-size:11px;font-weight:800;}
+.tag-wait{background:rgba(100,116,139,.1);color:var(--muted);padding:5px 12px;border-radius:8px;font-size:11px;font-weight:800;}
+.tag-no{background:#FEF2F2;color:#DC2626;padding:5px 12px;border-radius:8px;font-size:11px;font-weight:800;}
+.sidebar-detail{background:white;border-radius:20px;border:1px solid var(--line);padding:20px;box-shadow:0 2px 12px rgba(13,27,42,.06);}
+.di-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);}
 .di-row:last-child{border:none;}
-.di-lbl{font-size:11px;color:var(--muted);font-weight:600;}
-.di-val{font-size:12px;font-weight:700;color:var(--text);}
+.di-lbl{font-size:12px;color:var(--muted);font-weight:600;}
+.di-val{font-size:13px;font-weight:700;color:var(--text);}
 .info-o{background:rgba(232,101,10,.07);border:1px solid rgba(232,101,10,.15);border-radius:11px;padding:10px 14px;font-size:12px;color:var(--o);font-weight:600;margin-bottom:10px;}
+
+/* Project cards améliorées */
+.pcard{background:white;border-radius:20px;padding:20px;border:1px solid var(--line);box-shadow:0 2px 12px rgba(13,27,42,.05);cursor:pointer;transition:all .15s;}
+.pcard:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(13,27,42,.12);border-color:rgba(13,79,108,.2);}
+.pnom{font-size:17px;font-weight:800;color:var(--p);letter-spacing:-.03em;}
+
+/* Contact cards améliorées */
+.c-item{background:white;border-radius:18px;padding:18px 12px 14px;text-align:center;border:1px solid var(--line);cursor:pointer;transition:all .15s;box-shadow:0 2px 8px rgba(13,27,42,.05);}
+.c-item:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(13,27,42,.12);border-color:rgba(13,79,108,.2);}
+.c-av{width:60px;height:60px;border-radius:20px;display:flex;align-items:center;justify-content:center;color:white;font-size:18px;font-weight:800;margin:0 auto 10px;transition:all .15s;box-shadow:0 4px 12px rgba(0,0,0,.15);}
+.c-name{font-size:13px;font-weight:700;color:var(--text);line-height:1.3;}
 
 /* Modal */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;}
@@ -249,7 +262,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
         <span id="selCount" style="color:white;font-size:13px;font-weight:700;">0 sélectionné(s)</span>
         <div style="display:flex;gap:8px;align-items:center;">
           <select id="sendToProject" style="padding:8px 12px;border-radius:8px;border:none;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;"><option value="">Choisir un projet...</option></select>
-          <button onclick="sendToSelectedProject()" style="background:white;color:#0D4F6C;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;">➕ Ajouter au projet</button>
+          <button onclick="sendToSelectedProject()" style="background:white;color:#0D4F6C;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;">🚀 Envoyer</button>
           <button onclick="clearSelection()" style="background:rgba(255,255,255,.2);color:white;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;">✕</button>
         </div>
       </div>
@@ -407,7 +420,6 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 window.sb = sb;
 
 let currentUser = null;
-let chefNom = '';
 let sessionToken = null;
 let contacts = [];
 let projets = [];
@@ -422,6 +434,7 @@ let currentProjectId = null;
 function esc(v){return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmt(d){if(!d)return '—';return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});}
 function initials(c){return ((c.nom||'?')[0]+(c.prenom||'?')[0]).toUpperCase();}
+function tc(s){return (s||'').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());}
 function colorFor(str){let h=0;for(let i=0;i<str.length;i++)h=str.charCodeAt(i)+((h<<5)-h);return COLORS[Math.abs(h)%COLORS.length];}
 function apiHeaders(){return{'apikey':SUPABASE_ANON,'Authorization':'Bearer '+sessionToken,'Content-Type':'application/json','Prefer':'return=minimal'};}
 function readHeaders(){return{'apikey':SUPABASE_ANON,'Authorization':'Bearer '+sessionToken};}
@@ -442,46 +455,21 @@ document.getElementById('authBtn').addEventListener('click', async () => {
   msg.textContent='';
 });
 
-sb.auth.getSession().then(({data:{session}}) => initApp(session));
-
-sb.auth.onAuthStateChange((_e, session) => {
-  if(_e === 'SIGNED_OUT'){
-    currentUser = null;
-    sessionToken = null;
+sb.auth.onAuthStateChange(async(_e, session) => {
+  currentUser = session?.user || null;
+  sessionToken = session?.access_token || null;
+  if(currentUser && PRO_USERS.includes(currentUser.id)){
+    document.getElementById('authPage').style.display = 'none';
+    document.getElementById('proApp').style.display = 'grid';
+    await loadAll();
+  } else if(currentUser && !PRO_USERS.includes(currentUser.id)){
+    await sb.auth.signOut();
+  } else {
     document.getElementById('authPage').style.display = 'flex';
     document.getElementById('proApp').style.display = 'none';
-  } else if(session){
-    initApp(session);
   }
 });
 
-async function initApp(session) {
-  if(!session || !PRO_USERS.includes(session.user.id)) {
-    document.getElementById('authPage').style.display = 'flex';
-    document.getElementById('proApp').style.display = 'none';
-    return;
-  }
-  currentUser = session.user;
-  sessionToken = session.access_token;
-  document.getElementById('authPage').style.display = 'none';
-  document.getElementById('proApp').style.display = 'grid';
-  const {data:prof} = await sb.from('profiles').select('display_name').eq('id',currentUser.id).single();
-  chefNom = prof?.display_name || currentUser.email;
-  await loadAll();
-}
-
-sb.auth.getSession().then(({data:{session}}) => initApp(session));
-
-sb.auth.onAuthStateChange((_e, session) => {
-  if(_e === 'SIGNED_OUT'){
-    currentUser = null;
-    sessionToken = null;
-    document.getElementById('authPage').style.display = 'flex';
-    document.getElementById('proApp').style.display = 'none';
-  } else if(session){
-    initApp(session);
-  }
-});
 document.getElementById('logoutBtn').addEventListener('click', () => sb.auth.signOut());
 
 // ── Navigation ────────────────────────────────────────────
@@ -496,11 +484,7 @@ function showScreen(id, btn){
 
 // ── Load ──────────────────────────────────────────────────
 async function loadAll(){
-  if(!sessionToken){
-    const {data:{session}} = await sb.auth.getSession();
-    if(session) sessionToken = session.access_token;
-    else return;
-  }
+  if(!sessionToken) return;
   const h = readHeaders();
   const [r1,r2] = await Promise.all([
     fetch(SUPABASE_URL+'/rest/v1/pro_contacts?select=*&order=nom.asc',{headers:h}).then(r=>r.json()),
@@ -524,21 +508,13 @@ function updateCounters(){
 }
 
 // ── Contacts grid ─────────────────────────────────────────
-const LETTER_COLORS = {
-  A:'#E8650A',B:'#0D4F6C',C:'#12754A',D:'#7C3AED',E:'#DC2626',
-  F:'#0891B2',G:'#B45309',H:'#4F46E5',I:'#0D6040',J:'#9D174D',
-  K:'#1D4ED8',L:'#065F46',M:'#92400E',N:'#1E40AF',O:'#6B21A8',
-  P:'#0369A1',Q:'#047857',R:'#BE185D',S:'#B91C1C',T:'#0D4F6C',
-  U:'#7C3AED',V:'#059669',W:'#D97706',X:'#DC2626',Y:'#12754A',Z:'#1A7FA8'
-};
-function letterColor(nom){const l=(nom||'A')[0].toUpperCase();return LETTER_COLORS[l]||'#0D4F6C';}
-
 function renderContacts(){
   const search = document.getElementById('searchContact').value.toLowerCase();
   const pf = document.getElementById('filterPoste').value;
   let list = contacts.filter(c=>{
     const m = !search||(c.nom||'').toLowerCase().includes(search)||(c.prenom||'').toLowerCase().includes(search)||(c.email||'').toLowerCase().includes(search);
-const pm = !pf||(c.poste||'').includes(pf);    return m&&pm;
+    const pm = !pf||c.poste===pf;
+    return m&&pm;
   });
   const el = document.getElementById('contactsGrid');
   if(!list.length){
@@ -547,10 +523,11 @@ const pm = !pf||(c.poste||'').includes(pf);    return m&&pm;
   }
   el.innerHTML = list.map(c=>{
     const sel = selectedContacts.includes(c.id);
-    const color = letterColor(c.nom);
+    const color = colorFor(c.nom+c.id);
     return `<div class="c-item${sel?' sel':''}" id="ci-${c.id}" onclick="toggleSelect('${c.id}')">
       <div class="c-av" style="background:${color};" id="av-${c.id}">${initials(c)}</div>
-      <div class="c-name">${esc(c.nom)} ${esc(c.prenom||'')}</div>
+      <div class="c-name">${tc(c.nom)} ${tc(c.prenom||'')}</div>
+      <div class="c-post">${esc(c.poste||'')}</div>
       <div style="display:flex;gap:4px;justify-content:center;margin-top:6px;" onclick="event.stopPropagation()">
         <button class="btn-s bg" style="padding:4px 8px;font-size:10px;" onclick="openContactModal('${c.id}')">✏️</button>
         <button class="btn-s" style="padding:4px 8px;font-size:10px;background:#FEF2F2;color:#DC2626;" onclick="deleteContact('${c.id}')">🗑️</button>
@@ -558,6 +535,7 @@ const pm = !pf||(c.poste||'').includes(pf);    return m&&pm;
     </div>`;
   }).join('');
 }
+
 document.getElementById('searchContact').addEventListener('input', renderContacts);
 document.getElementById('filterPoste').addEventListener('change', renderContacts);
 
@@ -593,20 +571,7 @@ function updateSelBar(){
 window.sendToSelectedProject = async() => {
   const pid = document.getElementById('sendToProject').value;
   if(!pid){alert('Choisis un projet.');return;}
-  
-  let added = 0;
-  for(const contactId of selectedContacts){
-    const {error} = await sb.from('pro_project_members').upsert({
-      project_id: pid,
-      contact_id: contactId,
-      statut: 'invite'
-    },{onConflict:'project_id,contact_id'});
-    if(!error) added++;
-  }
-  
-  clearSelection();
-  alert('✅ '+added+' contact'+(added>1?'s':'')+' ajouté'+(added>1?'s':'')+' au projet !');
-  await loadAll();
+  await sendInvitations(pid);
 };
 
 // ── Add/Edit contact ─────────────────────────────────────
@@ -633,7 +598,7 @@ window.openContactModal = (id=null) => {
   document.getElementById('modalContact').classList.remove('hidden');
 };
 
-window.closeContactModal = async () => {
+window.closeContactModal = () => {
   document.getElementById('modalContact').classList.add('hidden');
   editContactId = null;
 };
@@ -857,7 +822,7 @@ window.openDetail = async(projectId) => {
     const c = m.pro_contacts||{};
     return `<div class="member-row">
       <div class="ml-av" style="background:${colorFor((c.nom||'?')+m.contact_id)}">${initials(c)}</div>
-      <div style="flex:1"><div class="ml-name">${esc(c.nom||'?')} ${esc(c.prenom||'')}</div><div class="ml-post">${esc(c.poste||'')}</div></div>
+      <div style="flex:1"><div class="ml-name">${tc(c.nom||'?')} ${tc(c.prenom||'')}</div><div class="ml-post">${esc(c.poste||'')}</div></div>
       <span class="${tagClass}">${tag}</span>
     </div>`;
   };
@@ -866,26 +831,15 @@ window.openDetail = async(projectId) => {
   document.getElementById('listAttente').innerHTML = attente.length?attente.map(m=>renderMember(m,'⏳ En attente','tag-wait')).join(''):'<div style="font-size:12px;color:var(--muted);padding:8px 0;">Tout le monde a répondu</div>';
   document.getElementById('listRefus').innerHTML = refus.length?refus.map(m=>renderMember(m,'✗ Refusé','tag-no')).join(''):'<div style="font-size:12px;color:var(--muted);padding:8px 0;">Aucun refus</div>';
 
-  const relancerBtn = document.getElementById('relancerBtn');
-if(total === 0){
-  relancerBtn.textContent = '📨 Envoyer mail + SMS';
-  relancerBtn.style.display = 'flex';
-  document.getElementById('infoRelance').style.display = 'none';
-} else if(attente.length > 0 && confirmes.length === 0 && refus.length === 0){
-  relancerBtn.textContent = '📨 Envoyer mail + SMS';
-  relancerBtn.style.display = 'flex';
-  document.getElementById('infoRelance').style.display = 'none';
-} else if(attente.length > 0){
-  relancerBtn.textContent = '🔄 Relancer ('+attente.length+')';
-  relancerBtn.style.display = 'flex';
-  document.getElementById('infoRelance').style.display = 'block';
-  document.getElementById('infoRelance').textContent = attente.length+' personne'+(attente.length>1?'s':'')+' n\'ont pas encore répondu';
-} else {
-  relancerBtn.style.display = 'none';
-  document.getElementById('infoRelance').style.display = 'none';
-}
+  if(attente.length>0){
+    document.getElementById('infoRelance').style.display='block';
+    document.getElementById('infoRelance').textContent = attente.length+' personne'+(attente.length>1?'s':'')+' n\'ont pas encore répondu';
+    document.getElementById('relancerBtn').textContent = '📨 Relancer ('+attente.length+')';
+  } else {
+    document.getElementById('infoRelance').style.display='none';
+  }
 
-showScreen('s-detail', null);
+  showScreen('s-detail', null);
 };
 
 window.terminerProjet = async() => {
@@ -893,34 +847,34 @@ window.terminerProjet = async() => {
   await setStatut(currentProjectId,'termine');
   showScreen('s-projets', document.querySelector('.nav-item:nth-child(2)'));
 };
+
 window.addToProject = () => {
   selectedContacts = [];
   renderContacts();
-  
-  // Forcer l'affichage de la barre avec le projet présélectionné
-  const bar = document.getElementById('selBar');
-  bar.classList.add('show');
-  document.getElementById('selCount').textContent = '0 sélectionné';
-  
-  const sel = document.getElementById('sendToProject');
-  const actifs = projets.filter(p=>p.statut!=='termine');
-  sel.innerHTML = '<option value="">Choisir un projet...</option>' + actifs.map(p=>`<option value="${p.id}">${esc(p.nom)}</option>`).join('');
-  
+  updateSelBar();
+  showScreen('s-contacts', document.querySelector('.nav-item:first-child'));
   if(currentProjectId){
+    const sel = document.getElementById('sendToProject');
     setTimeout(()=>{
       const opt = sel.querySelector(`option[value="${currentProjectId}"]`);
-      if(opt) opt.selected = true;
-    },100);
+      if(opt) opt.selected=true;
+    },200);
   }
-  
-  showScreen('s-contacts', document.querySelector('.nav-item:first-child'));
 };
+
+// ── Format téléphone → +33 ────────────────────────────────
+function formatPhone(tel){
+  if(!tel) return '';
+  let t = tel.replace(/[\s\.\-]/g,'');
+  if(t.startsWith('00')) t = '+' + t.slice(2);
+  else if(t.startsWith('0')) t = '+33' + t.slice(1);
+  else if(t.startsWith('33') && !t.startsWith('+')) t = '+' + t;
+  return t;
+}
+
 window.relancerAttente = async() => {
   if(!currentProjectId){return;}
-  const {data:{session}} = await sb.auth.getSession();
-  if(!session){alert('Session expirée, reconnecte toi.');return;}
-  sessionToken = session.access_token;
-  const h = {'apikey':SUPABASE_ANON,'Authorization':'Bearer '+sessionToken};
+  const h = readHeaders();
   const members = await fetch(SUPABASE_URL+'/rest/v1/pro_project_members?project_id=eq.'+currentProjectId+'&statut=eq.invite&select=*,pro_contacts(*)',{headers:h}).then(r=>r.json());
   if(!Array.isArray(members)||!members.length){alert('Tous les techniciens ont déjà répondu.');return;}
   const projet = projets.find(p=>p.id===currentProjectId);
@@ -928,41 +882,37 @@ window.relancerAttente = async() => {
   for(const member of members){
     const c = member.pro_contacts||{};
     if(c.email){
-      try {
-        await fetch(FUNC_URL+'/send-invitation',{
-          method:'POST',
-          headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
-          body:JSON.stringify({
-            to_email:c.email,
-to_name:(c.prenom||c.nom||'').trim(),
-            chef_nom:chefNom,
-            poste:c.poste||'Technicien',
-            projet_nom:projet.nom,
-            production:projet.production||'',
-            date_debut:projet.date_debut||'',
-            date_fin:projet.date_fin||'',
-            lieu:projet.lieu||'',
-            token:member.token
-          })
-        });
-      } catch(e){console.warn('Mail échoué:',e);}
+      await fetch(FUNC_URL+'/send-invitation',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
+        body:JSON.stringify({
+          to_email:c.email,
+          to_name:((c.prenom||'')+' '+c.nom).trim(),
+          chef_nom:chefNom,
+          poste:c.poste||'Technicien',
+          projet_nom:projet.nom,
+          production:projet.production||'',
+          date_debut:projet.date_debut||'',
+          date_fin:projet.date_fin||'',
+          lieu:projet.lieu||'',
+          token:member.token
+        })
+      });
     }
     if(c.telephone){
-      try {
-        await fetch(FUNC_URL+'/send-sms',{
-          method:'POST',
-          headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
-          body:JSON.stringify({
-            to_phone:formatPhone(c.telephone),
-            to_name:(c.prenom||c.nom||'').trim(),
-            projet_nom:projet.nom,
-            date_debut:projet.date_debut||'',
-            date_fin:projet.date_fin||'',
-            lieu:projet.lieu||'',
-            token:member.token
-          })
-        });
-      } catch(e){console.warn('SMS échoué:',e);}
+      await fetch(FUNC_URL+'/send-sms',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
+        body:JSON.stringify({
+          to_phone:formatPhone(c.telephone),
+          to_name:((c.prenom||'')+' '+c.nom).trim(),
+          projet_nom:projet.nom,
+          date_debut:projet.date_debut||'',
+          date_fin:projet.date_fin||'',
+          lieu:projet.lieu||'',
+          token:member.token
+        })
+      });
     }
     sent++;
   }
@@ -975,16 +925,6 @@ window.exportPlanning = () => {
 };
 
 // ── Envoi invitations ─────────────────────────────────────
-function formatPhone(tel){
-  if(!tel) return '';
-  let t = tel.replace(/[\s\.\-]/g,'');
-  if(t.startsWith('00')) t = '+' + t.slice(2);
-  else if(t.startsWith('0')) t = '+33' + t.slice(1);
-  else if(t.startsWith('33') && !t.startsWith('+')) t = '+' + t;
-  else if(t.match(/^[67]\d{8}$/)) t = '+33' + t;
-  return t;
-}
-
 async function sendInvitations(projectId){
   const projet = projets.find(p=>p.id===projectId);
   if(!projet)return;
@@ -998,41 +938,37 @@ async function sendInvitations(projectId){
     },{onConflict:'project_id,contact_id'}).select().single();
     if(me||!member){console.error('Member error:',me);continue;}
     if(contact.email){
-      try {
-        await fetch(FUNC_URL+'/send-invitation',{
-          method:'POST',
-          headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
-          body:JSON.stringify({
-            to_email:contact.email,
-            to_name:(contact.prenom||contact.nom||'').trim(),
-            chef_nom:chefNom,
-            poste:contact.poste||'Technicien',
-            projet_nom:projet.nom,
-            production:projet.production||'',
-            date_debut:projet.date_debut||'',
-            date_fin:projet.date_fin||'',
-            lieu:projet.lieu||'',
-            token:member.token
-          })
-        });
-      } catch(e){ console.warn('Mail échoué pour '+contact.nom, e); }
+      await fetch(FUNC_URL+'/send-invitation',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
+        body:JSON.stringify({
+          to_email:contact.email,
+          to_name:((contact.prenom||'')+' '+contact.nom).trim(),
+          chef_nom:chefNom,
+          poste:contact.poste||'Technicien',
+          projet_nom:projet.nom,
+          production:projet.production||'',
+          date_debut:projet.date_debut||'',
+          date_fin:projet.date_fin||'',
+          lieu:projet.lieu||'',
+          token:member.token
+        })
+      });
     }
     if(contact.telephone){
-      try {
-        await fetch(FUNC_URL+'/send-sms',{
-          method:'POST',
-          headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
-          body:JSON.stringify({
-            to_phone:formatPhone(contact.telephone),
-            to_name:(contact.prenom||contact.nom||'').trim(),
-            projet_nom:projet.nom,
-            date_debut:projet.date_debut||'',
-            date_fin:projet.date_fin||'',
-            lieu:projet.lieu||'',
-            token:member.token
-          })
-        });
-      } catch(e){ console.warn('SMS échoué pour '+contact.nom, e); }
+      await fetch(FUNC_URL+'/send-sms',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
+        body:JSON.stringify({
+          to_phone:formatPhone(contact.telephone),
+          to_name:((contact.prenom||'')+' '+contact.nom).trim(),
+          projet_nom:projet.nom,
+          date_debut:projet.date_debut||'',
+          date_fin:projet.date_fin||'',
+          lieu:projet.lieu||'',
+          token:member.token
+        })
+      });
     }
     sent++;
   }
