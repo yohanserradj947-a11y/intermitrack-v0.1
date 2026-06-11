@@ -7,76 +7,30 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{
-  font-family:'Inter',sans-serif;
-  background:linear-gradient(160deg,#0D4F6C 0%,#0A3A50 40%,#081E2A 100%);
-  min-height:100vh;
-  display:flex;align-items:center;justify-content:center;
-  padding:20px;
-}
-.card{
-  background:white;
-  border-radius:28px;
-  width:100%;max-width:400px;
-  overflow:hidden;
-  box-shadow:0 24px 80px rgba(0,0,0,.35);
-}
-.card-header{
-  padding:28px 28px 24px;
-  text-align:center;
-}
-.logo-wrap{
-  width:56px;height:56px;border-radius:18px;
-  background:linear-gradient(150deg,#0D4F6C,#12754A);
-  display:flex;align-items:center;justify-content:center;
-  color:white;font-weight:800;font-size:20px;
-  margin:0 auto 16px;
-  box-shadow:0 4px 14px rgba(13,79,108,.3);
-}
+body{font-family:'Inter',sans-serif;background:linear-gradient(160deg,#0D4F6C 0%,#0A3A50 40%,#081E2A 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.card{background:white;border-radius:28px;width:100%;max-width:400px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.35);}
+.card-header{padding:28px 28px 24px;text-align:center;}
+.logo-wrap{width:56px;height:56px;border-radius:18px;background:linear-gradient(150deg,#0D4F6C,#12754A);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:20px;margin:0 auto 16px;box-shadow:0 4px 14px rgba(13,79,108,.3);}
 .brand{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:800;color:#64748B;letter-spacing:.1em;text-transform:uppercase;}
 .card-body{padding:0 28px 28px;}
-.icon-wrap{
-  width:72px;height:72px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:36px;margin:0 auto 16px;
-}
+.icon-wrap{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 16px;}
 .icon-confirm{background:rgba(18,117,74,.1);}
 .icon-decline{background:rgba(220,38,38,.1);}
 .icon-neutral{background:rgba(100,116,139,.1);}
 .title{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:#0D1B2A;margin-bottom:8px;letter-spacing:-.04em;text-align:center;}
 .sub{font-size:14px;color:#64748B;margin-bottom:20px;line-height:1.6;text-align:center;}
-.mission-box{
-  background:#F8FAFC;border-radius:16px;padding:16px;margin-bottom:20px;
-  border:1px solid rgba(13,27,42,.08);
-}
+.mission-box{background:#F8FAFC;border-radius:16px;padding:16px;margin-bottom:20px;border:1px solid rgba(13,27,42,.08);}
 .mission-nom{font-size:17px;font-weight:800;color:#0D4F6C;margin-bottom:10px;letter-spacing:-.02em;}
 .mission-row{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;color:#64748B;}
 .mission-row span{font-size:16px;flex-shrink:0;}
-.badge{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:6px 14px;border-radius:99px;
-  font-size:12px;font-weight:800;margin:0 auto 20px;
-  display:block;text-align:center;width:fit-content;margin:0 auto 20px;
-}
+.badge{padding:6px 14px;border-radius:99px;font-size:12px;font-weight:800;display:block;text-align:center;width:fit-content;margin:0 auto 20px;}
 .badge-confirm{background:rgba(18,117,74,.1);color:#12754A;}
 .badge-decline{background:rgba(220,38,38,.1);color:#DC2626;}
-.btn-home{
-  display:block;width:100%;padding:14px;
-  border-radius:14px;font-size:14px;font-weight:700;
-  border:none;cursor:pointer;font-family:'Inter',sans-serif;
-  text-decoration:none;text-align:center;
-  background:#F0F2F5;color:#64748B;
-  transition:background .15s;
-}
-.btn-home:hover{background:#E2E8F0;}
+.btn-confirm{display:block;width:100%;padding:15px;border-radius:14px;font-size:15px;font-weight:800;border:none;cursor:pointer;font-family:'Inter',sans-serif;text-decoration:none;text-align:center;background:#12754A;color:white;margin-bottom:10px;}
+.btn-decline{display:block;width:100%;padding:15px;border-radius:14px;font-size:15px;font-weight:800;border:none;cursor:pointer;font-family:'Inter',sans-serif;text-decoration:none;text-align:center;background:#DC2626;color:white;margin-bottom:10px;}
+.btn-home{display:block;width:100%;padding:14px;border-radius:14px;font-size:14px;font-weight:700;border:none;cursor:pointer;font-family:'Inter',sans-serif;text-decoration:none;text-align:center;background:#F0F2F5;color:#64748B;}
 .loading{text-align:center;padding:20px 0;}
-.loading-spinner{
-  width:32px;height:32px;border-radius:50%;
-  border:3px solid rgba(13,79,108,.15);
-  border-top-color:#0D4F6C;
-  animation:spin .8s linear infinite;
-  margin:0 auto 12px;
-}
+.loading-spinner{width:32px;height:32px;border-radius:50%;border:3px solid rgba(13,79,108,.15);border-top-color:#0D4F6C;animation:spin .8s linear infinite;margin:0 auto 12px;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .loading-text{font-size:13px;color:#94A3B8;}
 </style>
@@ -108,7 +62,7 @@ const action = params.get('action');
 function fmt(d){ if(!d)return ''; return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}); }
 
 async function init() {
-  if (!token || !action) { showGeneric(); return; }
+  if (!token) { showGeneric(); return; }
 
   const res = await fetch(`${SUPABASE_URL}/rest/v1/pro_project_members?token=eq.${token}&select=*,pro_projects(*),pro_contacts(*)`, {
     headers: { "apikey": SUPABASE_ANON_KEY, "Authorization": `Bearer ${SUPABASE_ANON_KEY}` }
@@ -123,6 +77,10 @@ async function init() {
   if (member.statut === 'confirme') { showAlready('confirme', projet); return; }
   if (member.statut === 'refuse') { showAlready('refuse', projet); return; }
 
+  // Pas d'action dans l'URL → afficher les deux boutons
+  if (!action) { showChoice(projet); return; }
+
+  // Action présente → enregistrer
   const newStatut = action === 'confirm' ? 'confirme' : 'refuse';
   await fetch(`${SUPABASE_URL}/rest/v1/pro_project_members?token=eq.${token}`, {
     method: 'PATCH',
@@ -142,14 +100,23 @@ function missionBox(projet){
   </div>`;
 }
 
+function showChoice(projet) {
+  document.getElementById('content').innerHTML = `
+    <div class="icon-wrap icon-neutral">📋</div>
+    <div class="title">Proposition de mission</div>
+    <div class="sub">Es-tu disponible pour cette mission ?</div>
+    ${missionBox(projet)}
+    <a href="?token=${token}&action=confirm" class="btn-confirm">✓ Je confirme</a>
+    <a href="?token=${token}&action=decline" class="btn-decline">✗ Je décline</a>
+  `;
+}
+
 function showResult(action, projet) {
   const isConfirm = action === 'confirm';
   document.getElementById('content').innerHTML = `
     <div class="icon-wrap ${isConfirm ? 'icon-confirm' : 'icon-decline'}">${isConfirm ? '✅' : '❌'}</div>
     <div class="title">${isConfirm ? 'Mission confirmée !' : 'Invitation refusée'}</div>
-    <div class="sub">${isConfirm
-      ? 'Super ! Tu es bien inscrit(e) sur ce projet.<br/>Le chef de projet a été notifié.'
-      : 'Tu as refusé cette invitation.<br/>Le chef de projet a été informé.'}</div>
+    <div class="sub">${isConfirm ? 'Super ! Tu es bien inscrit(e) sur ce projet.<br/>Le chef de projet a été notifié.' : 'Tu as refusé cette invitation.<br/>Le chef de projet a été informé.'}</div>
     <div class="badge ${isConfirm ? 'badge-confirm' : 'badge-decline'}">${isConfirm ? '✓ Confirmé' : '✗ Refusé'}</div>
     ${missionBox(projet)}
     <a href="https://intermitrack.fr" class="btn-home">Accéder à Intermitrack</a>
