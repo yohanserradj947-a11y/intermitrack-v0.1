@@ -442,32 +442,44 @@ document.getElementById('authBtn').addEventListener('click', async () => {
   msg.textContent='';
 });
 
-sb.auth.getSession().then(async({data:{session}}) => {
-  if(session && PRO_USERS.includes(session.user.id)){
-    currentUser = session.user;
-    sessionToken = session.access_token;
-    document.getElementById('authPage').style.display = 'none';
-    document.getElementById('proApp').style.display = 'grid';
-    const {data:prof} = await sb.from('profiles').select('display_name').eq('id',currentUser.id).single();
-    chefNom = prof?.display_name || currentUser.email;
-    await loadAll();
-  }
-});
+sb.auth.getSession().then(({data:{session}}) => initApp(session));
 
-sb.auth.onAuthStateChange(async(_e, session) => {
-  if(_e === 'SIGNED_IN' && session && PRO_USERS.includes(session.user.id)){
-    currentUser = session.user;
-    sessionToken = session.access_token;
-    document.getElementById('authPage').style.display = 'none';
-    document.getElementById('proApp').style.display = 'grid';
-    const {data:prof} = await sb.from('profiles').select('display_name').eq('id',currentUser.id).single();
-    chefNom = prof?.display_name || currentUser.email;
-    await loadAll();
-  } else if(_e === 'SIGNED_OUT'){
+sb.auth.onAuthStateChange((_e, session) => {
+  if(_e === 'SIGNED_OUT'){
     currentUser = null;
     sessionToken = null;
     document.getElementById('authPage').style.display = 'flex';
     document.getElementById('proApp').style.display = 'none';
+  } else if(session){
+    initApp(session);
+  }
+});
+
+async function initApp(session) {
+  if(!session || !PRO_USERS.includes(session.user.id)) {
+    document.getElementById('authPage').style.display = 'flex';
+    document.getElementById('proApp').style.display = 'none';
+    return;
+  }
+  currentUser = session.user;
+  sessionToken = session.access_token;
+  document.getElementById('authPage').style.display = 'none';
+  document.getElementById('proApp').style.display = 'grid';
+  const {data:prof} = await sb.from('profiles').select('display_name').eq('id',currentUser.id).single();
+  chefNom = prof?.display_name || currentUser.email;
+  await loadAll();
+}
+
+sb.auth.getSession().then(({data:{session}}) => initApp(session));
+
+sb.auth.onAuthStateChange((_e, session) => {
+  if(_e === 'SIGNED_OUT'){
+    currentUser = null;
+    sessionToken = null;
+    document.getElementById('authPage').style.display = 'flex';
+    document.getElementById('proApp').style.display = 'none';
+  } else if(session){
+    initApp(session);
   }
 });
 document.getElementById('logoutBtn').addEventListener('click', () => sb.auth.signOut());
