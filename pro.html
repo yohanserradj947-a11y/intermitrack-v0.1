@@ -11,111 +11,176 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--p:#0D4F6C;--p2:#1A7FA8;--g:#12754A;--o:#E8650A;--bg:#F0F2F5;--card:#fff;--text:#0D1B2A;--muted:#64748B;--line:rgba(13,27,42,.09);--soft:rgba(13,79,108,.06);}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
-.app{max-width:1100px;margin:0 auto;padding:20px;}
-.header{display:flex;justify-content:space-between;align-items:center;background:var(--card);border-radius:16px;padding:14px 20px;border:1px solid var(--line);margin-bottom:18px;}
-.brand{display:flex;align-items:center;gap:12px;}
-.logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(150deg,var(--p),var(--g));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;}
-.brand-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:17px;font-weight:800;color:var(--p);letter-spacing:-.04em;}
-.brand-tag{font-size:11px;color:var(--muted);}
-.header-right{display:flex;gap:10px;align-items:center;}
-.badge-pro{background:linear-gradient(135deg,var(--p),var(--p2));color:white;padding:4px 12px;border-radius:99px;font-size:11px;font-weight:800;letter-spacing:.04em;}
-.auth-page{min-height:80vh;display:flex;align-items:center;justify-content:center;}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:240px 1fr;grid-template-rows:60px 1fr;min-height:100vh;}
+
+/* Topbar */
+.topbar{grid-column:1/-1;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 24px;box-shadow:0 1px 4px rgba(13,27,42,.06);}
+.brand{display:flex;align-items:center;gap:10px;}
+.logo{width:36px;height:36px;border-radius:11px;background:linear-gradient(150deg,var(--p),var(--g));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:14px;}
+.brand-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:800;color:var(--p);letter-spacing:-.04em;}
+.badge{background:linear-gradient(135deg,var(--p),var(--p2));color:white;padding:3px 8px;border-radius:99px;font-size:10px;font-weight:800;letter-spacing:.06em;margin-left:4px;}
+.top-stats{display:flex;gap:20px;}
+.tstat{text-align:center;}
+.tstat-val{font-size:15px;font-weight:800;color:var(--p);letter-spacing:-.04em;display:block;}
+.tstat-lbl{font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+.av-btn{width:36px;height:36px;border-radius:50%;background:var(--p);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:800;cursor:pointer;border:none;}
+
+/* Sidebar */
+.sidebar{background:var(--card);border-right:1px solid var(--line);padding:20px 12px;display:flex;flex-direction:column;gap:4px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;transition:all .15s;border:none;background:transparent;width:100%;text-align:left;font-family:'Inter',sans-serif;}
+.nav-item:hover{background:var(--soft);color:var(--text);}
+.nav-item.on{background:var(--soft);color:var(--p);font-weight:700;}
+.nav-icon{font-size:16px;flex-shrink:0;}
+.sidebar-sep{height:1px;background:var(--line);margin:8px 4px;}
+.sidebar-label{font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;padding:4px 12px;margin-top:4px;}
+.btn-new{background:var(--p);color:white;border:none;border-radius:10px;padding:11px 12px;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:8px;width:100%;font-family:'Inter',sans-serif;margin-top:auto;}
+.btn-new:hover{filter:brightness(1.08);}
+
+/* Main */
+.main{padding:24px;overflow-y:auto;}
+.screen{display:none;}
+.screen.on{display:block;}
+
+/* Auth */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;grid-column:1/-1;}
 .auth-card{background:var(--card);border-radius:20px;padding:32px;width:100%;max-width:420px;border:1px solid var(--line);box-shadow:0 8px 32px rgba(13,27,42,.08);}
 .auth-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:var(--p);margin-bottom:4px;letter-spacing:-.04em;}
 .auth-sub{font-size:13px;color:var(--muted);margin-bottom:22px;}
-.form-label{font-size:12px;font-weight:700;color:var(--text);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.04em;}
-.form-input{width:100%;padding:12px 14px;border:1px solid rgba(13,27,42,.14);border-radius:11px;font-size:14px;color:var(--text);outline:none;margin-bottom:14px;font-family:'Inter',sans-serif;}
-.form-input:focus{border-color:var(--p2);box-shadow:0 0 0 3px rgba(26,127,168,.1);}
+.form-label{font-size:11px;font-weight:800;color:var(--p);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px;}
+.form-input{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:11px;font-size:14px;color:var(--text);outline:none;margin-bottom:14px;font-family:'Inter',sans-serif;}
+.form-input:focus{border-color:var(--p2);}
 .btn-primary{width:100%;background:var(--p);color:white;border:none;border-radius:11px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Inter',sans-serif;}
-.btn-primary:hover{filter:brightness(1.08);}
-.tabs-nav{display:flex;gap:6px;margin-bottom:18px;background:var(--card);padding:8px;border-radius:14px;border:1px solid var(--line);}
-.tab-btn{flex:1;padding:10px;border-radius:10px;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:7px;}
-.tab-btn.active{background:var(--p);color:white;}
-.tab-btn span{font-size:16px;}
-.tab-content{display:none;}
-.tab-content.active{display:block;}
-.toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
-.search-wrap{flex:1;position:relative;min-width:200px;}
-.search-input{width:100%;padding:10px 14px 10px 38px;border:1px solid var(--line);border-radius:11px;font-size:13px;font-family:'Inter',sans-serif;outline:none;background:var(--card);}
-.search-input:focus{border-color:var(--p2);}
-.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:15px;}
-.filter-select{padding:10px 14px;border:1px solid var(--line);border-radius:11px;font-size:13px;font-family:'Inter',sans-serif;outline:none;background:var(--card);color:var(--text);cursor:pointer;}
-.btn-ghost{padding:10px 16px;border-radius:11px;border:1px solid var(--line);background:var(--card);color:var(--p);font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:6px;}
+
+/* Page header */
+.page-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+.page-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:var(--p);letter-spacing:-.04em;}
+.page-sub{font-size:13px;color:var(--muted);margin-top:3px;}
+.btn-action{padding:10px 18px;border-radius:11px;border:none;background:var(--p);color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:7px;}
+.btn-ghost{padding:10px 16px;border-radius:11px;border:1px solid var(--line);background:white;color:var(--p);font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:7px;}
 .btn-ghost:hover{background:var(--soft);}
-.btn-action{padding:10px 16px;border-radius:11px;border:none;background:var(--p);color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:6px;}
-.contacts-list{display:grid;gap:8px;}
-.contact-card{background:var(--card);border-radius:14px;padding:14px 16px;border:1px solid var(--line);display:flex;align-items:center;gap:14px;transition:all .15s;}
-.contact-card:hover{border-color:rgba(13,79,108,.2);box-shadow:0 2px 10px rgba(13,27,42,.06);}
-.contact-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--p2));display:flex;align-items:center;justify-content:center;color:white;font-size:13px;font-weight:800;flex-shrink:0;cursor:pointer;transition:all .15s;}
-.contact-avatar:hover{transform:scale(1.08);}
-.contact-info{flex:1;min-width:0;}
-.contact-name{font-size:14px;font-weight:800;color:var(--text);}
-.contact-meta{font-size:12px;color:var(--muted);margin-top:2px;}
-.contact-poste{padding:4px 10px;border-radius:7px;background:var(--soft);color:var(--p);font-size:11px;font-weight:700;white-space:nowrap;}
-.contact-actions{display:flex;gap:6px;flex-shrink:0;}
-.btn-icon{width:32px;height:32px;border-radius:8px;border:none;background:var(--soft);color:var(--p);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;}
-.btn-icon.del{background:#FEF2F2;color:#DC2626;}
-.empty{text-align:center;padding:48px 20px;color:var(--muted);}
-.empty-icon{font-size:40px;margin-bottom:12px;}
-.empty-title{font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;}
-.empty-sub{font-size:13px;}
-.projects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
-.project-card{background:var(--card);border-radius:16px;padding:18px;border:1px solid var(--line);box-shadow:0 2px 8px rgba(13,27,42,.04);cursor:pointer;transition:all .15s;}
-.project-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(13,27,42,.08);border-color:rgba(13,79,108,.2);}
-.project-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;}
-.project-nom{font-size:16px;font-weight:800;color:var(--p);letter-spacing:-.02em;}
-.project-prod{font-size:12px;color:var(--muted);margin-top:3px;}
-.status-pill{padding:4px 10px;border-radius:99px;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;}
-.status-avenir{background:rgba(26,127,168,.1);color:var(--p2);}
-.status-encours{background:rgba(18,117,74,.1);color:var(--g);}
-.status-termine{background:rgba(13,27,42,.07);color:var(--muted);}
-.project-dates{font-size:12px;color:var(--muted);margin-bottom:10px;}
+
+/* Toolbar */
+.toolbar{display:flex;gap:10px;margin-bottom:18px;align-items:center;flex-wrap:wrap;}
+.search-wrap{position:relative;flex:1;max-width:360px;}
+.search-wrap::before{content:'🔍';position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;}
+.search{width:100%;padding:10px 14px 10px 36px;border:1px solid var(--line);border-radius:11px;font-size:13px;font-family:'Inter',sans-serif;outline:none;background:white;}
+.search:focus{border-color:var(--p2);}
+.filter-select{padding:10px 14px;border:1px solid var(--line);border-radius:11px;font-size:13px;font-family:'Inter',sans-serif;outline:none;background:white;color:var(--text);cursor:pointer;}
+
+/* Contacts grid */
+.contacts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:14px;}
+.c-item{background:white;border-radius:16px;padding:16px 10px 12px;text-align:center;border:1px solid var(--line);cursor:pointer;transition:all .15s;box-shadow:0 1px 4px rgba(13,27,42,.04);}
+.c-item:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(13,27,42,.1);border-color:rgba(13,79,108,.2);}
+.c-item.sel{border-color:#12754A;background:rgba(18,117,74,.04);}
+.c-av{width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center;color:white;font-size:16px;font-weight:800;margin:0 auto 8px;transition:all .15s;}
+.c-item.sel .c-av{background:#12754A !important;}
+.c-name{font-size:12px;font-weight:700;color:var(--text);line-height:1.3;}
+.c-post{font-size:10px;color:var(--muted);margin-top:2px;}
+
+/* Sel bar */
+.sel-bar{background:linear-gradient(135deg,var(--p),var(--p2));border-radius:12px;padding:12px 16px;margin-bottom:16px;display:none;align-items:center;justify-content:space-between;gap:10px;}
+.sel-bar.show{display:flex;}
+
+/* Projects grid */
+.projects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;}
+.pcard{background:white;border-radius:16px;padding:18px;border:1px solid var(--line);box-shadow:0 1px 6px rgba(13,27,42,.05);cursor:pointer;transition:all .15s;}
+.pcard:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(13,27,42,.1);border-color:rgba(13,79,108,.2);}
+.pcard-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.pnom{font-size:16px;font-weight:800;color:var(--p);letter-spacing:-.02em;}
+.pprod{font-size:12px;color:var(--muted);margin-top:3px;}
+.sp{padding:4px 10px;border-radius:99px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;}
+.sp-ec{background:rgba(18,117,74,.1);color:var(--g);}
+.sp-av{background:rgba(26,127,168,.1);color:var(--p2);}
+.sp-t{background:rgba(13,27,42,.07);color:var(--muted);}
+.pdates{font-size:12px;color:var(--muted);margin-bottom:10px;}
+.pbar-wrap{margin-bottom:10px;}
+.pbar-lbl{display:flex;justify-content:space-between;margin-bottom:5px;}
+.pbar-lbl span{font-size:12px;font-weight:700;}
+.pbar{height:7px;background:var(--line);border-radius:99px;overflow:hidden;}
+.pbar-fill{height:100%;border-radius:99px;}
+.fill-g{background:linear-gradient(90deg,var(--g),#1EA876);}
+.fill-o{background:linear-gradient(90deg,var(--o),#F5B143);}
+.mavs{display:flex;margin-bottom:12px;}
+.mav{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:9px;font-weight:800;border:2px solid white;margin-right:-6px;flex-shrink:0;}
+.mav-ok{background:var(--g);}
+.mav-wait{background:var(--muted);}
+.mav-more{background:var(--p);font-size:10px;}
+.row-btns{display:flex;gap:8px;flex-wrap:wrap;}
+.btn-s{padding:7px 12px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:'Inter',sans-serif;}
+.bp{background:var(--p);color:white;}
+.bg{background:var(--soft);color:var(--p);border:1px solid var(--line);}
+.bo{background:rgba(232,101,10,.1);color:var(--o);}
+.br{background:#FEF2F2;color:#DC2626;}
+
+/* Detail */
+.detail-layout{display:grid;grid-template-columns:1fr 300px;gap:20px;}
+.counter-box{background:white;border-radius:16px;border:1px solid var(--line);padding:20px;margin-bottom:16px;}
+.counter-grid{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;margin-bottom:14px;}
+.cg{padding:0 16px;}
+.cg+.cg{border-left:1px solid var(--line);}
+.cg-val{font-size:32px;font-weight:800;letter-spacing:-.05em;}
+.cg-lbl{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:3px;}
+.section-lbl{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;margin-top:16px;}
+.member-row{background:white;border-radius:12px;border:1px solid var(--line);padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:6px;}
+.ml-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:800;flex-shrink:0;}
+.ml-name{font-size:13px;font-weight:700;color:var(--text);}
+.ml-post{font-size:11px;color:var(--muted);}
+.tag-ok{background:rgba(18,117,74,.1);color:var(--g);padding:4px 10px;border-radius:7px;font-size:11px;font-weight:700;}
+.tag-wait{background:rgba(100,116,139,.1);color:var(--muted);padding:4px 10px;border-radius:7px;font-size:11px;font-weight:700;}
+.tag-no{background:#FEF2F2;color:#DC2626;padding:4px 10px;border-radius:7px;font-size:11px;font-weight:700;}
+.sidebar-detail{background:white;border-radius:16px;border:1px solid var(--line);padding:18px;}
+.di-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);}
+.di-row:last-child{border:none;}
+.di-lbl{font-size:11px;color:var(--muted);font-weight:600;}
+.di-val{font-size:12px;font-weight:700;color:var(--text);}
+.info-o{background:rgba(232,101,10,.07);border:1px solid rgba(232,101,10,.15);border-radius:11px;padding:10px 14px;font-size:12px;color:var(--o);font-weight:600;margin-bottom:10px;}
+
+/* Modal */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;}
 .modal-overlay.hidden{display:none;}
 .modal{background:white;border-radius:20px;padding:24px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);}
 .modal-title{font-size:18px;font-weight:800;color:var(--p);margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;}
-.modal-close{width:30px;height:30px;border-radius:50%;border:none;background:var(--bg);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+.modal-close{width:30px;height:30px;border-radius:50%;border:none;background:var(--bg);cursor:pointer;font-size:16px;}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .form-grid .full{grid-column:1/-1;}
 .postes-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
-.poste-chip{padding:7px 12px;border-radius:8px;border:1.5px solid var(--line);background:var(--card);color:var(--p);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
+.poste-chip{padding:7px 12px;border-radius:8px;border:1.5px solid var(--line);background:white;color:var(--p);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
 .poste-chip.on{background:var(--p);color:white;border-color:var(--p);}
 .modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;}
 .btn-cancel{padding:12px;border-radius:11px;border:1px solid var(--line);background:var(--bg);color:var(--muted);font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;}
 .btn-save{padding:12px;border-radius:11px;border:none;background:var(--p);color:white;font-size:14px;font-weight:800;cursor:pointer;font-family:'Inter',sans-serif;}
+
+/* Import */
 .import-zone{border:2px dashed var(--line);border-radius:14px;padding:28px;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:14px;}
 .import-zone:hover{border-color:var(--p2);background:var(--soft);}
-.import-zone-icon{font-size:28px;margin-bottom:8px;}
-.import-zone-title{font-size:14px;font-weight:700;color:var(--p);}
-.import-zone-sub{font-size:12px;color:var(--muted);margin-top:4px;}
-.counter-bar{background:var(--card);border-radius:14px;padding:12px 16px;border:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
-.counter-stat{text-align:center;}
-.counter-val{font-size:20px;font-weight:800;color:var(--p);letter-spacing:-.04em;}
-.counter-lbl{font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-top:2px;}
-.sel-bar{background:linear-gradient(135deg,var(--p),var(--p2));border-radius:12px;padding:12px 16px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;gap:10px;}
-.sel-bar.show{display:flex;}
-@media(max-width:640px){.app{padding:12px;}.form-grid{grid-template-columns:1fr;}.projects-grid{grid-template-columns:1fr;}.toolbar{flex-direction:column;}.search-wrap{min-width:0;}}
+
+/* Empty */
+.empty{text-align:center;padding:48px 20px;color:var(--muted);}
+.empty-icon{font-size:40px;margin-bottom:12px;}
+.empty-title{font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;}
+
+/* Back btn */
+.back-btn{background:var(--soft);border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--p);cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:14px;display:inline-flex;align-items:center;gap:5px;}
+
+@media(max-width:768px){
+  .layout{grid-template-columns:1fr;grid-template-rows:auto 1fr;}
+  .sidebar{display:none;}
+  .main{padding:14px;}
+  .detail-layout{grid-template-columns:1fr;}
+  .projects-grid{grid-template-columns:1fr;}
+  .contacts-grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr));}
+  .top-stats{display:none;}
+}
 </style>
 </head>
 <body>
-<div class="app">
 
-<div class="header">
-  <div class="brand">
-    <div class="logo">iT</div>
-    <div>
-      <div class="brand-name">Intermitrack</div>
-      <div class="brand-tag">Espace chef de projet</div>
-    </div>
-  </div>
-  <div class="header-right">
-    <span class="badge-pro">PRO</span>
-    <button class="btn-ghost" id="logoutBtn" style="display:none">Déconnexion</button>
-  </div>
-</div>
-
-<div class="auth-page" id="authPage">
+<!-- AUTH -->
+<div id="authPage" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;">
   <div class="auth-card">
+    <div style="width:44px;height:44px;border-radius:13px;background:linear-gradient(150deg,#0D4F6C,#12754A);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:17px;margin-bottom:16px;">iT</div>
     <div class="auth-title">Connexion Pro</div>
     <div class="auth-sub">Accès réservé aux chefs de projet</div>
     <label class="form-label">Email</label>
@@ -127,80 +192,150 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   </div>
 </div>
 
-<div id="proApp" style="display:none">
-  <div class="counter-bar">
-    <div class="counter-stat"><div class="counter-val" id="cntContacts">0</div><div class="counter-lbl">Contacts</div></div>
-    <div class="counter-stat"><div class="counter-val" id="cntProjets">0</div><div class="counter-lbl">Projets actifs</div></div>
-    <div class="counter-stat"><div class="counter-val" id="cntConfirmes">—</div><div class="counter-lbl">Confirmations</div></div>
-    <div class="counter-stat"><div class="counter-val" id="cntHistorique">0</div><div class="counter-lbl">Terminés</div></div>
-  </div>
+<!-- APP -->
+<div id="proApp" class="layout" style="display:none;">
 
-  <div class="tabs-nav">
-    <button class="tab-btn active" data-tab="contacts"><span>👥</span> Mes contacts</button>
-    <button class="tab-btn" data-tab="projets"><span>🎬</span> Projets en cours</button>
-    <button class="tab-btn" data-tab="historique"><span>📁</span> Historique</button>
-  </div>
-
-  <div class="tab-content active" id="tab-contacts">
-    <div class="toolbar">
-      <div class="search-wrap">
-        <span class="search-icon">🔍</span>
-        <input class="search-input" id="searchContact" placeholder="Rechercher par nom, prénom, email..."/>
-      </div>
-      <select class="filter-select" id="filterPoste">
-        <option value="">Tous les postes</option>
-        <option>Électro</option><option>Poursuiteur</option><option>Technicien plateau</option>
-        <option>Régisseur</option><option>Son</option><option>Lumière</option>
-        <option>Caméra</option><option>Machiniste</option><option>Autre</option>
-      </select>
-      <button class="btn-ghost" id="importBtn"><span>📥</span> Importer Excel</button>
-      <button class="btn-action" id="addContactBtn"><span>+</span> Ajouter</button>
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo">iT</div>
+      <div class="brand-name">Intermitrack <span class="badge">PRO</span></div>
     </div>
+    <div style="display:flex;align-items:center;gap:20px;">
+      <div class="top-stats">
+        <div class="tstat"><span class="tstat-val" id="cntContacts">0</span><span class="tstat-lbl">Contacts</span></div>
+        <div class="tstat"><span class="tstat-val" id="cntProjets">0</span><span class="tstat-lbl">En cours</span></div>
+        <div class="tstat"><span class="tstat-val" id="cntConfirmes">0</span><span class="tstat-lbl">Confirmés</span></div>
+        <div class="tstat"><span class="tstat-val" id="cntHistorique">0</span><span class="tstat-lbl">Terminés</span></div>
+      </div>
+      <button class="av-btn" id="logoutBtn">YO</button>
+    </div>
+  </div>
 
-    <div class="sel-bar" id="selBar">
-      <span id="selCount" style="color:white;font-size:13px;font-weight:700;">0 sélectionné(s)</span>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <select id="sendToProject" style="padding:8px 12px;border-radius:8px;border:none;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;">
-          <option value="">Choisir un projet...</option>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <span class="sidebar-label">Menu</span>
+    <button class="nav-item on" onclick="showScreen('s-contacts',this)"><span class="nav-icon">👥</span> Mes intermittents</button>
+    <button class="nav-item" onclick="showScreen('s-projets',this)"><span class="nav-icon">🎬</span> Projets en cours</button>
+    <button class="nav-item" onclick="showScreen('s-historique',this)"><span class="nav-icon">📁</span> Historique</button>
+    <div class="sidebar-sep"></div>
+    <span class="sidebar-label">Actions</span>
+    <button class="nav-item" onclick="openImport()"><span class="nav-icon">📥</span> Importer Excel</button>
+    <button class="btn-new" onclick="openNewProjet()"><span>+</span> Nouveau projet</button>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- CONTACTS -->
+    <div class="screen on" id="s-contacts">
+      <div class="page-hdr">
+        <div><div class="page-title">Mes intermittents</div><div class="page-sub" id="contactsSubTitle">0 contacts</div></div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn-ghost" onclick="openImport()">📥 Importer Excel</button>
+          <button class="btn-action" onclick="openContactModal()">+ Ajouter</button>
+        </div>
+      </div>
+      <div class="toolbar">
+        <div class="search-wrap"><input class="search" id="searchContact" placeholder="Rechercher par nom, poste, email..."/></div>
+        <select class="filter-select" id="filterPoste">
+          <option value="">Tous les postes</option>
+          <option>Électro</option><option>Poursuiteur</option><option>Technicien plateau</option>
+          <option>Régisseur</option><option>Son</option><option>Lumière</option>
+          <option>Caméra</option><option>Machiniste</option><option>Autre</option>
         </select>
-        <button onclick="sendToSelectedProject()" style="background:white;color:#0D4F6C;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;">🚀 Envoyer</button>
-        <button onclick="clearSelection()" style="background:rgba(255,255,255,.2);color:white;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;">✕</button>
+      </div>
+      <div class="sel-bar" id="selBar">
+        <span id="selCount" style="color:white;font-size:13px;font-weight:700;">0 sélectionné(s)</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="sendToProject" style="padding:8px 12px;border-radius:8px;border:none;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;"><option value="">Choisir un projet...</option></select>
+          <button onclick="sendToSelectedProject()" style="background:white;color:#0D4F6C;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;">🚀 Envoyer</button>
+          <button onclick="clearSelection()" style="background:rgba(255,255,255,.2);color:white;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;">✕</button>
+        </div>
+      </div>
+      <div class="contacts-grid" id="contactsGrid"></div>
+    </div>
+
+    <!-- PROJETS -->
+    <div class="screen" id="s-projets">
+      <div class="page-hdr">
+        <div><div class="page-title">Projets en cours</div><div class="page-sub" id="projetsSubTitle">0 projets actifs</div></div>
+        <button class="btn-action" onclick="openNewProjet()">+ Nouveau projet</button>
+      </div>
+      <div class="projects-grid" id="projetsList"></div>
+    </div>
+
+    <!-- HISTORIQUE -->
+    <div class="screen" id="s-historique">
+      <div class="page-hdr"><div><div class="page-title">Historique</div><div class="page-sub" id="histSubTitle">0 projets terminés</div></div></div>
+      <div class="projects-grid" id="historiqueList"></div>
+    </div>
+
+    <!-- DETAIL PROJET -->
+    <div class="screen" id="s-detail">
+      <button class="back-btn" onclick="showScreen('s-projets',null)">‹ Projets en cours</button>
+      <div class="page-hdr">
+        <div>
+          <div class="page-title" id="detailNom">—</div>
+          <div class="page-sub" id="detailSub">—</div>
+        </div>
+        <span class="sp" id="detailStatus">—</span>
+      </div>
+      <div class="detail-layout">
+        <div>
+          <div class="counter-box">
+            <div class="counter-grid">
+              <div class="cg"><div class="cg-val" id="detailConfirmes" style="color:var(--g);">0</div><div class="cg-lbl">Confirmés</div></div>
+              <div class="cg"><div class="cg-val" id="detailAttente" style="color:var(--o);">0</div><div class="cg-lbl">En attente</div></div>
+              <div class="cg"><div class="cg-val" id="detailRefus" style="color:#DC2626;">0</div><div class="cg-lbl">Refusés</div></div>
+            </div>
+            <div class="pbar"><div class="pbar-fill fill-g" id="detailBar" style="width:0%"></div></div>
+            <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:6px;text-align:right;" id="detailTotal">0 / 0</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+            <button class="btn-action" style="justify-content:center;" onclick="addToProject()">+ Ajouter des techs</button>
+            <button class="btn-action" style="background:rgba(232,101,10,.1);color:var(--o);justify-content:center;" id="relancerBtn" onclick="relancerAttente()">📨 Relancer</button>
+          </div>
+          <div class="section-lbl" style="color:var(--g);">✅ Confirmés</div>
+          <div id="listConfirmes"></div>
+          <div class="section-lbl" style="color:var(--o);margin-top:16px;">⏳ En attente</div>
+          <div class="info-o" id="infoRelance" style="display:none;"></div>
+          <div id="listAttente"></div>
+          <div class="section-lbl" style="color:#DC2626;margin-top:16px;">✗ Refusés</div>
+          <div id="listRefus"></div>
+        </div>
+        <div>
+          <div class="sidebar-detail">
+            <div style="font-size:13px;font-weight:800;color:var(--p);margin-bottom:14px;">Infos du projet</div>
+            <div class="di-row"><span class="di-lbl">Production</span><span class="di-val" id="dProd">—</span></div>
+            <div class="di-row"><span class="di-lbl">Début</span><span class="di-val" id="dDebut">—</span></div>
+            <div class="di-row"><span class="di-lbl">Fin</span><span class="di-val" id="dFin">—</span></div>
+            <div class="di-row"><span class="di-lbl">Lieu</span><span class="di-val" id="dLieu">—</span></div>
+            <div class="di-row"><span class="di-lbl">Invités</span><span class="di-val" id="dInvites">0</span></div>
+            <div style="margin-top:14px;display:grid;gap:8px;">
+              <button class="btn-action" style="justify-content:center;" onclick="addToProject()">+ Ajouter des techs</button>
+              <button class="btn-ghost" style="justify-content:center;" onclick="exportPlanning()">📊 Exporter le planning</button>
+              <button style="padding:12px;border-radius:11px;background:#FEF2F2;color:#DC2626;border:1px solid #FCA5A5;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;" onclick="terminerProjet()">✓ Clore le projet</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="contacts-list" id="contactsList">
-      <div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Aucun contact</div><div class="empty-sub">Importe ton Excel ou ajoute manuellement</div></div>
-    </div>
   </div>
-
-  <div class="tab-content" id="tab-projets">
-    <div class="toolbar">
-      <button class="btn-action" id="addProjetBtn" style="margin-left:auto"><span>+</span> Nouveau projet</button>
-    </div>
-    <div class="projects-grid" id="projetsList">
-      <div class="empty" style="grid-column:1/-1"><div class="empty-icon">🎬</div><div class="empty-title">Aucun projet en cours</div><div class="empty-sub">Crée ton premier projet</div></div>
-    </div>
-  </div>
-
-  <div class="tab-content" id="tab-historique">
-    <div class="projects-grid" id="historiqueList">
-      <div class="empty" style="grid-column:1/-1"><div class="empty-icon">📁</div><div class="empty-title">Aucun projet terminé</div></div>
-    </div>
-  </div>
-</div>
 </div>
 
 <!-- Modal contact -->
 <div class="modal-overlay hidden" id="modalContact">
   <div class="modal">
-    <div class="modal-title"><span id="modalContactTitle">Nouveau contact</span><button class="modal-close" id="closeContactModal">✕</button></div>
+    <div class="modal-title"><span id="modalContactTitle">Nouveau contact</span><button class="modal-close" onclick="closeContactModal()">✕</button></div>
     <div class="form-grid">
       <div><label class="form-label">Nom *</label><input class="form-input" id="cNom" placeholder="Dupont"/></div>
       <div><label class="form-label">Prénom</label><input class="form-input" id="cPrenom" placeholder="Marc"/></div>
       <div><label class="form-label">Email</label><input class="form-input" id="cEmail" type="email" placeholder="marc@email.com"/></div>
-      <div><label class="form-label">Téléphone</label><input class="form-input" id="cTel" placeholder="06 XX XX XX XX"/></div>
+      <div><label class="form-label">Téléphone</label><input class="form-input" id="cTel" placeholder="+33615487879"/></div>
       <div class="full">
-        <label class="form-label">Poste(s)</label>
+        <label class="form-label">Poste(s) — plusieurs possibles</label>
         <div class="postes-grid">
           <div class="poste-chip" data-p="Électro">Électro</div>
           <div class="poste-chip" data-p="Poursuiteur">Poursuiteur</div>
@@ -216,7 +351,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       <div class="full"><label class="form-label">Notes</label><input class="form-input" id="cNotes" placeholder="Notes optionnelles..."/></div>
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel" id="cancelContactModal">Annuler</button>
+      <button class="btn-cancel" onclick="closeContactModal()">Annuler</button>
       <button class="btn-save" id="saveContactBtn">Enregistrer</button>
     </div>
   </div>
@@ -225,21 +360,20 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 <!-- Modal import -->
 <div class="modal-overlay hidden" id="modalImport">
   <div class="modal">
-    <div class="modal-title"><span>Importer des contacts</span><button class="modal-close" id="closeImportModal">✕</button></div>
+    <div class="modal-title"><span>Importer des contacts</span><button class="modal-close" onclick="closeImport()">✕</button></div>
     <div class="import-zone" id="importZone">
-      <div class="import-zone-icon">📊</div>
-      <div class="import-zone-title">Glisse ton fichier Excel ou CSV ici</div>
-      <div class="import-zone-sub">ou clique pour choisir un fichier</div>
+      <div style="font-size:28px;margin-bottom:8px;">📊</div>
+      <div style="font-size:14px;font-weight:700;color:var(--p);">Glisse ton fichier Excel ou CSV ici</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px;">ou clique pour choisir un fichier</div>
       <input type="file" id="importFile" accept=".xlsx,.xls,.csv" style="display:none"/>
     </div>
-    <div id="importPreview" style="display:none">
+    <div id="importPreview" style="display:none;">
       <div style="font-size:13px;font-weight:700;color:var(--p);margin-bottom:10px;" id="importInfo"></div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Associe les colonnes :</div>
       <div id="mappingFields" style="display:grid;gap:8px;margin-bottom:16px;"></div>
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel" id="cancelImportModal">Annuler</button>
-      <button class="btn-save" id="confirmImportBtn" style="display:none">Importer</button>
+      <button class="btn-cancel" onclick="closeImport()">Annuler</button>
+      <button class="btn-save" id="confirmImportBtn" style="display:none;">Importer</button>
     </div>
   </div>
 </div>
@@ -247,17 +381,16 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 <!-- Modal projet -->
 <div class="modal-overlay hidden" id="modalProjet">
   <div class="modal">
-    <div class="modal-title"><span>Nouveau projet</span><button class="modal-close" id="closeProjetModal">✕</button></div>
+    <div class="modal-title"><span>Nouveau projet</span><button class="modal-close" onclick="closeProjet()">✕</button></div>
     <div class="form-grid">
       <div class="full"><label class="form-label">Nom du projet *</label><input class="form-input" id="pNom" placeholder="Ex : Secret Story S17"/></div>
       <div class="full"><label class="form-label">Production</label><input class="form-input" id="pProd" placeholder="Ex : Endemol"/></div>
       <div><label class="form-label">Date début</label><input class="form-input" id="pDebut" type="date"/></div>
       <div><label class="form-label">Date fin</label><input class="form-input" id="pFin" type="date"/></div>
       <div class="full"><label class="form-label">Lieu</label><input class="form-input" id="pLieu" placeholder="Ex : Studios Bry-sur-Marne"/></div>
-      <div class="full"><label class="form-label">Notes</label><input class="form-input" id="pNotes" placeholder="Infos complémentaires..."/></div>
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel" id="cancelProjetModal">Annuler</button>
+      <button class="btn-cancel" onclick="closeProjet()">Annuler</button>
       <button class="btn-save" id="saveProjetBtn">Créer le projet</button>
     </div>
   </div>
@@ -268,18 +401,30 @@ const SUPABASE_URL = "https://upeogpgczoghlfwblnkb.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwZW9ncGdjem9naGxmd2JsbmtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MjkyMDQsImV4cCI6MjA5NjEwNTIwNH0.6535_0KMaEDLxTMhz_OX-4OqC_tpQsPJR5jkFQL7UqI";
 const FUNC_URL = "https://upeogpgczoghlfwblnkb.supabase.co/functions/v1";
 const PRO_USERS = ['4a2ad03b-252a-4eba-b3ee-a52b69e81984'];
+const COLORS = ['#0D4F6C','#12754A','#1A7FA8','#E8650A','#7C3AED','#DC2626','#0891B2','#059669','#B45309','#4F46E5','#9D174D','#0D6040'];
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 window.sb = sb;
 
 let currentUser = null;
+let chefNom = '';
+let sessionToken = null;
 let contacts = [];
 let projets = [];
 let editContactId = null;
 let selectedPostes = [];
+let selectedContacts = [];
 let importData = [];
 let importColumns = [];
-let selectedContacts = [];
+let currentProjectId = null;
+
+// ── Helpers ──────────────────────────────────────────────
+function esc(v){return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmt(d){if(!d)return '—';return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});}
+function initials(c){return ((c.nom||'?')[0]+(c.prenom||'?')[0]).toUpperCase();}
+function colorFor(str){let h=0;for(let i=0;i<str.length;i++)h=str.charCodeAt(i)+((h<<5)-h);return COLORS[Math.abs(h)%COLORS.length];}
+function apiHeaders(){return{'apikey':SUPABASE_ANON,'Authorization':'Bearer '+sessionToken,'Content-Type':'application/json','Prefer':'return=minimal'};}
+function readHeaders(){return{'apikey':SUPABASE_ANON,'Authorization':'Bearer '+sessionToken};}
 
 // ── Auth ──────────────────────────────────────────────────
 document.getElementById('authBtn').addEventListener('click', async () => {
@@ -287,116 +432,114 @@ document.getElementById('authBtn').addEventListener('click', async () => {
   const pw = document.getElementById('authPassword').value;
   const msg = document.getElementById('authMsg');
   msg.textContent = 'Connexion...';
-  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
-  if (error) { msg.textContent = 'Erreur : ' + error.message; return; }
-  if (!PRO_USERS.includes(data.user.id)) {
+  const {data, error} = await sb.auth.signInWithPassword({email, password: pw});
+  if(error){msg.textContent='Erreur : '+error.message;return;}
+  if(!PRO_USERS.includes(data.user.id)){
     await sb.auth.signOut();
-    msg.textContent = '⛔ Accès réservé aux comptes Pro.';
+    msg.textContent='⛔ Accès réservé aux comptes Pro.';
     return;
   }
-  msg.textContent = '';
+  msg.textContent='';
 });
 
-sb.auth.onAuthStateChange(async (_e, session) => {
+sb.auth.onAuthStateChange(async(_e, session) => {
   currentUser = session?.user || null;
-  if (currentUser) {
-    if (!PRO_USERS.includes(currentUser.id)) {
-      await sb.auth.signOut();
-      return;
-    }
+  sessionToken = session?.access_token || null;
+  if(currentUser && PRO_USERS.includes(currentUser.id)){
     document.getElementById('authPage').style.display = 'none';
-    document.getElementById('proApp').style.display = 'block';
-    document.getElementById('logoutBtn').style.display = 'flex';
-    await loadAllWithToken(session.access_token);
+    document.getElementById('proApp').style.display = 'grid';
+    const { data: prof } = await sb.from('profiles').select('display_name').eq('id', currentUser.id).single();
+chefNom = prof?.display_name || currentUser.email;
+await loadAll();
+  } else if(currentUser && !PRO_USERS.includes(currentUser.id)){
+    await sb.auth.signOut();
   } else {
     document.getElementById('authPage').style.display = 'flex';
     document.getElementById('proApp').style.display = 'none';
-    document.getElementById('logoutBtn').style.display = 'none';
   }
 });
 
 document.getElementById('logoutBtn').addEventListener('click', () => sb.auth.signOut());
 
-// ── Tabs ──────────────────────────────────────────────────
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-  });
-});
-
-
-window.loadAll = async function() {
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) await loadAllWithToken(session.access_token);
+// ── Navigation ────────────────────────────────────────────
+function showScreen(id, btn){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  if(btn){
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('on'));
+    btn.classList.add('on');
+  }
 }
 
-async function loadAllWithToken(token) {
-  const headers = {
-    'apikey': SUPABASE_ANON,
-    'Authorization': 'Bearer ' + token
-  };
-  const [r1, r2] = await Promise.all([
-    fetch(SUPABASE_URL + '/rest/v1/pro_contacts?select=*&order=nom.asc', { headers }).then(r => r.json()),
-    fetch(SUPABASE_URL + '/rest/v1/pro_projects?select=*&order=date_debut.asc', { headers }).then(r => r.json())
+// ── Load ──────────────────────────────────────────────────
+async function loadAll(){
+  if(!sessionToken) return;
+  const h = readHeaders();
+  const [r1,r2] = await Promise.all([
+    fetch(SUPABASE_URL+'/rest/v1/pro_contacts?select=*&order=nom.asc',{headers:h}).then(r=>r.json()),
+    fetch(SUPABASE_URL+'/rest/v1/pro_projects?select=*&order=date_debut.asc',{headers:h}).then(r=>r.json())
   ]);
-  contacts = Array.isArray(r1) ? r1 : [];
-  projets = Array.isArray(r2) ? r2 : [];
+  contacts = Array.isArray(r1)?r1:[];
+  projets = Array.isArray(r2)?r2:[];
   renderContacts();
   renderProjets();
   updateCounters();
 }
-function updateCounters() {
+window.loadAll = loadAll;
+
+function updateCounters(){
   document.getElementById('cntContacts').textContent = contacts.length;
-  document.getElementById('cntProjets').textContent = projets.filter(p => p.statut !== 'termine').length;
-  document.getElementById('cntHistorique').textContent = projets.filter(p => p.statut === 'termine').length;
+  document.getElementById('cntProjets').textContent = projets.filter(p=>p.statut!=='termine').length;
+  document.getElementById('cntHistorique').textContent = projets.filter(p=>p.statut==='termine').length;
+  document.getElementById('contactsSubTitle').textContent = contacts.length+' contact'+(contacts.length>1?'s':'');
+  document.getElementById('projetsSubTitle').textContent = projets.filter(p=>p.statut!=='termine').length+' projet'+(projets.filter(p=>p.statut!=='termine').length>1?'s actifs':'actif');
+  document.getElementById('histSubTitle').textContent = projets.filter(p=>p.statut==='termine').length+' projet'+(projets.filter(p=>p.statut==='termine').length>1?'s terminés':'terminé');
 }
 
-// ── Contacts ──────────────────────────────────────────────
-function initials(c) { return ((c.nom||'?')[0] + (c.prenom||'?')[0]).toUpperCase(); }
-function esc(v) { return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function fmt(d) { if (!d) return ''; return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+// ── Contacts grid ─────────────────────────────────────────
+const LETTER_COLORS = {
+  A:'#E8650A',B:'#0D4F6C',C:'#12754A',D:'#7C3AED',E:'#DC2626',
+  F:'#0891B2',G:'#B45309',H:'#4F46E5',I:'#0D6040',J:'#9D174D',
+  K:'#1D4ED8',L:'#065F46',M:'#92400E',N:'#1E40AF',O:'#6B21A8',
+  P:'#0369A1',Q:'#047857',R:'#BE185D',S:'#B91C1C',T:'#0D4F6C',
+  U:'#7C3AED',V:'#059669',W:'#D97706',X:'#DC2626',Y:'#12754A',Z:'#1A7FA8'
+};
+function letterColor(nom){const l=(nom||'A')[0].toUpperCase();return LETTER_COLORS[l]||'#0D4F6C';}
 
-function renderContacts() {
+function renderContacts(){
   const search = document.getElementById('searchContact').value.toLowerCase();
-  const posteFilter = document.getElementById('filterPoste').value;
-  let list = contacts.filter(c => {
-    const match = !search || (c.nom||'').toLowerCase().includes(search) || (c.prenom||'').toLowerCase().includes(search) || (c.email||'').toLowerCase().includes(search);
-    const pm = !posteFilter || c.poste === posteFilter;
-    return match && pm;
+  const pf = document.getElementById('filterPoste').value;
+  let list = contacts.filter(c=>{
+    const m = !search||(c.nom||'').toLowerCase().includes(search)||(c.prenom||'').toLowerCase().includes(search)||(c.email||'').toLowerCase().includes(search);
+    const pm = !pf||c.poste===pf;
+    return m&&pm;
   });
-  const el = document.getElementById('contactsList');
-  if (!list.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Aucun résultat</div><div class="empty-sub">Modifie ta recherche ou importe des contacts</div></div>';
+  const el = document.getElementById('contactsGrid');
+  if(!list.length){
+    el.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="empty-icon">👥</div><div class="empty-title">Aucun contact</div><div class="empty-sub">Importe ton Excel ou ajoute manuellement</div></div>';
     return;
   }
-  el.innerHTML = list.map(c => {
+  el.innerHTML = list.map(c=>{
     const sel = selectedContacts.includes(c.id);
-    return `<div class="contact-card" id="card-${c.id}" style="${sel ? 'border-color:#12754A;' : ''}">
-      <div class="contact-avatar" onclick="toggleSelect('${c.id}')" id="av-${c.id}" style="${sel ? 'background:#12754A;transform:scale(1.1);' : ''}">${initials(c)}</div>
-      <div class="contact-info">
-        <div class="contact-name">${esc(c.nom)} ${esc(c.prenom||'')}</div>
-        <div class="contact-meta">${c.email ? '✉️ '+esc(c.email) : ''}${c.telephone ? ' · 📞 '+esc(c.telephone) : ''}</div>
-      </div>
-      ${c.poste ? `<span class="contact-poste">${esc(c.poste)}</span>` : ''}
-      <div class="contact-actions">
-        <button class="btn-icon" onclick="editContact('${c.id}')">✏️</button>
-        <button class="btn-icon del" onclick="deleteContact('${c.id}')">🗑️</button>
+    const color = letterColor(c.nom);
+    return `<div class="c-item${sel?' sel':''}" id="ci-${c.id}" onclick="toggleSelect('${c.id}')">
+      <div class="c-av" style="background:${color};" id="av-${c.id}">${initials(c)}</div>
+      <div class="c-name">${esc(c.nom)} ${esc(c.prenom||'')}</div>
+      <div style="display:flex;gap:4px;justify-content:center;margin-top:6px;" onclick="event.stopPropagation()">
+        <button class="btn-s bg" style="padding:4px 8px;font-size:10px;" onclick="openContactModal('${c.id}')">✏️</button>
+        <button class="btn-s" style="padding:4px 8px;font-size:10px;background:#FEF2F2;color:#DC2626;" onclick="deleteContact('${c.id}')">🗑️</button>
       </div>
     </div>`;
   }).join('');
 }
-
 document.getElementById('searchContact').addEventListener('input', renderContacts);
 document.getElementById('filterPoste').addEventListener('change', renderContacts);
 
 // Sélection
 window.toggleSelect = (id) => {
   const idx = selectedContacts.indexOf(id);
-  if (idx === -1) selectedContacts.push(id);
-  else selectedContacts.splice(idx, 1);
+  if(idx===-1) selectedContacts.push(id);
+  else selectedContacts.splice(idx,1);
   renderContacts();
   updateSelBar();
 };
@@ -407,74 +550,68 @@ window.clearSelection = () => {
   updateSelBar();
 };
 
-function updateSelBar() {
+function updateSelBar(){
   const bar = document.getElementById('selBar');
   const n = selectedContacts.length;
-  document.getElementById('selCount').textContent = n + ' sélectionné' + (n > 1 ? 's' : '');
-  if (n > 0) {
+  document.getElementById('selCount').textContent = n+' sélectionné'+(n>1?'s':'');
+  if(n>0){
     bar.classList.add('show');
     const sel = document.getElementById('sendToProject');
-    const actifs = projets.filter(p => p.statut !== 'termine');
-    sel.innerHTML = '<option value="">Choisir un projet...</option>' + actifs.map(p => `<option value="${p.id}">${esc(p.nom)}</option>`).join('');
+    const actifs = projets.filter(p=>p.statut!=='termine');
+    sel.innerHTML='<option value="">Choisir un projet...</option>'+actifs.map(p=>`<option value="${p.id}">${esc(p.nom)}</option>`).join('');
   } else {
     bar.classList.remove('show');
   }
 }
 
-window.sendToSelectedProject = async () => {
+window.sendToSelectedProject = async() => {
   const pid = document.getElementById('sendToProject').value;
-  if (!pid) { alert('Choisis un projet.'); return; }
+  if(!pid){alert('Choisis un projet.');return;}
   await sendInvitations(pid);
 };
 
 // ── Add/Edit contact ─────────────────────────────────────
-document.getElementById('addContactBtn').addEventListener('click', () => openContactModal());
-document.getElementById('closeContactModal').addEventListener('click', closeContactModal);
-document.getElementById('cancelContactModal').addEventListener('click', closeContactModal);
-
-function openContactModal(id = null) {
+window.openContactModal = (id=null) => {
   editContactId = id;
   selectedPostes = [];
-  document.getElementById('modalContactTitle').textContent = id ? 'Modifier le contact' : 'Nouveau contact';
-  document.querySelectorAll('.poste-chip').forEach(c => c.classList.remove('on'));
-  if (id) {
-    const c = contacts.find(x => x.id === id);
-    document.getElementById('cNom').value = c.nom || '';
-    document.getElementById('cPrenom').value = c.prenom || '';
-    document.getElementById('cEmail').value = c.email || '';
-    document.getElementById('cTel').value = c.telephone || '';
-    document.getElementById('cNotes').value = c.notes || '';
-    if (c.poste) {
-      const postes = Array.isArray(c.poste) ? c.poste : [c.poste];
+  document.getElementById('modalContactTitle').textContent = id?'Modifier le contact':'Nouveau contact';
+  document.querySelectorAll('.poste-chip').forEach(c=>c.classList.remove('on'));
+  if(id){
+    const c = contacts.find(x=>x.id===id);
+    document.getElementById('cNom').value = c.nom||'';
+    document.getElementById('cPrenom').value = c.prenom||'';
+    document.getElementById('cEmail').value = c.email||'';
+    document.getElementById('cTel').value = c.telephone||'';
+    document.getElementById('cNotes').value = c.notes||'';
+    if(c.poste){
+      const postes = c.poste.split(',').map(s=>s.trim());
       selectedPostes = postes;
-      document.querySelectorAll('.poste-chip').forEach(chip => {
-        if (postes.includes(chip.dataset.p)) chip.classList.add('on');
-      });
+      document.querySelectorAll('.poste-chip').forEach(chip=>{if(postes.includes(chip.dataset.p))chip.classList.add('on');});
     }
   } else {
-    ['cNom','cPrenom','cEmail','cTel','cNotes'].forEach(i => document.getElementById(i).value = '');
+    ['cNom','cPrenom','cEmail','cTel','cNotes'].forEach(i=>document.getElementById(i).value='');
   }
   document.getElementById('modalContact').classList.remove('hidden');
-}
+};
 
-function closeContactModal() {
+window.closeContactModal = async () => {
   document.getElementById('modalContact').classList.add('hidden');
   editContactId = null;
-}
+};
 
-document.querySelectorAll('.poste-chip').forEach(chip => {
-  chip.addEventListener('click', () => {
+document.querySelectorAll('.poste-chip').forEach(chip=>{
+  chip.addEventListener('click',()=>{
     chip.classList.toggle('on');
     const p = chip.dataset.p;
     const idx = selectedPostes.indexOf(p);
-    if (idx === -1) selectedPostes.push(p);
-    else selectedPostes.splice(idx, 1);
+    if(idx===-1) selectedPostes.push(p);
+    else selectedPostes.splice(idx,1);
   });
 });
 
-document.getElementById('saveContactBtn').addEventListener('click', async () => {
+document.getElementById('saveContactBtn').addEventListener('click', async() => {
   const nom = document.getElementById('cNom').value.trim();
-  if (!nom) { alert('Le nom est obligatoire.'); return; }
+  if(!nom){alert('Le nom est obligatoire.');return;}
   const payload = {
     user_id: currentUser.id,
     nom,
@@ -484,232 +621,333 @@ document.getElementById('saveContactBtn').addEventListener('click', async () => 
     poste: selectedPostes.join(', '),
     notes: document.getElementById('cNotes').value.trim()
   };
-  const url = SUPABASE_URL + '/rest/v1/pro_contacts' + (editContactId ? '?id=eq.' + editContactId : '');
-  const method = editContactId ? 'PATCH' : 'POST';
-  const res = await fetch(url, {
-    method,
-    headers: {
-      'apikey': SUPABASE_ANON,
-      'Authorization': 'Bearer ' + SUPABASE_ANON,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=minimal'
-    },
-    body: JSON.stringify(payload)
-  });
-  if (!res.ok) { const e = await res.text(); alert('Erreur : ' + e); return; }
+  const url = SUPABASE_URL+'/rest/v1/pro_contacts'+(editContactId?'?id=eq.'+editContactId:'');
+  const res = await fetch(url,{method:editContactId?'PATCH':'POST',headers:apiHeaders(),body:JSON.stringify(payload)});
+  if(!res.ok){alert('Erreur : '+await res.text());return;}
   closeContactModal();
   await loadAll();
 });
-window.editContact = (id) => openContactModal(id);
-window.deleteContact = async (id) => {
-  if (!confirm('Supprimer ce contact ?')) return;
-  await sb.from('pro_contacts').delete().eq('id', id);
+
+window.deleteContact = async(id) => {
+  if(!confirm('Supprimer ce contact ?'))return;
+  await fetch(SUPABASE_URL+'/rest/v1/pro_contacts?id=eq.'+id,{method:'DELETE',headers:apiHeaders()});
   await loadAll();
 };
 
 // ── Import Excel ──────────────────────────────────────────
-document.getElementById('importBtn').addEventListener('click', () => {
+window.openImport = () => {
   document.getElementById('modalImport').classList.remove('hidden');
-  document.getElementById('importPreview').style.display = 'none';
-  document.getElementById('confirmImportBtn').style.display = 'none';
-  document.getElementById('importFile').value = '';
-});
-document.getElementById('closeImportModal').addEventListener('click', () => document.getElementById('modalImport').classList.add('hidden'));
-document.getElementById('cancelImportModal').addEventListener('click', () => document.getElementById('modalImport').classList.add('hidden'));
-document.getElementById('importZone').addEventListener('click', () => document.getElementById('importFile').click());
-document.getElementById('importZone').addEventListener('dragover', e => { e.preventDefault(); });
-document.getElementById('importZone').addEventListener('drop', e => { e.preventDefault(); processImportFile(e.dataTransfer.files[0]); });
-document.getElementById('importFile').addEventListener('change', e => processImportFile(e.target.files[0]));
+  document.getElementById('importPreview').style.display='none';
+  document.getElementById('confirmImportBtn').style.display='none';
+  document.getElementById('importFile').value='';
+};
+window.closeImport = () => document.getElementById('modalImport').classList.add('hidden');
 
-function processImportFile(file) {
-  if (!file) return;
+document.getElementById('importZone').addEventListener('click',()=>document.getElementById('importFile').click());
+document.getElementById('importZone').addEventListener('dragover',e=>e.preventDefault());
+document.getElementById('importZone').addEventListener('drop',e=>{e.preventDefault();processImportFile(e.dataTransfer.files[0]);});
+document.getElementById('importFile').addEventListener('change',e=>processImportFile(e.target.files[0]));
+
+function processImportFile(file){
+  if(!file)return;
   const reader = new FileReader();
   reader.onload = e => {
-    const wb = XLSX.read(e.target.result, { type: 'binary' });
+    const wb = XLSX.read(e.target.result,{type:'binary'});
     const ws = wb.Sheets[wb.SheetNames[0]];
-    const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
-    if (data.length < 2) { alert('Fichier vide.'); return; }
+    const data = XLSX.utils.sheet_to_json(ws,{header:1});
+    if(data.length<2){alert('Fichier vide.');return;}
     importColumns = data[0].map(String);
-    importData = data.slice(1).filter(row => row.some(c => c));
-    document.getElementById('importInfo').textContent = importData.length + ' contacts détectés';
-    const fields = [{key:'nom',label:'Nom *'},{key:'prenom',label:'Prénom'},{key:'email',label:'Email'},{key:'telephone',label:'Téléphone'},{key:'poste',label:'Poste'}];
-    const g = {nom:'',prenom:'',email:'',telephone:'',poste:''};
-    importColumns.forEach((col,i) => {
-      const c = col.toLowerCase();
-      if (c.includes('nom') && !c.includes('pre')) g.nom = i;
-      if (c.includes('pre')) g.prenom = i;
-      if (c.includes('mail') || c.includes('email')) g.email = i;
-      if (c.includes('tel') || c.includes('phone')) g.telephone = i;
-      if (c.includes('poste') || c.includes('metier')) g.poste = i;
+    importData = data.slice(1).filter(row=>row.some(c=>c));
+    document.getElementById('importInfo').textContent = importData.length+' contacts détectés — associe les colonnes :';
+    const fields=[{key:'nom',label:'Nom *'},{key:'prenom',label:'Prénom'},{key:'email',label:'Email'},{key:'telephone',label:'Téléphone'},{key:'poste',label:'Poste'}];
+    const g={nom:'',prenom:'',email:'',telephone:'',poste:''};
+    importColumns.forEach((col,i)=>{
+      const c=col.toLowerCase();
+      if(c.includes('nom')&&!c.includes('pre'))g.nom=i;
+      if(c.includes('pre'))g.prenom=i;
+      if(c.includes('mail')||c.includes('email'))g.email=i;
+      if(c.includes('tel')||c.includes('phone'))g.telephone=i;
+      if(c.includes('poste')||c.includes('metier'))g.poste=i;
     });
-    document.getElementById('mappingFields').innerHTML = fields.map(f => `
+    document.getElementById('mappingFields').innerHTML=fields.map(f=>`
       <div style="display:grid;grid-template-columns:120px 1fr;align-items:center;gap:10px;">
         <label style="font-size:12px;font-weight:700;color:var(--p);">${f.label}</label>
         <select class="form-input" id="map_${f.key}" style="margin-bottom:0;padding:8px 12px;">
           <option value="">— Ignorer —</option>
-          ${importColumns.map((col,i) => `<option value="${i}" ${g[f.key]===i?'selected':''}>${col}</option>`).join('')}
+          ${importColumns.map((col,i)=>`<option value="${i}" ${g[f.key]===i?'selected':''}>${col}</option>`).join('')}
         </select>
       </div>`).join('');
-    document.getElementById('importPreview').style.display = 'block';
-    document.getElementById('confirmImportBtn').style.display = 'block';
+    document.getElementById('importPreview').style.display='block';
+    document.getElementById('confirmImportBtn').style.display='block';
   };
   reader.readAsBinaryString(file);
 }
 
-document.getElementById('confirmImportBtn').addEventListener('click', async () => {
-  const getCol = k => { const v = document.getElementById('map_'+k)?.value; return v !== '' ? Number(v) : null; };
+document.getElementById('confirmImportBtn').addEventListener('click', async() => {
+  const getCol = k=>{const v=document.getElementById('map_'+k)?.value;return v!==''?Number(v):null;};
   const nomCol = getCol('nom');
-  if (nomCol === null) { alert('La colonne Nom est obligatoire.'); return; }
-  const rows = importData.map(row => ({
-    user_id: currentUser.id,
-    nom: String(row[nomCol]||'').trim(),
-    prenom: getCol('prenom')!==null ? String(row[getCol('prenom')]||'').trim() : '',
-    email: getCol('email')!==null ? String(row[getCol('email')]||'').trim() : '',
-    telephone: getCol('telephone')!==null ? String(row[getCol('telephone')]||'').trim() : '',
-    poste: getCol('poste')!==null ? String(row[getCol('poste')]||'').trim() : ''
-  })).filter(r => r.nom);
-  if (!rows.length) { alert('Aucun contact valide.'); return; }
-  const { error } = await sb.from('pro_contacts').insert(rows);
-  if (error) { alert('Erreur import : ' + error.message); return; }
-  document.getElementById('modalImport').classList.add('hidden');
+  if(nomCol===null){alert('La colonne Nom est obligatoire.');return;}
+  const rows = importData.map(row=>({
+    user_id:currentUser.id,
+    nom:String(row[nomCol]||'').trim(),
+    prenom:getCol('prenom')!==null?String(row[getCol('prenom')]||'').trim():'',
+    email:getCol('email')!==null?String(row[getCol('email')]||'').trim():'',
+    telephone:getCol('telephone')!==null?String(row[getCol('telephone')]||'').trim():'',
+    poste:getCol('poste')!==null?String(row[getCol('poste')]||'').trim():''
+  })).filter(r=>r.nom);
+  if(!rows.length){alert('Aucun contact valide.');return;}
+  const res = await fetch(SUPABASE_URL+'/rest/v1/pro_contacts',{method:'POST',headers:apiHeaders(),body:JSON.stringify(rows)});
+  if(!res.ok){alert('Erreur import : '+await res.text());return;}
+  closeImport();
   await loadAll();
-  alert('✅ ' + rows.length + ' contacts importés !');
+  alert('✅ '+rows.length+' contacts importés !');
 });
 
 // ── Projets ───────────────────────────────────────────────
-function renderProjets() {
-  renderProjectList('projetsList', projets.filter(p => p.statut !== 'termine'), false);
-  renderProjectList('historiqueList', projets.filter(p => p.statut === 'termine'), true);
+function renderProjets(){
+  const actifs = projets.filter(p=>p.statut!=='termine');
+  const termines = projets.filter(p=>p.statut==='termine');
+  renderProjectList('projetsList', actifs, false);
+  renderProjectList('historiqueList', termines, true);
 }
 
-function renderProjectList(elId, list, isH) {
+function renderProjectList(elId, list, isH){
   const el = document.getElementById(elId);
-  if (!list.length) {
-    el.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">${isH?'📁':'🎬'}</div><div class="empty-title">${isH?'Aucun projet terminé':'Aucun projet en cours'}</div></div>`;
+  if(!list.length){
+    el.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-icon">${isH?'📁':'🎬'}</div><div class="empty-title">${isH?'Aucun projet terminé':'Aucun projet en cours'}</div></div>`;
     return;
   }
-  el.innerHTML = list.map(p => {
-    const sc = p.statut==='en_cours'?'status-encours':p.statut==='termine'?'status-termine':'status-avenir';
-    const sl = p.statut==='en_cours'?'En cours':p.statut==='termine'?'Terminé':'À venir';
-    const d = p.date_debut ? '📅 '+fmt(p.date_debut)+(p.date_fin&&p.date_fin!==p.date_debut?' → '+fmt(p.date_fin):'') : '';
-    return `<div class="project-card">
-      <div class="project-header">
-        <div><div class="project-nom">${esc(p.nom)}</div>${p.production?`<div class="project-prod">${esc(p.production)}</div>`:''}</div>
-        <span class="status-pill ${sc}">${sl}</span>
+  el.innerHTML = list.map(p=>{
+    const sc=p.statut==='en_cours'?'sp-ec':p.statut==='termine'?'sp-t':'sp-av';
+    const sl=p.statut==='en_cours'?'En cours':p.statut==='termine'?'Terminé':'À venir';
+    const d=p.date_debut?'📅 '+fmt(p.date_debut)+(p.date_fin&&p.date_fin!==p.date_debut?' → '+fmt(p.date_fin):''):'';
+    return `<div class="pcard" onclick="openDetail('${p.id}')">
+      <div class="pcard-hdr">
+        <div><div class="pnom">${esc(p.nom)}</div>${p.production?`<div class="pprod">${esc(p.production)}</div>`:''}</div>
+        <span class="sp ${sc}">${sl}</span>
       </div>
-      ${d?`<div class="project-dates">${d}${p.lieu?' · 📍 '+esc(p.lieu):''}</div>`:''}
-      <div style="display:flex;gap:8px;margin-top:10px;">
-        ${p.statut!=='termine'?`<button class="btn-ghost" style="font-size:11px;padding:7px 12px;" onclick="setStatut('${p.id}','termine')">✓ Terminer</button>`:''}
-        <button class="btn-icon del" onclick="deleteProjet('${p.id}')">🗑️</button>
+      ${d?`<div class="pdates">${d}${p.lieu?' · 📍 '+esc(p.lieu):''}</div>`:''}
+      <div style="display:flex;gap:8px;margin-top:10px;" onclick="event.stopPropagation()">
+        ${p.statut!=='termine'?`<button class="btn-s bp" onclick="setStatut('${p.id}','termine')">✓ Terminer</button>`:''}
+        <button class="btn-s br" onclick="deleteProjet('${p.id}')">🗑️</button>
       </div>
     </div>`;
   }).join('');
 }
 
-document.getElementById('addProjetBtn').addEventListener('click', () => {
-  ['pNom','pProd','pDebut','pFin','pLieu','pNotes'].forEach(i => document.getElementById(i).value = '');
+window.openNewProjet = () => {
+  ['pNom','pProd','pDebut','pFin','pLieu'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('modalProjet').classList.remove('hidden');
-});
-document.getElementById('closeProjetModal').addEventListener('click', () => document.getElementById('modalProjet').classList.add('hidden'));
-document.getElementById('cancelProjetModal').addEventListener('click', () => document.getElementById('modalProjet').classList.add('hidden'));
+};
+window.closeProjet = () => document.getElementById('modalProjet').classList.add('hidden');
 
-document.getElementById('saveProjetBtn').addEventListener('click', async () => {
+document.getElementById('saveProjetBtn').addEventListener('click', async() => {
   const nom = document.getElementById('pNom').value.trim();
-  if (!nom) { alert('Le nom du projet est obligatoire.'); return; }
+  if(!nom){alert('Le nom du projet est obligatoire.');return;}
   const debut = document.getElementById('pDebut').value;
   const today = new Date().toISOString().slice(0,10);
   let statut = 'a_venir';
-  if (debut && debut <= today) {
+  if(debut&&debut<=today){
     const fin = document.getElementById('pFin').value;
-    statut = (!fin || fin >= today) ? 'en_cours' : 'termine';
+    statut=(!fin||fin>=today)?'en_cours':'termine';
   }
-  const payload = {
-    user_id: currentUser.id,
-    nom,
-    production: document.getElementById('pProd').value.trim(),
-    date_debut: debut || null,
-    date_fin: document.getElementById('pFin').value || null,
-    lieu: document.getElementById('pLieu').value.trim(),
-    notes: document.getElementById('pNotes').value.trim(),
-    statut
-  };
-  const res = await fetch(SUPABASE_URL + '/rest/v1/pro_projects', {
-    method: 'POST',
-    headers: {
-      'apikey': SUPABASE_ANON,
-      'Authorization': 'Bearer ' + SUPABASE_ANON,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=minimal'
-    },
-    body: JSON.stringify(payload)
+  const res = await fetch(SUPABASE_URL+'/rest/v1/pro_projects',{
+    method:'POST',
+    headers:apiHeaders(),
+    body:JSON.stringify({
+      user_id:currentUser.id,nom,
+      production:document.getElementById('pProd').value.trim(),
+      date_debut:debut||null,
+      date_fin:document.getElementById('pFin').value||null,
+      lieu:document.getElementById('pLieu').value.trim(),
+      statut
+    })
   });
-  if (!res.ok) { const e = await res.text(); alert('Erreur : ' + e); return; }
-  document.getElementById('modalProjet').classList.add('hidden');
+  if(!res.ok){alert('Erreur : '+await res.text());return;}
+  closeProjet();
   await loadAll();
 });
 
-window.setStatut = async (id, statut) => {
-  await sb.from('pro_projects').update({ statut }).eq('id', id);
+window.setStatut = async(id,statut) => {
+  await fetch(SUPABASE_URL+'/rest/v1/pro_projects?id=eq.'+id,{method:'PATCH',headers:apiHeaders(),body:JSON.stringify({statut})});
   await loadAll();
 };
 
-window.deleteProjet = async (id) => {
-  if (!confirm('Supprimer ce projet ?')) return;
-  await sb.from('pro_projects').delete().eq('id', id);
+window.deleteProjet = async(id) => {
+  if(!confirm('Supprimer ce projet ?'))return;
+  await fetch(SUPABASE_URL+'/rest/v1/pro_projects?id=eq.'+id,{method:'DELETE',headers:apiHeaders()});
   await loadAll();
 };
 
-// ── Envoi invitations ─────────────────────────────────────
-async function sendInvitations(projectId) {
-  const projet = projets.find(p => p.id === projectId);
-  if (!projet) return;
-  if (!selectedContacts.length) { alert('Sélectionne au moins un contact.'); return; }
-  let sent = 0;
-  for (const contactId of selectedContacts) {
-    const contact = contacts.find(c => c.id === contactId);
-    if (!contact) continue;
-    const { data: member, error: me } = await sb.from('pro_project_members').upsert({
-      project_id: projectId, contact_id: contactId, statut: 'invite'
-    }, { onConflict: 'project_id,contact_id' }).select().single();
-    if (me || !member) { console.error('Member error:', me); continue; }
-    if (contact.email) {
-      await fetch(FUNC_URL + '/send-invitation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON },
-        body: JSON.stringify({
-          to_email: contact.email,
-          to_name: ((contact.prenom||'') + ' ' + contact.nom).trim(),
-          poste: contact.poste || 'Technicien',
-          projet_nom: projet.nom,
-          production: projet.production || '',
-          date_debut: projet.date_debut || '',
-          date_fin: projet.date_fin || '',
-          lieu: projet.lieu || '',
-          token: member.token
-        })
-      });
-    }
-    if (contact.telephone) {
-      await fetch(FUNC_URL + '/send-sms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON },
-        body: JSON.stringify({
-          to_phone: contact.telephone,
-          to_name: ((contact.prenom||'') + ' ' + contact.nom).trim(),
-          projet_nom: projet.nom,
-          date_debut: projet.date_debut || '',
-          date_fin: projet.date_fin || '',
-          lieu: projet.lieu || '',
-          token: member.token
+// ── Detail projet ─────────────────────────────────────────
+window.openDetail = async(projectId) => {
+  currentProjectId = projectId;
+  const projet = projets.find(p=>p.id===projectId);
+  if(!projet)return;
+
+  // Infos
+  document.getElementById('detailNom').textContent = projet.nom;
+  document.getElementById('detailSub').textContent = (projet.production||'')+(projet.lieu?' · 📍 '+projet.lieu:'');
+  const sc=projet.statut==='en_cours'?'sp-ec':projet.statut==='termine'?'sp-t':'sp-av';
+  const sl=projet.statut==='en_cours'?'En cours':projet.statut==='termine'?'Terminé':'À venir';
+  document.getElementById('detailStatus').className='sp '+sc;
+  document.getElementById('detailStatus').textContent=sl;
+  document.getElementById('dProd').textContent=projet.production||'—';
+  document.getElementById('dDebut').textContent=fmt(projet.date_debut);
+  document.getElementById('dFin').textContent=fmt(projet.date_fin);
+  document.getElementById('dLieu').textContent=projet.lieu||'—';
+
+  // Membres
+  const h = readHeaders();
+  const members = await fetch(SUPABASE_URL+'/rest/v1/pro_project_members?project_id=eq.'+projectId+'&select=*,pro_contacts(*)',{headers:h}).then(r=>r.json());
+  const confirmes = Array.isArray(members)?members.filter(m=>m.statut==='confirme'):[];
+  const attente = Array.isArray(members)?members.filter(m=>m.statut==='invite'):[];
+  const refus = Array.isArray(members)?members.filter(m=>m.statut==='refuse'):[];
+  const total = Array.isArray(members)?members.length:0;
+
+  document.getElementById('cntConfirmes').textContent = confirmes.length;
+  document.getElementById('detailConfirmes').textContent = confirmes.length;
+  document.getElementById('detailAttente').textContent = attente.length;
+  document.getElementById('detailRefus').textContent = refus.length;
+  document.getElementById('dInvites').textContent = total;
+  document.getElementById('detailTotal').textContent = confirmes.length+' / '+total;
+  const pct = total>0?Math.round((confirmes.length/total)*100):0;
+  document.getElementById('detailBar').style.width = pct+'%';
+
+  const renderMember = (m,tag,tagClass) => {
+    const c = m.pro_contacts||{};
+    return `<div class="member-row">
+      <div class="ml-av" style="background:${colorFor((c.nom||'?')+m.contact_id)}">${initials(c)}</div>
+      <div style="flex:1"><div class="ml-name">${esc(c.nom||'?')} ${esc(c.prenom||'')}</div><div class="ml-post">${esc(c.poste||'')}</div></div>
+      <span class="${tagClass}">${tag}</span>
+    </div>`;
+  };
+
+  document.getElementById('listConfirmes').innerHTML = confirmes.length?confirmes.map(m=>renderMember(m,'✓ Confirmé','tag-ok')).join(''):'<div style="font-size:12px;color:var(--muted);padding:8px 0;">Aucun confirmé pour l\'instant</div>';
+  document.getElementById('listAttente').innerHTML = attente.length?attente.map(m=>renderMember(m,'⏳ En attente','tag-wait')).join(''):'<div style="font-size:12px;color:var(--muted);padding:8px 0;">Tout le monde a répondu</div>';
+  document.getElementById('listRefus').innerHTML = refus.length?refus.map(m=>renderMember(m,'✗ Refusé','tag-no')).join(''):'<div style="font-size:12px;color:var(--muted);padding:8px 0;">Aucun refus</div>';
+
+  if(attente.length>0){
+    document.getElementById('infoRelance').style.display='block';
+    document.getElementById('infoRelance').textContent = attente.length+' personne'+(attente.length>1?'s':'')+' n\'ont pas encore répondu';
+    document.getElementById('relancerBtn').textContent = '📨 Relancer ('+attente.length+')';
+  } else {
+    document.getElementById('infoRelance').style.display='none';
+  }
+
+  showScreen('s-detail', null);
+};
+
+window.terminerProjet = async() => {
+  if(!confirm('Clore ce projet ?'))return;
+  await setStatut(currentProjectId,'termine');
+  showScreen('s-projets', document.querySelector('.nav-item:nth-child(2)'));
+};
+
+window.addToProject = () => {
+  selectedContacts = [];
+  renderContacts();
+  updateSelBar();
+  showScreen('s-contacts', document.querySelector('.nav-item:first-child'));
+  if(currentProjectId){
+    const sel = document.getElementById('sendToProject');
+    setTimeout(()=>{
+      const opt = sel.querySelector(`option[value="${currentProjectId}"]`);
+      if(opt) opt.selected=true;
+    },200);
+  }
+};
+
+window.relancerAttente = async() => {
+  if(!currentProjectId){return;}
+  const h = readHeaders();
+  const members = await fetch(SUPABASE_URL+'/rest/v1/pro_project_members?project_id=eq.'+currentProjectId+'&statut=eq.invite&select=*,pro_contacts(*)',{headers:h}).then(r=>r.json());
+  if(!Array.isArray(members)||!members.length){alert('Personne à relancer.');return;}
+  const projet = projets.find(p=>p.id===currentProjectId);
+  let sent=0;
+  for(const member of members){
+    const c = member.pro_contacts||{};
+    if(c.email){
+      await fetch(FUNC_URL+'/send-invitation',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
+        body:JSON.stringify({
+          to_email:c.email,
+          to_name:((c.prenom||'')+' '+c.nom).trim(),
+          poste:c.poste||'Technicien',
+          projet_nom:projet.nom,
+          production:projet.production||'',
+          date_debut:projet.date_debut||'',
+          date_fin:projet.date_fin||'',
+          lieu:projet.lieu||'',
+          token:member.token
         })
       });
     }
     sent++;
   }
-  selectedContacts = [];
+  alert('✅ '+sent+' relance'+(sent>1?'s':'')+' envoyée'+(sent>1?'s':'')+'  !');
+  await openDetail(currentProjectId);
+};
+
+window.exportPlanning = () => {
+  alert('Export PDF — fonctionnalité à venir');
+};
+
+// ── Envoi invitations ─────────────────────────────────────
+async function sendInvitations(projectId){
+  const projet = projets.find(p=>p.id===projectId);
+  if(!projet)return;
+  if(!selectedContacts.length){alert('Sélectionne au moins un contact.');return;}
+  let sent=0;
+  for(const contactId of selectedContacts){
+    const contact = contacts.find(c=>c.id===contactId);
+    if(!contact)continue;
+    const {data:member,error:me} = await sb.from('pro_project_members').upsert({
+      project_id:projectId,contact_id:contactId,statut:'invite'
+    },{onConflict:'project_id,contact_id'}).select().single();
+    if(me||!member){console.error('Member error:',me);continue;}
+    if(contact.email){
+      await fetch(FUNC_URL+'/send-invitation',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
+        body:JSON.stringify({
+          to_email:contact.email,
+          to_name:((contact.prenom||'')+' '+contact.nom).trim(),
+          poste:contact.poste||'Technicien',
+          projet_nom:projet.nom,
+          production:projet.production||'',
+          date_debut:projet.date_debut||'',
+          date_fin:projet.date_fin||'',
+          lieu:projet.lieu||'',
+          token:member.token
+        })
+      });
+    }
+    if(contact.telephone){
+      await fetch(FUNC_URL+'/send-sms',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
+        body:JSON.stringify({
+  to_email:contact.email,
+  to_name:((contact.prenom||'')+' '+contact.nom).trim(),
+  chef_nom:chefNom,
+  poste:contact.poste||'Technicien',
+  projet_nom:projet.nom,
+  production:projet.production||'',
+  date_debut:projet.date_debut||'',
+  date_fin:projet.date_fin||'',
+  lieu:projet.lieu||'',
+  token:member.token
+})
+      });
+    }
+    sent++;
+  }
+  selectedContacts=[];
   updateSelBar();
   renderContacts();
-  alert('✅ ' + sent + ' invitation' + (sent > 1 ? 's' : '') + ' envoyée' + (sent > 1 ? 's' : '') + ' !');
+  alert('✅ '+sent+' invitation'+(sent>1?'s':'')+' envoyée'+(sent>1?'s':'')+' !');
   await loadAll();
 }
 </script>
