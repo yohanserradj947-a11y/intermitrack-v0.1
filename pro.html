@@ -259,15 +259,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
         </select>
       </div>
       <div class="sel-bar" id="selBar">
-        <span id="selCount" style="color:white;font-size:13px;font-weight:700;">0 sélectionné(s)</span>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <select id="sendToProject" style="padding:8px 12px;border-radius:8px;border:none;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;"><option value="">Choisir un projet...</option></select>
-          <button onclick="sendToSelectedProject()" style="background:white;color:#0D4F6C;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;">🚀 Envoyer</button>
-          <button onclick="clearSelection()" style="background:rgba(255,255,255,.2);color:white;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;">✕</button>
-        </div>
-      </div>
-      <div class="contacts-grid" id="contactsGrid"></div>
-    </div>
+  <span id="selCount" style="color:white;font-size:13px;font-weight:700;">0 sélectionné(s)</span>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <select id="sendToProject" style="padding:8px 12px;border-radius:8px;border:none;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;"><option value="">Choisir un projet...</option></select>
+    <button onclick="sendToSelectedProject()" style="background:white;color:#0D4F6C;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;">➕ Ajouter au projet</button>
+    <button onclick="clearSelection()" style="background:rgba(255,255,255,.2);color:white;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;">✕</button>
+  </div>
+</div>
+<div class="contacts-grid" id="contactsGrid"></div>
+</div>
 
     <!-- PROJETS -->
     <div class="screen" id="s-projets">
@@ -569,11 +569,11 @@ function updateSelBar(){
 }
 
 window.sendToSelectedProject = async() => {
-  const pid = document.getElementById('sendToProject').value;
+  let pid = document.getElementById('sendToProject').value;
+  if(!pid && currentProjectId) pid = currentProjectId;
   if(!pid){alert('Choisis un projet.');return;}
   await sendInvitations(pid);
 };
-
 // ── Add/Edit contact ─────────────────────────────────────
 window.openContactModal = (id=null) => {
   editContactId = id;
