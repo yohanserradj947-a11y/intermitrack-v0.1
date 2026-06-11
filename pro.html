@@ -850,18 +850,24 @@ window.terminerProjet = async() => {
 
 window.addToProject = () => {
   selectedContacts = [];
-  renderContacts();
-  updateSelBar();
-  showScreen('s-contacts', document.querySelector('.nav-item:first-child'));
+  
+  // Remplir le select AVANT d'afficher la page
+  const sel = document.getElementById('sendToProject');
+  const actifs = projets.filter(p=>p.statut!=='termine');
+  sel.innerHTML = '<option value="">Choisir un projet...</option>' + actifs.map(p=>`<option value="${p.id}">${esc(p.nom)}</option>`).join('');
+  
+  // Présélectionner le projet actuel
   if(currentProjectId){
-    const sel = document.getElementById('sendToProject');
-    setTimeout(()=>{
-      const opt = sel.querySelector(`option[value="${currentProjectId}"]`);
-      if(opt) opt.selected=true;
-    },200);
+    sel.value = currentProjectId;
   }
-};
 
+  // Afficher la barre même sans sélection
+  document.getElementById('selBar').classList.add('show');
+  document.getElementById('selCount').textContent = '0 sélectionné';
+
+  renderContacts();
+  showScreen('s-contacts', document.querySelector('.nav-item:first-child'));
+};
 // ── Format téléphone → +33 ────────────────────────────────
 function formatPhone(tel){
   if(!tel) return '';
