@@ -442,36 +442,34 @@ document.getElementById('authBtn').addEventListener('click', async () => {
   msg.textContent='';
 });
 
-sb.auth.onAuthStateChange(async(_e, session) => {
-  currentUser = session?.user || null;
-  sessionToken = session?.access_token || null;
-  if(currentUser && PRO_USERS.includes(currentUser.id)){
-    document.getElementById('authPage').style.display = 'none';
-    document.getElementById('proApp').style.display = 'grid';
-    const { data: prof } = await sb.from('profiles').select('display_name').eq('id', currentUser.id).single();
-    chefNom = prof?.display_name || currentUser.email;
-    await loadAll();
-  } else if(currentUser && !PRO_USERS.includes(currentUser.id)){
-    await sb.auth.signOut();
-  } else {
-    document.getElementById('authPage').style.display = 'flex';
-    document.getElementById('proApp').style.display = 'none';
-  }
-});
-
-// Chargement immédiat au refresh
 sb.auth.getSession().then(async({data:{session}}) => {
   if(session && PRO_USERS.includes(session.user.id)){
     currentUser = session.user;
     sessionToken = session.access_token;
     document.getElementById('authPage').style.display = 'none';
     document.getElementById('proApp').style.display = 'grid';
-    const { data: prof } = await sb.from('profiles').select('display_name').eq('id', currentUser.id).single();
+    const {data:prof} = await sb.from('profiles').select('display_name').eq('id',currentUser.id).single();
     chefNom = prof?.display_name || currentUser.email;
     await loadAll();
   }
 });
 
+sb.auth.onAuthStateChange(async(_e, session) => {
+  if(_e === 'SIGNED_IN' && session && PRO_USERS.includes(session.user.id)){
+    currentUser = session.user;
+    sessionToken = session.access_token;
+    document.getElementById('authPage').style.display = 'none';
+    document.getElementById('proApp').style.display = 'grid';
+    const {data:prof} = await sb.from('profiles').select('display_name').eq('id',currentUser.id).single();
+    chefNom = prof?.display_name || currentUser.email;
+    await loadAll();
+  } else if(_e === 'SIGNED_OUT'){
+    currentUser = null;
+    sessionToken = null;
+    document.getElementById('authPage').style.display = 'flex';
+    document.getElementById('proApp').style.display = 'none';
+  }
+});
 document.getElementById('logoutBtn').addEventListener('click', () => sb.auth.signOut());
 
 // ── Navigation ────────────────────────────────────────────
