@@ -974,37 +974,41 @@ async function sendInvitations(projectId){
     },{onConflict:'project_id,contact_id'}).select().single();
     if(me||!member){console.error('Member error:',me);continue;}
     if(contact.email){
-      await fetch(FUNC_URL+'/send-invitation',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
-        body:JSON.stringify({
-          to_email:contact.email,
-          to_name:((contact.prenom||'')+' '+contact.nom).trim(),
-          chef_nom:chefNom,
-          poste:contact.poste||'Technicien',
-          projet_nom:projet.nom,
-          production:projet.production||'',
-          date_debut:projet.date_debut||'',
-          date_fin:projet.date_fin||'',
-          lieu:projet.lieu||'',
-          token:member.token
-        })
-      });
+      try {
+        await fetch(FUNC_URL+'/send-invitation',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
+          body:JSON.stringify({
+            to_email:contact.email,
+            to_name:((contact.prenom||'')+' '+contact.nom).trim(),
+            chef_nom:chefNom,
+            poste:contact.poste||'Technicien',
+            projet_nom:projet.nom,
+            production:projet.production||'',
+            date_debut:projet.date_debut||'',
+            date_fin:projet.date_fin||'',
+            lieu:projet.lieu||'',
+            token:member.token
+          })
+        });
+      } catch(e){ console.warn('Mail échoué pour '+contact.nom, e); }
     }
     if(contact.telephone){
-      await fetch(FUNC_URL+'/send-sms',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
-        body:JSON.stringify({
-          to_phone:formatPhone(contact.telephone),
-          to_name:((contact.prenom||'')+' '+contact.nom).trim(),
-          projet_nom:projet.nom,
-          date_debut:projet.date_debut||'',
-          date_fin:projet.date_fin||'',
-          lieu:projet.lieu||'',
-          token:member.token
-        })
-      });
+      try {
+        await fetch(FUNC_URL+'/send-sms',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
+          body:JSON.stringify({
+            to_phone:formatPhone(contact.telephone),
+            to_name:((contact.prenom||'')+' '+contact.nom).trim(),
+            projet_nom:projet.nom,
+            date_debut:projet.date_debut||'',
+            date_fin:projet.date_fin||'',
+            lieu:projet.lieu||'',
+            token:member.token
+          })
+        });
+      } catch(e){ console.warn('SMS échoué pour '+contact.nom, e); }
     }
     sent++;
   }
