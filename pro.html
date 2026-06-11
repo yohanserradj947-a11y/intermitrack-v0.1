@@ -488,8 +488,8 @@ async function loadAll(){
   if(!sessionToken) return;
   const h = readHeaders();
   const [r1,r2] = await Promise.all([
-    fetch(SUPABASE_URL+'/rest/v1/pro_contacts?select=*&order=nom.asc',{headers:h}).then(r=>r.json()),
-    fetch(SUPABASE_URL+'/rest/v1/pro_projects?select=*&order=date_debut.asc',{headers:h}).then(r=>r.json())
+    fetch(SUPABASE_URL+'/rest/v1/pro_contacts?select=*&order=nom.asc&user_id=eq.'+currentUser.id,{headers:h}).then(r=>r.json()),
+    fetch(SUPABASE_URL+'/rest/v1/pro_projects?select=*&order=date_debut.asc&user_id=eq.'+currentUser.id,{headers:h}).then(r=>r.json())
   ]);
   contacts = Array.isArray(r1)?r1:[];
   projets = Array.isArray(r2)?r2:[];
