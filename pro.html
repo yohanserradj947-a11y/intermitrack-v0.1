@@ -249,7 +249,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
         <span id="selCount" style="color:white;font-size:13px;font-weight:700;">0 sélectionné(s)</span>
         <div style="display:flex;gap:8px;align-items:center;">
           <select id="sendToProject" style="padding:8px 12px;border-radius:8px;border:none;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;"><option value="">Choisir un projet...</option></select>
-          <button onclick="sendToSelectedProject()" style="background:white;color:#0D4F6C;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;">🚀 Envoyer</button>
+          <button onclick="sendToSelectedProject()" style="background:white;color:#0D4F6C;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;">➕ Ajouter au projet</button>
           <button onclick="clearSelection()" style="background:rgba(255,255,255,.2);color:white;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;">✕</button>
         </div>
       </div>
@@ -511,8 +511,7 @@ function renderContacts(){
   const pf = document.getElementById('filterPoste').value;
   let list = contacts.filter(c=>{
     const m = !search||(c.nom||'').toLowerCase().includes(search)||(c.prenom||'').toLowerCase().includes(search)||(c.email||'').toLowerCase().includes(search);
-    const pm = !pf||c.poste===pf;
-    return m&&pm;
+const pm = !pf||(c.poste||'').includes(pf);    return m&&pm;
   });
   const el = document.getElementById('contactsGrid');
   if(!list.length){
@@ -567,7 +566,20 @@ function updateSelBar(){
 window.sendToSelectedProject = async() => {
   const pid = document.getElementById('sendToProject').value;
   if(!pid){alert('Choisis un projet.');return;}
-  await sendInvitations(pid);
+  
+  let added = 0;
+  for(const contactId of selectedContacts){
+    const {error} = await sb.from('pro_project_members').upsert({
+      project_id: pid,
+      contact_id: contactId,
+      statut: 'invite'
+    },{onConflict:'project_id,contact_id'});
+    if(!error) added++;
+  }
+  
+  clearSelection();
+  alert('✅ '+added+' contact'+(added>1?'s':'')+' ajouté'+(added>1?'s':'')+' au projet !');
+  await loadAll();
 };
 
 // ── Add/Edit contact ─────────────────────────────────────
