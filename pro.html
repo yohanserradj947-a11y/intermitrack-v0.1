@@ -294,50 +294,82 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
         </div>
         <span class="sp" id="detailStatus">—</span>
       </div>
-      <div class="detail-layout">
-        <div>
-          <div class="counter-box">
-            <div class="counter-grid">
-              <div class="cg"><div class="cg-val" id="detailConfirmes" style="color:var(--g);">0</div><div class="cg-lbl">Confirmés</div></div>
-              <div class="cg"><div class="cg-val" id="detailAttente" style="color:var(--o);">0</div><div class="cg-lbl">En attente</div></div>
-              <div class="cg"><div class="cg-val" id="detailRefus" style="color:#DC2626;">0</div><div class="cg-lbl">Refusés</div></div>
+
+      <!-- Onglets -->
+      <div style="display:flex;gap:6px;margin-bottom:18px;background:white;padding:6px;border-radius:12px;border:1px solid var(--line);">
+        <button id="tabEquipe" onclick="switchDetailTab('equipe')" style="flex:1;padding:9px;border-radius:8px;border:none;background:var(--p);color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;">👥 Équipe</button>
+        <button id="tabPlanning" onclick="switchDetailTab('planning')" style="flex:1;padding:9px;border-radius:8px;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;">📅 Planning</button>
+      </div>
+
+      <!-- TAB EQUIPE -->
+      <div id="tabEquipeContent">
+        <div class="detail-layout">
+          <div>
+            <div class="counter-box">
+              <div class="counter-grid">
+                <div class="cg"><div class="cg-val" id="detailConfirmes" style="color:var(--g);">0</div><div class="cg-lbl">Confirmés</div></div>
+                <div class="cg"><div class="cg-val" id="detailAttente" style="color:var(--o);">0</div><div class="cg-lbl">En attente</div></div>
+                <div class="cg"><div class="cg-val" id="detailRefus" style="color:#DC2626;">0</div><div class="cg-lbl">Refusés</div></div>
+              </div>
+              <div class="pbar"><div class="pbar-fill fill-g" id="detailBar" style="width:0%"></div></div>
+              <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:6px;text-align:right;" id="detailTotal">0 / 0</div>
             </div>
-            <div class="pbar"><div class="pbar-fill fill-g" id="detailBar" style="width:0%"></div></div>
-            <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:6px;text-align:right;" id="detailTotal">0 / 0</div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
-            <button class="btn-action" style="justify-content:center;" onclick="addToProject()">+ Ajouter des techs</button>
-            <button class="btn-action" style="background:rgba(232,101,10,.1);color:var(--o);justify-content:center;" id="relancerBtn" onclick="relancerAttente()">📨 Relancer</button>
-          </div>
-          <div class="section-lbl" style="color:var(--g);">✅ Confirmés</div>
-          <div id="listConfirmes"></div>
-          <div class="section-lbl" style="color:var(--o);margin-top:16px;">⏳ En attente</div>
-          <div class="info-o" id="infoRelance" style="display:none;"></div>
-          <div id="listAttente"></div>
-          <div class="section-lbl" style="color:#DC2626;margin-top:16px;">✗ Refusés</div>
-          <div id="listRefus"></div>
-        </div>
-        <div>
-          <div class="sidebar-detail">
-            <div style="font-size:13px;font-weight:800;color:var(--p);margin-bottom:14px;">Infos du projet</div>
-            <div class="di-row"><span class="di-lbl">Production</span><span class="di-val" id="dProd">—</span></div>
-            <div class="di-row"><span class="di-lbl">Début</span><span class="di-val" id="dDebut">—</span></div>
-            <div class="di-row"><span class="di-lbl">Fin</span><span class="di-val" id="dFin">—</span></div>
-            <div class="di-row"><span class="di-lbl">Lieu</span><span class="di-val" id="dLieu">—</span></div>
-            <div class="di-row"><span class="di-lbl">Invités</span><span class="di-val" id="dInvites">0</span></div>
-            <div style="margin-top:14px;display:grid;gap:8px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
               <button class="btn-action" style="justify-content:center;" onclick="addToProject()">+ Ajouter des techs</button>
-              <button class="btn-ghost" style="justify-content:center;" onclick="exportPlanning()">📊 Exporter le planning</button>
-              <button style="padding:12px;border-radius:11px;background:#FEF2F2;color:#DC2626;border:1px solid #FCA5A5;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;" onclick="terminerProjet()">✓ Clore le projet</button>
+              <button class="btn-action" style="background:rgba(232,101,10,.1);color:var(--o);justify-content:center;" id="relancerBtn" onclick="relancerAttente()">📨 Envoyer mail + SMS</button>
+            </div>
+            <div class="section-lbl" style="color:var(--g);">✅ Confirmés</div>
+            <div id="listConfirmes"></div>
+            <div class="section-lbl" style="color:var(--o);margin-top:16px;">⏳ En attente</div>
+            <div class="info-o" id="infoRelance" style="display:none;"></div>
+            <div id="listAttente"></div>
+            <div class="section-lbl" style="color:#DC2626;margin-top:16px;">✗ Refusés</div>
+            <div id="listRefus"></div>
+          </div>
+          <div>
+            <div class="sidebar-detail">
+              <div style="font-size:13px;font-weight:800;color:var(--p);margin-bottom:14px;">Infos du projet</div>
+              <div class="di-row"><span class="di-lbl">Production</span><span class="di-val" id="dProd">—</span></div>
+              <div class="di-row"><span class="di-lbl">Début</span><span class="di-val" id="dDebut">—</span></div>
+              <div class="di-row"><span class="di-lbl">Fin</span><span class="di-val" id="dFin">—</span></div>
+              <div class="di-row"><span class="di-lbl">Lieu</span><span class="di-val" id="dLieu">—</span></div>
+              <div class="di-row"><span class="di-lbl">Invités</span><span class="di-val" id="dInvites">0</span></div>
+              <div style="margin-top:14px;display:grid;gap:8px;">
+                <button class="btn-action" style="justify-content:center;" onclick="addToProject()">+ Ajouter des techs</button>
+                <button style="padding:12px;border-radius:11px;background:#FEF2F2;color:#DC2626;border:1px solid #FCA5A5;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;" onclick="terminerProjet()">✓ Clore le projet</button>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- TAB PLANNING -->
+      <div id="tabPlanningContent" style="display:none;">
+        <div style="background:white;border-radius:16px;border:1px solid var(--line);padding:16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:14px;font-weight:800;color:var(--p);">Planning de présence</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:3px;" id="planningStats">—</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-ghost" onclick="exportPlanningPDF()">📄 Exporter PDF</button>
+          </div>
+        </div>
+        <div style="background:white;border-radius:16px;border:1px solid var(--line);overflow:hidden;">
+          <div style="overflow-x:auto;">
+            <div id="planningGrid"></div>
+          </div>
+          <div style="display:flex;gap:16px;padding:12px 16px;border-top:1px solid var(--line);">
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);"><div style="width:16px;height:16px;border-radius:4px;background:rgba(18,117,74,.15);"></div> Présent</div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);"><div style="width:16px;height:16px;border-radius:4px;background:rgba(13,27,42,.05);"></div> Absent</div>
+            <div style="margin-left:auto;font-size:11px;color:var(--muted);">Cliquez sur une case pour modifier</div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
   </div>
 </div>
-
 <!-- Modal contact -->
 <div class="modal-overlay hidden" id="modalContact">
   <div class="modal">
