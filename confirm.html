@@ -3,80 +3,181 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Preview Confirm</title>
+<title>Intermitrack — Confirmation</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Inter',sans-serif;background:linear-gradient(160deg,#0D4F6C 0%,#0A3A50 40%,#081E2A 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;gap:20px;flex-wrap:wrap;}
-.card{background:white;border-radius:28px;width:100%;max-width:360px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.35);}
-.card-header{padding:24px 24px 20px;text-align:center;}
-.logo-wrap{width:52px;height:52px;border-radius:16px;background:linear-gradient(150deg,#0D4F6C,#12754A);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:18px;margin:0 auto 12px;box-shadow:0 4px 14px rgba(13,79,108,.3);}
-.brand{font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:800;color:#64748B;letter-spacing:.1em;text-transform:uppercase;}
-.card-body{padding:0 24px 24px;}
-.icon-wrap{width:68px;height:68px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 14px;}
+body{
+  font-family:'Inter',sans-serif;
+  background:linear-gradient(160deg,#0D4F6C 0%,#0A3A50 40%,#081E2A 100%);
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+}
+.card{
+  background:white;
+  border-radius:28px;
+  width:100%;max-width:400px;
+  overflow:hidden;
+  box-shadow:0 24px 80px rgba(0,0,0,.35);
+}
+.card-header{
+  padding:28px 28px 24px;
+  text-align:center;
+}
+.logo-wrap{
+  width:56px;height:56px;border-radius:18px;
+  background:linear-gradient(150deg,#0D4F6C,#12754A);
+  display:flex;align-items:center;justify-content:center;
+  color:white;font-weight:800;font-size:20px;
+  margin:0 auto 16px;
+  box-shadow:0 4px 14px rgba(13,79,108,.3);
+}
+.brand{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:800;color:#64748B;letter-spacing:.1em;text-transform:uppercase;}
+.card-body{padding:0 28px 28px;}
+.icon-wrap{
+  width:72px;height:72px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:36px;margin:0 auto 16px;
+}
 .icon-confirm{background:rgba(18,117,74,.1);}
 .icon-decline{background:rgba(220,38,38,.1);}
-.title{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:800;color:#0D1B2A;margin-bottom:6px;letter-spacing:-.04em;text-align:center;}
-.sub{font-size:13px;color:#64748B;margin-bottom:16px;line-height:1.6;text-align:center;}
-.mission-box{background:#F8FAFC;border-radius:14px;padding:14px;margin-bottom:16px;border:1px solid rgba(13,27,42,.08);}
-.mission-nom{font-size:15px;font-weight:800;color:#0D4F6C;margin-bottom:8px;}
-.mission-row{display:flex;align-items:center;gap:7px;padding:4px 0;font-size:12px;color:#64748B;}
-.badge{padding:5px 14px;border-radius:99px;font-size:11px;font-weight:800;display:block;text-align:center;width:fit-content;margin:0 auto 16px;}
+.icon-neutral{background:rgba(100,116,139,.1);}
+.title{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:#0D1B2A;margin-bottom:8px;letter-spacing:-.04em;text-align:center;}
+.sub{font-size:14px;color:#64748B;margin-bottom:20px;line-height:1.6;text-align:center;}
+.mission-box{
+  background:#F8FAFC;border-radius:16px;padding:16px;margin-bottom:20px;
+  border:1px solid rgba(13,27,42,.08);
+}
+.mission-nom{font-size:17px;font-weight:800;color:#0D4F6C;margin-bottom:10px;letter-spacing:-.02em;}
+.mission-row{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;color:#64748B;}
+.mission-row span{font-size:16px;flex-shrink:0;}
+.badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:99px;
+  font-size:12px;font-weight:800;margin:0 auto 20px;
+  display:block;text-align:center;width:fit-content;margin:0 auto 20px;
+}
 .badge-confirm{background:rgba(18,117,74,.1);color:#12754A;}
 .badge-decline{background:rgba(220,38,38,.1);color:#DC2626;}
-.btn-home{display:block;width:100%;padding:13px;border-radius:13px;font-size:13px;font-weight:700;border:none;cursor:pointer;font-family:'Inter',sans-serif;text-decoration:none;text-align:center;background:#F0F2F5;color:#64748B;}
-.label{font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:800;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em;text-align:center;margin-bottom:10px;}
+.btn-home{
+  display:block;width:100%;padding:14px;
+  border-radius:14px;font-size:14px;font-weight:700;
+  border:none;cursor:pointer;font-family:'Inter',sans-serif;
+  text-decoration:none;text-align:center;
+  background:#F0F2F5;color:#64748B;
+  transition:background .15s;
+}
+.btn-home:hover{background:#E2E8F0;}
+.loading{text-align:center;padding:20px 0;}
+.loading-spinner{
+  width:32px;height:32px;border-radius:50%;
+  border:3px solid rgba(13,79,108,.15);
+  border-top-color:#0D4F6C;
+  animation:spin .8s linear infinite;
+  margin:0 auto 12px;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{font-size:13px;color:#94A3B8;}
 </style>
 </head>
 <body>
-
-<!-- DÉCLINÉ -->
-<div>
-<div class="label">Quand tu déclines</div>
 <div class="card">
   <div class="card-header">
     <div class="logo-wrap">iT</div>
     <div class="brand">Intermitrack Pro</div>
   </div>
   <div class="card-body">
-    <div class="icon-wrap icon-decline">❌</div>
-    <div class="title">Invitation refusée</div>
-    <div class="sub">Tu as refusé cette invitation.<br/>Le chef de projet a été informé.</div>
-    <div class="badge badge-decline">✗ Refusé</div>
-    <div class="mission-box">
-      <div class="mission-nom">Secret Story S17</div>
-      <div class="mission-row"><span>🎬</span>Endemol</div>
-      <div class="mission-row"><span>📅</span>10 juin 2026 → 24 juin 2026</div>
-      <div class="mission-row"><span>📍</span>Studios Bry-sur-Marne</div>
+    <div id="content">
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Chargement...</div>
+      </div>
     </div>
-    <a href="#" class="btn-home">Accéder à Intermitrack</a>
   </div>
-</div>
 </div>
 
-<!-- CONFIRMÉ -->
-<div>
-<div class="label">Quand tu confirmes</div>
-<div class="card">
-  <div class="card-header">
-    <div class="logo-wrap">iT</div>
-    <div class="brand">Intermitrack Pro</div>
-  </div>
-  <div class="card-body">
-    <div class="icon-wrap icon-confirm">✅</div>
-    <div class="title">Mission confirmée !</div>
-    <div class="sub">Super ! Tu es bien inscrit(e) sur ce projet.<br/>Le chef de projet a été notifié.</div>
-    <div class="badge badge-confirm">✓ Confirmé</div>
-    <div class="mission-box">
-      <div class="mission-nom">Secret Story S17</div>
-      <div class="mission-row"><span>🎬</span>Endemol</div>
-      <div class="mission-row"><span>📅</span>10 juin 2026 → 24 juin 2026</div>
-      <div class="mission-row"><span>📍</span>Studios Bry-sur-Marne</div>
-    </div>
-    <a href="#" class="btn-home">Accéder à Intermitrack</a>
-  </div>
-</div>
-</div>
+<script>
+const SUPABASE_URL = "https://upeogpgczoghlfwblnkb.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwZW9ncGdjem9naGxmd2JsbmtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MjkyMDQsImV4cCI6MjA5NjEwNTIwNH0.6535_0KMaEDLxTMhz_OX-4OqC_tpQsPJR5jkFQL7UqI";
 
+const params = new URLSearchParams(window.location.search);
+const token = params.get('token');
+const action = params.get('action');
+
+function fmt(d){ if(!d)return ''; return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}); }
+
+async function init() {
+  if (!token || !action) { showGeneric(); return; }
+
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/pro_project_members?token=eq.${token}&select=*,pro_projects(*),pro_contacts(*)`, {
+    headers: { "apikey": SUPABASE_ANON_KEY, "Authorization": `Bearer ${SUPABASE_ANON_KEY}` }
+  });
+
+  const data = await res.json();
+  if (!data || !data[0]) { showGeneric(); return; }
+
+  const member = data[0];
+  const projet = member.pro_projects;
+
+  if (member.statut === 'confirme') { showAlready('confirme', projet); return; }
+  if (member.statut === 'refuse') { showAlready('refuse', projet); return; }
+
+  const newStatut = action === 'confirm' ? 'confirme' : 'refuse';
+  await fetch(`${SUPABASE_URL}/rest/v1/pro_project_members?token=eq.${token}`, {
+    method: 'PATCH',
+    headers: { "apikey": SUPABASE_ANON_KEY, "Authorization": `Bearer ${SUPABASE_ANON_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" },
+    body: JSON.stringify({ statut: newStatut })
+  });
+
+  showResult(action, projet);
+}
+
+function missionBox(projet){
+  return `<div class="mission-box">
+    <div class="mission-nom">${projet.nom}</div>
+    ${projet.production ? `<div class="mission-row"><span>🎬</span>${projet.production}</div>` : ''}
+    ${projet.date_debut ? `<div class="mission-row"><span>📅</span>${fmt(projet.date_debut)}${projet.date_fin ? ' → ' + fmt(projet.date_fin) : ''}</div>` : ''}
+    ${projet.lieu ? `<div class="mission-row"><span>📍</span>${projet.lieu}</div>` : ''}
+  </div>`;
+}
+
+function showResult(action, projet) {
+  const isConfirm = action === 'confirm';
+  document.getElementById('content').innerHTML = `
+    <div class="icon-wrap ${isConfirm ? 'icon-confirm' : 'icon-decline'}">${isConfirm ? '✅' : '❌'}</div>
+    <div class="title">${isConfirm ? 'Mission confirmée !' : 'Invitation refusée'}</div>
+    <div class="sub">${isConfirm
+      ? 'Super ! Tu es bien inscrit(e) sur ce projet.<br/>Le chef de projet a été notifié.'
+      : 'Tu as refusé cette invitation.<br/>Le chef de projet a été informé.'}</div>
+    <div class="badge ${isConfirm ? 'badge-confirm' : 'badge-decline'}">${isConfirm ? '✓ Confirmé' : '✗ Refusé'}</div>
+    ${missionBox(projet)}
+    <a href="https://intermitrack.fr" class="btn-home">Accéder à Intermitrack</a>
+  `;
+}
+
+function showAlready(statut, projet) {
+  const isConfirm = statut === 'confirme';
+  document.getElementById('content').innerHTML = `
+    <div class="icon-wrap ${isConfirm ? 'icon-confirm' : 'icon-decline'}">${isConfirm ? '✅' : '❌'}</div>
+    <div class="title">Déjà répondu</div>
+    <div class="sub">Tu as déjà ${isConfirm ? 'confirmé' : 'refusé'} cette mission.</div>
+    <div class="badge ${isConfirm ? 'badge-confirm' : 'badge-decline'}">${isConfirm ? '✓ Confirmé' : '✗ Refusé'}</div>
+    ${missionBox(projet)}
+    <a href="https://intermitrack.fr" class="btn-home">Accéder à Intermitrack</a>
+  `;
+}
+
+function showGeneric() {
+  document.getElementById('content').innerHTML = `
+    <div class="icon-wrap icon-neutral">✅</div>
+    <div class="title">Merci !</div>
+    <div class="sub">Ta réponse a bien été prise en compte.</div>
+    <a href="https://intermitrack.fr" class="btn-home">Accéder à Intermitrack</a>
+  `;
+}
+
+init();
+</script>
 </body>
 </html>
