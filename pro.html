@@ -471,7 +471,15 @@ sb.auth.onAuthStateChange(async(_e, session) => {
   }
 });
 
-document.getElementById('logoutBtn').addEventListener('click', () => sb.auth.signOut());
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await sb.auth.signOut();
+  currentUser = null;
+  sessionToken = null;
+  contacts = [];
+  projets = [];
+  document.getElementById('authPage').style.display = 'flex';
+  document.getElementById('proApp').style.display = 'none';
+});
 
 // ── Navigation ────────────────────────────────────────────
 function showScreen(id, btn){
