@@ -919,7 +919,7 @@ window.relancerAttente = async() => {
   if(!currentProjectId){return;}
   const h = readHeaders();
   const members = await fetch(SUPABASE_URL+'/rest/v1/pro_project_members?project_id=eq.'+currentProjectId+'&statut=eq.invite&select=*,pro_contacts(*)',{headers:h}).then(r=>r.json());
-  if(!Array.isArray(members)||!members.length){alert('Personne à relancer.');return;}
+  if(!Array.isArray(members)||!members.length){alert('Tous les techniciens ont déjà répondu.');return;}
   const projet = projets.find(p=>p.id===currentProjectId);
   let sent=0;
   for(const member of members){
@@ -952,6 +952,15 @@ window.exportPlanning = () => {
 };
 
 // ── Envoi invitations ─────────────────────────────────────
+function formatPhone(tel){
+  if(!tel) return '';
+  let t = tel.replace(/[\s\.\-]/g,'');
+  if(t.startsWith('00')) t = '+' + t.slice(2);
+  else if(t.startsWith('0')) t = '+33' + t.slice(1);
+  else if(t.startsWith('33') && !t.startsWith('+')) t = '+' + t;
+  return t;
+}
+
 async function sendInvitations(projectId){
   const projet = projets.find(p=>p.id===projectId);
   if(!projet)return;
@@ -971,6 +980,7 @@ async function sendInvitations(projectId){
         body:JSON.stringify({
           to_email:contact.email,
           to_name:((contact.prenom||'')+' '+contact.nom).trim(),
+          chef_nom:chefNom,
           poste:contact.poste||'Technicien',
           projet_nom:projet.nom,
           production:projet.production||'',
@@ -986,17 +996,14 @@ async function sendInvitations(projectId){
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
         body:JSON.stringify({
-  to_email:contact.email,
-  to_name:((contact.prenom||'')+' '+contact.nom).trim(),
-  chef_nom:chefNom,
-  poste:contact.poste||'Technicien',
-  projet_nom:projet.nom,
-  production:projet.production||'',
-  date_debut:projet.date_debut||'',
-  date_fin:projet.date_fin||'',
-  lieu:projet.lieu||'',
-  token:member.token
-})
+          to_phone:formatPhone(contact.telephone),
+          to_name:((contact.prenom||'')+' '+contact.nom).trim(),
+          projet_nom:projet.nom,
+          date_debut:projet.date_debut||'',
+          date_fin:projet.date_fin||'',
+          lieu:projet.lieu||'',
+          token:member.token
+        })
       });
     }
     sent++;
