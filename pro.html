@@ -883,7 +883,143 @@ window.openDetail = async(projectId) => {
 
   showScreen('s-detail', null);
 };
+window.switchDetailTab = (tab) => {
+  const equipe = document.getElementById('tabEquipeContent');
+  const planning = document.getElementById('tabPlanningContent');
+  const btnEquipe = document.getElementById('tabEquipe');
+  const btnPlanning = document.getElementById('tabPlanning');
+  if(tab === 'equipe'){
+    equipe.style.display = 'block';
+    planning.style.display = 'none';
+    btnEquipe.style.background = 'var(--p)';
+    btnEquipe.style.color = 'white';
+    btnPlanning.style.background = 'transparent';
+    btnPlanning.style.color = 'var(--muted)';
+  } else {
+    equipe.style.display = 'none';
+    planning.style.display = 'block';
+    btnEquipe.style.background = 'transparent';
+    btnEquipe.style.color = 'var(--muted)';
+    btnPlanning.style.background = 'var(--p)';
+    btnPlanning.style.color = 'white';
+    renderPlanning();
+  }
+};
 
+async function renderPlanning(){
+  const projet = projets.find(p=>p.id===currentProjectId);
+  if(!projet||!projet.date_debut){
+    document.getElementById('planningGrid').innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;">Aucune date définie pour ce projet.</div>';
+    return;
+  }
+
+  // Récupère les membres confirmés
+  const h = readHeaders();
+  const members = await fetch(SUPABASE_URL+'/rest/v1/pro_project_members?project_id=eq.'+currentProjectId+'&statut=eq.confirme&select=*,pro_contacts(*)',{headers:h}).then(r=>r.json());
+  if(!Array.isArray(members)||!members.length){
+    document.getElementById('planningGrid').innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;">Aucun technicien confirmé pour l\'instant.</div>';
+    return;
+  }
+
+  // Génère les dates
+  const start = new Date(projet.date_debut+'T00:00:00');
+  const end = projet.date_fin ? new Date(projet.date_fin+'T00:00:00') : new Date(start.getTime()+13*86400000);
+  const dates = [];
+  for(let d = new Date(start); d <= end; d.setDate(d.getDate()+1)){
+    dates.push(new Date(d));
+  }
+
+  // Récupère les présences existantes
+  const presences = await fetch(SUPABASE_URL+'/rest/v1/pro_planning_days?project_id=eq.'+currentProjectId,{headers:h}).then(r=>r.json());
+  const presenceMap = {};
+  if(Array.isArray(presences)){
+    presences.forEach(p=>{presenceMap[p.contact_id+'_'+p.date]=p.present;});
+  }
+
+  // Total budget
+  let totalJours = 0;
+  let totalBudget = 0;
+
+  // Construit la table
+  const jours = ['Di','Lu','Ma','Me','Je','Ve','Sa'];
+  let html = '<table style="border-collapse:collapse;min-width:100%;">';
+  html += '<thead><tr style="background:var(--p);">';
+  html += '<th style="padding:10px 14px;font-size:11px;font-weight:800;color:white;text-align:left;min-width:160px;position:sticky;left:0;background:var(--p);border-right:1px solid rgba(255,255,255,.15);">Nom</th>';
+  html += '<th style="padding:10px 12px;font-size:11px;font-weight:800;color:white;text-align:left;min-width:100px;border-right:1px solid rgba(255,255,255,.15);">Poste</th>';
+  html += '<th style="padding:10px 12px;font-size:11px;font-weight:800;color:white;text-align:center;min-width:60px;border-right:1px solid rgba(255,255,255,.15);">€/j</th>';
+  dates.forEach(d=>{
+    const j = jours[d.getDay()];
+    const dd = String(d.getDate()).padStart(2,'0');
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    html += `<th style="padding:8px 6px;font-size:10px;font-weight:800;color:white;text-align:center;min-width:44px;border-right:1px solid rgba(255,255,255,.15);">${j}<br/>${dd}/${mm}</th>`;
+  });
+  html += '<th style="padding:10px 12px;font-size:11px;font-weight:800;color:white;text-align:center;min-width:90px;background:rgba(255,255,255,.15);">Total</th>';
+  html += '</tr></thead><tbody>';
+
+  members.forEach(m=>{
+    const c = m.pro_contacts||{};
+    let joursPresent = 0;
+    let rowHtml = '';
+    dates.forEach(d=>{
+      const dateStr = d.toISOString().slice(0,10);
+      const key = c.id+'_'+dateStr;
+      const present = presenceMap[key] !== false;
+      rowHtml += `<td style="text-align:center;padding:6px 4px;">
+        <div onclick="togglePresence('${c.id}','${dateStr}',this)" 
+          style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;margin:0 auto;font-size:13px;transition:all .15s;${present?'background:rgba(18,117,74,.15);color:#12754A;':'background:rgba(13,27,42,.05);color:transparent;'}">✓</div>
+      </td>`;
+      if(present) joursPresent++;
+    });
+    const prix = c.prix_journalier||0;
+    const total = joursPresent * prix;
+    totalJours += joursPresent;
+    totalBudget += total;
+    html += `<tr style="border-bottom:1px solid var(--line);">
+      <td style="padding:10px 14px;font-size:13px;font-weight:700;color:var(--text);position:sticky;left:0;background:white;border-right:1px solid var(--line);">${tc(c.nom)} ${tc(c.prenom||'')}</td>
+      <td style="padding:10px 12px;font-size:12px;color:var(--muted);border-right:1px solid var(--line);">${esc(c.poste||'')}</td>
+      <td style="padding:10px 12px;font-size:12px;color:var(--muted);text-align:center;border-right:1px solid var(--line);">${prix?prix+'€':'—'}</td>
+      ${rowHtml}
+      <td style="padding:10px 12px;font-size:12px;font-weight:800;color:var(--p);text-align:center;background:rgba(13,79,108,.04);">${joursPresent}j${total?' · '+total+'€':''}</td>
+    </tr>`;
+  });
+
+  // Ligne total
+  html += `<tr style="background:rgba(13,79,108,.04);border-top:2px solid var(--line);">
+    <td colspan="3" style="padding:10px 14px;font-size:11px;font-weight:800;color:var(--p);text-transform:uppercase;letter-spacing:.06em;position:sticky;left:0;background:rgba(13,79,108,.04);">TOTAL</td>`;
+  dates.forEach(d=>{
+    const dateStr = d.toISOString().slice(0,10);
+    let count = 0;
+    members.forEach(m=>{
+      const c = m.pro_contacts||{};
+      const key = c.id+'_'+dateStr;
+      if(presenceMap[key]!==false) count++;
+    });
+    html += `<td style="text-align:center;padding:8px 4px;font-size:11px;font-weight:800;color:var(--p);">${count}</td>`;
+  });
+  html += `<td style="padding:10px 12px;font-size:12px;font-weight:800;color:var(--p);text-align:center;">${totalJours}j${totalBudget?' · '+totalBudget+'€':''}</td></tr>`;
+  html += '</tbody></table>';
+
+  document.getElementById('planningGrid').innerHTML = html;
+  document.getElementById('planningStats').textContent = members.length+' techs · '+dates.length+' jours · Budget : '+(totalBudget?totalBudget+'€':'non renseigné');
+}
+
+window.togglePresence = async(contactId, dateStr, el) => {
+  const isOn = el.style.background.includes('117');
+  const newVal = !isOn;
+  el.style.background = newVal ? 'rgba(18,117,74,.15)' : 'rgba(13,27,42,.05)';
+  el.style.color = newVal ? '#12754A' : 'transparent';
+
+  const h = {'apikey':SUPABASE_ANON,'Authorization':'Bearer '+sessionToken,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'};
+  await fetch(SUPABASE_URL+'/rest/v1/pro_planning_days',{
+    method:'POST',
+    headers:h,
+    body:JSON.stringify({project_id:currentProjectId,contact_id:contactId,date:dateStr,present:newVal})
+  });
+};
+
+window.exportPlanningPDF = () => {
+  alert('Export PDF — bientôt disponible');
+};
 window.terminerProjet = async() => {
   if(!confirm('Clore ce projet ?'))return;
   await setStatut(currentProjectId,'termine');
