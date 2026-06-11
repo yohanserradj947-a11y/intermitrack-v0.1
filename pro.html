@@ -866,15 +866,26 @@ window.openDetail = async(projectId) => {
   document.getElementById('listAttente').innerHTML = attente.length?attente.map(m=>renderMember(m,'⏳ En attente','tag-wait')).join(''):'<div style="font-size:12px;color:var(--muted);padding:8px 0;">Tout le monde a répondu</div>';
   document.getElementById('listRefus').innerHTML = refus.length?refus.map(m=>renderMember(m,'✗ Refusé','tag-no')).join(''):'<div style="font-size:12px;color:var(--muted);padding:8px 0;">Aucun refus</div>';
 
-  if(attente.length>0){
-    document.getElementById('infoRelance').style.display='block';
-    document.getElementById('infoRelance').textContent = attente.length+' personne'+(attente.length>1?'s':'')+' n\'ont pas encore répondu';
-    document.getElementById('relancerBtn').textContent = '📨 Relancer ('+attente.length+')';
-  } else {
-    document.getElementById('infoRelance').style.display='none';
-  }
+  const relancerBtn = document.getElementById('relancerBtn');
+if(total === 0){
+  relancerBtn.textContent = '📨 Envoyer mail + SMS';
+  relancerBtn.style.display = 'flex';
+  document.getElementById('infoRelance').style.display = 'none';
+} else if(attente.length > 0 && confirmes.length === 0 && refus.length === 0){
+  relancerBtn.textContent = '📨 Envoyer mail + SMS';
+  relancerBtn.style.display = 'flex';
+  document.getElementById('infoRelance').style.display = 'none';
+} else if(attente.length > 0){
+  relancerBtn.textContent = '🔄 Relancer ('+attente.length+')';
+  relancerBtn.style.display = 'flex';
+  document.getElementById('infoRelance').style.display = 'block';
+  document.getElementById('infoRelance').textContent = attente.length+' personne'+(attente.length>1?'s':'')+' n\'ont pas encore répondu';
+} else {
+  relancerBtn.style.display = 'none';
+  document.getElementById('infoRelance').style.display = 'none';
+}
 
-  showScreen('s-detail', null);
+showScreen('s-detail', null);
 };
 
 window.terminerProjet = async() => {
