@@ -917,7 +917,10 @@ window.addToProject = () => {
 };
 window.relancerAttente = async() => {
   if(!currentProjectId){return;}
-  const h = readHeaders();
+  const {data:{session}} = await sb.auth.getSession();
+  if(!session){alert('Session expirée, reconnecte toi.');return;}
+  sessionToken = session.access_token;
+  const h = {'apikey':SUPABASE_ANON,'Authorization':'Bearer '+sessionToken};
   const members = await fetch(SUPABASE_URL+'/rest/v1/pro_project_members?project_id=eq.'+currentProjectId+'&statut=eq.invite&select=*,pro_contacts(*)',{headers:h}).then(r=>r.json());
   if(!Array.isArray(members)||!members.length){alert('Tous les techniciens ont déjà répondu.');return;}
   const projet = projets.find(p=>p.id===currentProjectId);
@@ -925,25 +928,45 @@ window.relancerAttente = async() => {
   for(const member of members){
     const c = member.pro_contacts||{};
     if(c.email){
-      await fetch(FUNC_URL+'/send-invitation',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
-        body:JSON.stringify({
-          to_email:c.email,
-          to_name:((c.prenom||'')+' '+c.nom).trim(),
-          poste:c.poste||'Technicien',
-          projet_nom:projet.nom,
-          production:projet.production||'',
-          date_debut:projet.date_debut||'',
-          date_fin:projet.date_fin||'',
-          lieu:projet.lieu||'',
-          token:member.token
-        })
-      });
+      try {
+        await fetch(FUNC_URL+'/send-invitation',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
+          body:JSON.stringify({
+            to_email:c.email,
+            to_name:((c.prenom||'')+' '+c.nom).trim(),
+            chef_nom:chefNom,
+            poste:c.poste||'Technicien',
+            projet_nom:projet.nom,
+            production:projet.production||'',
+            date_debut:projet.date_debut||'',
+            date_fin:projet.date_fin||'',
+            lieu:projet.lieu||'',
+            token:member.token
+          })
+        });
+      } catch(e){console.warn('Mail échoué:',e);}
+    }
+    if(c.telephone){
+      try {
+        await fetch(FUNC_URL+'/send-sms',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
+          body:JSON.stringify({
+            to_phone:formatPhone(c.telephone),
+            to_name:((c.prenom||'')+' '+c.nom).trim(),
+            projet_nom:projet.nom,
+            date_debut:projet.date_debut||'',
+            date_fin:projet.date_fin||'',
+            lieu:projet.lieu||'',
+            token:member.token
+          })
+        });
+      } catch(e){console.warn('SMS échoué:',e);}
     }
     sent++;
   }
-  alert('✅ '+sent+' relance'+(sent>1?'s':'')+' envoyée'+(sent>1?'s':'')+'  !');
+  alert('✅ '+sent+' message'+(sent>1?'s':'')+' envoyé'+(sent>1?'s':'')+' !');
   await openDetail(currentProjectId);
 };
 
