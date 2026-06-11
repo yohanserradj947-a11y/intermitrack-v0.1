@@ -449,13 +449,26 @@ sb.auth.onAuthStateChange(async(_e, session) => {
     document.getElementById('authPage').style.display = 'none';
     document.getElementById('proApp').style.display = 'grid';
     const { data: prof } = await sb.from('profiles').select('display_name').eq('id', currentUser.id).single();
-chefNom = prof?.display_name || currentUser.email;
-await loadAll();
+    chefNom = prof?.display_name || currentUser.email;
+    await loadAll();
   } else if(currentUser && !PRO_USERS.includes(currentUser.id)){
     await sb.auth.signOut();
   } else {
     document.getElementById('authPage').style.display = 'flex';
     document.getElementById('proApp').style.display = 'none';
+  }
+});
+
+// Chargement immédiat au refresh
+sb.auth.getSession().then(async({data:{session}}) => {
+  if(session && PRO_USERS.includes(session.user.id)){
+    currentUser = session.user;
+    sessionToken = session.access_token;
+    document.getElementById('authPage').style.display = 'none';
+    document.getElementById('proApp').style.display = 'grid';
+    const { data: prof } = await sb.from('profiles').select('display_name').eq('id', currentUser.id).single();
+    chefNom = prof?.display_name || currentUser.email;
+    await loadAll();
   }
 });
 
