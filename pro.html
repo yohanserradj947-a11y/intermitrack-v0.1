@@ -870,21 +870,28 @@ window.terminerProjet = async() => {
   await setStatut(currentProjectId,'termine');
   showScreen('s-projets', document.querySelector('.nav-item:nth-child(2)'));
 };
-
 window.addToProject = () => {
   selectedContacts = [];
   renderContacts();
-  updateSelBar();
-  showScreen('s-contacts', document.querySelector('.nav-item:first-child'));
+  
+  // Forcer l'affichage de la barre avec le projet présélectionné
+  const bar = document.getElementById('selBar');
+  bar.classList.add('show');
+  document.getElementById('selCount').textContent = '0 sélectionné';
+  
+  const sel = document.getElementById('sendToProject');
+  const actifs = projets.filter(p=>p.statut!=='termine');
+  sel.innerHTML = '<option value="">Choisir un projet...</option>' + actifs.map(p=>`<option value="${p.id}">${esc(p.nom)}</option>`).join('');
+  
   if(currentProjectId){
-    const sel = document.getElementById('sendToProject');
     setTimeout(()=>{
       const opt = sel.querySelector(`option[value="${currentProjectId}"]`);
-      if(opt) opt.selected=true;
-    },200);
+      if(opt) opt.selected = true;
+    },100);
   }
+  
+  showScreen('s-contacts', document.querySelector('.nav-item:first-child'));
 };
-
 window.relancerAttente = async() => {
   if(!currentProjectId){return;}
   const h = readHeaders();
