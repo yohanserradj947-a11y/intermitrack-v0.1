@@ -361,7 +361,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
           <div class="poste-chip" data-p="Autre">Autre</div>
         </div>
       </div>
-      <div class="full"><label class="form-label">Notes</label><input class="form-input" id="cNotes" placeholder="Notes optionnelles..."/></div>
+      <div><label class="form-label">Prix journalier (€)</label><input class="form-input" id="cPrix" type="number" placeholder="300"/></div>
+<div><label class="form-label">Notes</label><input class="form-input" id="cNotes" placeholder="Notes optionnelles..."/></div>
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeContactModal()">Annuler</button>
@@ -602,7 +603,7 @@ window.openContactModal = (id=null) => {
       document.querySelectorAll('.poste-chip').forEach(chip=>{if(postes.includes(chip.dataset.p))chip.classList.add('on');});
     }
   } else {
-    ['cNom','cPrenom','cEmail','cTel','cNotes'].forEach(i=>document.getElementById(i).value='');
+  ['cNom','cPrenom','cEmail','cTel','cNotes','cPrix'].forEach(i=>document.getElementById(i).value='');
   }
   document.getElementById('modalContact').classList.remove('hidden');
 };
@@ -632,7 +633,8 @@ document.getElementById('saveContactBtn').addEventListener('click', async() => {
     email: document.getElementById('cEmail').value.trim(),
     telephone: document.getElementById('cTel').value.trim(),
     poste: selectedPostes.join(', '),
-    notes: document.getElementById('cNotes').value.trim()
+    notes: document.getElementById('cNotes').value.trim(),
+    prix_journalier: parseInt(document.getElementById('cPrix').value)||0
   };
   const url = SUPABASE_URL+'/rest/v1/pro_contacts'+(editContactId?'?id=eq.'+editContactId:'');
   const res = await fetch(url,{method:editContactId?'PATCH':'POST',headers:apiHeaders(),body:JSON.stringify(payload)});
@@ -640,7 +642,6 @@ document.getElementById('saveContactBtn').addEventListener('click', async() => {
   closeContactModal();
   await loadAll();
 });
-
 window.deleteContact = async(id) => {
   if(!confirm('Supprimer ce contact ?'))return;
   await fetch(SUPABASE_URL+'/rest/v1/pro_contacts?id=eq.'+id,{method:'DELETE',headers:apiHeaders()});
