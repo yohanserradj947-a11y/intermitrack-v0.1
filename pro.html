@@ -183,7 +183,25 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 /* Back btn */
 .back-btn{background:var(--soft);border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--p);cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:14px;display:inline-flex;align-items:center;gap:5px;}
 
-@media(max-width:768px){
+/* Zone d'envoi avec choix du canal (Mail / SMS) */
+.send-box{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+.send-add{justify-content:center;}
+.send-channels{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--soft);border:1px solid var(--line);border-radius:11px;padding:10px 14px;}
+.send-channels-lbl{font-size:12px;font-weight:700;color:var(--muted);}
+.chan{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:var(--p);cursor:pointer;user-select:none;}
+.chan input{width:17px;height:17px;accent-color:var(--p);cursor:pointer;}
+.send-go{background:rgba(232,101,10,.1);color:var(--o);justify-content:center;}
+
+/* Barre de navigation mobile — styles de base (AVANT la media query pour qu'elle ne soit pas écrasée) */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:#fff;border-top:1px solid var(--line);padding:6px 4px;padding-bottom:calc(6px + env(safe-area-inset-bottom));box-shadow:0 -2px 12px rgba(13,27,42,.08);}
+.mnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:transparent;border:none;color:var(--muted);font-size:9.5px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;padding:6px 2px;}
+.mnav-item span{font-size:18px;line-height:1;}
+.mnav-item.on{color:var(--p);}
+.mnav-add{color:var(--g);}
+/* Anti-débordement horizontal (évite d'avoir à dézoomer) */
+html,body{overflow-x:hidden;max-width:100%;}
+
+@media(max-width:900px){
   .layout{grid-template-columns:1fr;grid-template-rows:auto 1fr;}
   .sidebar{display:none;}
   .main{padding:14px;padding-bottom:86px;}
@@ -193,79 +211,16 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   .top-stats{display:none;}
   .topbar{padding:0 14px;}
   .mobile-nav{display:flex;}
-}
-/* Barre de navigation mobile */
-.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:#fff;border-top:1px solid var(--line);padding:6px 4px;padding-bottom:calc(6px + env(safe-area-inset-bottom));box-shadow:0 -2px 12px rgba(13,27,42,.08);}
-.mnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:transparent;border:none;color:var(--muted);font-size:9.5px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;padding:6px 2px;}
-.mnav-item span{font-size:18px;line-height:1;}
-.mnav-item.on{color:var(--p);}
-.mnav-add{color:var(--g);}
-/* Anti-débordement horizontal (évite d'avoir à dézoomer) */
-html,body{overflow-x:hidden;max-width:100%;}
-/* ═══════ VITRINE PRO (classes ps-, couleurs du site principal) ═══════ */
-.ps-nav{max-width:1380px;margin:0 auto;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;gap:16px;}
-.ps-brand{display:flex;align-items:center;gap:12px;}
-.ps-logo{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#1F4E5F,#7A9E7E);display:grid;place-items:center;color:#fff;font-weight:800;font-size:18px;box-shadow:0 10px 25px rgba(31,78,95,.18);}
-.ps-brand-name{font-size:20px;font-weight:800;letter-spacing:-.03em;color:#2D3748;}
-.ps-brand-name small{display:block;font-size:12px;font-weight:700;color:#718096;letter-spacing:0;}
-.ps-nav-btns{display:flex;gap:10px;}
-.ps-btn-outline{background:#fff;color:#1F4E5F;border:1px solid #E2E8F0;border-radius:15px;padding:11px 18px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;}
-.ps-btn-outline:hover{background:#EEF4F1;}
-.ps-btn-filled{background:#1F4E5F;color:#fff;border:none;border-radius:15px;padding:11px 18px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;}
-.ps-btn-filled:hover{filter:brightness(.95);}
-.ps-show{background:linear-gradient(125deg,#1F4E5F 0%,#356374 42%,#7A9E7E 100%);padding:62px 22px 70px;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
-.ps-show-inner{max-width:1240px;margin:0 auto;}
-.ps-eyebrow{text-align:center;font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.78);margin-bottom:14px;}
-.ps-h{text-align:center;font-size:40px;line-height:1.08;font-weight:900;letter-spacing:-.05em;margin:0 auto 14px;max-width:760px;color:#fff;}
-.ps-sub{text-align:center;font-size:16px;line-height:1.55;color:rgba(255,255,255,.9);max-width:600px;margin:0 auto 44px;}
-.ps-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
-.ps-mock-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:24px;padding:18px;backdrop-filter:blur(4px);}
-.ps-mock-title{font-size:18px;font-weight:800;letter-spacing:-.02em;margin:16px 4px 4px;color:#fff;}
-.ps-mock-desc{font-size:13.5px;line-height:1.5;color:rgba(255,255,255,.82);margin:0 4px;}
-.ps-note{text-align:center;font-size:12px;font-style:italic;color:rgba(255,255,255,.7);margin-top:30px;}
-.ps-screen{background:#fff;border-radius:16px;padding:14px;color:#2D3748;box-shadow:0 22px 40px rgba(31,78,95,.22);}
-.ps-screen-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-.ps-screen-head b{font-size:13px;color:#1F4E5F;font-weight:900;}
-.ps-chip{font-size:10px;font-weight:800;color:#1F4E5F;background:#EEF4F1;padding:4px 9px;border-radius:99px;}
-.ps-search{font-size:11px;color:#718096;background:#F8FAF9;border:1px solid #E2E8F0;border-radius:10px;padding:8px 10px;margin-bottom:12px;}
-.ps-contacts{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
-.ps-contact{background:#F8FAF9;border:1px solid #E2E8F0;border-radius:13px;padding:11px 6px;text-align:center;}
-.ps-av{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:12px;margin:0 auto 7px;}
-.ps-c-name{font-size:10px;font-weight:800;color:#2D3748;line-height:1.2;}
-.ps-c-poste{font-size:8.5px;color:#718096;margin-top:2px;}
-.ps-counters{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:11px;}
-.ps-counter{background:#F8FAF9;border:1px solid #E2E8F0;border-radius:12px;padding:9px 4px;text-align:center;}
-.ps-counter b{display:block;font-size:21px;font-weight:900;letter-spacing:-.03em;line-height:1;}
-.ps-counter span{display:block;font-size:8.5px;font-weight:800;text-transform:uppercase;color:#718096;margin-top:4px;letter-spacing:.03em;}
-.ps-bar{height:6px;background:#E2E8F0;border-radius:99px;overflow:hidden;margin-bottom:13px;}
-.ps-bar-fill{height:100%;width:67%;background:linear-gradient(90deg,#1F4E5F,#7A9E7E);border-radius:99px;}
-.ps-member{display:flex;align-items:center;gap:9px;background:#F8FAF9;border:1px solid #E2E8F0;border-radius:12px;padding:8px 10px;margin-bottom:6px;}
-.ps-m-av{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:10px;flex-shrink:0;}
-.ps-m-body{flex:1;min-width:0;text-align:left;}
-.ps-m-name{font-size:11px;font-weight:800;color:#2D3748;}
-.ps-m-poste{font-size:9px;color:#718096;margin-top:1px;}
-.ps-tag{font-size:9px;font-weight:800;padding:4px 9px;border-radius:8px;white-space:nowrap;}
-.ps-tag-ok{background:rgba(122,158,126,.18);color:#2F6B47;}
-.ps-tag-wait{background:rgba(249,115,22,.14);color:#C05621;}
-.ps-feats{max-width:1240px;margin:0 auto;padding:54px 22px 10px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
-.ps-feat{background:linear-gradient(145deg,#FFFFFF,#EEF4F1);border:1px solid #E2E8F0;border-radius:20px;padding:22px;box-shadow:0 10px 24px rgba(31,78,95,.06);}
-.ps-feat-icon{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,#1F4E5F,#7A9E7E);color:#fff;font-size:22px;box-shadow:0 10px 20px rgba(31,78,95,.16);margin-bottom:14px;}
-.ps-feat h3{margin:0 0 7px;color:#1F4E5F;font-size:17px;letter-spacing:-.02em;}
-.ps-feat p{margin:0;color:#718096;font-size:13.5px;line-height:1.5;}
-.ps-cta{max-width:1240px;margin:46px auto 10px;padding:0 22px;}
-.ps-cta-card{background:linear-gradient(135deg,#1F4E5F,#2A6174);border-radius:26px;padding:42px 28px;text-align:center;color:#fff;box-shadow:0 20px 50px rgba(31,78,95,.25);}
-.ps-cta-card h2{margin:0 0 8px;font-size:26px;font-weight:900;letter-spacing:-.03em;color:#fff;}
-.ps-cta-card p{margin:0 auto 22px;font-size:15px;color:rgba(255,255,255,.86);max-width:480px;line-height:1.5;}
-.ps-cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
-.ps-cta-primary{background:#fff;color:#1F4E5F;border:none;border-radius:15px;padding:14px 24px;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;}
-.ps-cta-ghost{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:15px;padding:14px 24px;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;}
-.ps-cta-primary:hover{transform:translateY(-1px);}
-.ps-cta-ghost:hover{background:rgba(255,255,255,.2);}
-@media(max-width:880px){
-  .ps-h{font-size:30px;}
-  .ps-grid{grid-template-columns:1fr;}
-  .ps-feats{grid-template-columns:1fr;}
-  .ps-nav-btns .ps-btn-outline{display:none;}
+  .form-grid{grid-template-columns:1fr;}
+  .page-hdr{flex-direction:column;align-items:flex-start;gap:12px;}
+  .page-hdr > div:last-child{width:100%;}
+  .page-hdr .btn-action,.page-hdr .btn-ghost{flex:1;justify-content:center;}
+  .sel-bar{flex-direction:column;align-items:stretch;}
+  .sel-bar > div{flex-wrap:wrap;}
+  #sendToProject{flex:1;}
+  .modal{padding:20px;}
+  .counter-grid .cg{padding:0 8px;}
+  .cg-val{font-size:32px;}
 }
 /* ═══════ VITRINE PRO (classes ps-, couleurs du site principal) ═══════ */
 .ps-nav{max-width:1380px;margin:0 auto;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;gap:16px;}
@@ -587,9 +542,14 @@ html,body{overflow-x:hidden;max-width:100%;}
               <div class="pbar"><div class="pbar-fill fill-g" id="detailBar" style="width:0%"></div></div>
               <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:6px;text-align:right;" id="detailTotal">0 / 0</div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
-              <button class="btn-action" style="justify-content:center;" onclick="addToProject()">+ Ajouter des techs</button>
-              <button class="btn-action" style="background:rgba(232,101,10,.1);color:var(--o);justify-content:center;" id="relancerBtn" onclick="relancerAttente()">📨 Envoyer mail + SMS</button>
+            <div class="send-box">
+              <button class="btn-action send-add" onclick="addToProject()">+ Ajouter des techs</button>
+              <div class="send-channels">
+                <span class="send-channels-lbl">Envoyer par :</span>
+                <label class="chan"><input type="checkbox" id="chanMail" checked/> 📧 Mail</label>
+                <label class="chan"><input type="checkbox" id="chanSms" checked/> 💬 SMS</label>
+              </div>
+              <button class="btn-action send-go" id="relancerBtn" onclick="relancerAttente()">📨 Envoyer (0)</button>
             </div>
             <div class="section-lbl" style="color:var(--g);">✅ Confirmés</div>
             <div id="listConfirmes"></div>
@@ -1031,8 +991,26 @@ window.sendToSelectedProject = async() => {
   let pid = document.getElementById('sendToProject').value;
   if(!pid && currentProjectId) pid = currentProjectId;
   if(!pid){alert('Choisis un projet.');return;}
-  await sendInvitations(pid);
+  await addContactsToProject(pid);
 };
+
+// Ajoute les contacts sélectionnés au projet SANS envoyer de message
+async function addContactsToProject(projectId){
+  if(!selectedContacts.length){alert('Sélectionne au moins un contact.');return;}
+  let added=0;
+  for(const contactId of selectedContacts){
+    const {data:member,error:me} = await sb.from('pro_project_members').upsert({
+      project_id:projectId, contact_id:contactId, statut:'invite'
+    },{onConflict:'project_id,contact_id'}).select().single();
+    if(me||!member){console.error('Member error:',me);continue;}
+    added++;
+  }
+  selectedContacts=[];
+  updateSelBar();
+  renderContacts();
+  alert('✅ '+added+' personne'+(added>1?'s':'')+' ajoutée'+(added>1?'s':'')+' au projet.\nVa dans le projet pour envoyer Mail / SMS quand tu veux.');
+  await openDetail(projectId);
+}
 // ── Add/Edit contact ─────────────────────────────────────
 window.openContactModal = (id=null) => {
   editContactId = id;
@@ -1293,9 +1271,10 @@ window.openDetail = async(projectId) => {
   if(attente.length>0){
     document.getElementById('infoRelance').style.display='block';
     document.getElementById('infoRelance').textContent = attente.length+' personne'+(attente.length>1?'s':'')+' n\'ont pas encore répondu';
-    document.getElementById('relancerBtn').textContent = '📨 Relancer ('+attente.length+')';
+    document.getElementById('relancerBtn').textContent = '📨 Envoyer ('+attente.length+')';
   } else {
     document.getElementById('infoRelance').style.display='none';
+    document.getElementById('relancerBtn').textContent = '📨 Envoyer (0)';
   }
 
   showScreen('s-detail', null);
@@ -1519,14 +1498,19 @@ function formatPhone(tel){
 
 window.relancerAttente = async() => {
   if(!currentProjectId){return;}
+  const sendMail = document.getElementById('chanMail')?.checked;
+  const sendSms = document.getElementById('chanSms')?.checked;
+  if(!sendMail && !sendSms){ alert('Coche au moins un canal : Mail ou SMS.'); return; }
   const h = readHeaders();
   const members = await fetch(SUPABASE_URL+'/rest/v1/pro_project_members?project_id=eq.'+currentProjectId+'&statut=eq.invite&select=*,pro_contacts(*)',{headers:h}).then(r=>r.json());
-  if(!Array.isArray(members)||!members.length){alert('Tous les techniciens ont déjà répondu.');return;}
+  if(!Array.isArray(members)||!members.length){alert('Personne en attente à qui envoyer.');return;}
   const projet = projets.find(p=>p.id===currentProjectId);
+  const canaux = [sendMail?'Mail':null, sendSms?'SMS':null].filter(Boolean).join(' + ');
+  if(!confirm('Envoyer par '+canaux+' à '+members.length+' personne'+(members.length>1?'s':'')+' en attente ?')) return;
   let sent=0;
   for(const member of members){
     const c = member.pro_contacts||{};
-    if(c.email){
+    if(sendMail && c.email){
       await fetch(FUNC_URL+'/send-invitation',{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
@@ -1544,7 +1528,7 @@ window.relancerAttente = async() => {
         })
       });
     }
-    if(c.telephone){
+    if(sendSms && c.telephone){
       await fetch(FUNC_URL+'/send-sms',{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
@@ -1561,7 +1545,7 @@ window.relancerAttente = async() => {
     }
     sent++;
   }
-  alert('✅ '+sent+' message'+(sent>1?'s':'')+' envoyé'+(sent>1?'s':'')+' !');
+  alert('✅ Envoi ('+canaux+') effectué pour '+sent+' personne'+(sent>1?'s':'')+' !');
   await openDetail(currentProjectId);
 };
 
