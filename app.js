@@ -450,7 +450,7 @@ async function logout() {
 
 async function loadMissions() {
   const { data, error } = await sb.from("missions").select("*").order("mission_date", { ascending: false });
-  if (error) { alert("Erreur chargement missions : " + error.message); return; }
+  if (error) { toast("Erreur chargement missions : " + error.message); return; }
   missions = (data || []).map((x) => ({
     id: x.id, production: x.production, type: x.mission_type,
     date: x.mission_date, endDate: x.end_date || x.mission_date,
@@ -466,7 +466,7 @@ async function loadDocuments() {
   if (!currentUser) return;
   const { data, error } = await sb.from("documents").select("*")
     .order("doc_year", { ascending: false }).order("doc_month", { ascending: false }).order("created_at", { ascending: false });
-  if (error) { alert("Erreur chargement documents : " + error.message); return; }
+  if (error) { toast("Erreur chargement documents : " + error.message); return; }
   documents = data || [];
   renderDocuments();
 }
@@ -478,25 +478,25 @@ function safeFileName(name) {
 
 async function uploadDocument(event) {
   event.preventDefault();
-  if (!currentUser) { alert("Connecte-toi avant d'ajouter un document."); return; }
+  if (!currentUser) { toast("Connecte-toi avant d'ajouter un document."); return; }
   const fileInput = $("documentFile");
   const file = fileInput?.files?.[0];
-  if (!file) { alert("Ajoute un fichier PDF ou une image."); return; }
+  if (!file) { toast("Ajoute un fichier PDF ou une image."); return; }
   const type = $("documentType").value;
   const production = $("documentProduction").value.trim();
   const month = Number($("documentMonth").value);
   const year = Number($("documentYear").value);
-  if (!production || !month || !year) { alert("Complète le type, la production, le mois et l'année."); return; }
+  if (!production || !month || !year) { toast("Complète le type, la production, le mois et l'année."); return; }
   const ALLOWED_TYPES = ["application/pdf","image/jpeg","image/png","image/webp","image/gif"];
-  if (!ALLOWED_TYPES.includes(file.type)) { alert("Format non autorisé. Seuls les PDF et images sont acceptés."); return; }
+  if (!ALLOWED_TYPES.includes(file.type)) { toast("Format non autorisé. Seuls les PDF et images sont acceptés."); return; }
   const submitBtn = $("documentSubmitBtn");
   if (submitBtn) submitBtn.textContent = "Envoi en cours...";
   const cleanName = safeFileName(file.name);
   const filePath = `${currentUser.id}/${year}/${String(month).padStart(2, "0")}/${Date.now()}_${cleanName}`;
   const { error: uploadError } = await sb.storage.from("documents").upload(filePath, file, { cacheControl: "3600", upsert: false, contentType: file.type || "application/octet-stream" });
-  if (uploadError) { if (submitBtn) submitBtn.textContent = "Ajouter le document"; alert("Erreur upload document : " + uploadError.message); return; }
+  if (uploadError) { if (submitBtn) submitBtn.textContent = "Ajouter le document"; toast("Erreur upload document : " + uploadError.message); return; }
   const { error: insertError } = await sb.from("documents").insert({ user_id: currentUser.id, file_name: file.name, file_path: filePath, document_type: type, production, doc_month: month, doc_year: year, mime_type: file.type || null });
-  if (insertError) { await sb.storage.from("documents").remove([filePath]); if (submitBtn) submitBtn.textContent = "Ajouter le document"; alert("Erreur sauvegarde document : " + insertError.message); return; }
+  if (insertError) { await sb.storage.from("documents").remove([filePath]); if (submitBtn) submitBtn.textContent = "Ajouter le document"; toast("Erreur sauvegarde document : " + insertError.message); return; }
   $("documentForm").reset(); setDefaultDates();
   if (submitBtn) submitBtn.textContent = "Ajouter le document";
   await loadDocuments();
@@ -504,7 +504,7 @@ async function uploadDocument(event) {
 
 async function getDocumentSignedUrl(filePath) {
   const { data, error } = await sb.storage.from("documents").createSignedUrl(filePath, 120);
-  if (error) { alert("Erreur ouverture document : " + error.message); return null; }
+  if (error) { toast("Erreur ouverture document : " + error.message); return null; }
   return data.signedUrl;
 }
 
@@ -523,11 +523,11 @@ async function downloadDocument(filePath, fileName) {
 }
 
 async function deleteDocument(id, filePath) {
-  if (!confirm("Supprimer ce document ?")) return;
+  if (!(await confirmDialog("Supprimer ce document ?"))) return;
   const { error: storageError } = await sb.storage.from("documents").remove([filePath]);
-  if (storageError) { alert("Erreur suppression fichier : " + storageError.message); return; }
+  if (storageError) { toast("Erreur suppression fichier : " + storageError.message); return; }
   const { error: dbError } = await sb.from("documents").delete().eq("id", id);
-  if (dbError) { alert("Erreur suppression document : " + dbError.message); return; }
+  if (dbError) { toast("Erreur suppression document : " + dbError.message); return; }
   await loadDocuments();
 }
 
@@ -627,10 +627,60 @@ function renderDocuments() {
   `;
 }
 
+// ===== Notifications douces (toasts) + confirmation stylée (remplacent alert/confirm gris) =====
+function _ensureToastDom(){
+  if (document.getElementById("toastWrap")) return;
+  const style = document.createElement("style");
+  style.textContent = "#toastWrap{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:100001;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;}.toast{pointer-events:auto;min-width:200px;max-width:90vw;padding:13px 18px;border-radius:13px;font-size:13.5px;font-weight:700;color:#fff;box-shadow:0 8px 28px rgba(31,78,95,.22);display:flex;align-items:center;gap:9px;white-space:pre-line;font-family:inherit;animation:tIn .25s ease;}.toast.success{background:#2F6B47;}.toast.error{background:#DC2626;}.toast.warn{background:#1F4E5F;}.toast.out{animation:tOut .3s ease forwards;}@keyframes tIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}@keyframes tOut{to{opacity:0;transform:translateY(12px);}}#appConfirmOverlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:100002;padding:16px;}#appConfirmOverlay.open{display:flex;}.ac-box{background:#fff;border-radius:18px;max-width:380px;width:100%;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,.25);font-family:inherit;}.ac-title{font-size:16px;font-weight:800;color:#1F4E5F;margin-bottom:8px;}.ac-msg{font-size:14px;color:#2D3748;line-height:1.5;margin-bottom:20px;}.ac-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;}.ac-cancel{padding:12px;border:1px solid #E2E8F0;background:#F5F7F6;color:#718096;border-radius:11px;font-weight:700;cursor:pointer;font-family:inherit;}.ac-ok{padding:12px;border:none;background:#1F4E5F;color:#fff;border-radius:11px;font-weight:800;cursor:pointer;font-family:inherit;}";
+  document.head.appendChild(style);
+  const wrap = document.createElement("div"); wrap.id = "toastWrap"; document.body.appendChild(wrap);
+  const ov = document.createElement("div"); ov.id = "appConfirmOverlay";
+  ov.innerHTML = '<div class="ac-box"><div class="ac-title">Confirmation</div><div class="ac-msg" id="appConfirmMsg"></div><div class="ac-actions"><button type="button" class="ac-cancel" id="appConfirmNo">Annuler</button><button type="button" class="ac-ok" id="appConfirmYes">Confirmer</button></div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener("click", function(e){ if (e.target === ov) _confirmClose(false); });
+  document.getElementById("appConfirmYes").addEventListener("click", function(){ _confirmClose(true); });
+  document.getElementById("appConfirmNo").addEventListener("click", function(){ _confirmClose(false); });
+}
+
+function toast(msg, type){
+  _ensureToastDom();
+  let t = type;
+  if (!t){ if (/^✅/.test(msg)) t = "success"; else if (/erreur/i.test(msg)) t = "error"; else t = "warn"; }
+  const icon = t === "success" ? "✅" : t === "error" ? "⚠️" : "ℹ️";
+  const clean = String(msg).replace(/^✅\s*/, "");
+  const el = document.createElement("div");
+  el.className = "toast " + t;
+  const i = document.createElement("span"); i.textContent = icon;
+  const s = document.createElement("span"); s.textContent = clean;
+  el.appendChild(i); el.appendChild(s);
+  document.getElementById("toastWrap").appendChild(el);
+  setTimeout(function(){ el.classList.add("out"); setTimeout(function(){ el.remove(); }, 320); }, 3200);
+}
+
+let _appConfirmResolve = null;
+function confirmDialog(msg){
+  _ensureToastDom();
+  return new Promise(function(resolve){
+    _appConfirmResolve = resolve;
+    document.getElementById("appConfirmMsg").textContent = msg;
+    document.getElementById("appConfirmOverlay").classList.add("open");
+  });
+}
+function _confirmClose(val){
+  const ov = document.getElementById("appConfirmOverlay");
+  if (ov) ov.classList.remove("open");
+  if (_appConfirmResolve){ _appConfirmResolve(val); _appConfirmResolve = null; }
+}
+
 async function addMission(event) {
   event.preventDefault();
-  if (!currentUser) { alert("Connecte-toi avant d'ajouter une mission."); return; }
-  if ($("endDate").value < $("date").value) { alert("La date de fin ne peut pas être avant la date de début."); return; }
+  if (!currentUser) { toast("Connecte-toi avant d'ajouter une mission."); return; }
+  if ($("endDate").value < $("date").value) { toast("La date de fin ne peut pas être avant la date de début."); return; }
+
+  // Période de plus de 2 jours et création (pas une modification) → fenêtre de sélection des jours travaillés
+  const _mdpStart = $("date").value, _mdpEnd = $("endDate").value;
+  const _mdpNb = daysInclusive(new Date(_mdpStart + "T00:00:00"), new Date(_mdpEnd + "T00:00:00"));
+  if (!editingMissionId && _mdpNb > 2) { openMultiDayPicker(_mdpStart, _mdpEnd); return; }
  const payload = {
     user_id: currentUser.id, production: normalizeProductionName($("production").value),
     emission: $("emission")?.value || "",
@@ -642,21 +692,141 @@ async function addMission(event) {
   if (editingMissionId) result = await sb.from("missions").update(payload).eq("id", editingMissionId);
   else result = await sb.from("missions").insert(payload);
   const { error } = result;
-  if (error) { alert("Erreur sauvegarde : " + error.message); return; }
+  if (error) { toast("Erreur sauvegarde : " + error.message); return; }
+  await _afterMissionSave(payload.mission_date);
+}
+
+// Étapes communes après l'enregistrement d'une (ou plusieurs) mission(s)
+async function _afterMissionSave(firstDate) {
   $("missionForm").reset();
   editingMissionId = null;
   const submitBtn = document.querySelector("#missionForm button[type='submit']");
   if (submitBtn) submitBtn.textContent = "Enregistrer la mission";
   setDefaultDates(); updateKmPreview();
-  current = new Date(payload.mission_date + "T00:00:00");
+  current = new Date(firstDate + "T00:00:00");
   current.setDate(1);
   await loadMissions();
   activateView("calendar");
 }
 
+// ===== Sélecteur des jours travaillés (période de 3 jours ou plus) =====
+let _mdpData = null;
+
+function _iso(d){ return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
+function _frDay(ds){ return new Date(ds + "T00:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"2-digit",month:"long"}); }
+function _isNextDay(aStr,bStr){ const a=new Date(aStr+"T00:00:00"); a.setDate(a.getDate()+1); return _iso(a)===bStr; }
+
+function _mdpEnsureDom(){
+  if (document.getElementById("mdpOverlay")) return;
+  const style = document.createElement("style");
+  style.textContent = "#mdpOverlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:100000;padding:16px;}#mdpOverlay.open{display:flex;}.mdp-box{background:#fff;border-radius:20px;max-width:460px;width:100%;max-height:88vh;overflow-y:auto;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,.25);font-family:inherit;}.mdp-title{font-size:18px;font-weight:800;color:#1F4E5F;margin:0 0 4px;}.mdp-sub{font-size:13px;color:#718096;margin:0 0 14px;line-height:1.4;}.mdp-tools{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}.mdp-tool{padding:8px 12px;border:1px solid #E2E8F0;background:#fff;color:#1F4E5F;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}.mdp-tool:hover{background:#EEF4F1;}.mdp-fill{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;font-weight:700;color:#1F4E5F;background:#F5F7F6;border-radius:11px;padding:9px 12px;margin-bottom:14px;}.mdp-fill-input{width:66px;padding:6px 8px;border:1px solid #E2E8F0;border-radius:9px;font-size:13px;text-align:right;font-family:inherit;}.mdp-day{display:flex;align-items:center;gap:11px;padding:9px 11px;border:1px solid #E2E8F0;border-radius:12px;margin-bottom:7px;}.mdp-day.off{opacity:.5;}.mdp-day input[type=checkbox]{width:19px;height:19px;accent-color:#1F4E5F;cursor:pointer;flex-shrink:0;}.mdp-day-label{flex:1;font-size:13.5px;font-weight:700;color:#2D3748;text-transform:capitalize;}.mdp-hours{width:74px;padding:7px 9px;border:1px solid #E2E8F0;border-radius:9px;font-size:13px;text-align:right;font-family:inherit;}.mdp-hours-u{font-size:11px;color:#718096;}.mdp-total{background:#EEF4F1;border-radius:11px;padding:11px 14px;font-size:13px;font-weight:700;color:#1F4E5F;margin:6px 0 16px;}.mdp-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;}.mdp-cancel{padding:12px;border:1px solid #E2E8F0;background:#F5F7F6;color:#718096;border-radius:11px;font-weight:700;cursor:pointer;font-family:inherit;}.mdp-ok{padding:12px;border:none;background:#1F4E5F;color:#fff;border-radius:11px;font-weight:800;cursor:pointer;font-family:inherit;}";
+  document.head.appendChild(style);
+  const ov = document.createElement("div");
+  ov.id = "mdpOverlay";
+  ov.innerHTML = '<div class="mdp-box"><div class="mdp-title">Quels jours as-tu travaillés ?</div><div class="mdp-sub" id="mdpSub"></div><div class="mdp-tools"><button type="button" class="mdp-tool" id="mdpAll">Tout cocher</button><button type="button" class="mdp-tool" id="mdpNone">Tout décocher</button></div><div class="mdp-fill">Heures par jour : <input type="number" id="mdpDefault" value="8" min="0" step="0.5" class="mdp-fill-input"/><button type="button" class="mdp-tool" id="mdpApply">Appliquer aux jours cochés</button></div><div id="mdpList"></div><div class="mdp-total" id="mdpTotal"></div><div class="mdp-actions"><button type="button" class="mdp-cancel" id="mdpCancel">Annuler</button><button type="button" class="mdp-ok" id="mdpOk">Valider</button></div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener("click", function(e){ if(e.target===ov) _mdpClose(); });
+  document.getElementById("mdpCancel").addEventListener("click", _mdpClose);
+  document.getElementById("mdpAll").addEventListener("click", function(){ _mdpSetAll(true); });
+  document.getElementById("mdpNone").addEventListener("click", function(){ _mdpSetAll(false); });
+  document.getElementById("mdpApply").addEventListener("click", _mdpApplyDefault);
+  document.getElementById("mdpOk").addEventListener("click", _mdpValidate);
+}
+
+function openMultiDayPicker(startStr, endStr){
+  _mdpEnsureDom();
+  const start = new Date(startStr + "T00:00:00"), end = new Date(endStr + "T00:00:00");
+  const days = [];
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) days.push(_iso(d));
+  const defH = 8;
+  _mdpData = {
+    days: days.map(function(ds){ return { date: ds, checked: true, hours: defH }; }),
+    totalGross: Number($("gross").value) || 0,
+    production: normalizeProductionName($("production").value),
+    emission: $("emission") ? $("emission").value : "",
+    type: $("type").value,
+    km_distance: Number($("kmDistance") ? $("kmDistance").value : 0) || 0,
+    km_rate: Number($("kmRate") ? $("kmRate").value : 0) || 0,
+    km_amount: calculateKmAmount()
+  };
+  document.getElementById("mdpDefault").value = defH;
+  document.getElementById("mdpSub").textContent = "Coche les jours travaillés, puis saisis les heures de chaque jour (tu peux mettre des valeurs différentes : 9h, 4h, 12h…).";
+  _mdpRender();
+  document.getElementById("mdpOverlay").classList.add("open");
+}
+
+function _mdpRender(){
+  const list = document.getElementById("mdpList");
+  list.innerHTML = _mdpData.days.map(function(day, idx){
+    return '<div class="mdp-day ' + (day.checked ? '' : 'off') + '">' +
+      '<input type="checkbox" ' + (day.checked ? 'checked' : '') + ' data-mdp-check="' + idx + '"/>' +
+      '<div class="mdp-day-label">' + _frDay(day.date) + '</div>' +
+      '<input class="mdp-hours" type="number" min="0" step="0.5" value="' + day.hours + '" data-mdp-hours="' + idx + '" ' + (day.checked ? '' : 'disabled') + '/>' +
+      '<span class="mdp-hours-u">h</span></div>';
+  }).join("");
+  list.querySelectorAll("[data-mdp-check]").forEach(function(cb){
+    cb.addEventListener("change", function(e){ _mdpData.days[+e.target.dataset.mdpCheck].checked = e.target.checked; _mdpRender(); });
+  });
+  list.querySelectorAll("[data-mdp-hours]").forEach(function(inp){
+    inp.addEventListener("input", function(e){ _mdpData.days[+e.target.dataset.mdpHours].hours = Number(e.target.value) || 0; _mdpUpdateTotal(); });
+  });
+  _mdpUpdateTotal();
+}
+
+function _mdpUpdateTotal(){
+  const checked = _mdpData.days.filter(function(d){ return d.checked; });
+  const h = checked.reduce(function(s,d){ return s + (Number(d.hours) || 0); }, 0);
+  document.getElementById("mdpTotal").textContent = "Total : " + (Math.round(h*10)/10) + " h sur " + checked.length + " jour" + (checked.length>1 ? "s" : "");
+}
+
+function _mdpSetAll(val){ _mdpData.days.forEach(function(d){ d.checked = val; }); _mdpRender(); }
+
+// Applique la valeur "heures par jour" à tous les jours cochés (confort ; reste modifiable jour par jour)
+function _mdpApplyDefault(){
+  const v = Number(document.getElementById("mdpDefault").value) || 0;
+  _mdpData.days.forEach(function(d){ if (d.checked) d.hours = v; });
+  _mdpRender();
+}
+
+function _mdpClose(){ const ov = document.getElementById("mdpOverlay"); if (ov) ov.classList.remove("open"); }
+
+async function _mdpValidate(){
+  const checked = _mdpData.days.filter(function(d){ return d.checked; });
+  if (!checked.length) { toast("Coche au moins un jour travaillé."); return; }
+  const sumHours = checked.reduce(function(s,d){ return s + (Number(d.hours) || 0); }, 0);
+  // Regrouper les jours cochés consécutifs ayant le même nombre d'heures
+  const runs = [];
+  let cur = null;
+  for (const d of _mdpData.days){
+    if (!d.checked){ cur = null; continue; }
+    if (cur && d.hours === cur.hours && _isNextDay(cur.end, d.date)){ cur.end = d.date; cur.days++; }
+    else { cur = { start: d.date, end: d.date, hours: d.hours, days: 1 }; runs.push(cur); }
+  }
+  const payloads = runs.map(function(r, idx){
+    const runHours = r.hours * r.days;
+    const gross = sumHours > 0 ? Math.round(_mdpData.totalGross * (runHours / sumHours)) : Math.round(_mdpData.totalGross / runs.length);
+    return {
+      user_id: currentUser.id, production: _mdpData.production, emission: _mdpData.emission,
+      mission_type: _mdpData.type, mission_date: r.start, end_date: r.end,
+      hours: runHours, gross_amount: gross,
+      km_distance: idx === 0 ? _mdpData.km_distance : 0,
+      km_rate: idx === 0 ? _mdpData.km_rate : 0,
+      km_amount: idx === 0 ? _mdpData.km_amount : 0
+    };
+  });
+  const grossSum = payloads.reduce(function(s,p){ return s + p.gross_amount; }, 0);
+  if (payloads.length) payloads[0].gross_amount += (_mdpData.totalGross - grossSum);
+  const ok = document.getElementById("mdpOk"); ok.disabled = true; ok.textContent = "Enregistrement...";
+  const res = await sb.from("missions").insert(payloads);
+  ok.disabled = false; ok.textContent = "Valider";
+  if (res.error){ toast("Erreur sauvegarde : " + res.error.message); return; }
+  _mdpClose();
+  await _afterMissionSave(payloads[0].mission_date);
+}
+
 function editMission(id) {
   const mission = missions.find((m) => String(m.id) === String(id));
-  if (!mission) { alert("Mission introuvable."); return; }
+  if (!mission) { toast("Mission introuvable."); return; }
   editingMissionId = mission.id;
   $("production").value = mission.production || "";
   $("type").value = mission.type || "Autre";
@@ -674,9 +844,9 @@ function editMission(id) {
 }
 
 async function deleteMission(id) {
-  if (!confirm("Supprimer cette mission ?")) return;
+  if (!(await confirmDialog("Supprimer cette mission ?"))) return;
   const { error } = await sb.from("missions").delete().eq("id", id);
-  if (error) { alert("Erreur suppression : " + error.message); return; }
+  if (error) { toast("Erreur suppression : " + error.message); return; }
   await loadMissions();
 }
 
@@ -1209,6 +1379,50 @@ function renderHistory() {
   if ($("historyPagePrev")) $("historyPagePrev").addEventListener("click", () => { historyPage--; renderHistory(); });
   if ($("historyPageNext")) $("historyPageNext").addEventListener("click", () => { historyPage++; renderHistory(); });
 }
+let _missionsFrom = "";
+let _missionsTo = "";
+
+function _lastDayOfMonth(ym){
+  const parts = ym.split("-"); const y = +parts[0], m = +parts[1];
+  const d = new Date(y, m, 0).getDate();
+  return ym + "-" + String(d).padStart(2, "0");
+}
+
+function _missionsInPeriod(){
+  if (!_missionsFrom && !_missionsTo) return missions.slice();
+  const fromStart = _missionsFrom ? _missionsFrom + "-01" : "0000-01-01";
+  const toEnd = _missionsTo ? _lastDayOfMonth(_missionsTo) : "9999-12-31";
+  return missions.filter(function(m){
+    const s = m.date, e = m.endDate || m.date;
+    return s <= toEnd && e >= fromStart;
+  });
+}
+
+function _missionsPeriodBar(){
+  const inp = 'padding:7px 10px;border:1px solid #E2E8F0;border-radius:9px;font-family:inherit;font-size:13px;';
+  const btn = 'padding:7px 12px;border:1px solid #E2E8F0;background:#fff;color:#1F4E5F;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;';
+  const lbl = 'font-size:13px;color:#718096;font-weight:600;';
+  return '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;background:#F5F7F6;border:1px solid #E2E8F0;border-radius:12px;padding:10px 14px;">' +
+    '<span style="font-size:12px;font-weight:800;color:#1F4E5F;text-transform:uppercase;letter-spacing:.04em;">Période</span>' +
+    '<label style="' + lbl + '">Du</label>' +
+    '<input type="month" id="missionsFrom" value="' + _missionsFrom + '" style="' + inp + '"/>' +
+    '<label style="' + lbl + '">au</label>' +
+    '<input type="month" id="missionsTo" value="' + _missionsTo + '" style="' + inp + '"/>' +
+    '<button type="button" id="missionsThisYear" style="' + btn + '">Cette année</button>' +
+    '<button type="button" id="missionsAllPeriod" style="' + btn + '">Tout</button>' +
+    '</div>';
+}
+
+function _bindMissionsPeriod(){
+  const f = $("missionsFrom"), t = $("missionsTo");
+  if (f) f.addEventListener("change", function(){ _missionsFrom = f.value; renderAllMissions(); });
+  if (t) t.addEventListener("change", function(){ _missionsTo = t.value; renderAllMissions(); });
+  const ty = $("missionsThisYear");
+  if (ty) ty.addEventListener("click", function(){ const y = new Date().getFullYear(); _missionsFrom = y + "-01"; _missionsTo = y + "-12"; renderAllMissions(); });
+  const ap = $("missionsAllPeriod");
+  if (ap) ap.addEventListener("click", function(){ _missionsFrom = ""; _missionsTo = ""; renderAllMissions(); });
+}
+
 function renderAllMissions() {
   const container = $("missionsGraphContainer");
   if (!container) return;
@@ -1217,7 +1431,7 @@ function renderAllMissions() {
   const bindAddBtn = () => {
     const btn = $("missionsAddBtn");
     if (!btn) return;
-   btn.addEventListener("click", () => {
+    btn.addEventListener("click", () => {
       addMissionReturnView = "missions";
       activateView("add-mission");
       resetMissionFormForDate(new Date().toISOString().slice(0, 10));
@@ -1231,8 +1445,17 @@ function renderAllMissions() {
     return;
   }
 
+  const viewMissions = _missionsInPeriod();
+
+  if (!viewMissions.length) {
+    container.innerHTML = addBtnHtml + _missionsPeriodBar() + `<div class="empty">Aucune mission sur cette période.</div>`;
+    bindAddBtn();
+    _bindMissionsPeriod();
+    return;
+  }
+
   const groups = {};
-  missions.forEach((mission) => {
+  viewMissions.forEach((mission) => {
     const key = normalizeProductionName(mission.production || "Sans production");
     if (!groups[key]) groups[key] = [];
     groups[key].push(mission);
@@ -1259,6 +1482,7 @@ function renderAllMissions() {
   });
   container.innerHTML = `
     ${addBtnHtml}
+    ${_missionsPeriodBar()}
     <div class="missions-stats-row">
      <div class="mstat-box"><strong>${Math.round(totalHours / 8)}</strong><span>Vacations</span></div>
       <div class="mstat-box"><strong>${totalHours}h</strong><span>Heures totales</span></div>
@@ -1289,6 +1513,7 @@ function renderAllMissions() {
     </div>
   `;
   bindAddBtn();
+  _bindMissionsPeriod();
 }
 
 function openProductionMissions(productionName) {
@@ -1541,7 +1766,7 @@ function renderActualisation() {
 async function copyActualisation() {
   const text = buildActualisationText();
   await navigator.clipboard.writeText(text);
-  alert("Récapitulatif copié.");
+  toast("Récapitulatif copié.");
 }
 
 function generateActualisationPDF() {
@@ -1552,7 +1777,7 @@ function generateActualisationPDF() {
   const totalDays = sumMissionDays(list);
   const rows = list.map((mission) => `<tr><td>${escapeHtml(formatPeriod(mission.date, mission.endDate))}</td><td><strong>${escapeHtml(mission.production)}</strong></td><td>${escapeHtml(mission.type)}</td><td>${escapeHtml(mission.hours)}h</td><td>${escapeHtml(money(mission.gross))}</td></tr>`).join("");
   const win = window.open("", "_blank");
-  if (!win) { alert("Impossible d'ouvrir la fenêtre PDF. Autorise les pop-ups pour ce site."); return; }
+  if (!win) { toast("Impossible d'ouvrir la fenêtre PDF. Autorise les pop-ups pour ce site."); return; }
   win.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"/><title>Actualisation ${escapeHtml(title)}</title><style>*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#2D3748;background:#fff;padding:34px}.header{border-bottom:3px solid #1F4E5F;padding-bottom:16px;margin-bottom:22px}h1{margin:0;color:#1F4E5F;font-size:28px;letter-spacing:-.03em}.subtitle{color:#718096;margin:6px 0 0;font-size:14px}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0 24px}.summary-box{border:1px solid #E2E8F0;border-radius:14px;padding:14px;background:#F8FAF9}.summary-box strong{display:block;color:#1F4E5F;font-size:24px;line-height:1.1}.summary-box span{display:block;margin-top:4px;color:#718096;font-size:12px;text-transform:uppercase;font-weight:700}table{width:100%;border-collapse:collapse;margin-top:10px}th{text-align:left;color:#718096;font-size:12px;text-transform:uppercase;letter-spacing:.03em;padding:10px 8px;border-bottom:2px solid #E2E8F0}td{padding:12px 8px;border-bottom:1px solid #E2E8F0;font-size:14px;vertical-align:top}tr:nth-child(even) td{background:#FBFCFC}.footer{margin-top:26px;padding-top:12px;border-top:1px solid #E2E8F0;font-size:12px;color:#718096;line-height:1.45}@media print{body{padding:20px}.summary-box,tr:nth-child(even) td{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body><div class="header"><h1>Récapitulatif actualisation</h1><p class="subtitle">${escapeHtml(title)} · Généré avec Intermitrack</p></div><div class="summary"><div class="summary-box"><strong>${escapeHtml(totalDays)}</strong><span>Journées</span></div><div class="summary-box"><strong>${escapeHtml(totalHours)}h</strong><span>Heures</span></div><div class="summary-box"><strong>${escapeHtml(money(totalGross))}</strong><span>Brut total</span></div></div>${list.length ? `<table><thead><tr><th>Période</th><th>Production</th><th>Mission</th><th>Heures</th><th>Brut</th></tr></thead><tbody>${rows}</tbody></table>` : `<div class="empty">Aucune mission effectuée sur ce mois.</div>`}<p class="footer">Ce document est un récapitulatif personnel destiné à faciliter l'actualisation mensuelle. Les informations doivent être vérifiées par l'utilisateur avant déclaration officielle.</p></body></html>`);
   win.document.close(); win.focus(); win.print();
 }
@@ -1602,7 +1827,7 @@ function setupEvents() {
       localStorage.setItem(storageKey("areAdmissionDate"), value);
       areAdmissionDate = value;
       render();
-      alert("Date d'admission ARE enregistrée.");
+      toast("Date d'admission ARE enregistrée.");
     });
   }
  
@@ -1717,7 +1942,7 @@ function setupEvents() {
   window.addEventListener("beforeinstallprompt", (event) => { event.preventDefault(); deferredInstallPrompt = event; });
  
 if ($("installBtn")) $("installBtn").addEventListener("click", async () => {
-    if (!deferredInstallPrompt) { alert("Sur iPhone..."); return; }
+    if (!deferredInstallPrompt) { toast("Sur iPhone..."); return; }
     deferredInstallPrompt.prompt();
     await deferredInstallPrompt.userChoice;
     deferredInstallPrompt = null;
