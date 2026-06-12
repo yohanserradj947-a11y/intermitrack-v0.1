@@ -54,6 +54,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .form-input{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:11px;font-size:14px;color:var(--text);outline:none;margin-bottom:14px;font-family:'Inter',sans-serif;}
 .form-input:focus{border-color:var(--p2);}
 .btn-primary{width:100%;background:var(--p);color:white;border:none;border-radius:11px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Inter',sans-serif;}
+.btn-primary:disabled{opacity:.6;cursor:not-allowed;}
+.auth-tabs{display:flex;gap:6px;background:var(--bg);padding:5px;border-radius:12px;margin-bottom:20px;}
+.auth-tab{flex:1;padding:11px;border:none;border-radius:9px;background:transparent;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+.auth-tab.on{background:white;color:var(--p);box-shadow:0 1px 4px rgba(13,27,42,.12);}
 
 /* Page header */
 .page-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
@@ -182,28 +186,221 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 @media(max-width:768px){
   .layout{grid-template-columns:1fr;grid-template-rows:auto 1fr;}
   .sidebar{display:none;}
-  .main{padding:14px;}
+  .main{padding:14px;padding-bottom:86px;}
   .detail-layout{grid-template-columns:1fr;}
   .projects-grid{grid-template-columns:1fr;}
   .contacts-grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr));}
   .top-stats{display:none;}
+  .topbar{padding:0 14px;}
+  .mobile-nav{display:flex;}
+}
+/* Barre de navigation mobile */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:#fff;border-top:1px solid var(--line);padding:6px 4px;padding-bottom:calc(6px + env(safe-area-inset-bottom));box-shadow:0 -2px 12px rgba(13,27,42,.08);}
+.mnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:transparent;border:none;color:var(--muted);font-size:9.5px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;padding:6px 2px;}
+.mnav-item span{font-size:18px;line-height:1;}
+.mnav-item.on{color:var(--p);}
+.mnav-add{color:var(--g);}
+/* Anti-débordement horizontal (évite d'avoir à dézoomer) */
+html,body{overflow-x:hidden;max-width:100%;}
+/* ═══════ VITRINE PRO (classes ps-, couleurs du site principal) ═══════ */
+.ps-nav{max-width:1380px;margin:0 auto;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;gap:16px;}
+.ps-brand{display:flex;align-items:center;gap:12px;}
+.ps-logo{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#1F4E5F,#7A9E7E);display:grid;place-items:center;color:#fff;font-weight:800;font-size:18px;box-shadow:0 10px 25px rgba(31,78,95,.18);}
+.ps-brand-name{font-size:20px;font-weight:800;letter-spacing:-.03em;color:#2D3748;}
+.ps-brand-name small{display:block;font-size:12px;font-weight:700;color:#718096;letter-spacing:0;}
+.ps-nav-btns{display:flex;gap:10px;}
+.ps-btn-outline{background:#fff;color:#1F4E5F;border:1px solid #E2E8F0;border-radius:15px;padding:11px 18px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;}
+.ps-btn-outline:hover{background:#EEF4F1;}
+.ps-btn-filled{background:#1F4E5F;color:#fff;border:none;border-radius:15px;padding:11px 18px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;}
+.ps-btn-filled:hover{filter:brightness(.95);}
+.ps-show{background:linear-gradient(125deg,#1F4E5F 0%,#356374 42%,#7A9E7E 100%);padding:62px 22px 70px;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
+.ps-show-inner{max-width:1240px;margin:0 auto;}
+.ps-eyebrow{text-align:center;font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.78);margin-bottom:14px;}
+.ps-h{text-align:center;font-size:40px;line-height:1.08;font-weight:900;letter-spacing:-.05em;margin:0 auto 14px;max-width:760px;color:#fff;}
+.ps-sub{text-align:center;font-size:16px;line-height:1.55;color:rgba(255,255,255,.9);max-width:600px;margin:0 auto 44px;}
+.ps-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+.ps-mock-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:24px;padding:18px;backdrop-filter:blur(4px);}
+.ps-mock-title{font-size:18px;font-weight:800;letter-spacing:-.02em;margin:16px 4px 4px;color:#fff;}
+.ps-mock-desc{font-size:13.5px;line-height:1.5;color:rgba(255,255,255,.82);margin:0 4px;}
+.ps-note{text-align:center;font-size:12px;font-style:italic;color:rgba(255,255,255,.7);margin-top:30px;}
+.ps-screen{background:#fff;border-radius:16px;padding:14px;color:#2D3748;box-shadow:0 22px 40px rgba(31,78,95,.22);}
+.ps-screen-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.ps-screen-head b{font-size:13px;color:#1F4E5F;font-weight:900;}
+.ps-chip{font-size:10px;font-weight:800;color:#1F4E5F;background:#EEF4F1;padding:4px 9px;border-radius:99px;}
+.ps-search{font-size:11px;color:#718096;background:#F8FAF9;border:1px solid #E2E8F0;border-radius:10px;padding:8px 10px;margin-bottom:12px;}
+.ps-contacts{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
+.ps-contact{background:#F8FAF9;border:1px solid #E2E8F0;border-radius:13px;padding:11px 6px;text-align:center;}
+.ps-av{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:12px;margin:0 auto 7px;}
+.ps-c-name{font-size:10px;font-weight:800;color:#2D3748;line-height:1.2;}
+.ps-c-poste{font-size:8.5px;color:#718096;margin-top:2px;}
+.ps-counters{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:11px;}
+.ps-counter{background:#F8FAF9;border:1px solid #E2E8F0;border-radius:12px;padding:9px 4px;text-align:center;}
+.ps-counter b{display:block;font-size:21px;font-weight:900;letter-spacing:-.03em;line-height:1;}
+.ps-counter span{display:block;font-size:8.5px;font-weight:800;text-transform:uppercase;color:#718096;margin-top:4px;letter-spacing:.03em;}
+.ps-bar{height:6px;background:#E2E8F0;border-radius:99px;overflow:hidden;margin-bottom:13px;}
+.ps-bar-fill{height:100%;width:67%;background:linear-gradient(90deg,#1F4E5F,#7A9E7E);border-radius:99px;}
+.ps-member{display:flex;align-items:center;gap:9px;background:#F8FAF9;border:1px solid #E2E8F0;border-radius:12px;padding:8px 10px;margin-bottom:6px;}
+.ps-m-av{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:10px;flex-shrink:0;}
+.ps-m-body{flex:1;min-width:0;text-align:left;}
+.ps-m-name{font-size:11px;font-weight:800;color:#2D3748;}
+.ps-m-poste{font-size:9px;color:#718096;margin-top:1px;}
+.ps-tag{font-size:9px;font-weight:800;padding:4px 9px;border-radius:8px;white-space:nowrap;}
+.ps-tag-ok{background:rgba(122,158,126,.18);color:#2F6B47;}
+.ps-tag-wait{background:rgba(249,115,22,.14);color:#C05621;}
+.ps-feats{max-width:1240px;margin:0 auto;padding:54px 22px 10px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+.ps-feat{background:linear-gradient(145deg,#FFFFFF,#EEF4F1);border:1px solid #E2E8F0;border-radius:20px;padding:22px;box-shadow:0 10px 24px rgba(31,78,95,.06);}
+.ps-feat-icon{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,#1F4E5F,#7A9E7E);color:#fff;font-size:22px;box-shadow:0 10px 20px rgba(31,78,95,.16);margin-bottom:14px;}
+.ps-feat h3{margin:0 0 7px;color:#1F4E5F;font-size:17px;letter-spacing:-.02em;}
+.ps-feat p{margin:0;color:#718096;font-size:13.5px;line-height:1.5;}
+.ps-cta{max-width:1240px;margin:46px auto 10px;padding:0 22px;}
+.ps-cta-card{background:linear-gradient(135deg,#1F4E5F,#2A6174);border-radius:26px;padding:42px 28px;text-align:center;color:#fff;box-shadow:0 20px 50px rgba(31,78,95,.25);}
+.ps-cta-card h2{margin:0 0 8px;font-size:26px;font-weight:900;letter-spacing:-.03em;color:#fff;}
+.ps-cta-card p{margin:0 auto 22px;font-size:15px;color:rgba(255,255,255,.86);max-width:480px;line-height:1.5;}
+.ps-cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.ps-cta-primary{background:#fff;color:#1F4E5F;border:none;border-radius:15px;padding:14px 24px;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;}
+.ps-cta-ghost{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:15px;padding:14px 24px;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;}
+.ps-cta-primary:hover{transform:translateY(-1px);}
+.ps-cta-ghost:hover{background:rgba(255,255,255,.2);}
+@media(max-width:880px){
+  .ps-h{font-size:30px;}
+  .ps-grid{grid-template-columns:1fr;}
+  .ps-feats{grid-template-columns:1fr;}
+  .ps-nav-btns .ps-btn-outline{display:none;}
 }
 </style>
 </head>
 <body>
 
 <!-- AUTH -->
-<div id="authPage" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;">
+<div id="authPage" style="min-height:100vh;background:#F5F7F6;">
+
+  <!-- ═══════ VITRINE PRO ═══════ -->
+  <nav class="ps-nav">
+    <div class="ps-brand">
+      <div class="ps-logo">iT</div>
+      <div class="ps-brand-name">Intermitrack <small>Espace Pro</small></div>
+    </div>
+    <div class="ps-nav-btns">
+      <button class="ps-btn-outline" onclick="goToAuth('login')">Se connecter</button>
+      <button class="ps-btn-filled" onclick="goToAuth('register')">Créer un compte Pro</button>
+    </div>
+  </nav>
+
+  <section class="ps-show">
+    <div class="ps-show-inner">
+      <div class="ps-eyebrow">Espace réservé aux chefs de projet</div>
+      <h2 class="ps-h">Composez vos équipes. Suivez chaque réponse.</h2>
+      <p class="ps-sub">L'outil Pro d'Intermitrack pour gérer votre carnet d'intermittents, monter vos projets et envoyer vos convocations par mail et SMS — en quelques clics.</p>
+
+      <div class="ps-grid">
+
+        <div class="ps-mock-card">
+          <div class="ps-screen">
+            <div class="ps-screen-head"><b>Mes intermittents</b><span class="ps-chip">24 contacts</span></div>
+            <div class="ps-search">🔍 Rechercher un technicien…</div>
+            <div class="ps-contacts">
+              <div class="ps-contact"><div class="ps-av" style="background:#1F4E5F;">MD</div><div class="ps-c-name">Marc D.</div><div class="ps-c-poste">Cadreur</div></div>
+              <div class="ps-contact"><div class="ps-av" style="background:#7A9E7E;">JP</div><div class="ps-c-name">Julie P.</div><div class="ps-c-poste">Ingé son</div></div>
+              <div class="ps-contact"><div class="ps-av" style="background:#356374;">TL</div><div class="ps-c-name">Thomas L.</div><div class="ps-c-poste">Régie</div></div>
+              <div class="ps-contact"><div class="ps-av" style="background:#C05621;">SB</div><div class="ps-c-name">Sarah B.</div><div class="ps-c-poste">Chef op</div></div>
+              <div class="ps-contact"><div class="ps-av" style="background:#5A8A6E;">KM</div><div class="ps-c-name">Karim M.</div><div class="ps-c-poste">Électro</div></div>
+              <div class="ps-contact"><div class="ps-av" style="background:#2A6174;">LF</div><div class="ps-c-name">Léa F.</div><div class="ps-c-poste">Machino</div></div>
+              <div class="ps-contact"><div class="ps-av" style="background:#1F4E5F;">NR</div><div class="ps-c-name">Noé R.</div><div class="ps-c-poste">Monteur</div></div>
+              <div class="ps-contact"><div class="ps-av" style="background:#7A9E7E;">AC</div><div class="ps-c-name">Anaïs C.</div><div class="ps-c-poste">Assistant</div></div>
+            </div>
+          </div>
+          <div class="ps-mock-title">Votre carnet d'intermittents</div>
+          <p class="ps-mock-desc">Tous vos techniciens au même endroit : poste, contact, disponibilité. Importez votre liste depuis Excel en un clic.</p>
+        </div>
+
+        <div class="ps-mock-card">
+          <div class="ps-screen">
+            <div class="ps-screen-head"><b>Festival d'été · Équipe</b><span class="ps-chip">12 invités</span></div>
+            <div class="ps-counters">
+              <div class="ps-counter"><b style="color:#2F6B47;">8</b><span>Confirmés</span></div>
+              <div class="ps-counter"><b style="color:#F97316;">3</b><span>En attente</span></div>
+              <div class="ps-counter"><b style="color:#9B2C2C;">1</b><span>Refusé</span></div>
+            </div>
+            <div class="ps-bar"><div class="ps-bar-fill"></div></div>
+            <div class="ps-member"><div class="ps-m-av" style="background:#1F4E5F;">MD</div><div class="ps-m-body"><div class="ps-m-name">Marc D.</div><div class="ps-m-poste">Cadreur</div></div><span class="ps-tag ps-tag-ok">✓ Confirmé</span></div>
+            <div class="ps-member"><div class="ps-m-av" style="background:#7A9E7E;">JP</div><div class="ps-m-body"><div class="ps-m-name">Julie P.</div><div class="ps-m-poste">Ingé son</div></div><span class="ps-tag ps-tag-ok">✓ Confirmé</span></div>
+            <div class="ps-member"><div class="ps-m-av" style="background:#356374;">TL</div><div class="ps-m-body"><div class="ps-m-name">Thomas L.</div><div class="ps-m-poste">Régie</div></div><span class="ps-tag ps-tag-wait">⏳ En attente</span></div>
+          </div>
+          <div class="ps-mock-title">Le suivi d'équipe en temps réel</div>
+          <p class="ps-mock-desc">Qui a confirmé, qui hésite, qui a refusé. Relancez en attente d'un bouton et gardez une vue claire sur chaque projet.</p>
+        </div>
+
+      </div>
+      <div class="ps-note">* Aperçu de l'interface Pro. Données d'exemple.</div>
+    </div>
+  </section>
+
+  <div class="ps-feats">
+    <div class="ps-feat">
+      <div class="ps-feat-icon">📇</div>
+      <h3>Carnet d'intermittents</h3>
+      <p>Centralisez vos techniciens et leurs postes. Import Excel pour démarrer en deux minutes.</p>
+    </div>
+    <div class="ps-feat">
+      <div class="ps-feat-icon">🎬</div>
+      <h3>Projets &amp; plannings</h3>
+      <p>Créez un projet, ajoutez votre équipe et visualisez la présence de chacun jour par jour.</p>
+    </div>
+    <div class="ps-feat">
+      <div class="ps-feat-icon">📨</div>
+      <h3>Convocations mail + SMS</h3>
+      <p>Envoyez les invitations en un clic. Chaque technicien confirme ou décline, vous suivez tout en direct.</p>
+    </div>
+  </div>
+
+  <div class="ps-cta">
+    <div class="ps-cta-card">
+      <h2>Prêt à composer votre équipe ?</h2>
+      <p>Connectez-vous à votre espace, ou créez votre compte Pro en quelques secondes.</p>
+      <div class="ps-cta-btns">
+        <button class="ps-cta-primary" onclick="goToAuth('register')">Créer un compte Pro</button>
+        <button class="ps-cta-ghost" onclick="goToAuth('login')">Se connecter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ CARTE DE CONNEXION ═══════ -->
+  <div id="authCardWrap" style="display:flex;align-items:center;justify-content:center;padding:20px 20px 60px;">
   <div class="auth-card">
     <div style="width:44px;height:44px;border-radius:13px;background:linear-gradient(150deg,#0D4F6C,#12754A);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:17px;margin-bottom:16px;">iT</div>
-    <div class="auth-title">Connexion Pro</div>
-    <div class="auth-sub">Accès réservé aux chefs de projet</div>
-    <label class="form-label">Email</label>
-    <input class="form-input" id="authEmail" type="email" placeholder="votre@email.com" autocomplete="email"/>
-    <label class="form-label">Mot de passe</label>
-    <input class="form-input" id="authPassword" type="password" placeholder="Mot de passe" autocomplete="current-password"/>
-    <button class="btn-primary" id="authBtn">Se connecter</button>
-    <div id="authMsg" style="font-size:12px;color:#DC2626;margin-top:10px;text-align:center;"></div>
+
+    <!-- Onglets : choix entre connexion et création de compte -->
+    <div class="auth-tabs">
+      <button id="tabLogin" class="auth-tab on" onclick="switchAuthTab('login')">Se connecter</button>
+      <button id="tabRegister" class="auth-tab" onclick="switchAuthTab('register')">Créer un compte Pro</button>
+    </div>
+
+    <!-- PANNEAU CONNEXION -->
+    <div id="loginPanel">
+      <div class="auth-title">Connexion Pro</div>
+      <div class="auth-sub">Accédez à votre espace chef de projet</div>
+      <label class="form-label">Email</label>
+      <input class="form-input" id="authEmail" type="email" placeholder="votre@email.com" autocomplete="email"/>
+      <label class="form-label">Mot de passe</label>
+      <input class="form-input" id="authPassword" type="password" placeholder="Mot de passe" autocomplete="current-password"/>
+      <button class="btn-primary" id="authBtn">Se connecter</button>
+      <div id="authMsg" style="font-size:12px;color:#DC2626;margin-top:10px;text-align:center;"></div>
+    </div>
+
+    <!-- PANNEAU CRÉATION DE COMPTE PRO -->
+    <div id="registerPanel" style="display:none;">
+      <div class="auth-title">Créer un compte Pro</div>
+      <div class="auth-sub">Accès immédiat à votre espace chef de projet</div>
+      <label class="form-label">Prénom & Nom</label>
+      <input class="form-input" id="regNom" placeholder="Laurent Benetiere" autocomplete="name"/>
+      <label class="form-label">Email</label>
+      <input class="form-input" id="regEmail" type="email" placeholder="votre@email.com" autocomplete="email"/>
+      <label class="form-label">Mot de passe</label>
+      <input class="form-input" id="regPassword" type="password" placeholder="Minimum 6 caractères" autocomplete="new-password"/>
+      <button class="btn-primary" id="regBtn" onclick="registerPro()">Créer mon compte Pro</button>
+      <div id="regMsg" style="font-size:12px;margin-top:10px;text-align:center;"></div>
+    </div>
+  </div>
   </div>
 </div>
 
@@ -237,6 +434,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <span class="sidebar-label">Actions</span>
     <button class="nav-item" onclick="openImport()"><span class="nav-icon">📥</span> Importer Excel</button>
     <button class="btn-new" onclick="openNewProjet()"><span>+</span> Nouveau projet</button>
+  </div>
+
+  <!-- Nav mobile (barre du bas, visible seulement sur petit écran) -->
+  <div class="mobile-nav" id="mobileNav">
+    <button class="mnav-item on" onclick="mobileNavGo('s-contacts',this)"><span>👥</span>Intermittents</button>
+    <button class="mnav-item" onclick="mobileNavGo('s-projets',this)"><span>🎬</span>Projets</button>
+    <button class="mnav-item" onclick="mobileNavGo('s-historique',this)"><span>📁</span>Historique</button>
+    <button class="mnav-item mnav-add" onclick="openImport()"><span>📥</span>Import</button>
+    <button class="mnav-item mnav-add" onclick="openNewProjet()"><span>➕</span>Projet</button>
   </div>
 
   <!-- Main -->
@@ -476,34 +682,103 @@ function apiHeaders(){return{'apikey':SUPABASE_ANON,'Authorization':'Bearer '+se
 function readHeaders(){return{'apikey':SUPABASE_ANON,'Authorization':'Bearer '+sessionToken};}
 
 // ── Auth ──────────────────────────────────────────────────
+let registering = false; // évite que onAuthStateChange gère l'affichage pendant l'inscription
+
+// Bascule entre les onglets Connexion / Création de compte
+window.switchAuthTab = (tab) => {
+  const isLogin = tab === 'login';
+  document.getElementById('loginPanel').style.display = isLogin ? 'block' : 'none';
+  document.getElementById('registerPanel').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('tabLogin').classList.toggle('on', isLogin);
+  document.getElementById('tabRegister').classList.toggle('on', !isLogin);
+  const am = document.getElementById('authMsg'); if(am) am.textContent = '';
+  const rm = document.getElementById('regMsg'); if(rm) rm.textContent = '';
+};
+
+// Depuis la vitrine : ouvre le bon onglet ET fait défiler vers la carte de connexion
+window.goToAuth = (tab) => {
+  switchAuthTab(tab);
+  const wrap = document.getElementById('authCardWrap');
+  if(wrap) wrap.scrollIntoView({behavior:'smooth', block:'center'});
+};
+
+// Garantit l'accès Pro : si déjà pro -> ok ; sinon active le rôle pro automatiquement (self-service)
+async function ensureProAccess(user, token){
+  const authH = {'apikey':SUPABASE_ANON,'Authorization':'Bearer '+(token||SUPABASE_ANON)};
+  let prof = null;
+  try{
+    const rows = await fetch(SUPABASE_URL+'/rest/v1/profiles?id=eq.'+user.id+'&select=role,display_name',{headers:authH}).then(r=>r.json());
+    if(Array.isArray(rows) && rows.length) prof = rows[0];
+  }catch(e){ /* pas de ligne profil = on en créera une */ }
+
+  // Déjà Pro -> accès direct
+  if(prof && prof.role === 'pro'){
+    chefNom = prof.display_name || chefNom;
+    return true;
+  }
+
+  // Pas encore Pro -> on active l'accès tout seul
+  const name = (prof && prof.display_name) || (user.email ? user.email.split('@')[0] : '');
+  try{
+    const res = await fetch(SUPABASE_URL+'/rest/v1/profiles', {
+      method:'POST',
+      headers:{
+        'apikey':SUPABASE_ANON,
+        'Authorization':'Bearer '+(token||SUPABASE_ANON),
+        'Content-Type':'application/json',
+        'Prefer':'resolution=merge-duplicates,return=minimal'
+      },
+      body:JSON.stringify({id:user.id, email:user.email, display_name:name, role:'pro'})
+    });
+    if(res.ok){ chefNom = name || chefNom; return true; }
+    console.warn('Activation Pro refusée par Supabase (statut '+res.status+')');
+    return false;
+  }catch(e){ console.warn('Activation Pro:', e); return false; }
+}
+
+function enterApp(){
+  document.getElementById('authPage').style.display = 'none';
+  document.getElementById('proApp').style.display = 'grid';
+  loadAll();
+}
+function showAuth(){
+  document.getElementById('authPage').style.display = 'block';
+  document.getElementById('proApp').style.display = 'none';
+}
+
 document.getElementById('authBtn').addEventListener('click', async () => {
   const email = document.getElementById('authEmail').value.trim();
   const pw = document.getElementById('authPassword').value;
   const msg = document.getElementById('authMsg');
+  if(!email || !pw){ msg.style.color='#DC2626'; msg.textContent='Entrez votre email et mot de passe.'; return; }
+  msg.style.color = '#DC2626';
   msg.textContent = 'Connexion...';
   const {data, error} = await sb.auth.signInWithPassword({email, password: pw});
-  if(error){msg.textContent='Erreur : '+error.message;return;}
-  if(!PRO_USERS.includes(data.user.id)){
+  if(error){ msg.textContent = 'Erreur : ' + error.message; return; }
+  const ok = await ensureProAccess(data.user, data.session?.access_token);
+  if(!ok){
     await sb.auth.signOut();
-    msg.textContent='⛔ Accès réservé aux comptes Pro.';
+    msg.textContent = "Impossible d'activer l'accès Pro. Contacte l'administrateur.";
     return;
   }
-  msg.textContent='';
+  msg.textContent = '';
+  // onAuthStateChange affiche l'app
 });
 
-sb.auth.onAuthStateChange(async(_e, session) => {
+sb.auth.onAuthStateChange((_e, session) => {
   currentUser = session?.user || null;
   sessionToken = session?.access_token || null;
-  if(currentUser && PRO_USERS.includes(currentUser.id)){
-    document.getElementById('authPage').style.display = 'none';
-    document.getElementById('proApp').style.display = 'grid';
-    await loadAll();
-  } else if(currentUser && !PRO_USERS.includes(currentUser.id)){
-    await sb.auth.signOut();
-  } else {
-    document.getElementById('authPage').style.display = 'flex';
-    document.getElementById('proApp').style.display = 'none';
-  }
+  if(registering) return; // registerPro gère l'affichage
+  // On diffère : sinon les requêtes ci-dessous se bloquent sur le verrou auth de supabase-js
+  setTimeout(async () => {
+    if(currentUser){
+      const ok = await ensureProAccess(currentUser, sessionToken);
+      if(ok){ enterApp(); }
+      else { await sb.auth.signOut(); showAuth(); }
+    } else {
+      showAuth();
+    }
+  }, 0);
 });
 
 document.getElementById('logoutBtn').addEventListener('click', async () => {
@@ -512,10 +787,77 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
   sessionToken = null;
   contacts = [];
   projets = [];
-  document.getElementById('authPage').style.display = 'flex';
+  document.getElementById('authPage').style.display = 'block';
   document.getElementById('proApp').style.display = 'none';
 });
 
+window.registerPro = async() => {
+  const nom = document.getElementById('regNom').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pw = document.getElementById('regPassword').value;
+  const msg = document.getElementById('regMsg');
+  if(!nom||!email||!pw){ msg.style.color='#DC2626'; msg.textContent='Tous les champs sont obligatoires.'; return; }
+  if(pw.length < 6){ msg.style.color='#DC2626'; msg.textContent='Mot de passe trop court (6 caractères min).'; return; }
+
+  const btn = document.getElementById('regBtn');
+  btn.disabled = true;
+  msg.style.color='var(--muted)';
+  msg.textContent='Création du compte...';
+
+  registering = true; // on gère l'affichage nous-mêmes le temps de créer le profil
+
+  const {data, error} = await sb.auth.signUp({email, password:pw});
+  if(error){
+    registering = false; btn.disabled = false;
+    msg.style.color='#DC2626';
+    msg.textContent = 'Erreur : ' + error.message;
+    return;
+  }
+
+  // Supabase renvoie un faux succès si l'email existe déjà (identities vide) → on le détecte
+  if(data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0){
+    registering = false; btn.disabled = false;
+    msg.style.color='#DC2626';
+    msg.textContent = "Cet email a déjà un compte. Utilisez l'onglet « Se connecter ».";
+    return;
+  }
+
+  const userId = data.user?.id;
+  // Si une session est ouverte on utilise le token de l'utilisateur (RLS), sinon la clé anon
+  const authToken = data.session?.access_token || SUPABASE_ANON;
+  try{
+    await fetch(SUPABASE_URL+'/rest/v1/profiles', {
+      method:'POST',
+      headers:{
+        'apikey':SUPABASE_ANON,
+        'Authorization':'Bearer '+authToken,
+        'Content-Type':'application/json',
+        'Prefer':'resolution=merge-duplicates,return=minimal'
+      },
+      body:JSON.stringify({id:userId, email, display_name:nom, role:'pro'})
+    });
+  }catch(e){ console.warn('Création profil:', e); }
+
+  registering = false;
+
+  if(data.session){
+    // Confirmation email désactivée → accès immédiat
+    currentUser = data.user;
+    sessionToken = data.session.access_token;
+    chefNom = nom;
+    btn.disabled = false;
+    enterApp();
+  } else {
+    // Confirmation email requise par Supabase
+    btn.disabled = false;
+    document.getElementById('registerPanel').innerHTML = `
+      <div style="text-align:center;padding:20px 0;">
+        <div style="font-size:36px;margin-bottom:12px;">📧</div>
+        <div style="font-size:15px;font-weight:800;color:var(--p);margin-bottom:8px;">Compte Pro créé !</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6;">Confirmez votre email via le lien reçu, puis revenez vous connecter pour accéder à votre espace.</div>
+      </div>`;
+  }
+};
 // ── Navigation ────────────────────────────────────────────
 function showScreen(id, btn){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
@@ -525,6 +867,14 @@ function showScreen(id, btn){
     btn.classList.add('on');
   }
 }
+
+// Navigation depuis la barre mobile du bas
+window.mobileNavGo = (id, btn) => {
+  showScreen(id, null);
+  document.querySelectorAll('.mnav-item').forEach(n=>n.classList.remove('on'));
+  if(btn) btn.classList.add('on');
+  window.scrollTo({top:0, behavior:'smooth'});
+};
 
 // ── Load ──────────────────────────────────────────────────
 async function loadAll(){
