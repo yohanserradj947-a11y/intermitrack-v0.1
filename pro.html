@@ -192,6 +192,27 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .chan input{width:17px;height:17px;accent-color:var(--p);cursor:pointer;}
 .send-go{background:rgba(232,101,10,.1);color:var(--o);justify-content:center;}
 
+/* Toasts (messages doux qui remplacent alert) */
+#toastWrap{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:10000;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;}
+.toast{pointer-events:auto;min-width:200px;max-width:90vw;padding:13px 18px;border-radius:13px;font-size:13.5px;font-weight:700;color:#fff;box-shadow:0 8px 28px rgba(13,27,42,.22);display:flex;align-items:center;gap:9px;white-space:pre-line;animation:toastIn .25s ease;}
+.toast.success{background:#12754A;}
+.toast.error{background:#DC2626;}
+.toast.warn{background:#0D4F6C;}
+.toast.out{animation:toastOut .3s ease forwards;}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+@keyframes toastOut{to{opacity:0;transform:translateY(12px);}}
+
+/* Liste de sélection de techniciens (modal ajout) */
+.at-row{display:flex;align-items:center;gap:11px;padding:9px 11px;border:1px solid var(--line);border-radius:12px;cursor:pointer;transition:all .12s;}
+.at-row:hover{border-color:rgba(13,79,108,.25);background:var(--soft);}
+.at-row.on{border-color:#12754A;background:rgba(18,117,74,.06);}
+.at-av{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;flex-shrink:0;}
+.at-body{flex:1;min-width:0;}
+.at-name{font-size:13px;font-weight:700;color:var(--text);}
+.at-poste{font-size:11px;color:var(--muted);margin-top:1px;}
+.at-check{width:24px;height:24px;border-radius:7px;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;color:#12754A;font-weight:900;font-size:13px;flex-shrink:0;}
+.at-row.on .at-check{border-color:#12754A;background:rgba(18,117,74,.12);}
+
 /* Barre de navigation mobile — styles de base (AVANT la media query pour qu'elle ne soit pas écrasée) */
 .mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:#fff;border-top:1px solid var(--line);padding:6px 4px;padding-bottom:calc(6px + env(safe-area-inset-bottom));box-shadow:0 -2px 12px rgba(13,27,42,.08);}
 .mnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:transparent;border:none;color:var(--muted);font-size:9.5px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;padding:6px 2px;}
@@ -543,7 +564,7 @@ html,body{overflow-x:hidden;max-width:100%;}
               <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:6px;text-align:right;" id="detailTotal">0 / 0</div>
             </div>
             <div class="send-box">
-              <button class="btn-action send-add" onclick="addToProject()">+ Ajouter des techs</button>
+              <button class="btn-action send-add" onclick="openAddTechs()">+ Ajouter des techs</button>
               <div class="send-channels">
                 <span class="send-channels-lbl">Envoyer par :</span>
                 <label class="chan"><input type="checkbox" id="chanMail" checked/> 📧 Mail</label>
@@ -568,7 +589,7 @@ html,body{overflow-x:hidden;max-width:100%;}
               <div class="di-row"><span class="di-lbl">Lieu</span><span class="di-val" id="dLieu">—</span></div>
               <div class="di-row"><span class="di-lbl">Invités</span><span class="di-val" id="dInvites">0</span></div>
               <div style="margin-top:14px;display:grid;gap:8px;">
-                <button class="btn-action" style="justify-content:center;" onclick="addToProject()">+ Ajouter des techs</button>
+                <button class="btn-action" style="justify-content:center;" onclick="openAddTechs()">+ Ajouter des techs</button>
                 <button style="padding:12px;border-radius:11px;background:#FEF2F2;color:#DC2626;border:1px solid #FCA5A5;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;" onclick="terminerProjet()">✓ Clore le projet</button>
               </div>
             </div>
@@ -675,6 +696,33 @@ html,body{overflow-x:hidden;max-width:100%;}
   </div>
 </div>
 
+<!-- Modal ajout techniciens (depuis un projet) -->
+<div class="modal-overlay hidden" id="modalAddTechs">
+  <div class="modal">
+    <div class="modal-title"><span>Ajouter des techniciens</span><button class="modal-close" onclick="closeAddTechs()">✕</button></div>
+    <input class="form-input" id="addTechsSearch" placeholder="Rechercher par nom ou poste..." oninput="renderAddTechsList(this.value)"/>
+    <div id="addTechsList" style="max-height:46vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin:4px 0;"></div>
+    <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:8px;" id="addTechsCount">0 sélectionné</div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeAddTechs()">Annuler</button>
+      <button class="btn-save" id="confirmAddTechsBtn" onclick="confirmAddTechs()">Ajouter (0)</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toasts + confirmation (remplacent les pop-ups grises) -->
+<div id="toastWrap"></div>
+<div class="modal-overlay hidden" id="modalConfirm">
+  <div class="modal" style="max-width:380px;">
+    <div style="font-size:16px;font-weight:800;color:var(--p);margin-bottom:8px;">Confirmation</div>
+    <div style="font-size:14px;color:var(--text);line-height:1.5;margin-bottom:20px;" id="confirmMsg"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="confirmNo">Annuler</button>
+      <button class="btn-save" id="confirmYes">Confirmer</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const SUPABASE_URL = "https://upeogpgczoghlfwblnkb.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwZW9ncGdjem9naGxmd2JsbmtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MjkyMDQsImV4cCI6MjA5NjEwNTIwNH0.6535_0KMaEDLxTMhz_OX-4OqC_tpQsPJR5jkFQL7UqI";
@@ -705,6 +753,39 @@ function tc(s){return (s||'').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());
 function colorFor(str){let h=0;for(let i=0;i<str.length;i++)h=str.charCodeAt(i)+((h<<5)-h);return COLORS[Math.abs(h)%COLORS.length];}
 function apiHeaders(){return{'apikey':SUPABASE_ANON,'Authorization':'Bearer '+sessionToken,'Content-Type':'application/json','Prefer':'return=minimal'};}
 function readHeaders(){return{'apikey':SUPABASE_ANON,'Authorization':'Bearer '+sessionToken};}
+
+// ── Toasts & confirmation (remplacent alert/confirm) ──────
+window.toast = (msg, type) => {
+  let t = type;
+  if(!t){
+    if(/^✅/.test(msg)) t = 'success';
+    else if(/erreur/i.test(msg)) t = 'error';
+    else t = 'warn';
+  }
+  const icon = t==='success'?'✅':t==='error'?'⚠️':'ℹ️';
+  const clean = String(msg).replace(/^✅\s*/,'');
+  const wrap = document.getElementById('toastWrap');
+  const el = document.createElement('div');
+  el.className = 'toast '+t;
+  const i = document.createElement('span'); i.textContent = icon;
+  const s = document.createElement('span'); s.textContent = clean;
+  el.appendChild(i); el.appendChild(s);
+  wrap.appendChild(el);
+  setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(), 320); }, 3200);
+};
+
+let _confirmResolve = null;
+window.confirmDialog = (msg) => new Promise(resolve => {
+  _confirmResolve = resolve;
+  document.getElementById('confirmMsg').textContent = msg;
+  document.getElementById('modalConfirm').classList.remove('hidden');
+});
+function _confirmClose(val){
+  document.getElementById('modalConfirm').classList.add('hidden');
+  if(_confirmResolve){ _confirmResolve(val); _confirmResolve = null; }
+}
+document.getElementById('confirmYes').addEventListener('click', () => _confirmClose(true));
+document.getElementById('confirmNo').addEventListener('click', () => _confirmClose(false));
 
 // ── Auth ──────────────────────────────────────────────────
 let registering = false; // évite que onAuthStateChange gère l'affichage pendant l'inscription
@@ -990,13 +1071,13 @@ function updateSelBar(){
 window.sendToSelectedProject = async() => {
   let pid = document.getElementById('sendToProject').value;
   if(!pid && currentProjectId) pid = currentProjectId;
-  if(!pid){alert('Choisis un projet.');return;}
+  if(!pid){toast('Choisis un projet.');return;}
   await addContactsToProject(pid);
 };
 
 // Ajoute les contacts sélectionnés au projet SANS envoyer de message
 async function addContactsToProject(projectId){
-  if(!selectedContacts.length){alert('Sélectionne au moins un contact.');return;}
+  if(!selectedContacts.length){toast('Sélectionne au moins un contact.');return;}
   let added=0;
   for(const contactId of selectedContacts){
     const {data:member,error:me} = await sb.from('pro_project_members').upsert({
@@ -1008,7 +1089,7 @@ async function addContactsToProject(projectId){
   selectedContacts=[];
   updateSelBar();
   renderContacts();
-  alert('✅ '+added+' personne'+(added>1?'s':'')+' ajoutée'+(added>1?'s':'')+' au projet.\nVa dans le projet pour envoyer Mail / SMS quand tu veux.');
+  toast('✅ '+added+' personne'+(added>1?'s':'')+' ajoutée'+(added>1?'s':'')+' au projet.\nVa dans le projet pour envoyer Mail / SMS quand tu veux.');
   await openDetail(projectId);
 }
 // ── Add/Edit contact ─────────────────────────────────────
@@ -1052,7 +1133,7 @@ document.querySelectorAll('.poste-chip').forEach(chip=>{
 
 document.getElementById('saveContactBtn').addEventListener('click', async() => {
   const nom = document.getElementById('cNom').value.trim();
-  if(!nom){alert('Le nom est obligatoire.');return;}
+  if(!nom){toast('Le nom est obligatoire.');return;}
   const payload = {
     user_id: currentUser.id,
     nom,
@@ -1065,12 +1146,12 @@ document.getElementById('saveContactBtn').addEventListener('click', async() => {
   };
   const url = SUPABASE_URL+'/rest/v1/pro_contacts'+(editContactId?'?id=eq.'+editContactId:'');
   const res = await fetch(url,{method:editContactId?'PATCH':'POST',headers:apiHeaders(),body:JSON.stringify(payload)});
-  if(!res.ok){alert('Erreur : '+await res.text());return;}
+  if(!res.ok){toast('Erreur : '+await res.text());return;}
   closeContactModal();
   await loadAll();
 });
 window.deleteContact = async(id) => {
-  if(!confirm('Supprimer ce contact ?'))return;
+  if(!await confirmDialog('Supprimer ce contact ?'))return;
   await fetch(SUPABASE_URL+'/rest/v1/pro_contacts?id=eq.'+id,{method:'DELETE',headers:apiHeaders()});
   await loadAll();
 };
@@ -1096,7 +1177,7 @@ function processImportFile(file){
     const wb = XLSX.read(e.target.result,{type:'binary'});
     const ws = wb.Sheets[wb.SheetNames[0]];
     const data = XLSX.utils.sheet_to_json(ws,{header:1});
-    if(data.length<2){alert('Fichier vide.');return;}
+    if(data.length<2){toast('Fichier vide.');return;}
     importColumns = data[0].map(String);
     importData = data.slice(1).filter(row=>row.some(c=>c));
     document.getElementById('importInfo').textContent = importData.length+' contacts détectés — associe les colonnes :';
@@ -1127,7 +1208,7 @@ function processImportFile(file){
 document.getElementById('confirmImportBtn').addEventListener('click', async() => {
   const getCol = k=>{const v=document.getElementById('map_'+k)?.value;return v!==''?Number(v):null;};
   const nomCol = getCol('nom');
-  if(nomCol===null){alert('La colonne Nom est obligatoire.');return;}
+  if(nomCol===null){toast('La colonne Nom est obligatoire.');return;}
   const rows = importData.map(row=>({
     user_id:currentUser.id,
     nom:String(row[nomCol]||'').trim(),
@@ -1136,12 +1217,12 @@ document.getElementById('confirmImportBtn').addEventListener('click', async() =>
     telephone:getCol('telephone')!==null?String(row[getCol('telephone')]||'').trim():'',
     poste:getCol('poste')!==null?String(row[getCol('poste')]||'').trim():''
   })).filter(r=>r.nom);
-  if(!rows.length){alert('Aucun contact valide.');return;}
+  if(!rows.length){toast('Aucun contact valide.');return;}
   const res = await fetch(SUPABASE_URL+'/rest/v1/pro_contacts',{method:'POST',headers:apiHeaders(),body:JSON.stringify(rows)});
-  if(!res.ok){alert('Erreur import : '+await res.text());return;}
+  if(!res.ok){toast('Erreur import : '+await res.text());return;}
   closeImport();
   await loadAll();
-  alert('✅ '+rows.length+' contacts importés !');
+  toast('✅ '+rows.length+' contacts importés !');
 });
 
 // ── Projets ───────────────────────────────────────────────
@@ -1184,7 +1265,7 @@ window.closeProjet = () => document.getElementById('modalProjet').classList.add(
 
 document.getElementById('saveProjetBtn').addEventListener('click', async() => {
   const nom = document.getElementById('pNom').value.trim();
-  if(!nom){alert('Le nom du projet est obligatoire.');return;}
+  if(!nom){toast('Le nom du projet est obligatoire.');return;}
   const debut = document.getElementById('pDebut').value;
   const today = new Date().toISOString().slice(0,10);
   let statut = 'a_venir';
@@ -1204,7 +1285,7 @@ document.getElementById('saveProjetBtn').addEventListener('click', async() => {
       statut
     })
   });
-  if(!res.ok){alert('Erreur : '+await res.text());return;}
+  if(!res.ok){toast('Erreur : '+await res.text());return;}
   closeProjet();
   await loadAll();
 });
@@ -1215,7 +1296,7 @@ window.setStatut = async(id,statut) => {
 };
 
 window.deleteProjet = async(id) => {
-  if(!confirm('Supprimer ce projet ?'))return;
+  if(!await confirmDialog('Supprimer ce projet ?'))return;
   await fetch(SUPABASE_URL+'/rest/v1/pro_projects?id=eq.'+id,{method:'DELETE',headers:apiHeaders()});
   await loadAll();
 };
@@ -1459,7 +1540,7 @@ window.exportPlanningPDF = async () => {
   if(btn) btn.textContent = '📄 Exporter PDF';
 };
 window.terminerProjet = async() => {
-  if(!confirm('Clore ce projet ?'))return;
+  if(!await confirmDialog('Clore ce projet ?'))return;
   await setStatut(currentProjectId,'termine');
   showScreen('s-projets', document.querySelector('.nav-item:nth-child(2)'));
 };
@@ -1484,6 +1565,69 @@ window.addToProject = () => {
   renderContacts();
   showScreen('s-contacts', document.querySelector('.nav-item:first-child'));
 };
+
+// ── Ajout de techs directement depuis le projet (sans changer d'écran) ──
+let addTechsSelected = [];
+
+window.openAddTechs = () => {
+  if(!currentProjectId){ toast('Ouvre d\'abord un projet.'); return; }
+  addTechsSelected = [];
+  document.getElementById('addTechsSearch').value = '';
+  document.getElementById('addTechsCount').textContent = '0 sélectionné';
+  document.getElementById('confirmAddTechsBtn').textContent = 'Ajouter (0)';
+  renderAddTechsList('');
+  document.getElementById('modalAddTechs').classList.remove('hidden');
+};
+window.closeAddTechs = () => document.getElementById('modalAddTechs').classList.add('hidden');
+
+window.renderAddTechsList = (search) => {
+  const s = (search||'').toLowerCase();
+  const list = contacts.filter(c => !s
+    || (c.nom||'').toLowerCase().includes(s)
+    || (c.prenom||'').toLowerCase().includes(s)
+    || (c.poste||'').toLowerCase().includes(s));
+  const el = document.getElementById('addTechsList');
+  if(!list.length){
+    el.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:24px 0;">Aucun contact. Ajoute d\'abord des intermittents dans « Mes intermittents ».</div>';
+    return;
+  }
+  el.innerHTML = list.map(c=>{
+    const on = addTechsSelected.includes(c.id);
+    const color = colorFor(c.nom+c.id);
+    return `<div class="at-row${on?' on':''}" onclick="toggleAddTech('${c.id}')">
+      <div class="at-av" style="background:${color}">${initials(c)}</div>
+      <div class="at-body"><div class="at-name">${tc(c.nom)} ${tc(c.prenom||'')}</div><div class="at-poste">${esc(c.poste||'')}</div></div>
+      <div class="at-check">${on?'✓':''}</div>
+    </div>`;
+  }).join('');
+};
+
+window.toggleAddTech = (id) => {
+  const i = addTechsSelected.indexOf(id);
+  if(i===-1) addTechsSelected.push(id); else addTechsSelected.splice(i,1);
+  renderAddTechsList(document.getElementById('addTechsSearch').value);
+  const n = addTechsSelected.length;
+  document.getElementById('addTechsCount').textContent = n+' sélectionné'+(n>1?'s':'');
+  document.getElementById('confirmAddTechsBtn').textContent = 'Ajouter ('+n+')';
+};
+
+window.confirmAddTechs = async () => {
+  if(!addTechsSelected.length){ toast('Sélectionne au moins une personne.'); return; }
+  const btn = document.getElementById('confirmAddTechsBtn');
+  btn.disabled = true; btn.textContent = 'Ajout...';
+  let added=0;
+  for(const contactId of addTechsSelected){
+    const {data:member,error:me} = await sb.from('pro_project_members').upsert({
+      project_id:currentProjectId, contact_id:contactId, statut:'invite'
+    },{onConflict:'project_id,contact_id'}).select().single();
+    if(me||!member){console.error('Member error:',me);continue;}
+    added++;
+  }
+  btn.disabled = false;
+  closeAddTechs();
+  await openDetail(currentProjectId);
+  toast('✅ '+added+' personne'+(added>1?'s':'')+' ajoutée'+(added>1?'s':'')+' au projet.');
+};
 // ── Format téléphone → +33 ────────────────────────────────
 function formatPhone(tel){
   if(!tel) return '';
@@ -1500,13 +1644,13 @@ window.relancerAttente = async() => {
   if(!currentProjectId){return;}
   const sendMail = document.getElementById('chanMail')?.checked;
   const sendSms = document.getElementById('chanSms')?.checked;
-  if(!sendMail && !sendSms){ alert('Coche au moins un canal : Mail ou SMS.'); return; }
+  if(!sendMail && !sendSms){ toast('Coche au moins un canal : Mail ou SMS.'); return; }
   const h = readHeaders();
   const members = await fetch(SUPABASE_URL+'/rest/v1/pro_project_members?project_id=eq.'+currentProjectId+'&statut=eq.invite&select=*,pro_contacts(*)',{headers:h}).then(r=>r.json());
-  if(!Array.isArray(members)||!members.length){alert('Personne en attente à qui envoyer.');return;}
+  if(!Array.isArray(members)||!members.length){toast('Personne en attente à qui envoyer.');return;}
   const projet = projets.find(p=>p.id===currentProjectId);
   const canaux = [sendMail?'Mail':null, sendSms?'SMS':null].filter(Boolean).join(' + ');
-  if(!confirm('Envoyer par '+canaux+' à '+members.length+' personne'+(members.length>1?'s':'')+' en attente ?')) return;
+  if(!await confirmDialog('Envoyer par '+canaux+' à '+members.length+' personne'+(members.length>1?'s':'')+' en attente ?')) return;
   let sent=0;
   for(const member of members){
     const c = member.pro_contacts||{};
@@ -1545,12 +1689,12 @@ window.relancerAttente = async() => {
     }
     sent++;
   }
-  alert('✅ Envoi ('+canaux+') effectué pour '+sent+' personne'+(sent>1?'s':'')+' !');
+  toast('✅ Envoi ('+canaux+') effectué pour '+sent+' personne'+(sent>1?'s':'')+' !');
   await openDetail(currentProjectId);
 };
 
 window.exportPlanning = () => {
-  alert('Export PDF — fonctionnalité à venir');
+  toast('Export PDF — fonctionnalité à venir');
 };
 
 // ── Envoi invitations ─────────────────────────────────────
@@ -1567,7 +1711,7 @@ function formatPhone(tel){
 async function sendInvitations(projectId){
   const projet = projets.find(p=>p.id===projectId);
   if(!projet)return;
-  if(!selectedContacts.length){alert('Sélectionne au moins un contact.');return;}
+  if(!selectedContacts.length){toast('Sélectionne au moins un contact.');return;}
   let sent=0;
   for(const contactId of selectedContacts){
     const contact = contacts.find(c=>c.id===contactId);
@@ -1618,7 +1762,7 @@ async function sendInvitations(projectId){
   selectedContacts=[];
   updateSelBar();
   renderContacts();
-  alert('✅ '+sent+' invitation'+(sent>1?'s':'')+' envoyée'+(sent>1?'s':'')+' !');
+  toast('✅ '+sent+' invitation'+(sent>1?'s':'')+' envoyée'+(sent>1?'s':'')+' !');
   await loadAll();
 }
 </script>
