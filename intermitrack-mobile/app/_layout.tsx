@@ -1,31 +1,33 @@
-import { Tabs } from 'expo-router';
-import { Text } from 'react-native';
+import { Stack } from 'expo-router';
+import { ActivityIndicator, View } from 'react-native';
+import { SessionProvider, useSession } from '../lib/auth';
 
-function TabIcon({ emoji, color }: { emoji: string; color: string }) {
-  return <Text style={{ fontSize: 20, opacity: color === '#1F4E5F' ? 1 : 0.5 }}>{emoji}</Text>;
+function RootNavigator() {
+  const { session, loading } = useSession();
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F7F6' }}>
+        <ActivityIndicator size="large" color="#1F4E5F" />
+      </View>
+    );
+  }
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Protected guard={!!session}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+      </Stack.Protected>
+      <Stack.Protected guard={!session}>
+        <Stack.Screen name="login" />
+      </Stack.Protected>
+    </Stack>
+  );
 }
 
-export default function TabLayout() {
+export default function RootLayout() {
   return (
-    <Tabs screenOptions={{
-      headerShown: false,
-      tabBarStyle: {
-        backgroundColor: '#FFFFFF',
-        borderTopColor: '#E2E8F0',
-        borderTopWidth: 1,
-        height: 60,
-        paddingBottom: 8,
-        paddingTop: 6,
-      },
-      tabBarActiveTintColor: '#1F4E5F',
-      tabBarInactiveTintColor: '#718096',
-      tabBarLabelStyle: { fontSize: 10, fontWeight: '700' },
-    }}>
-      <Tabs.Screen name="index" options={{ title: 'Dashboard', tabBarIcon: ({ color }) => <TabIcon emoji="📊" color={color}/> }}/>
-      <Tabs.Screen name="missions" options={{ title: 'Missions', tabBarIcon: ({ color }) => <TabIcon emoji="🎬" color={color}/> }}/>
-      <Tabs.Screen name="calendar" options={{ title: 'Calendrier', tabBarIcon: ({ color }) => <TabIcon emoji="📅" color={color}/> }}/>
-      <Tabs.Screen name="actualisation" options={{ title: 'Actualisation', tabBarIcon: ({ color }) => <TabIcon emoji="✅" color={color}/> }}/>
-      <Tabs.Screen name="previsions" options={{ title: 'Prévisions', tabBarIcon: ({ color }) => <TabIcon emoji="📈" color={color}/> }}/>
-    </Tabs>
+    <SessionProvider>
+      <RootNavigator />
+    </SessionProvider>
   );
 }

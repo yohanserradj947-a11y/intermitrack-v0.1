@@ -1,0 +1,123 @@
+import { useState } from 'react';
+import { StyleSheet, View, Text, ScrollView, TextInput, TouchableOpacity, StatusBar, Linking } from 'react-native';
+import { useSession } from '../lib/auth';
+
+const C = { petrol:'#1F4E5F', bg:'#F5F7F6', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1' };
+
+function traduire(msg: string) {
+  if (/Invalid login credentials/i.test(msg)) return 'Email ou mot de passe incorrect.';
+  if (/already registered/i.test(msg)) return 'Cet email a déjà un compte. Connecte-toi.';
+  if (/Password should be at least/i.test(msg)) return 'Le mot de passe doit faire au moins 6 caractères.';
+  if (/Unable to validate email/i.test(msg)) return 'Adresse email invalide.';
+  return msg;
+}
+
+export default function LoginScreen() {
+  const { signIn, signUp } = useSession();
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [info, setInfo] = useState<string | null>(null);
+
+  async function submit() {
+    setInfo(null);
+    if (!email.trim() || !password) { setInfo('Renseigne ton email et ton mot de passe.'); return; }
+    if (mode === 'signup' && password.length < 6) { setInfo('Le mot de passe doit faire au moins 6 caractères.'); return; }
+    setBusy(true);
+    if (mode === 'signin') {
+      const { error } = await signIn(email, password);
+      if (error) setInfo(traduire(error));
+    } else {
+      const { error, needsConfirmation } = await signUp(email, password);
+      if (error) setInfo(traduire(error));
+      else if (needsConfirmation) setInfo('Compte créé ! Vérifie ta boîte mail pour confirmer ton adresse, puis connecte-toi.');
+    }
+    setBusy(false);
+  }
+
+  return (
+    <ScrollView contentContainerStyle={s.page} keyboardShouldPersistTaps="handled">
+      <StatusBar barStyle="light-content" backgroundColor={C.petrol} />
+      <View style={s.brand}>
+        <View style={s.logoBox}><Text style={s.logoTxt}>iT</Text></View>
+        <Text style={s.mainline}>{"Toute votre\nintermittence\nau même endroit."}</Text>
+        <Text style={s.intro}>{"Suivi des missions, heures ARE,\ndocuments et prévisions."}</Text>
+      </View>
+
+      <View style={s.card}>
+        <View style={s.tabs}>
+          <TouchableOpacity style={[s.tab, mode === 'signin' && s.tabActive]} onPress={() => { setMode('signin'); setInfo(null); }}>
+            <Text style={mode === 'signin' ? s.tabTxtActive : s.tabTxt}>Connexion</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[s.tab, mode === 'signup' && s.tabActive]} onPress={() => { setMode('signup'); setInfo(null); }}>
+            <Text style={mode === 'signup' ? s.tabTxtActive : s.tabTxt}>Créer un compte</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={s.label}>Email</Text>
+        <TextInput style={s.input} placeholder="votre@email.com" placeholderTextColor={C.muted}
+          value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+
+        <Text style={s.label}>Mot de passe</Text>
+        <TextInput style={s.input} placeholder="Minimum 6 caractères" placeholderTextColor={C.muted}
+          value={password} onChangeText={setPassword} secureTextEntry />
+
+        {info && <Text style={s.info}>{info}</Text>}
+
+        <TouchableOpacity style={s.btn} onPress={submit} disabled={busy}>
+          <Text style={s.btnTxt}>
+            {busy ? 'Patiente…' : mode === 'signin' ? 'Se connecter' : 'Créer mon compte'}
+          </Text>
+        </TouchableOpacity>
+
+        {mode === 'signup' && (
+          <Text style={s.consent}>
+            En créant un compte, tu acceptes nos CGU et notre politique de confidentialité.
+          </Text>
+        )}
+      </View>
+
+      <Text style={s.secure}>🔒 Données chiffrées — accès uniquement à votre compte</Text>
+
+      <View style={s.legalRow}>
+        <TouchableOpacity onPress={() => Linking.openURL('https://intermitrack.fr/cgu.html')}>
+          <Text style={s.legalLink}>CGU</Text>
+        </TouchableOpacity>
+        <Text style={s.legalSep}>·</Text>
+        <TouchableOpacity onPress={() => Linking.openURL('https://intermitrack.fr/confidentialite.html')}>
+          <Text style={s.legalLink}>Confidentialité</Text>
+        </TouchableOpacity>
+        <Text style={s.legalSep}>·</Text>
+        <TouchableOpacity onPress={() => Linking.openURL('https://intermitrack.fr/mentions-legales.html')}>
+          <Text style={s.legalLink}>Mentions légales</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+}
+
+const s = StyleSheet.create({
+  page: { flexGrow: 1, backgroundColor: C.petrol, paddingHorizontal: 22, paddingTop: 64, paddingBottom: 32 },
+  brand: { alignItems: 'center', marginBottom: 28 },
+  logoBox: { width: 46, height: 46, borderRadius: 14, backgroundColor: C.petrol, justifyContent: 'center', alignItems: 'center' },
+  logoTxt: { color: 'white', fontWeight: '800', fontSize: 22 },
+  mainline: { fontSize: 24, fontWeight: '900', color: 'white', textAlign: 'center', lineHeight: 30, letterSpacing: -0.5, marginTop: 14 },
+  intro: { fontSize: 13, color: 'rgba(255,255,255,.65)', textAlign: 'center', marginTop: 8, lineHeight: 18 },
+  card: { backgroundColor: C.card, borderRadius: 22, padding: 22 },
+  tabs: { flexDirection: 'row', gap: 8, marginBottom: 14 },
+  tab: { flex: 1, paddingVertical: 11, borderRadius: 14, backgroundColor: C.soft, alignItems: 'center' },
+  tabActive: { backgroundColor: C.petrol },
+  tabTxt: { fontSize: 13, fontWeight: '800', color: C.petrol },
+  tabTxtActive: { fontSize: 13, fontWeight: '800', color: 'white' },
+  label: { fontWeight: '700', fontSize: 13, color: C.text, marginTop: 12, marginBottom: 6 },
+  input: { borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 14, fontSize: 15, color: C.text, backgroundColor: 'white' },
+  info: { fontSize: 13, color: C.petrol, marginTop: 12, fontWeight: '600', textAlign: 'center' },
+  btn: { backgroundColor: C.petrol, borderRadius: 15, paddingVertical: 14, alignItems: 'center', marginTop: 14 },
+  btnTxt: { color: 'white', fontWeight: '800', fontSize: 15 },
+  consent: { fontSize: 11, color: C.muted, textAlign: 'center', marginTop: 12, lineHeight: 16 },
+  secure: { color: 'rgba(255,255,255,.5)', fontSize: 12, textAlign: 'center', marginTop: 16 },
+  legalRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 14 },
+  legalLink: { fontSize: 11, color: 'rgba(255,255,255,.7)', fontWeight: '700', textDecorationLine: 'underline' },
+  legalSep: { fontSize: 11, color: 'rgba(255,255,255,.5)' },
+});
