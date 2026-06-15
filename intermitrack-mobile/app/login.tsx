@@ -9,16 +9,23 @@ function traduire(msg: string) {
   if (/already registered/i.test(msg)) return 'Cet email a déjà un compte. Connecte-toi.';
   if (/Password should be at least/i.test(msg)) return 'Le mot de passe doit faire au moins 6 caractères.';
   if (/Unable to validate email/i.test(msg)) return 'Adresse email invalide.';
+  if (/Token has expired or is invalid/i.test(msg)) return 'Code incorrect ou expiré. Renvoie un code.';
+  if (/For security purposes/i.test(msg)) return 'Patiente quelques secondes avant de redemander un code.';
   return msg;
 }
 
 export default function LoginScreen() {
-  const { signIn, signUp } = useSession();
+  const { signIn, signUp, sendResetCode, verifyResetCode } = useSession();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [info, setInfo] = useState<string | null>(null);
+
+  // Réinitialisation du mot de passe
+  const [resetStep, setResetStep] = useState<'none' | 'ask' | 'code'>('none');
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
 
   async function submit() {
     setInfo(null);
@@ -36,6 +43,31 @@ export default function LoginScreen() {
     setBusy(false);
   }
 
+  async function askResetCode() {
+    setInfo(null);
+    if (!email.trim()) { setInfo('Entre ton adresse email d\'abord, puis appuie sur « Mot de passe oublié ».'); return; }
+    setBusy(true);
+    const { error } = await sendResetCode(email);
+    setBusy(false);
+    if (error) { setInfo(traduire(error)); return; }
+    setResetStep('code');
+    setInfo('Un code vient d\'être envoyé à ' + email.trim() + '. Vérifie tes mails (et les spams).');
+  }
+
+  async function confirmReset() {
+    setInfo(null);
+    if (!resetCode.trim()) { setInfo('Entre le code reçu par email.'); return; }
+    if (newPassword.length < 6) { setInfo('Le nouveau mot de passe doit faire au moins 6 caractères.'); return; }
+    setBusy(true);
+    const { error } = await verifyResetCode(email, resetCode, newPassword);
+    setBusy(false);
+    if (error) { setInfo(traduire(error)); return; }
+    // Succès : l'utilisateur est maintenant connecté avec son nouveau mot de passe
+    setResetStep('none');
+    setResetCode('');
+    setNewPassword('');
+  }
+
   return (
     <ScrollView contentContainerStyle={s.page} keyboardShouldPersistTaps="handled">
       <StatusBar barStyle="light-content" backgroundColor={C.petrol} />
@@ -46,35 +78,74 @@ export default function LoginScreen() {
       </View>
 
       <View style={s.card}>
-        <View style={s.tabs}>
-          <TouchableOpacity style={[s.tab, mode === 'signin' && s.tabActive]} onPress={() => { setMode('signin'); setInfo(null); }}>
-            <Text style={mode === 'signin' ? s.tabTxtActive : s.tabTxt}>Connexion</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[s.tab, mode === 'signup' && s.tabActive]} onPress={() => { setMode('signup'); setInfo(null); }}>
-            <Text style={mode === 'signup' ? s.tabTxtActive : s.tabTxt}>Créer un compte</Text>
-          </TouchableOpacity>
-        </View>
+        {resetStep === 'none' && (
+          <>
+            <View style={s.tabs}>
+              <TouchableOpacity style={[s.tab, mode === 'signin' && s.tabActive]} onPress={() => { setMode('signin'); setInfo(null); }}>
+                <Text style={mode === 'signin' ? s.tabTxtActive : s.tabTxt}>Connexion</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[s.tab, mode === 'signup' && s.tabActive]} onPress={() => { setMode('signup'); setInfo(null); }}>
+                <Text style={mode === 'signup' ? s.tabTxtActive : s.tabTxt}>Créer un compte</Text>
+              </TouchableOpacity>
+            </View>
 
-        <Text style={s.label}>Email</Text>
-        <TextInput style={s.input} placeholder="votre@email.com" placeholderTextColor={C.muted}
-          value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+            <Text style={s.label}>Email</Text>
+            <TextInput style={s.input} placeholder="votre@email.com" placeholderTextColor={C.muted}
+              value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
 
-        <Text style={s.label}>Mot de passe</Text>
-        <TextInput style={s.input} placeholder="Minimum 6 caractères" placeholderTextColor={C.muted}
-          value={password} onChangeText={setPassword} secureTextEntry />
+            <Text style={s.label}>Mot de passe</Text>
+            <TextInput style={s.input} placeholder="Minimum 6 caractères" placeholderTextColor={C.muted}
+              value={password} onChangeText={setPassword} secureTextEntry />
 
-        {info && <Text style={s.info}>{info}</Text>}
+            {info && <Text style={s.info}>{info}</Text>}
 
-        <TouchableOpacity style={s.btn} onPress={submit} disabled={busy}>
-          <Text style={s.btnTxt}>
-            {busy ? 'Patiente…' : mode === 'signin' ? 'Se connecter' : 'Créer mon compte'}
-          </Text>
-        </TouchableOpacity>
+            <TouchableOpacity style={s.btn} onPress={submit} disabled={busy}>
+              <Text style={s.btnTxt}>
+                {busy ? 'Patiente…' : mode === 'signin' ? 'Se connecter' : 'Créer mon compte'}
+              </Text>
+            </TouchableOpacity>
 
-        {mode === 'signup' && (
-          <Text style={s.consent}>
-            En créant un compte, tu acceptes nos CGU et notre politique de confidentialité.
-          </Text>
+            {mode === 'signin' && (
+              <TouchableOpacity onPress={askResetCode} disabled={busy} style={s.forgotBtn}>
+                <Text style={s.forgotTxt}>Mot de passe oublié ?</Text>
+              </TouchableOpacity>
+            )}
+
+            {mode === 'signup' && (
+              <Text style={s.consent}>
+                En créant un compte, tu acceptes nos CGU et notre politique de confidentialité.
+              </Text>
+            )}
+          </>
+        )}
+
+        {resetStep === 'code' && (
+          <>
+            <Text style={s.resetTitle}>Réinitialiser le mot de passe</Text>
+            <Text style={s.resetSub}>Entre le code reçu par email et choisis un nouveau mot de passe.</Text>
+
+           <Text style={s.label}>Code reçu par email</Text>
+            <TextInput style={s.input} placeholder="Entrez le code" placeholderTextColor={C.muted}
+              value={resetCode} onChangeText={setResetCode} keyboardType="number-pad" maxLength={8} />
+
+            <Text style={s.label}>Nouveau mot de passe</Text>
+            <TextInput style={s.input} placeholder="Minimum 6 caractères" placeholderTextColor={C.muted}
+              value={newPassword} onChangeText={setNewPassword} secureTextEntry />
+
+            {info && <Text style={s.info}>{info}</Text>}
+
+            <TouchableOpacity style={s.btn} onPress={confirmReset} disabled={busy}>
+              <Text style={s.btnTxt}>{busy ? 'Patiente…' : 'Valider le nouveau mot de passe'}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={askResetCode} disabled={busy} style={s.forgotBtn}>
+              <Text style={s.forgotTxt}>Renvoyer un code</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => { setResetStep('none'); setInfo(null); setResetCode(''); setNewPassword(''); }} style={s.forgotBtn}>
+              <Text style={s.forgotTxt}>Retour à la connexion</Text>
+            </TouchableOpacity>
+          </>
         )}
       </View>
 
@@ -115,6 +186,10 @@ const s = StyleSheet.create({
   info: { fontSize: 13, color: C.petrol, marginTop: 12, fontWeight: '600', textAlign: 'center' },
   btn: { backgroundColor: C.petrol, borderRadius: 15, paddingVertical: 14, alignItems: 'center', marginTop: 14 },
   btnTxt: { color: 'white', fontWeight: '800', fontSize: 15 },
+  forgotBtn: { alignItems: 'center', marginTop: 14 },
+  forgotTxt: { color: C.petrol, fontWeight: '700', fontSize: 13, textDecorationLine: 'underline' },
+  resetTitle: { fontSize: 18, fontWeight: '900', color: C.petrol, textAlign: 'center', marginBottom: 6 },
+  resetSub: { fontSize: 13, color: C.muted, textAlign: 'center', marginBottom: 6, lineHeight: 18 },
   consent: { fontSize: 11, color: C.muted, textAlign: 'center', marginTop: 12, lineHeight: 16 },
   secure: { color: 'rgba(255,255,255,.5)', fontSize: 12, textAlign: 'center', marginTop: 16 },
   legalRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 14 },

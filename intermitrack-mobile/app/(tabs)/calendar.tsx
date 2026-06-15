@@ -186,7 +186,7 @@ export default function Calendar(){
 
       <View style={s.grid}>
         {cells.map((d,i)=>{
-          if(!d)return<View key={i} style={[s.cell,{backgroundColor:'transparent',borderColor:'transparent'}]}/>;
+          if(!d)return<View key={i} style={[s.cell,{backgroundColor:'transparent',borderColor:'transparent',elevation:0,shadowOpacity:0}]}/>;
           const dayISO=iso(d);
           const ms=missionsOn(d);
           const has=ms.length>0;

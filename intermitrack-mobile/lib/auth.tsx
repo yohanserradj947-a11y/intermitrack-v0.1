@@ -6,8 +6,10 @@ type AuthContextType = {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: string | null; needsConfirmation: boolean }>;
+signUp: (email: string, password: string) => Promise<{ error: string | null; needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
+  sendResetCode: (email: string) => Promise<{ error: string | null }>;
+  verifyResetCode: (email: string, token: string, newPassword: string) => Promise<{ error: string | null }>;
 };
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -45,9 +47,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   async function signOut() {
     await supabase.auth.signOut();
   }
-
+  async function sendResetCode(email: string) {
+    const { error } = await supabase.auth.signInWithOtp({ email: email.trim(), options: { shouldCreateUser: false } });
+    return { error: error ? error.message : null };
+  }
+  async function verifyResetCode(email: string, token: string, newPassword: string) {
+    const { error: vErr } = await supabase.auth.verifyOtp({ email: email.trim(), token: token.trim(), type: 'email' });
+    if (vErr) return { error: vErr.message };
+    const { error: uErr } = await supabase.auth.updateUser({ password: newPassword });
+    return { error: uErr ? uErr.message : null };
+  }
   return (
-    <AuthContext.Provider value={{ session, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ session, loading, signIn, signUp, signOut, sendResetCode, verifyResetCode }}>
       {children}
     </AuthContext.Provider>
   );
