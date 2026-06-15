@@ -165,9 +165,19 @@ export default function Calendar(){
 
   function onCellPress(d:Date){
     const ms=missionsOn(d);
-    if(ms.length>0) openEdit(ms[0]); else openCreate(d);
+    if(ms.length===0){ openCreate(d); return; }
+    const buttons:any[] = ms.map((m:any)=>({
+      text:'Modifier : '+(m.production||'Mission')+' ('+m.hours+'h)',
+      onPress:()=>openEdit(m),
+    }));
+    buttons.push({ text:'+ Ajouter une mission ce jour', onPress:()=>openCreate(d) });
+    buttons.push({ text:'Annuler', style:'cancel' });
+    Alert.alert(
+      frDay(iso(d)).charAt(0).toUpperCase()+frDay(iso(d)).slice(1),
+      'Que veux-tu faire ?',
+      buttons
+    );
   }
-
   if(loading)return<View style={s.center}><ActivityIndicator size="large" color={C.petrol}/></View>;
 
   return(
