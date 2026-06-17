@@ -38,6 +38,7 @@ export default function Calendar(){
   const [showEndPicker,setShowEndPicker]=useState(false);
   const [saving,setSaving]=useState(false);
   const [showSuggest,setShowSuggest]=useState(false);
+  const [showEmSuggest,setShowEmSuggest]=useState(false);
 
   const [showMdp,setShowMdp]=useState(false);
   const [mdpDays,setMdpDays]=useState<{date:string;checked:boolean;hours:number}[]>([]);
@@ -55,7 +56,7 @@ export default function Calendar(){
     setEditId(null);
     setFProduction(''); setFEmission(''); setFType('Montage'); setFStart(day); setFEnd(day);
     setFHours(''); setFGross('');
-    setShowSuggest(false);
+    setShowSuggest(false); setShowEmSuggest(false);
     setShowForm(true);
   }
   function openEdit(m:any){
@@ -64,7 +65,7 @@ export default function Calendar(){
     setFStart(new Date((m.mission_date)+'T00:00:00'));
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
     setFHours(String(m.hours||'')); setFGross(String(m.gross_amount||''));
-    setShowSuggest(false);
+    setShowSuggest(false); setShowEmSuggest(false);
     setShowForm(true);
   }
 
@@ -190,6 +191,17 @@ text:'Modifier : '+(m.production||'Mission')+' ('+(Math.round((Number(m.hours||0
   const knownProductions=Array.from(new Set(missions.map((m:any)=>(m.production||'').toUpperCase().trim()).filter(Boolean)));
   const prodSuggestions=prodQuery?knownProductions.filter(p=>p.includes(prodQuery)&&p!==prodQuery).slice(0,5):[];
 
+  // Suggestions d'émission : on propose d'abord les émissions déjà utilisées pour la
+  // production choisie, puis les autres. Insensible à la casse, casse d'origine conservée.
+  const emQuery=fEmission.trim().toLowerCase();
+  const emForProd=missions.filter((m:any)=>(m.production||'').toUpperCase().trim()===prodQuery).map((m:any)=>(m.emission||'').trim()).filter(Boolean);
+  const emAll=missions.map((m:any)=>(m.emission||'').trim()).filter(Boolean);
+  const emUnique=(list:string[])=>{const seen=new Set<string>();const out:string[]=[];for(const e of list){const k=e.toLowerCase();if(!seen.has(k)){seen.add(k);out.push(e);}}return out;};
+  const emSuggestions=(emQuery
+    ? emUnique([...emForProd,...emAll]).filter(e=>e.toLowerCase().includes(emQuery)&&e.toLowerCase()!==emQuery)
+    : emUnique(emForProd)
+  ).slice(0,5);
+
   if(loading)return<View style={s.center}><ActivityIndicator size="large" color={C.petrol}/></View>;
 
   return(
@@ -291,7 +303,16 @@ text:'Modifier : '+(m.production||'Mission')+' ('+(Math.round((Number(m.hours||0
               )}
 
               <Text style={s.label}>Nom de l'émission (facultatif)</Text>
-              <TxtInput style={s.input} value={fEmission} onChangeText={setFEmission} placeholder="Ex : Koh-Lanta" placeholderTextColor={C.muted}/>
+              <TxtInput style={s.input} value={fEmission} onChangeText={(t:string)=>{setFEmission(t);setShowEmSuggest(true);}} onFocus={()=>setShowEmSuggest(true)} placeholder="Ex : Koh-Lanta" placeholderTextColor={C.muted}/>
+              {showEmSuggest&&emSuggestions.length>0&&(
+                <View style={s.suggestBox}>
+                  {emSuggestions.map(e=>(
+                    <TouchableOpacity key={e} style={s.suggestItem} onPress={()=>{setFEmission(e);setShowEmSuggest(false);}}>
+                      <Text style={s.suggestTxt}>🎬 {e}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
 
               <Text style={s.label}>Type de mission</Text>
               <View style={s.typeWrap}>

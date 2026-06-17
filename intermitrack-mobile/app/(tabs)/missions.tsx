@@ -37,6 +37,7 @@ export default function Missions(){
   const [showEndPicker,setShowEndPicker]=useState(false);
   const [saving,setSaving]=useState(false);
   const [showSuggest,setShowSuggest]=useState(false);
+  const [showEmSuggest,setShowEmSuggest]=useState(false);
 
   useEffect(()=>{loadMissions();},[]);
   useFocusEffect(useCallback(()=>{loadMissions();},[]));
@@ -52,7 +53,7 @@ export default function Missions(){
     setFStart(new Date(m.mission_date+'T00:00:00'));
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
     setFHours(String(m.hours||'')); setFGross(String(m.gross_amount||''));
-    setShowSuggest(false);
+    setShowSuggest(false); setShowEmSuggest(false);
   }
 
   async function saveEdit(){
@@ -115,6 +116,17 @@ export default function Missions(){
   const knownProductions=Array.from(new Set(missions.map((m:any)=>(m.production||'').toUpperCase().trim()).filter(Boolean)));
   const prodSuggestions=prodQuery?knownProductions.filter(p=>p.includes(prodQuery)&&p!==prodQuery).slice(0,5):[];
 
+  // Suggestions d'émission : d'abord celles déjà utilisées pour la production choisie,
+  // puis les autres. Insensible à la casse, casse d'origine conservée.
+  const emQuery=fEmission.trim().toLowerCase();
+  const emForProd=missions.filter((m:any)=>(m.production||'').toUpperCase().trim()===prodQuery).map((m:any)=>(m.emission||'').trim()).filter(Boolean);
+  const emAll=missions.map((m:any)=>(m.emission||'').trim()).filter(Boolean);
+  const emUnique=(list:string[])=>{const seen=new Set<string>();const out:string[]=[];for(const e of list){const k=e.toLowerCase();if(!seen.has(k)){seen.add(k);out.push(e);}}return out;};
+  const emSuggestions=(emQuery
+    ? emUnique([...emForProd,...emAll]).filter(e=>e.toLowerCase().includes(emQuery)&&e.toLowerCase()!==emQuery)
+    : emUnique(emForProd)
+  ).slice(0,5);
+
   if(loading)return<View style={s.center}><ActivityIndicator size="large" color={C.petrol}/></View>;
 
   if(selected){
@@ -168,7 +180,16 @@ export default function Missions(){
                 )}
 
                 <Text style={s.label}>Nom de l'émission (facultatif)</Text>
-                <TextInput style={s.input} value={fEmission} onChangeText={setFEmission} placeholder="Ex : Koh-Lanta" placeholderTextColor={C.muted}/>
+                <TextInput style={s.input} value={fEmission} onChangeText={(t:string)=>{setFEmission(t);setShowEmSuggest(true);}} onFocus={()=>setShowEmSuggest(true)} placeholder="Ex : Koh-Lanta" placeholderTextColor={C.muted}/>
+                {showEmSuggest&&emSuggestions.length>0&&(
+                  <View style={s.suggestBox}>
+                    {emSuggestions.map(e=>(
+                      <TouchableOpacity key={e} style={s.suggestItem} onPress={()=>{setFEmission(e);setShowEmSuggest(false);}}>
+                        <Text style={s.suggestTxt}>🎬 {e}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
 
                 <Text style={s.label}>Type de mission</Text>
                 <View style={s.typeWrap}>
