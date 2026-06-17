@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TextInput, TouchableOpacity, StatusBar, Linking } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSession } from '../lib/auth';
 
 const C = { petrol:'#1F4E5F', bg:'#F5F7F6', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1' };
@@ -21,6 +22,8 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [info, setInfo] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   // Réinitialisation du mot de passe
   const [resetStep, setResetStep] = useState<'none' | 'ask' | 'code'>('none');
@@ -94,8 +97,13 @@ export default function LoginScreen() {
               value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
 
             <Text style={s.label}>Mot de passe</Text>
-            <TextInput style={s.input} placeholder="Minimum 6 caractères" placeholderTextColor={C.muted}
-              value={password} onChangeText={setPassword} secureTextEntry />
+            <View style={s.passwordWrap}>
+              <TextInput style={s.passwordInput} placeholder="Minimum 6 caractères" placeholderTextColor={C.muted}
+                value={password} onChangeText={setPassword} secureTextEntry={!showPassword} />
+              <TouchableOpacity onPress={() => setShowPassword(v => !v)} style={s.eyeBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color={C.muted} />
+              </TouchableOpacity>
+            </View>
 
             {info && <Text style={s.info}>{info}</Text>}
 
@@ -129,8 +137,13 @@ export default function LoginScreen() {
               value={resetCode} onChangeText={setResetCode} keyboardType="number-pad" maxLength={8} />
 
             <Text style={s.label}>Nouveau mot de passe</Text>
-            <TextInput style={s.input} placeholder="Minimum 6 caractères" placeholderTextColor={C.muted}
-              value={newPassword} onChangeText={setNewPassword} secureTextEntry />
+            <View style={s.passwordWrap}>
+              <TextInput style={s.passwordInput} placeholder="Minimum 6 caractères" placeholderTextColor={C.muted}
+                value={newPassword} onChangeText={setNewPassword} secureTextEntry={!showNewPassword} />
+              <TouchableOpacity onPress={() => setShowNewPassword(v => !v)} style={s.eyeBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name={showNewPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color={C.muted} />
+              </TouchableOpacity>
+            </View>
 
             {info && <Text style={s.info}>{info}</Text>}
 
@@ -183,6 +196,9 @@ const s = StyleSheet.create({
   tabTxtActive: { fontSize: 13, fontWeight: '800', color: 'white' },
   label: { fontWeight: '700', fontSize: 13, color: C.text, marginTop: 12, marginBottom: 6 },
   input: { borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 14, fontSize: 15, color: C.text, backgroundColor: 'white' },
+  passwordWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: C.line, borderRadius: 14, backgroundColor: 'white', paddingRight: 10 },
+  passwordInput: { flex: 1, paddingVertical: 13, paddingHorizontal: 14, fontSize: 15, color: C.text },
+  eyeBtn: { padding: 6 },
   info: { fontSize: 13, color: C.petrol, marginTop: 12, fontWeight: '600', textAlign: 'center' },
   btn: { backgroundColor: C.petrol, borderRadius: 15, paddingVertical: 14, alignItems: 'center', marginTop: 14 },
   btnTxt: { color: 'white', fontWeight: '800', fontSize: 15 },

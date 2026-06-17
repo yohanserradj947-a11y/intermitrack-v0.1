@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert, Linking } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import NumInput from '../../components/NumInput';
 
@@ -13,6 +14,7 @@ function safeFileName(name:string){
 }
 
 export default function Documents(){
+  const insets=useSafeAreaInsets();
   const [docs,setDocs]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
   const [openProd,setOpenProd]=useState<string|null>(null);
@@ -27,6 +29,13 @@ export default function Documents(){
   const [saving,setSaving]=useState(false);
 
   useEffect(()=>{loadDocs();},[]);
+  // Si le dossier ouvert n'a plus aucun document (ex : on vient de supprimer le
+  // dernier), on revient proprement à la liste des dossiers.
+  useEffect(()=>{
+    if(openProd && !docs.some((d:any)=>(d.production||'SANS PRODUCTION').toUpperCase()===openProd)){
+      setOpenProd(null);
+    }
+  },[docs,openProd]);
   async function loadDocs(){
     const{data}=await supabase.from('documents').select('*')
       .order('doc_year',{ascending:false}).order('doc_month',{ascending:false});
@@ -70,13 +79,19 @@ export default function Documents(){
     Linking.openURL(data.signedUrl);
   }
 
-  async function deleteDoc(id:string,path:string){
+ async function deleteDoc(id:string,path:string){
     Alert.alert('Supprimer ?','Ce document sera définitivement supprimé.',[
       {text:'Annuler',style:'cancel'},
       {text:'Supprimer',style:'destructive',onPress:async()=>{
-        await supabase.storage.from('documents').remove([path]);
-        await supabase.from('documents').delete().eq('id',id);
-        loadDocs();
+        try{
+          const { error:stErr }=await supabase.storage.from('documents').remove([path]);
+          if(stErr) console.log('Storage remove:',stErr.message);
+          const { error:dbErr }=await supabase.from('documents').delete().eq('id',id);
+          if(dbErr){ Alert.alert('Erreur','Suppression impossible : '+dbErr.message); return; }
+          loadDocs();
+        }catch(e:any){
+          Alert.alert('Erreur',e?.message||'Une erreur est survenue lors de la suppression.');
+        }
       }},
     ]);
   }
@@ -98,7 +113,7 @@ export default function Documents(){
         <Text style={s.addBtnTxt}>＋ Ajouter un document</Text>
       </TouchableOpacity>
 
-      {!openProd?(
+      {(!openProd||!groups[openProd])?(
         <View style={{padding:16,gap:10}}>
           {prodNames.length===0
             ?<Text style={s.empty}>Aucun document enregistré pour le moment.</Text>
@@ -150,7 +165,7 @@ export default function Documents(){
 
       <Modal visible={showForm} animationType="slide" transparent onRequestClose={()=>setShowForm(false)}>
         <View style={s.overlay}>
-          <View style={s.modalCard}>
+          <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={s.modalTitle}>Ajouter un document</Text>
 

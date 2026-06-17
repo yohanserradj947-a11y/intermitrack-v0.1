@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Modal, ActivityIndicator, Platform, Alert } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import NumInput from '../../components/NumInput';
 import TxtInput from '../../components/TxtInput';
@@ -18,6 +19,7 @@ function daysInclusive(a:Date,b:Date){return Math.max(1,Math.round((b.getTime()-
 function isNextDay(aStr:string,bStr:string){const a=new Date(aStr+'T00:00:00');a.setDate(a.getDate()+1);return iso(a)===bStr;}
 
 export default function Calendar(){
+  const insets=useSafeAreaInsets();
   const [missions,setMissions]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
   const [current,setCurrent]=useState(new Date());
@@ -35,6 +37,7 @@ export default function Calendar(){
   const [showStartPicker,setShowStartPicker]=useState(false);
   const [showEndPicker,setShowEndPicker]=useState(false);
   const [saving,setSaving]=useState(false);
+  const [showSuggest,setShowSuggest]=useState(false);
 
   const [showMdp,setShowMdp]=useState(false);
   const [mdpDays,setMdpDays]=useState<{date:string;checked:boolean;hours:number}[]>([]);
@@ -52,6 +55,7 @@ export default function Calendar(){
     setEditId(null);
     setFProduction(''); setFEmission(''); setFType('Montage'); setFStart(day); setFEnd(day);
     setFHours(''); setFGross('');
+    setShowSuggest(false);
     setShowForm(true);
   }
   function openEdit(m:any){
@@ -60,6 +64,7 @@ export default function Calendar(){
     setFStart(new Date((m.mission_date)+'T00:00:00'));
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
     setFHours(String(m.hours||'')); setFGross(String(m.gross_amount||''));
+    setShowSuggest(false);
     setShowForm(true);
   }
 
@@ -86,10 +91,12 @@ export default function Calendar(){
     if(!fProduction.trim()){ Alert.alert('Production manquante','Indique le nom de la production.'); return; }
     if(!fHours.trim()){ Alert.alert('Heures manquantes','Indique le nombre d\'heures.'); return; }
     const nb=daysInclusive(fStart,fEnd);
-    if(!editId && nb>2){
+    if(!editId && nb>=2){
+      // Heures/jour proposées = total saisi ÷ nombre de jours (arrondi à 0,1h), 8h par défaut si vide.
+      const perDay=Math.round((Number(fHours)/nb)*10)/10 || 8;
       const days:{date:string;checked:boolean;hours:number}[]=[];
-      for(let d=new Date(fStart); d<=fEnd; d.setDate(d.getDate()+1)) days.push({date:iso(d),checked:true,hours:8});
-      setMdpDays(days); setDefaultH('8'); setShowForm(false); setShowMdp(true);
+      for(let d=new Date(fStart); d<=fEnd; d.setDate(d.getDate()+1)) days.push({date:iso(d),checked:true,hours:perDay});
+      setMdpDays(days); setDefaultH(String(perDay)); setShowForm(false); setShowMdp(true);
     }else{
       saveSimple();
     }
@@ -167,8 +174,7 @@ export default function Calendar(){
     const ms=missionsOn(d);
     if(ms.length===0){ openCreate(d); return; }
     const buttons:any[] = ms.map((m:any)=>({
-      text:'Modifier : '+(m.production||'Mission')+' ('+m.hours+'h)',
-      onPress:()=>openEdit(m),
+text:'Modifier : '+(m.production||'Mission')+' ('+(Math.round((Number(m.hours||0)/daysInclusive(new Date((m.mission_date)+'T00:00:00'),new Date((m.end_date||m.mission_date)+'T00:00:00')))*10)/10)+'h/jour)',      onPress:()=>openEdit(m),
     }));
     buttons.push({ text:'+ Ajouter une mission ce jour', onPress:()=>openCreate(d) });
     buttons.push({ text:'Annuler', style:'cancel' });
@@ -178,6 +184,12 @@ export default function Calendar(){
       buttons
     );
   }
+  // Suggestions de production : on prend les productions déjà saisies (dans `missions`),
+  // sans doublons, insensible à la casse, et on garde celles qui contiennent le texte tapé.
+  const prodQuery=fProduction.trim().toUpperCase();
+  const knownProductions=Array.from(new Set(missions.map((m:any)=>(m.production||'').toUpperCase().trim()).filter(Boolean)));
+  const prodSuggestions=prodQuery?knownProductions.filter(p=>p.includes(prodQuery)&&p!==prodQuery).slice(0,5):[];
+
   if(loading)return<View style={s.center}><ActivityIndicator size="large" color={C.petrol}/></View>;
 
   return(
@@ -216,7 +228,7 @@ export default function Calendar(){
                     {(first.production||'').slice(0,3).toUpperCase()}
                   </Text>
                   <Text style={[s.cellInfo,{color:isToday?'rgba(255,255,255,.8)':C.muted}]} numberOfLines={1}>
-                    {first.hours}h{ms.length>1?` · +${ms.length-1}`:''}
+                    {Math.round((Number(first.hours||0)/daysInclusive(new Date((first.mission_date)+'T00:00:00'),new Date((first.end_date||first.mission_date)+'T00:00:00')))*10)/10}h{ms.length>1?` · +${ms.length-1}`:''}
                   </Text>
                 </>
               )}
@@ -262,12 +274,21 @@ export default function Calendar(){
 
       <Modal visible={showForm} animationType="slide" transparent onRequestClose={()=>setShowForm(false)}>
         <View style={s.modalOverlay}>
-          <View style={s.modalCard}>
+          <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={s.modalTitle}>{editId?'Modifier la mission':'Ajouter une mission'}</Text>
 
               <Text style={s.label}>Nom de la production</Text>
-              <TxtInput style={s.input} value={fProduction} onChangeText={setFProduction} placeholder="Ex : ENDEMOL" placeholderTextColor={C.muted} autoCapitalize="characters"/>
+              <TxtInput style={s.input} value={fProduction} onChangeText={(t:string)=>{setFProduction(t);setShowSuggest(true);}} onFocus={()=>setShowSuggest(true)} placeholder="Ex : ENDEMOL" placeholderTextColor={C.muted} autoCapitalize="characters"/>
+              {showSuggest&&prodSuggestions.length>0&&(
+                <View style={s.suggestBox}>
+                  {prodSuggestions.map(p=>(
+                    <TouchableOpacity key={p} style={s.suggestItem} onPress={()=>{setFProduction(p);setShowSuggest(false);}}>
+                      <Text style={s.suggestTxt}>🔁 {p}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
 
               <Text style={s.label}>Nom de l'émission (facultatif)</Text>
               <TxtInput style={s.input} value={fEmission} onChangeText={setFEmission} placeholder="Ex : Koh-Lanta" placeholderTextColor={C.muted}/>
@@ -330,7 +351,7 @@ export default function Calendar(){
 
       <Modal visible={showMdp} animationType="slide" transparent onRequestClose={()=>setShowMdp(false)}>
         <View style={s.modalOverlay}>
-          <View style={s.modalCard}>
+          <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={s.modalTitle}>Quels jours as-tu travaillés ?</Text>
               <Text style={s.miniHint}>Coche les jours travaillés et ajuste les heures de chaque jour.</Text>
@@ -380,8 +401,7 @@ const s=StyleSheet.create({
   weekRow:{flexDirection:'row',paddingHorizontal:10,marginBottom:6},
   weekDay:{flex:1,textAlign:'center',fontSize:12,fontWeight:'800',color:C.muted},
   grid:{flexDirection:'row',flexWrap:'wrap',paddingHorizontal:8},
-  cell:{width:`${100/7}%`,height:70,padding:5,borderWidth:1.5,borderRadius:14,marginBottom:4,overflow:'hidden',shadowColor:'#000',shadowOpacity:0.03,shadowRadius:3,elevation:1},
-  cellDay:{fontSize:14,fontWeight:'800'},
+cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginBottom:4,overflow:'hidden',shadowColor:'#000',shadowOpacity:0.03,shadowRadius:3,elevation:1},   cellDay:{fontSize:14,fontWeight:'800'},
   cellProd:{fontSize:9,fontWeight:'900',marginTop:2},
   cellInfo:{fontSize:8,fontWeight:'600'},
   hint:{textAlign:'center',fontSize:11,color:C.muted,fontStyle:'italic',marginTop:8,marginBottom:4,paddingHorizontal:20},
@@ -405,6 +425,9 @@ const s=StyleSheet.create({
   label:{fontSize:13,fontWeight:'700',color:C.text,marginTop:12,marginBottom:6},
   input:{borderWidth:1,borderColor:C.line,borderRadius:14,paddingVertical:13,paddingHorizontal:14,fontSize:15,color:C.text,backgroundColor:'white'},
   inputTxt:{fontSize:15,color:C.text},
+  suggestBox:{backgroundColor:'white',borderWidth:1,borderColor:C.line,borderRadius:14,marginTop:6,overflow:'hidden'},
+  suggestItem:{paddingVertical:12,paddingHorizontal:14,borderBottomWidth:1,borderBottomColor:C.soft},
+  suggestTxt:{fontSize:15,fontWeight:'700',color:C.petrol},
   row:{flexDirection:'row',gap:10},
   typeWrap:{flexDirection:'row',flexWrap:'wrap',gap:8},
   typeChip:{paddingVertical:9,paddingHorizontal:14,borderRadius:99,backgroundColor:C.soft},

@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Modal,
 import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import DonutChart from '../../components/DonutChart';
 import NumInput from '../../components/NumInput';
@@ -17,6 +18,7 @@ function fmtPeriod(s:string,e:string){if(!e||e===s)return fmtDate(s);return fmtD
 function iso(d:Date){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 
 export default function Missions(){
+  const insets=useSafeAreaInsets();
   const [missions,setMissions]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
   const [selected,setSelected]=useState<string|null>(null);
@@ -34,6 +36,7 @@ export default function Missions(){
   const [showStartPicker,setShowStartPicker]=useState(false);
   const [showEndPicker,setShowEndPicker]=useState(false);
   const [saving,setSaving]=useState(false);
+  const [showSuggest,setShowSuggest]=useState(false);
 
   useEffect(()=>{loadMissions();},[]);
   useFocusEffect(useCallback(()=>{loadMissions();},[]));
@@ -49,6 +52,7 @@ export default function Missions(){
     setFStart(new Date(m.mission_date+'T00:00:00'));
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
     setFHours(String(m.hours||'')); setFGross(String(m.gross_amount||''));
+    setShowSuggest(false);
   }
 
   async function saveEdit(){
@@ -105,6 +109,12 @@ export default function Missions(){
   const totalHours=Math.round(sorted.reduce((a,x)=>a+x.hours,0)*10)/10;
   const totalVac=sorted.reduce((a,x)=>a+x.vac,0);
 
+  // Suggestions de production : productions déjà saisies (dans `missions`),
+  // sans doublons, insensible à la casse, filtrées sur le texte tapé.
+  const prodQuery=fProduction.trim().toUpperCase();
+  const knownProductions=Array.from(new Set(missions.map((m:any)=>(m.production||'').toUpperCase().trim()).filter(Boolean)));
+  const prodSuggestions=prodQuery?knownProductions.filter(p=>p.includes(prodQuery)&&p!==prodQuery).slice(0,5):[];
+
   if(loading)return<View style={s.center}><ActivityIndicator size="large" color={C.petrol}/></View>;
 
   if(selected){
@@ -141,12 +151,21 @@ export default function Missions(){
 
         <Modal visible={!!editId} animationType="slide" transparent onRequestClose={()=>setEditId(null)}>
           <View style={s.modalOverlay}>
-            <View style={s.modalCard}>
+            <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
               <ScrollView showsVerticalScrollIndicator={false}>
                 <Text style={s.modalTitle}>Modifier la mission</Text>
 
                 <Text style={s.label}>Nom de la production</Text>
-                <TextInput style={s.input} value={fProduction} onChangeText={setFProduction} placeholderTextColor={C.muted} autoCapitalize="characters"/>
+                <TextInput style={s.input} value={fProduction} onChangeText={(t:string)=>{setFProduction(t);setShowSuggest(true);}} onFocus={()=>setShowSuggest(true)} placeholderTextColor={C.muted} autoCapitalize="characters"/>
+                {showSuggest&&prodSuggestions.length>0&&(
+                  <View style={s.suggestBox}>
+                    {prodSuggestions.map(p=>(
+                      <TouchableOpacity key={p} style={s.suggestItem} onPress={()=>{setFProduction(p);setShowSuggest(false);}}>
+                        <Text style={s.suggestTxt}>🔁 {p}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
 
                 <Text style={s.label}>Nom de l'émission (facultatif)</Text>
                 <TextInput style={s.input} value={fEmission} onChangeText={setFEmission} placeholder="Ex : Koh-Lanta" placeholderTextColor={C.muted}/>
@@ -317,6 +336,9 @@ const s=StyleSheet.create({
   label:{fontSize:13,fontWeight:'700',color:C.text,marginTop:12,marginBottom:6},
   input:{borderWidth:1,borderColor:C.line,borderRadius:14,paddingVertical:13,paddingHorizontal:14,fontSize:15,color:C.text,backgroundColor:'white'},
   inputTxt:{fontSize:15,color:C.text},
+  suggestBox:{backgroundColor:'white',borderWidth:1,borderColor:C.line,borderRadius:14,marginTop:6,overflow:'hidden'},
+  suggestItem:{paddingVertical:12,paddingHorizontal:14,borderBottomWidth:1,borderBottomColor:C.soft},
+  suggestTxt:{fontSize:15,fontWeight:'700',color:C.petrol},
   row:{flexDirection:'row',gap:10},
   typeWrap:{flexDirection:'row',flexWrap:'wrap',gap:8},
   typeChip:{paddingVertical:9,paddingHorizontal:14,borderRadius:99,backgroundColor:C.soft},

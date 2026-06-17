@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StatusBar, Platform, Modal, TextInput, Alert, Linking } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../lib/supabase';
 import { useSession } from '../../lib/auth';
@@ -20,6 +21,7 @@ function isoToDisplay(iso:string){if(!iso)return'';const[y,m,d]=iso.split('-');r
 function iso(d:Date){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 
 export default function HomeScreen(){
+  const insets=useSafeAreaInsets();
   const { session, signOut } = useSession();
   const [loading,setLoading]=useState(true);
   const [missions,setMissions]=useState<any[]>([]);
@@ -115,6 +117,13 @@ export default function HomeScreen(){
         }},
       ]
     );
+  }
+
+  function reportBug(){
+    setShowAccount(false);
+    const body=`Décris ici le bug rencontré ou ta suggestion :\n\n\n\n— Infos techniques (merci de ne pas effacer) —\nAppareil : ${Platform.OS} ${Platform.Version}\nCompte : ${session?.user.email||'?'}`;
+    const url=`mailto:Intermitrack@gmail.com?subject=${encodeURIComponent('Bug / suggestion — Intermitrack (bêta)')}&body=${encodeURIComponent(body)}`;
+    Linking.openURL(url).catch(()=>Alert.alert('Impossible d\'ouvrir le mail','Écris-nous directement à Intermitrack@gmail.com'));
   }
 
   const stats=useMemo(()=>{
@@ -261,7 +270,7 @@ export default function HomeScreen(){
 
       <Modal visible={!!editId} animationType="slide" transparent onRequestClose={()=>setEditId(null)}>
         <View style={s.modalOverlay}>
-          <View style={s.modalCard}>
+          <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={s.modalTitle}>Modifier la mission</Text>
 
@@ -331,6 +340,10 @@ export default function HomeScreen(){
 
             <TouchableOpacity style={s.accountBtn} onPress={()=>{setShowAccount(false);signOut();}}>
               <Text style={s.accountBtnTxt}>Se déconnecter</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={s.accountReportBtn} onPress={reportBug}>
+              <Text style={s.accountReportTxt}>🐞 Signaler un bug</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={s.accountDeleteBtn} onPress={()=>{setShowAccount(false);deleteAccount();}}>
@@ -477,6 +490,8 @@ const s=StyleSheet.create({
   accountEmail:{fontSize:13,color:C.muted,textAlign:'center',marginTop:4,marginBottom:18},
   accountBtn:{backgroundColor:C.petrol,borderRadius:14,paddingVertical:14,alignItems:'center'},
   accountBtnTxt:{color:'white',fontWeight:'800',fontSize:15},
+  accountReportBtn:{backgroundColor:C.soft,borderRadius:14,paddingVertical:14,alignItems:'center',marginTop:10},
+  accountReportTxt:{color:C.petrol,fontWeight:'800',fontSize:15},
   accountDeleteBtn:{backgroundColor:'#FFF5F5',borderRadius:14,paddingVertical:14,alignItems:'center',marginTop:10},
   accountDeleteTxt:{color:'#E53E3E',fontWeight:'800',fontSize:14},
   accountCancel:{paddingVertical:14,alignItems:'center',marginTop:4},
