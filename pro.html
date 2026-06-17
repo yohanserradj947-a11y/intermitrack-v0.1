@@ -28,6 +28,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .tstat-val{font-size:15px;font-weight:800;color:var(--p);letter-spacing:-.04em;display:block;}
 .tstat-lbl{font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
 .av-btn{width:36px;height:36px;border-radius:50%;background:var(--p);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:800;cursor:pointer;border:none;}
+.av-wrap{position:relative;}
+.av-menu{position:absolute;top:46px;right:0;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px;min-width:180px;box-shadow:0 8px 24px rgba(0,0,0,.12);opacity:0;visibility:hidden;transform:translateY(-6px);transition:all .15s;z-index:1000;}
+.av-menu.open{opacity:1;visibility:visible;transform:translateY(0);}
+.av-menu-item{display:block;width:100%;text-align:left;padding:10px 12px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--muted);transition:background .15s;}
+.av-menu-item:hover{background:var(--line);color:var(--p);}
 
 /* Sidebar */
 .sidebar{background:var(--card);border-right:1px solid var(--line);padding:20px 12px;display:flex;flex-direction:column;gap:4px;}
@@ -461,7 +466,12 @@ html,body{overflow-x:hidden;max-width:100%;}
         <div class="tstat"><span class="tstat-val" id="cntConfirmes">0</span><span class="tstat-lbl">Confirmés</span></div>
         <div class="tstat"><span class="tstat-val" id="cntHistorique">0</span><span class="tstat-lbl">Terminés</span></div>
       </div>
-      <button class="av-btn" id="logoutBtn">YO</button>
+      <div class="av-wrap">
+        <button class="av-btn" id="avatarBtn">YO</button>
+        <div class="av-menu" id="avatarMenu">
+          <button class="av-menu-item" id="logoutBtn">Se déconnecter</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -504,7 +514,7 @@ html,body{overflow-x:hidden;max-width:100%;}
           <option value="">Tous les postes</option>
           <option>Chef plateaux</option><option>Pupitreur</option><option>Blockeur</option>
           <option>Tech auto</option><option>Électro</option><option>Chef poursuite</option>
-          <option>Poursuiteur</option><option>Robospot</option><option>Chef Ass Plateau</option></option>Ass Plateau</option>
+          <option>Poursuiteur</option><option>Robospot</option><option>Chef Ass Plateau</option><option>Ass Plateau</option>
         </select>
       </div>
       <div class="sel-bar" id="selBar">
@@ -886,6 +896,16 @@ sb.auth.onAuthStateChange((_e, session) => {
       showAuth();
     }
   }, 0);
+});
+
+// Ouvre/ferme le menu au clic sur l'avatar
+document.getElementById('avatarBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.getElementById('avatarMenu').classList.toggle('open');
+});
+// Ferme le menu si on clique ailleurs
+document.addEventListener('click', () => {
+  document.getElementById('avatarMenu')?.classList.remove('open');
 });
 
 document.getElementById('logoutBtn').addEventListener('click', async () => {
@@ -1697,17 +1717,6 @@ window.relancerAttente = async() => {
 window.exportPlanning = () => {
   toast('Export PDF — fonctionnalité à venir');
 };
-
-// ── Envoi invitations ─────────────────────────────────────
-function formatPhone(tel){
-  if(!tel) return '';
-  let t = tel.replace(/[\s\.\-]/g,'');
-  if(t.startsWith('00')) t = '+' + t.slice(2);
-  else if(t.startsWith('0')) t = '+33' + t.slice(1);
-  else if(t.startsWith('33') && !t.startsWith('+')) t = '+' + t;
-  else if(t.match(/^[67]\d{8}$/)) t = '+33' + t;
-  return t;
-}
 
 async function sendInvitations(projectId){
   const projet = projets.find(p=>p.id===projectId);
