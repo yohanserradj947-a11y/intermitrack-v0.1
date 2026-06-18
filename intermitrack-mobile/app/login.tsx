@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TextInput, TouchableOpacity, StatusBar, Linking } from 'react-native';
+import { StyleSheet, View, Text, Image, ScrollView, TextInput, TouchableOpacity, StatusBar, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSession } from '../lib/auth';
 
@@ -75,7 +75,7 @@ export default function LoginScreen() {
     <ScrollView contentContainerStyle={s.page} keyboardShouldPersistTaps="handled">
       <StatusBar barStyle="light-content" backgroundColor={C.petrol} />
       <View style={s.brand}>
-        <View style={s.logoBox}><Text style={s.logoTxt}>iT</Text></View>
+        <Image source={require('../assets/images/icon.png')} style={s.logoBox} resizeMode="cover" />
         <Text style={s.mainline}>{"Toute votre\nintermittence\nau même endroit."}</Text>
         <Text style={s.intro}>{"Suivi des missions, heures ARE,\ndocuments et prévisions."}</Text>
       </View>

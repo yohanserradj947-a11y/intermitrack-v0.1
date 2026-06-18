@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StatusBar, Platform, Modal, TextInput, Alert, Linking } from 'react-native';
+import { StyleSheet, View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, StatusBar, Platform, Modal, TextInput, Alert, Linking } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -147,7 +147,7 @@ export default function HomeScreen(){
     const upcoming=missions.filter((m:any)=>new Date((m.end_date||m.mission_date)+'T00:00:00')>=today);
     const doneH=Math.round(yearM.reduce((a:number,m:any)=>a+splitT(m).done,0)*10)/10;
     const planH=Math.round(yearM.reduce((a:number,m:any)=>a+splitT(m).planned,0)*10)/10;
-    const remaining=Math.max(0,Math.round((507-doneH)*10)/10);
+    const remaining=Math.max(0,Math.round((507-doneH-planH)*10)/10);
     const monthM=missions.filter((m:any)=>{const d=new Date(m.mission_date+'T00:00:00');return d.getMonth()===current.getMonth()&&d.getFullYear()===current.getFullYear();});
     const monthH=Math.round(monthM.reduce((a:number,m:any)=>a+Number(m.hours||0),0)*10)/10;
     const monthG=monthM.reduce((a:number,m:any)=>a+Number(m.gross_amount||0),0);
@@ -169,7 +169,7 @@ export default function HomeScreen(){
 
       <View style={s.header}>
         <View style={s.headerBrand}>
-          <View style={s.logoBox}><Text style={s.logoTxt}>iT</Text></View>
+          <Image source={require('../../assets/images/icon.png')} style={s.logoBox} resizeMode="cover" />
           <View>
             <Text style={s.brandName}>Intermitrack</Text>
             <Text style={s.brandTag}>Le tableau de bord des intermittents.</Text>
@@ -186,7 +186,11 @@ export default function HomeScreen(){
           <Text style={s.badgeLbl}>Heures effectuées</Text>
         </View>
         <View style={[s.badge,{borderLeftColor:C.orange}]}>
-          <Text style={[s.badgeVal,{color:C.orange}]}>{remaining}h</Text>
+          <Text style={[s.badgeVal,{color:C.orange}]}>{planH}h</Text>
+          <Text style={s.badgeLbl}>Heures prévues</Text>
+        </View>
+        <View style={[s.badge,{borderLeftColor:C.muted}]}>
+          <Text style={[s.badgeVal,{color:C.muted}]}>{remaining}h</Text>
           <Text style={s.badgeLbl}>Heures restantes</Text>
         </View>
       </View>
@@ -447,7 +451,7 @@ const s=StyleSheet.create({
   avatarTxt:{color:'white',fontWeight:'900',fontSize:14},
   badgesRow:{flexDirection:'row',gap:12,padding:16},
   badge:{flex:1,backgroundColor:C.card,borderRadius:16,padding:14,borderLeftWidth:4,shadowColor:'#000',shadowOpacity:0.05,shadowRadius:8,elevation:2},
-  badgeVal:{fontSize:24,fontWeight:'900',color:C.petrol,letterSpacing:-0.5},
+  badgeVal:{fontSize:20,fontWeight:'900',color:C.petrol,letterSpacing:-0.5},
   badgeLbl:{fontSize:11,color:C.muted,fontWeight:'700',marginTop:4},
   areBox:{marginHorizontal:16,backgroundColor:C.card,borderRadius:16,padding:14,borderWidth:1,borderColor:C.line},
   areLabel:{fontSize:11,fontWeight:'900',color:C.petrol,marginBottom:8,textTransform:'uppercase',letterSpacing:0.5},
