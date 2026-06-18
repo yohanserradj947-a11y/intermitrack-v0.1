@@ -1325,9 +1325,12 @@ function renderChart(doneHours, plannedHours = 0) {
   const total = OBJECTIVE_HOURS;
   const doneRaw = Math.max(0, Number(doneHours) || 0);
   const plannedRaw = Math.max(0, Number(plannedHours) || 0);
-  const donePercent = Math.round((doneRaw / total) * 100);
-  const plannedPercent = Math.round((plannedRaw / total) * 100);
-  const totalPercent = donePercent + plannedPercent;
+  // Même calcul que la jauge de l'appli : on borne, et on arrondit la SOMME (pas chaque part).
+  const doneFrac = Math.min(doneRaw / total, 1);
+  const plannedFrac = Math.min(plannedRaw / total, 1 - doneFrac);
+  const donePercent = Math.round(doneFrac * 100);
+  const plannedPercent = Math.round(plannedFrac * 100);
+  const totalPercent = Math.round((doneFrac + plannedFrac) * 100);
   const CIRC = 377;
   const doneDash = Math.min((donePercent / 100) * CIRC, CIRC);
   const plannedDash = Math.min((plannedPercent / 100) * CIRC, CIRC - doneDash);
