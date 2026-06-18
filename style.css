@@ -30,7 +30,12 @@
 body {
   margin: 0;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-  background: var(--bg);
+  background:
+    radial-gradient(900px 500px at 100% 0%, rgba(18,117,74,0.13), transparent 60%),
+    radial-gradient(820px 480px at 0% 100%, rgba(13,79,108,0.14), transparent 60%),
+    linear-gradient(160deg, #ECF3F0 0%, #E6EEF1 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
   color: var(--text);
   -webkit-font-smoothing: antialiased;
 }

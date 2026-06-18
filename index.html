@@ -24,7 +24,10 @@
       inset: 0 !important;
 z-index: 500 !important;
       overflow-y: auto !important;
-      background: #F2F6F5 !important;
+      background:
+        radial-gradient(1100px 600px at 85% -8%, rgba(122,158,126,0.30), transparent 60%),
+        radial-gradient(900px 520px at -10% 112%, rgba(31,78,95,0.28), transparent 60%),
+        linear-gradient(135deg, #EEF5F1 0%, #E4EDEF 55%, #DBE7EA 100%) !important;
       display: block !important;
     }
     #authBox.hidden {
@@ -91,7 +94,7 @@ z-index: 500 !important;
     .lp-scard p { font-size: 12px; color: rgba(255,255,255,.7); margin: 0; line-height: 1.5; }
     .lp-disclaimer { text-align: center; font-size: 11px; color: rgba(255,255,255,.5); margin-top: 16px; font-style: italic; }
 
-    .lp-cta-section { background: #F2F6F5; padding: 56px 40px; text-align: center; }
+    .lp-cta-section { background: transparent; padding: 56px 40px; text-align: center; }
     .lp-cta-h2 { font-size: 36px; font-weight: 900; color: #1A2B35; letter-spacing: -.03em; margin: 0 0 12px; }
     .lp-cta-p { font-size: 15px; color: #718096; margin: 0 0 28px; line-height: 1.6; }
     .lp-cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
@@ -426,7 +429,7 @@ z-index: 500 !important;
             <div class="stat"><b id="monthHours">0h</b><span>Heures </span></div>
             <div class="stat"><b id="monthGross">0 EUR</b><span>Brut </span></div>
             <div class="stat"><b id="missionCount">0</b><span>Jours</span></div>
-            <div class="stat"><b id="yearGross">0 EUR</b><span>Brut total</span></div>
+            <div class="stat"><b id="monthRate">0 EUR</b><span>Moyenne €/h</span></div>
           </div>
         </article>
         <article class="card">
@@ -456,10 +459,12 @@ z-index: 500 !important;
           </div>
           <form id="missionForm">
             <label for="production">Nom de la production</label>
-            <input id="production" placeholder="Ex : Production " required />
+            <input id="production" list="productionsList" autocomplete="off" placeholder="Ex : Production " required />
+            <datalist id="productionsList"></datalist>
             <label for="type">Type de mission</label>
             <label for="emission">Émission</label>
-            <input id="emission" placeholder="Ex :The voice..." />
+            <input id="emission" list="emissionsList" autocomplete="off" placeholder="Ex :The voice..." />
+            <datalist id="emissionsList"></datalist>
             <select id="type"><option>Montage</option><option>Tournage</option><option>Démontage</option><option>Régie</option><option>Son</option><option>Lumière</option><option>Autres</option></select>
             <label for="date">Date début</label><input id="date" type="date" required />
             <label for="endDate">Date fin</label><input id="endDate" type="date" required />

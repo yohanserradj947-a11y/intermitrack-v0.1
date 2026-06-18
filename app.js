@@ -738,9 +738,9 @@ function openMultiDayPicker(startStr, endStr){
   const start = new Date(startStr + "T00:00:00"), end = new Date(endStr + "T00:00:00");
   const days = [];
   for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) days.push(_iso(d));
-  const defH = 8;
   _mdpData = {
-    days: days.map(function(ds){ return { date: ds, checked: true, hours: defH }; }),
+    days: days.map(function(ds){ return { date: ds, checked: true, hours: 0 }; }),
+    totalHours: Number($("hours").value) || 0,
     totalGross: Number($("gross").value) || 0,
     production: normalizeProductionName($("production").value),
     emission: $("emission") ? $("emission").value : "",
@@ -749,8 +749,10 @@ function openMultiDayPicker(startStr, endStr){
     km_rate: Number($("kmRate") ? $("kmRate").value : 0) || 0,
     km_amount: calculateKmAmount()
   };
-  document.getElementById("mdpDefault").value = defH;
-  document.getElementById("mdpSub").textContent = "Coche les jours travaillés, puis saisis les heures de chaque jour (tu peux mettre des valeurs différentes : 9h, 4h, 12h…).";
+  _mdpRedistribute();
+  var _firstChecked = _mdpData.days.find(function(d){ return d.checked; });
+  document.getElementById("mdpDefault").value = _firstChecked ? _firstChecked.hours : 8;
+  document.getElementById("mdpSub").textContent = "Décoche les jours non travaillés : le total d'heures se répartit automatiquement entre les jours cochés. Tu peux aussi ajuster chaque jour à la main.";
   _mdpRender();
   document.getElementById("mdpOverlay").classList.add("open");
 }
@@ -765,7 +767,7 @@ function _mdpRender(){
       '<span class="mdp-hours-u">h</span></div>';
   }).join("");
   list.querySelectorAll("[data-mdp-check]").forEach(function(cb){
-    cb.addEventListener("change", function(e){ _mdpData.days[+e.target.dataset.mdpCheck].checked = e.target.checked; _mdpRender(); });
+    cb.addEventListener("change", function(e){ _mdpData.days[+e.target.dataset.mdpCheck].checked = e.target.checked; _mdpRedistribute(); _mdpRender(); });
   });
   list.querySelectorAll("[data-mdp-hours]").forEach(function(inp){
     inp.addEventListener("input", function(e){ _mdpData.days[+e.target.dataset.mdpHours].hours = Number(e.target.value) || 0; _mdpUpdateTotal(); });
@@ -779,7 +781,16 @@ function _mdpUpdateTotal(){
   document.getElementById("mdpTotal").textContent = "Total : " + (Math.round(h*10)/10) + " h sur " + checked.length + " jour" + (checked.length>1 ? "s" : "");
 }
 
-function _mdpSetAll(val){ _mdpData.days.forEach(function(d){ d.checked = val; }); _mdpRender(); }
+// Répartit automatiquement le total d'heures saisi à parts égales entre les jours cochés.
+function _mdpRedistribute(){
+  if (!_mdpData) return;
+  const checked = _mdpData.days.filter(function(d){ return d.checked; });
+  if (!checked.length) return;
+  const per = Math.round((_mdpData.totalHours / checked.length) * 10) / 10;
+  _mdpData.days.forEach(function(d){ if (d.checked) d.hours = per; });
+}
+
+function _mdpSetAll(val){ _mdpData.days.forEach(function(d){ d.checked = val; }); _mdpRedistribute(); _mdpRender(); }
 
 // Applique la valeur "heures par jour" à tous les jours cochés (confort ; reste modifiable jour par jour)
 function _mdpApplyDefault(){
@@ -829,6 +840,7 @@ function editMission(id) {
   if (!mission) { toast("Mission introuvable."); return; }
   editingMissionId = mission.id;
   $("production").value = mission.production || "";
+  if ($("emission")) $("emission").value = mission.emission || "";
   $("type").value = mission.type || "Autre";
   $("date").value = mission.date || "";
   $("endDate").value = mission.endDate || mission.date || "";
@@ -1117,7 +1129,8 @@ function render() {
   if ($("monthHours")) $("monthHours").textContent = monthHours + "h";
   if ($("monthGross")) $("monthGross").textContent = money(monthGross);
   if ($("recapMonthPicker")) $("recapMonthPicker").value = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}`;
-  if ($("yearGross")) $("yearGross").textContent = money(yearGross);
+  const monthRate = monthHours > 0 ? Math.round(monthGross / monthHours) : 0;
+  if ($("monthRate")) $("monthRate").textContent = money(monthRate) + "/h";
   checkAndShowNotification(remaining, yearHours);
   if ($("remainingHours")) $("remainingHours").textContent = remaining;
   if ($("missionCount")) {
@@ -1133,6 +1146,17 @@ function render() {
   renderCalendar();
   renderActualisation();renderHistory()
   renderDocuments();
+  populateDatalists();
+}
+
+// Remplit les listes d'autocomplétion (production / émission) à partir des missions déjà saisies.
+function populateDatalists() {
+  const esc = (s) => String(s).replace(/"/g, "&quot;");
+  const uniq = (key) => [...new Set(missions.map((m) => (m[key] || "").trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "fr"));
+  const pl = $("productionsList"), el = $("emissionsList");
+  if (pl) pl.innerHTML = uniq("production").map((v) => `<option value="${esc(v)}"></option>`).join("");
+  if (el) el.innerHTML = uniq("emission").map((v) => `<option value="${esc(v)}"></option>`).join("");
 }
 function showAppNotification(type, icon, title, text, progressPct, progressColor) {
   const existing = document.getElementById("appNotif");
@@ -1427,7 +1451,9 @@ function renderAllMissions() {
   const container = $("missionsGraphContainer");
   if (!container) return;
 
-  const addBtnHtml = `<button class="ghost" type="button" id="missionsAddBtn" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:16px;font-weight:700;">+ Ajouter une mission</button>`;
+  // Bouton "Ajouter une mission" retiré de la rubrique Missions pour coller à l'appli :
+  // l'ajout se fait depuis le calendrier. (vide = n'affiche rien)
+  const addBtnHtml = "";
   const bindAddBtn = () => {
     const btn = $("missionsAddBtn");
     if (!btn) return;
@@ -1440,7 +1466,7 @@ function renderAllMissions() {
   };
 
   if (!missions.length) {
-    container.innerHTML = `${addBtnHtml}<div class="empty">Aucune mission enregistrée. Clique sur « Ajouter une mission » pour commencer.</div>`;
+    container.innerHTML = `<div class="empty">Aucune mission enregistrée pour le moment. Ajoute une mission depuis le calendrier.</div>`;
     bindAddBtn();
     return;
   }
