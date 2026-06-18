@@ -181,7 +181,7 @@ export default function HomeScreen(){
       </View>
 
       <View style={s.badgesRow}>
-        <View style={[s.badge,{borderLeftColor:C.sage}]}>
+        <View style={[s.badge,{borderLeftColor:C.petrol}]}>
           <Text style={s.badgeVal}>{doneH}h</Text>
           <Text style={s.badgeLbl}>Heures effectuées</Text>
         </View>
