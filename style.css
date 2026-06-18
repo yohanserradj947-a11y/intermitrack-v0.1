@@ -461,6 +461,22 @@ button {
 .remaining-badge span { display: block; margin-top: 6px; font-size: 12px; color: var(--muted); font-weight: 600; }
 .remaining-badge:first-child { border-left: 3px solid var(--sage) !important; }
 .remaining-badge:last-child { border-left: 3px solid var(--orange) !important; }
+/* Rangée de 3 badges sous la date ARE : Effectuées / Prévues / Restantes.
+   Couleurs alignées sur la légende du graphique (Effectué pétrole, Prévu orange, Restant gris). */
+.hero-badges { display: flex; gap: 12px; width: 100%; margin-top: 4px; }
+.hero-badges .remaining-badge { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.hero-badges .eff-badge { border-left: 3px solid #1F4E5F !important; }
+.hero-badges .eff-badge b, .hero-badges .eff-badge b span { color: #1F4E5F !important; }
+.hero-badges .prev-badge { border-left: 3px solid #F97316 !important; }
+.hero-badges .prev-badge b, .hero-badges .prev-badge b span { color: #F97316 !important; }
+.hero-badges .rest-badge { border-left: 3px solid #CBD9D3 !important; }
+.hero-badges .rest-badge b, .hero-badges .rest-badge b span { color: #6E8B81 !important; }
+@media (max-width: 720px) {
+  .hero-badges { gap: 8px; }
+  .hero-badges .remaining-badge { padding: 10px 6px !important; }
+  .hero-badges .remaining-badge b, .hero-badges .remaining-badge b span { font-size: 22px !important; }
+  .hero-badges .remaining-badge > span { font-size: 10px !important; margin-top: 4px !important; }
+}
 
 @media (max-width: 720px) {
   .heroTop { display: grid !important; grid-template-columns: 1fr 1fr !important; grid-template-areas: "center center" "left right" !important; gap: 12px !important; align-items: start !important; }

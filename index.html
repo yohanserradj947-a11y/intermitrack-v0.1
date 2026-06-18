@@ -404,7 +404,6 @@ z-index: 500 !important;
       <section class="view active" id="view-dashboard">
         <article class="card hero">
           <div class="heroTop">
-            <div class="remaining-badge"><b><span id="yearHours">0</span>h</b><span>Heures effectuées</span></div>
             <div class="are-admission-center">
               <label for="areAdmissionDate">📅 Date d'admission ARE</label>
               <div class="are-admission-pill">
@@ -414,7 +413,11 @@ z-index: 500 !important;
               </div>
               <small id="areAdmissionInfo" class="are-admission-info">Calcul depuis la date d'admission ARE.</small>
             </div>
-            <div class="remaining-badge"><b><span id="remainingHours">507</span>h</b><span>Heures restantes</span></div>
+          </div>
+          <div class="hero-badges">
+            <div class="remaining-badge eff-badge"><b><span id="yearHours">0</span>h</b><span>Heures effectuées</span></div>
+            <div class="remaining-badge prev-badge"><b><span id="plannedHours">0</span>h</b><span>Heures prévues</span></div>
+            <div class="remaining-badge rest-badge"><b><span id="remainingHours">507</span>h</b><span>Heures restantes</span></div>
           </div>
           <div class="chartWrap" id="chart"></div>
         <div class="recap-mois-header" style="display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px;">

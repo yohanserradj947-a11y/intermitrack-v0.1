@@ -1123,7 +1123,7 @@ function render() {
   const yearGross = yearMissions.reduce((a, x) => a + Number(x.gross || 0), 0);
   const monthGross = selectedMonthMissions.reduce((a, x) => a + Number(x.gross || 0), 0);
   const percent = Math.round((yearHours / OBJECTIVE_HOURS) * 100);
-  const remaining = Math.max(0, Math.round((OBJECTIVE_HOURS - yearHours) * 10) / 10);
+  const remaining = Math.max(0, Math.round((OBJECTIVE_HOURS - yearHours - plannedHours) * 10) / 10);
 
   if ($("yearHours")) $("yearHours").textContent = yearHours;
   if ($("monthHours")) $("monthHours").textContent = monthHours + "h";
@@ -1133,6 +1133,7 @@ function render() {
   if ($("monthRate")) $("monthRate").textContent = money(monthRate) + "/h";
   checkAndShowNotification(remaining, yearHours);
   if ($("remainingHours")) $("remainingHours").textContent = remaining;
+  if ($("plannedHours")) $("plannedHours").textContent = plannedHours;
   if ($("missionCount")) {
   const totalVac = selectedMonthMissions.reduce((a, x) => a + Number(x.vacations || 0), 0);
   $("missionCount").textContent = totalVac;
