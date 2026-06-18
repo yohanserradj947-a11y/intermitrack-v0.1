@@ -116,9 +116,15 @@ export default function Calendar(){
     ]);
   }
 
-  function toggleDay(i:number){ setMdpDays(ds=>ds.map((d,idx)=>idx===i?{...d,checked:!d.checked}:d)); }
+  function mdpRedistribute(ds:{date:string;checked:boolean;hours:number}[]){
+    const n=ds.filter(d=>d.checked).length;
+    if(!n)return ds;
+    const per=Math.round((Number(fHours)/n)*10)/10||0;
+    return ds.map(d=>d.checked?{...d,hours:per}:d);
+  }
+  function toggleDay(i:number){ setMdpDays(ds=>mdpRedistribute(ds.map((d,idx)=>idx===i?{...d,checked:!d.checked}:d))); }
   function setDayHours(i:number,h:string){ setMdpDays(ds=>ds.map((d,idx)=>idx===i?{...d,hours:Number(h)||0}:d)); }
-  function setAll(val:boolean){ setMdpDays(ds=>ds.map(d=>({...d,checked:val}))); }
+  function setAll(val:boolean){ setMdpDays(ds=>mdpRedistribute(ds.map(d=>({...d,checked:val})))); }
   function applyDefault(){ const v=Number(defaultH)||0; setMdpDays(ds=>ds.map(d=>d.checked?{...d,hours:v}:d)); }
   const mdpChecked=mdpDays.filter(d=>d.checked);
   const mdpTotalH=Math.round(mdpChecked.reduce((a,d)=>a+(Number(d.hours)||0),0)*10)/10;
