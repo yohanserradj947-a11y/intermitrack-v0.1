@@ -28,6 +28,8 @@ export default function HomeScreen(){
   const [current,setCurrent]=useState(new Date());
   const [missionPage,setMissionPage]=useState(0);
   const [areDate,setAreDate]=useState('');
+  const [chargeRate,setChargeRate]=useState(22.5); // % charges salariales (réglé dans Prévisions)
+  const [pasRate,setPasRate]=useState(0);          // % prélèvement à la source
   const [showDatePicker,setShowDatePicker]=useState(false);
   const [showMonthPicker,setShowMonthPicker]=useState(false);
   const [pickerYear,setPickerYear]=useState(new Date().getFullYear());
@@ -54,6 +56,10 @@ export default function HomeScreen(){
     if(data)setMissions(data);
     const saved=await AsyncStorage.getItem('intermitrack_are_date');
     if(saved)setAreDate(saved);
+    const ch=await AsyncStorage.getItem('intermitrack_charge_rate');
+    setChargeRate(ch!==null?Number(ch):22.5);
+    const pas=await AsyncStorage.getItem('intermitrack_pas_rate');
+    setPasRate(pas!==null?Number(pas):0);
     if(!silent)setLoading(false);
   }
 
@@ -153,10 +159,13 @@ export default function HomeScreen(){
     const monthG=monthM.reduce((a:number,m:any)=>a+Number(m.gross_amount||0),0);
     const monthVac=monthM.reduce((a:number,m:any)=>a+Number(m.vacations||Math.round(Number(m.hours||0)/8)),0);
     const monthRate=monthH>0?Math.round(monthG/monthH):0;
-    return { doneH, planH, remaining, monthH, monthG, monthVac, monthRate, upcoming };
-  },[missions,areDate,current]);
+    // Net à payer estimé = brut − charges salariales − prélèvement à la source
+    const monthNet=Math.round(monthG*(1-chargeRate/100)*(1-pasRate/100));
+    const monthRateNet=monthH>0?Math.round(monthNet/monthH):0;
+    return { doneH, planH, remaining, monthH, monthG, monthNet, monthVac, monthRate, monthRateNet, upcoming };
+  },[missions,areDate,current,chargeRate,pasRate]);
 
-  const { doneH, planH, remaining, monthH, monthG, monthVac, monthRate, upcoming } = stats;
+  const { doneH, planH, remaining, monthH, monthG, monthNet, monthVac, monthRate, monthRateNet, upcoming } = stats;
   const totalPages=Math.ceil(upcoming.length/6);
   const visibleM=useMemo(()=>upcoming.slice(missionPage*6,(missionPage+1)*6),[upcoming,missionPage]);
 
@@ -245,9 +254,9 @@ export default function HomeScreen(){
         </View>
         <View style={s.statsGrid}>
           <View style={s.statBox}><Text style={s.statVal}>{monthH}h</Text><Text style={s.statLbl}>Heures</Text></View>
-          <View style={s.statBox}><Text style={s.statVal}>{money(monthG)}</Text><Text style={s.statLbl}>Brut</Text></View>
+          <View style={s.statBox}><Text style={s.statVal}>{money(monthNet)}</Text><Text style={s.statSub}>Brut {money(monthG)}</Text><Text style={s.statLbl}>Net à payer (est.)</Text></View>
           <View style={s.statBox}><Text style={s.statVal}>{monthVac}</Text><Text style={s.statLbl}>Vacations</Text></View>
-          <View style={[s.statBox,{borderColor:C.petrol,borderWidth:1}]}><Text style={s.statVal}>{money(monthRate)}/h</Text><Text style={s.statLbl}>Moyenne €/h</Text></View>
+          <View style={[s.statBox,{borderColor:C.petrol,borderWidth:1}]}><Text style={s.statVal}>{money(monthRateNet)}/h</Text><Text style={s.statSub}>Brut {money(monthRate)}/h</Text><Text style={s.statLbl}>Moyenne €/h (net est.)</Text></View>
         </View>
       </View>
 
@@ -471,6 +480,7 @@ const s=StyleSheet.create({
   statsGrid:{flexDirection:'row',flexWrap:'wrap',gap:10},
   statBox:{width:'47%',backgroundColor:C.card,borderRadius:14,padding:14,alignItems:'center',shadowColor:'#000',shadowOpacity:0.04,shadowRadius:6,elevation:2},
   statVal:{fontSize:17,fontWeight:'900',color:C.petrol},
+  statSub:{fontSize:10,color:C.muted,fontWeight:'700',marginTop:1},
   statLbl:{fontSize:10,color:C.muted,fontWeight:'700',marginTop:3,textTransform:'uppercase'},
   empty:{textAlign:'center',color:C.muted,padding:20},
   missionCard:{backgroundColor:C.card,borderRadius:16,padding:14,marginBottom:10,borderWidth:1,borderColor:'rgba(31,78,95,0.12)',borderLeftWidth:4,borderLeftColor:C.petrol,shadowColor:C.petrol,shadowOpacity:0.05,shadowRadius:8,elevation:2},

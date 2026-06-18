@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../lib/supabase';
-import { ajBrute, ajNet, carence, congesSpectacles, etalementCarence, CONFIG } from '../../lib/calcul';
+import { ajBrute, ajNet, carence, congesSpectacles, etalementCarence, netAPayer, CHARGE_DEFAUT, CONFIG } from '../../lib/calcul';
 import NumInput from '../../components/NumInput';
 
 const C = { petrol:'#1F4E5F', sage:'#7A9E7E', bg:'#F5F7F6', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1', orange:'#F97316' };
@@ -31,12 +32,25 @@ export default function Previsions(){
   const [c3Brut,setC3Brut]=useState('');
   const [c3Res,setC3Res]=useState<any>(null);
 
-  useEffect(()=>{loadMissions();},[]);
+  // Carte 4 — net à payer d'une mission
+  const [c4Statut,setC4Statut]=useState<'technicien'|'musicien'|'artiste'>('technicien');
+  const [c4Brut,setC4Brut]=useState('');
+  const [c4Charge,setC4Charge]=useState('22,5');
+  const [c4Pas,setC4Pas]=useState('');
+  const [c4Res,setC4Res]=useState<any>(null);
+
+  useEffect(()=>{loadMissions();loadTaux();},[]);
   useFocusEffect(useCallback(()=>{loadMissions();},[]));
   async function loadMissions(){
     const{data}=await supabase.from('missions').select('*');
     if(data)setMissions(data);
     setLoading(false);
+  }
+  async function loadTaux(){
+    const ch=await AsyncStorage.getItem('intermitrack_charge_rate');
+    const pas=await AsyncStorage.getItem('intermitrack_pas_rate');
+    if(ch!==null)setC4Charge(String(ch).replace('.',','));
+    if(pas!==null&&Number(pas)>0)setC4Pas(String(pas).replace('.',','));
   }
 
   const today=new Date();today.setHours(0,0,0,0);
@@ -68,6 +82,20 @@ export default function Previsions(){
     const b=num(c3Brut);
     if(!(b>0)){setC3Res({err:true});return;}
     setC3Res(congesSpectacles(b));
+  }
+  function pickC4Statut(st:'technicien'|'musicien'|'artiste'){
+    setC4Statut(st);
+    setC4Charge(String(CHARGE_DEFAUT[st]??22.5).replace('.',',')); // pré-remplit le taux de charges
+  }
+  async function calcC4(){
+    const brut=num(c4Brut);
+    let charge=num(c4Charge), pas=num(c4Pas);
+    if(!(brut>0)){setC4Res({err:true});return;}
+    if(!(charge>=0))charge=0;
+    if(!(pas>=0))pas=0;
+    await AsyncStorage.setItem('intermitrack_charge_rate',String(charge)); // réutilisé par le tableau de bord
+    await AsyncStorage.setItem('intermitrack_pas_rate',String(pas));
+    setC4Res({...netAPayer(brut,charge,pas),charge,pas});
   }
 
   if(loading)return<View style={s.center}><ActivityIndicator size="large" color={C.petrol}/></View>;
@@ -204,6 +232,35 @@ export default function Previsions(){
           <View style={s.result}>
             <View style={s.resRow}><Text style={s.resLbl}>Estimation nette</Text><Text style={s.resVal}>{eur(c3Res.net)}</Text></View>
             <View style={s.resRow}><Text style={s.resLbl}>Brut congés</Text><Text style={s.resValSm}>{eur(c3Res.brut)}</Text></View>
+          </View>
+        )}
+      </View>
+
+      <View style={s.card}>
+        <Text style={s.cardTitle}>Net à payer d'une mission</Text>
+        <Text style={s.cardSub}>Du brut à ce qui tombe sur ton compte. Taux modifiables — estimation indicative.</Text>
+        <View style={s.toggleRow}>
+          {(['technicien','musicien','artiste'] as const).map(st=>(
+            <TouchableOpacity key={st} style={[s.toggle,c4Statut===st&&s.toggleOn]} onPress={()=>pickC4Statut(st)}>
+              <Text style={c4Statut===st?s.toggleTxtOn:s.toggleTxt}>{st==='technicien'?'Technicien':st==='musicien'?'Musicien':'Artiste'}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <Text style={s.label}>Salaire brut de la mission (€)</Text>
+        <NumInput style={s.input} value={c4Brut} onChangeText={setC4Brut} placeholder="1000" placeholderTextColor={C.muted}/>
+        <Text style={s.label}>Charges salariales (%)</Text>
+        <NumInput style={s.input} value={c4Charge} onChangeText={setC4Charge} placeholder="22,5" placeholderTextColor={C.muted}/>
+        <Text style={s.label}>Prélèvement à la source (%)</Text>
+        <NumInput style={s.input} value={c4Pas} onChangeText={setC4Pas} placeholder="0" placeholderTextColor={C.muted}/>
+        <Text style={s.note}>Ton taux perso (impots.gouv.fr / fiche de paie). Laisse vide si tu ne le connais pas.</Text>
+        <TouchableOpacity style={s.calcBtn} onPress={calcC4}><Text style={s.calcBtnTxt}>Calculer</Text></TouchableOpacity>
+        {c4Res?.err&&<Text style={s.err}>Renseigne le brut de la mission.</Text>}
+        {c4Res&&!c4Res.err&&(
+          <View style={s.result}>
+            <View style={s.resRow}><Text style={s.resLbl}>Net à payer estimé</Text><Text style={s.resVal}>{eur(c4Res.net)}</Text></View>
+            <View style={s.resRow}><Text style={s.resLbl}>Brut</Text><Text style={s.resValSm}>{eur(c4Res.brut)}</Text></View>
+            <View style={s.resRow}><Text style={s.resLbl}>Net avant impôt</Text><Text style={s.resValSm}>{eur(c4Res.netImp)}</Text></View>
+            <Text style={s.note}>− charges {String(c4Res.charge).replace('.',',')} % ({eur(c4Res.charges)}) − prélèvement {String(c4Res.pas).replace('.',',')} % ({eur(c4Res.impot)}). Estimation indicative.</Text>
           </View>
         )}
       </View>

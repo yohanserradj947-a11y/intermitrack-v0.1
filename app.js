@@ -109,6 +109,11 @@ function setProfileType(v) { localStorage.setItem(storageKey("profile_type"), v 
 
 function getTaxRate() { return Number(localStorage.getItem(storageKey("tax_rate")) || 0); }
 function setTaxRate(value) { localStorage.setItem(storageKey("tax_rate"), String(Number(value || 0))); }
+// Taux pour le calcul du NET À PAYER (modifiables par l'utilisateur, estimations)
+function getChargeRate() { const v = localStorage.getItem(storageKey("charge_rate")); return v === null ? 22.5 : Number(v); } // % charges salariales
+function setChargeRate(value) { localStorage.setItem(storageKey("charge_rate"), String(Number(value || 0))); }
+function getPasRate() { return Number(localStorage.getItem(storageKey("pas_rate")) || 0); } // % prélèvement à la source (perso)
+function setPasRate(value) { localStorage.setItem(storageKey("pas_rate"), String(Number(value || 0))); }
 
 function getObservedMissionMonths(list) {
   const months = new Set(list.map((m) => String(m.date || "").slice(0, 7)).filter(Boolean));
@@ -1127,10 +1132,15 @@ function render() {
 
   if ($("yearHours")) $("yearHours").textContent = yearHours;
   if ($("monthHours")) $("monthHours").textContent = monthHours + "h";
-  if ($("monthGross")) $("monthGross").textContent = money(monthGross);
+  // Net à payer estimé = brut − charges salariales − prélèvement à la source (taux réglés dans Prévisions)
+  const monthNet = Math.round(monthGross * (1 - getChargeRate() / 100) * (1 - getPasRate() / 100));
+  if ($("monthNet")) $("monthNet").textContent = money(monthNet);
+  if ($("monthGross")) $("monthGross").textContent = "Brut " + money(monthGross);
   if ($("recapMonthPicker")) $("recapMonthPicker").value = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}`;
   const monthRate = monthHours > 0 ? Math.round(monthGross / monthHours) : 0;
-  if ($("monthRate")) $("monthRate").textContent = money(monthRate) + "/h";
+  const monthRateNet = monthHours > 0 ? Math.round(monthNet / monthHours) : 0;
+  if ($("monthRateNet")) $("monthRateNet").textContent = money(monthRateNet) + "/h";
+  if ($("monthRate")) $("monthRate").textContent = "Brut " + money(monthRate) + "/h";
   checkAndShowNotification(remaining, yearHours);
   if ($("remainingHours")) $("remainingHours").textContent = remaining;
   if ($("plannedHours")) $("plannedHours").textContent = plannedHours;
@@ -2080,4 +2090,39 @@ init();
     $("itk-c3-detail").innerHTML="Indemnité brute ≈ "+eur(brut)+" (10 % du salaire) · charges salariales ~"+Math.round(CONFIG.CONGES_CHARGES*100)+" % (estimation).";
     $("itk-c3-out").classList.remove("itk-hide");
   });
+
+  /* ===== CARTE 4 — NET À PAYER D'UNE MISSION ===== */
+  if($("itk-c4-go")){
+    var CHARGE_DEFAUT={technicien:22.5,musicien:22.5,artiste:21}; // % charges salariales par statut (cf. coeffs fiscalité)
+    // Pré-remplissage depuis les valeurs sauvegardées (ou défauts)
+    if($("itk-c4-charge")) $("itk-c4-charge").value=String(getChargeRate()).replace(".",",");
+    if($("itk-c4-pas")){ var p=getPasRate(); $("itk-c4-pas").value=p?String(p).replace(".",","):""; }
+    // Le statut pré-remplit le taux de charges (l'utilisateur peut ensuite l'ajuster)
+    if($("itk-c4-statut")) $("itk-c4-statut").addEventListener("click",function(e){
+      var b=e.target.closest("button"); if(!b) return;
+      [].forEach.call(this.children,function(x){x.classList.toggle("itk-on",x===b);});
+      if($("itk-c4-charge")) $("itk-c4-charge").value=String(CHARGE_DEFAUT[b.dataset.s]||22.5).replace(".",",");
+    });
+    $("itk-c4-go").addEventListener("click",function(){
+      var brut=num($("itk-c4-brut").value),
+          charge=num($("itk-c4-charge").value),
+          pas=num($("itk-c4-pas").value);
+      if(!(brut>0)) return;
+      if(!(charge>=0)) charge=0;
+      if(!(pas>=0)) pas=0;
+      // Sauvegarde pour réutilisation (carte + tableau de bord)
+      setChargeRate(charge); setPasRate(pas);
+      var netImp=brut*(1-charge/100), net=netImp*(1-pas/100);
+      $("itk-c4-net").textContent=eur(net);
+      $("itk-c4-brutval").textContent=eur(brut);
+      $("itk-c4-netimp").textContent=eur(netImp);
+      $("itk-c4-detail").innerHTML=
+        "Brut "+eur(brut)+" − charges "+charge.toString().replace(".",",")+" % ("+eur(brut-netImp)+")"+
+        " = net avant impôt "+eur(netImp)+
+        "<br>− prélèvement à la source "+pas.toString().replace(".",",")+" % ("+eur(netImp-net)+")"+
+        " = <b>net à payer "+eur(net)+"</b>"+
+        "<br><em>Estimation indicative — vérifie avec ta fiche de paie.</em>";
+      $("itk-c4-out").classList.remove("itk-hide");
+    });
+  }
 })();

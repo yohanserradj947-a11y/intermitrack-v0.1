@@ -39,6 +39,16 @@ export function carence(nht:number, prc:number, jours:number, annexe:'artiste'|'
 export function congesSpectacles(brut:number){
   const brutConges = brut*CONFIG.CONGES_TAUX;
   return { brut: brutConges, net: brutConges*(1-CONFIG.CONGES_CHARGES) };
+}
+
+// ---- Carte 4 : net à payer d'une mission ----
+// % de charges salariales par statut (repris des coefficients fiscalité du site)
+export const CHARGE_DEFAUT: Record<string,number> = { technicien:22.5, musicien:22.5, artiste:21 };
+// Du brut au net à payer : brut − charges salariales − prélèvement à la source. Estimation indicative.
+export function netAPayer(brut:number, chargePct:number, pasPct:number){
+  const netImp = brut*(1-(chargePct||0)/100);
+  const net = netImp*(1-(pasPct||0)/100);
+  return { brut, netImp, net, charges: brut-netImp, impot: netImp-net };
 }// ---- Tableau d'étalement de la carence mois par mois (repris du site) ----
 const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
 

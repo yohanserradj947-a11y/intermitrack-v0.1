@@ -430,9 +430,9 @@ z-index: 500 !important;
   </div>
   <div class="stats">
             <div class="stat"><b id="monthHours">0h</b><span>Heures </span></div>
-            <div class="stat"><b id="monthGross">0 EUR</b><span>Brut </span></div>
+            <div class="stat"><b id="monthNet">0 EUR</b><span>Net à payer (est.)</span><small id="monthGross" style="display:block;font-size:11px;font-weight:600;color:#8a9a97;margin-top:2px;">Brut 0 €</small></div>
             <div class="stat"><b id="missionCount">0</b><span>Jours</span></div>
-            <div class="stat"><b id="monthRate">0 EUR</b><span>Moyenne €/h</span></div>
+            <div class="stat"><b id="monthRateNet">0 EUR</b><span>Moyenne €/h (net est.)</span><small id="monthRate" style="display:block;font-size:11px;font-weight:600;color:#8a9a97;margin-top:2px;">Brut 0 €/h</small></div>
           </div>
         </article>
         <article class="card">
@@ -818,6 +818,34 @@ z-index: 500 !important;
         <div class="itk-row itk-hl"><span class="itk-k">Estimation nette</span><span class="itk-v" id="itk-c3-val">—</span></div>
         <div class="itk-info" id="itk-c3-detail"></div>
         <div class="itk-info"><b>⚠️ Imposable</b> Les Congés Spectacles sont imposables et doivent figurer dans votre déclaration de revenus.</div>
+      </div>
+    </section>
+
+    <!-- ===== CARTE 4 — NET À PAYER D'UNE MISSION ===== -->
+    <section class="itk-card">
+      <h2 class="itk-h2">Net à payer d'une mission</h2>
+      <p class="itk-hint">Du brut à ce qui tombe vraiment sur ton compte. Taux modifiables — estimation indicative.</p>
+      <div class="itk-tabs" id="itk-c4-statut">
+        <button class="itk-tab itk-on" data-s="technicien">Technicien</button>
+        <button class="itk-tab" data-s="musicien">Musicien</button>
+        <button class="itk-tab" data-s="artiste">Artiste</button>
+      </div>
+      <label class="itk-label">Salaire brut de la mission (€)</label>
+      <input class="itk-in" type="number" id="itk-c4-brut" min="0" placeholder="ex : 1000">
+      <label class="itk-label">Charges salariales (%)</label>
+      <input class="itk-in" type="number" id="itk-c4-charge" min="0" max="100" step="0.1" placeholder="22,5">
+      <p class="itk-hint">Pré-rempli selon ton statut (~22,5 % technicien/musicien, ~21 % artiste). Vérifie sur ta fiche de paie.</p>
+      <label class="itk-label">Taux de prélèvement à la source (%)</label>
+      <input class="itk-in" type="number" id="itk-c4-pas" min="0" max="100" step="0.1" placeholder="0">
+      <p class="itk-hint">Ton taux personnel — sur impots.gouv.fr ou ta fiche de paie. Laisse 0 si tu ne le connais pas.</p>
+      <button class="itk-btn" id="itk-c4-go">Calculer</button>
+      <div class="itk-out itk-hide" id="itk-c4-out">
+        <div class="itk-hero"><b id="itk-c4-net">—</b><span>Net à payer estimé</span></div>
+        <div class="itk-duo">
+          <div class="itk-mini"><b id="itk-c4-brutval">—</b><span>Brut</span></div>
+          <div class="itk-mini"><b id="itk-c4-netimp">—</b><span>Net avant impôt</span></div>
+        </div>
+        <div class="itk-info" id="itk-c4-detail"></div>
       </div>
     </section>
 
