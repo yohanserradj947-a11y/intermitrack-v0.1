@@ -130,11 +130,23 @@ export default function HomeScreen(){
     const today=new Date();today.setHours(0,0,0,0);
     const areStart=areDate?new Date(areDate+'T00:00:00'):null;
     const yearM=areStart?missions.filter((m:any)=>new Date(m.mission_date+'T00:00:00')>=areStart):missions;
-    const doneM=yearM.filter((m:any)=>new Date((m.end_date||m.mission_date)+'T00:00:00')<today);
-    const planM=yearM.filter((m:any)=>new Date(m.mission_date+'T00:00:00')>today);
+    // Répartit une mission en "effectué / prévu". Une mission en cours (à cheval sur
+    // aujourd'hui) est comptée au prorata des jours déjà écoulés (même logique que le site).
+    const splitT=(m:any)=>{
+      const s=new Date(m.mission_date+'T00:00:00').getTime();
+      const e=new Date((m.end_date||m.mission_date)+'T00:00:00').getTime();
+      const t=today.getTime();
+      const tot=Number(m.hours||0);
+      if(e<t)return{done:tot,planned:0};
+      if(s>t)return{done:0,planned:tot};
+      const totalDays=Math.max(1,Math.round((e-s)/86400000)+1);
+      const doneDays=Math.max(1,Math.round((t-s)/86400000)+1);
+      const done=Math.min(tot,Math.round(tot*(doneDays/totalDays)*10)/10);
+      return{done,planned:Math.max(0,Math.round((tot-done)*10)/10)};
+    };
     const upcoming=missions.filter((m:any)=>new Date((m.end_date||m.mission_date)+'T00:00:00')>=today);
-    const doneH=Math.round(doneM.reduce((a:number,m:any)=>a+Number(m.hours||0),0)*10)/10;
-    const planH=Math.round(planM.reduce((a:number,m:any)=>a+Number(m.hours||0),0)*10)/10;
+    const doneH=Math.round(yearM.reduce((a:number,m:any)=>a+splitT(m).done,0)*10)/10;
+    const planH=Math.round(yearM.reduce((a:number,m:any)=>a+splitT(m).planned,0)*10)/10;
     const remaining=Math.max(0,Math.round((507-doneH)*10)/10);
     const monthM=missions.filter((m:any)=>{const d=new Date(m.mission_date+'T00:00:00');return d.getMonth()===current.getMonth()&&d.getFullYear()===current.getFullYear();});
     const monthH=Math.round(monthM.reduce((a:number,m:any)=>a+Number(m.hours||0),0)*10)/10;
