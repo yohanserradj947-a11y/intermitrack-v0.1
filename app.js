@@ -430,11 +430,6 @@ if (typeof monterWidgetParser === "function") monterWidgetParser();
 }
 
 
-function getCalendarIcsUrl() {
-  if (!currentUser) return null;
-  return `https://upeogpgczoghlfwblnkb.supabase.co/functions/v1/calendar-ics?user_id=${currentUser.id}`;
-}
-
 async function init() {
   setDefaultDates();
   const { data: { session } } = await sb.auth.getSession();
@@ -1942,14 +1937,6 @@ function setupEvents() {
  
   if ($("copyActualisationBtn")) $("copyActualisationBtn").addEventListener("click", copyActualisation);
   if ($("pdfActualisationBtn")) $("pdfActualisationBtn").addEventListener("click", generateActualisationPDF);
- 
-  if ($("copyIcsBtn")) $("copyIcsBtn").addEventListener("click", () => {
-    const url = getCalendarIcsUrl();
-    if (!url) return;
-    navigator.clipboard.writeText(url);
-    $("copyIcsBtn").textContent = "✅ Lien copié !";
-    setTimeout(() => { $("copyIcsBtn").textContent = "Copier le lien"; }, 2000);
-  });
  
   document.addEventListener("click", async (event) => {
     const docProductionOpen = event.target.closest("[data-doc-production-open]");
