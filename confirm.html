@@ -61,34 +61,37 @@ const action = params.get('action');
 
 function fmt(d){ if(!d)return ''; return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}); }
 
+async function callRpc(fn, body) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method: 'POST',
+    headers: {
+      "apikey": SUPABASE_ANON_KEY,
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) return null;
+  try { return await res.json(); } catch { return null; }
+}
+
 async function init() {
   if (!token) { showGeneric(); return; }
 
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/pro_project_members?token=eq.${token}&select=*,pro_projects(*),pro_contacts(*)`, {
-    headers: { "apikey": SUPABASE_ANON_KEY, "Authorization": `Bearer ${SUPABASE_ANON_KEY}` }
-  });
+  // Pas d'action dans l'URL → on lit l'invitation pour l'afficher
+  if (!action) {
+    const data = await callRpc('get_invitation', { p_token: token });
+    if (!data || !data.projet) { showGeneric(); return; }
+    if (data.statut === 'confirme' || data.statut === 'refuse') { showAlready(data.statut, data.projet); return; }
+    showChoice(data.projet);
+    return;
+  }
 
-  const data = await res.json();
-  if (!data || !data[0]) { showGeneric(); return; }
-
-  const member = data[0];
-  const projet = member.pro_projects;
-
-  if (member.statut === 'confirme') { showAlready('confirme', projet); return; }
-  if (member.statut === 'refuse') { showAlready('refuse', projet); return; }
-
-  // Pas d'action dans l'URL → afficher les deux boutons
-  if (!action) { showChoice(projet); return; }
-
-  // Action présente → enregistrer
-  const newStatut = action === 'confirm' ? 'confirme' : 'refuse';
-  await fetch(`${SUPABASE_URL}/rest/v1/pro_project_members?token=eq.${token}`, {
-    method: 'PATCH',
-    headers: { "apikey": SUPABASE_ANON_KEY, "Authorization": `Bearer ${SUPABASE_ANON_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" },
-    body: JSON.stringify({ statut: newStatut })
-  });
-
-  showResult(action, projet);
+  // Action présente → on enregistre la réponse côté serveur (sécurisé)
+  const data = await callRpc('respond_invitation', { p_token: token, p_action: action });
+  if (!data || data.error || !data.projet) { showGeneric(); return; }
+  if (data.already) { showAlready(data.statut, data.projet); return; }
+  showResult(action, data.projet);
 }
 
 function missionBox(projet){
