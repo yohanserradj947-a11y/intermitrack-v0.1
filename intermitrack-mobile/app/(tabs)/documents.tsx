@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert, Linking } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert, Linking, Platform, KeyboardAvoidingView } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
@@ -164,9 +164,10 @@ export default function Documents(){
       )}
 
       <Modal visible={showForm} animationType="slide" transparent onRequestClose={()=>setShowForm(false)}>
+        <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
         <View style={s.overlay}>
           <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text style={s.modalTitle}>Ajouter un document</Text>
 
               <Text style={s.label}>Type de document</Text>
@@ -207,6 +208,7 @@ export default function Documents(){
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </ScrollView>
   );

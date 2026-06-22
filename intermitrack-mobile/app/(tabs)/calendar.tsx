@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Modal, ActivityIndicator, Platform, Alert } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Modal, ActivityIndicator, Platform, Alert, KeyboardAvoidingView } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
@@ -291,9 +291,10 @@ text:'Modifier : '+(m.production||'Mission')+' ('+(Math.round((Number(m.hours||0
       </View>
 
       <Modal visible={showForm} animationType="slide" transparent onRequestClose={()=>setShowForm(false)}>
+        <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
         <View style={s.modalOverlay}>
           <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text style={s.modalTitle}>{editId?'Modifier la mission':'Ajouter une mission'}</Text>
 
               <Text style={s.label}>Nom de la production</Text>
@@ -374,12 +375,14 @@ text:'Modifier : '+(m.production||'Mission')+' ('+(Math.round((Number(m.hours||0
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={showMdp} animationType="slide" transparent onRequestClose={()=>setShowMdp(false)}>
+        <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
         <View style={s.modalOverlay}>
           <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text style={s.modalTitle}>Quels jours as-tu travaillés ?</Text>
               <Text style={s.miniHint}>Coche les jours travaillés et ajuste les heures de chaque jour.</Text>
               <View style={s.mdpTools}>
@@ -411,6 +414,7 @@ text:'Modifier : '+(m.production||'Mission')+' ('+(Math.round((Number(m.hours||0
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </ScrollView>
   );

@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { StyleSheet, View, Text, Image, ScrollView, TextInput, TouchableOpacity, StatusBar, Linking } from 'react-native';
+import { StyleSheet, View, Text, Image, TextInput, TouchableOpacity, StatusBar, Linking } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useSession } from '../lib/auth';
 
@@ -16,6 +18,7 @@ function traduire(msg: string) {
 }
 
 export default function LoginScreen() {
+  const insets = useSafeAreaInsets();
   const { signIn, signUp, sendResetCode, verifyResetCode } = useSession();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
@@ -72,117 +75,131 @@ export default function LoginScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={s.page} keyboardShouldPersistTaps="handled">
+    <KeyboardAwareScrollView
+      style={s.flex}
+      contentContainerStyle={[s.page, { paddingTop: insets.top + 28, paddingBottom: insets.bottom + 28 }]}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="interactive"
+      bottomOffset={90}
+      showsVerticalScrollIndicator={false}
+    >
       <StatusBar barStyle="light-content" backgroundColor={C.petrol} />
-      <View style={s.brand}>
-        <Image source={require('../assets/images/icon.png')} style={s.logoBox} resizeMode="cover" />
-        <Text style={s.mainline}>{"Toute votre\nintermittence\nau même endroit."}</Text>
-        <Text style={s.intro}>{"Suivi des missions, heures ARE,\ndocuments et prévisions."}</Text>
-      </View>
+      <View style={s.container}>
+          <View style={s.brand}>
+            <Image source={require('../assets/images/icon.png')} style={s.logoBox} resizeMode="cover" />
+            <Text style={s.mainline}>{"Toute votre\nintermittence\nau même endroit."}</Text>
+            <Text style={s.intro}>{"Suivi des missions, heures ARE,\ndocuments et prévisions."}</Text>
+          </View>
 
-      <View style={s.card}>
-        {resetStep === 'none' && (
-          <>
-            <View style={s.tabs}>
-              <TouchableOpacity style={[s.tab, mode === 'signin' && s.tabActive]} onPress={() => { setMode('signin'); setInfo(null); }}>
-                <Text style={mode === 'signin' ? s.tabTxtActive : s.tabTxt}>Connexion</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[s.tab, mode === 'signup' && s.tabActive]} onPress={() => { setMode('signup'); setInfo(null); }}>
-                <Text style={mode === 'signup' ? s.tabTxtActive : s.tabTxt}>Créer un compte</Text>
-              </TouchableOpacity>
-            </View>
+          <View style={s.card}>
+            {resetStep === 'none' && (
+              <>
+                <View style={s.tabs}>
+                  <TouchableOpacity style={[s.tab, mode === 'signin' && s.tabActive]} onPress={() => { setMode('signin'); setInfo(null); }}>
+                    <Text style={mode === 'signin' ? s.tabTxtActive : s.tabTxt}>Connexion</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[s.tab, mode === 'signup' && s.tabActive]} onPress={() => { setMode('signup'); setInfo(null); }}>
+                    <Text style={mode === 'signup' ? s.tabTxtActive : s.tabTxt}>Créer un compte</Text>
+                  </TouchableOpacity>
+                </View>
 
-            <Text style={s.label}>Email</Text>
-            <TextInput style={s.input} placeholder="votre@email.com" placeholderTextColor={C.muted}
-              value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+                <Text style={s.label}>Email</Text>
+                <TextInput style={s.input} placeholder="votre@email.com" placeholderTextColor={C.muted}
+                  value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" textContentType="emailAddress" returnKeyType="next" />
 
-            <Text style={s.label}>Mot de passe</Text>
-            <View style={s.passwordWrap}>
-              <TextInput style={s.passwordInput} placeholder="Minimum 6 caractères" placeholderTextColor={C.muted}
-                value={password} onChangeText={setPassword} secureTextEntry={!showPassword} />
-              <TouchableOpacity onPress={() => setShowPassword(v => !v)} style={s.eyeBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color={C.muted} />
-              </TouchableOpacity>
-            </View>
+                <Text style={s.label}>Mot de passe</Text>
+                <View style={s.passwordWrap}>
+                  <TextInput style={s.passwordInput} placeholder="Minimum 6 caractères" placeholderTextColor={C.muted}
+                    value={password} onChangeText={setPassword} secureTextEntry={!showPassword} autoCapitalize="none" returnKeyType="done" onSubmitEditing={submit} />
+                  <TouchableOpacity onPress={() => setShowPassword(v => !v)} style={s.eyeBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color={C.muted} />
+                  </TouchableOpacity>
+                </View>
 
-            {info && <Text style={s.info}>{info}</Text>}
+                {info && <Text style={s.info}>{info}</Text>}
 
-            <TouchableOpacity style={s.btn} onPress={submit} disabled={busy}>
-              <Text style={s.btnTxt}>
-                {busy ? 'Patiente…' : mode === 'signin' ? 'Se connecter' : 'Créer mon compte'}
-              </Text>
-            </TouchableOpacity>
+                <TouchableOpacity style={s.btn} onPress={submit} disabled={busy}>
+                  <Text style={s.btnTxt}>
+                    {busy ? 'Patiente…' : mode === 'signin' ? 'Se connecter' : 'Créer mon compte'}
+                  </Text>
+                </TouchableOpacity>
 
-            {mode === 'signin' && (
-              <TouchableOpacity onPress={askResetCode} disabled={busy} style={s.forgotBtn}>
-                <Text style={s.forgotTxt}>Mot de passe oublié ?</Text>
-              </TouchableOpacity>
+                {mode === 'signin' && (
+                  <TouchableOpacity onPress={askResetCode} disabled={busy} style={s.forgotBtn}>
+                    <Text style={s.forgotTxt}>Mot de passe oublié ?</Text>
+                  </TouchableOpacity>
+                )}
+
+                {mode === 'signup' && (
+                  <Text style={s.consent}>
+                    En créant un compte, tu acceptes nos CGU et notre politique de confidentialité.
+                  </Text>
+                )}
+              </>
             )}
 
-            {mode === 'signup' && (
-              <Text style={s.consent}>
-                En créant un compte, tu acceptes nos CGU et notre politique de confidentialité.
-              </Text>
+            {resetStep === 'code' && (
+              <>
+                <Text style={s.resetTitle}>Réinitialiser le mot de passe</Text>
+                <Text style={s.resetSub}>Entre le code reçu par email et choisis un nouveau mot de passe.</Text>
+
+                <Text style={s.label}>Code reçu par email</Text>
+                <TextInput style={s.input} placeholder="Entrez le code" placeholderTextColor={C.muted}
+                  value={resetCode} onChangeText={setResetCode} keyboardType="number-pad" maxLength={8} returnKeyType="next" />
+
+                <Text style={s.label}>Nouveau mot de passe</Text>
+                <View style={s.passwordWrap}>
+                  <TextInput style={s.passwordInput} placeholder="Minimum 6 caractères" placeholderTextColor={C.muted}
+                    value={newPassword} onChangeText={setNewPassword} secureTextEntry={!showNewPassword} autoCapitalize="none" returnKeyType="done" onSubmitEditing={confirmReset} />
+                  <TouchableOpacity onPress={() => setShowNewPassword(v => !v)} style={s.eyeBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Ionicons name={showNewPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color={C.muted} />
+                  </TouchableOpacity>
+                </View>
+
+                {info && <Text style={s.info}>{info}</Text>}
+
+                <TouchableOpacity style={s.btn} onPress={confirmReset} disabled={busy}>
+                  <Text style={s.btnTxt}>{busy ? 'Patiente…' : 'Valider le nouveau mot de passe'}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={askResetCode} disabled={busy} style={s.forgotBtn}>
+                  <Text style={s.forgotTxt}>Renvoyer un code</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => { setResetStep('none'); setInfo(null); setResetCode(''); setNewPassword(''); }} style={s.forgotBtn}>
+                  <Text style={s.forgotTxt}>Retour à la connexion</Text>
+                </TouchableOpacity>
+              </>
             )}
-          </>
-        )}
+          </View>
 
-        {resetStep === 'code' && (
-          <>
-            <Text style={s.resetTitle}>Réinitialiser le mot de passe</Text>
-            <Text style={s.resetSub}>Entre le code reçu par email et choisis un nouveau mot de passe.</Text>
+          <Text style={s.secure}>🔒 Données chiffrées — accès uniquement à votre compte</Text>
 
-           <Text style={s.label}>Code reçu par email</Text>
-            <TextInput style={s.input} placeholder="Entrez le code" placeholderTextColor={C.muted}
-              value={resetCode} onChangeText={setResetCode} keyboardType="number-pad" maxLength={8} />
-
-            <Text style={s.label}>Nouveau mot de passe</Text>
-            <View style={s.passwordWrap}>
-              <TextInput style={s.passwordInput} placeholder="Minimum 6 caractères" placeholderTextColor={C.muted}
-                value={newPassword} onChangeText={setNewPassword} secureTextEntry={!showNewPassword} />
-              <TouchableOpacity onPress={() => setShowNewPassword(v => !v)} style={s.eyeBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Ionicons name={showNewPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color={C.muted} />
-              </TouchableOpacity>
-            </View>
-
-            {info && <Text style={s.info}>{info}</Text>}
-
-            <TouchableOpacity style={s.btn} onPress={confirmReset} disabled={busy}>
-              <Text style={s.btnTxt}>{busy ? 'Patiente…' : 'Valider le nouveau mot de passe'}</Text>
+          <View style={s.legalRow}>
+            <TouchableOpacity onPress={() => Linking.openURL('https://intermitrack.fr/cgu.html')}>
+              <Text style={s.legalLink}>CGU</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity onPress={askResetCode} disabled={busy} style={s.forgotBtn}>
-              <Text style={s.forgotTxt}>Renvoyer un code</Text>
+            <Text style={s.legalSep}>·</Text>
+            <TouchableOpacity onPress={() => Linking.openURL('https://intermitrack.fr/confidentialite.html')}>
+              <Text style={s.legalLink}>Confidentialité</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => { setResetStep('none'); setInfo(null); setResetCode(''); setNewPassword(''); }} style={s.forgotBtn}>
-              <Text style={s.forgotTxt}>Retour à la connexion</Text>
+            <Text style={s.legalSep}>·</Text>
+            <TouchableOpacity onPress={() => Linking.openURL('https://intermitrack.fr/mentions-legales.html')}>
+              <Text style={s.legalLink}>Mentions légales</Text>
             </TouchableOpacity>
-          </>
-        )}
+          </View>
       </View>
-
-      <Text style={s.secure}>🔒 Données chiffrées — accès uniquement à votre compte</Text>
-
-      <View style={s.legalRow}>
-        <TouchableOpacity onPress={() => Linking.openURL('https://intermitrack.fr/cgu.html')}>
-          <Text style={s.legalLink}>CGU</Text>
-        </TouchableOpacity>
-        <Text style={s.legalSep}>·</Text>
-        <TouchableOpacity onPress={() => Linking.openURL('https://intermitrack.fr/confidentialite.html')}>
-          <Text style={s.legalLink}>Confidentialité</Text>
-        </TouchableOpacity>
-        <Text style={s.legalSep}>·</Text>
-        <TouchableOpacity onPress={() => Linking.openURL('https://intermitrack.fr/mentions-legales.html')}>
-          <Text style={s.legalLink}>Mentions légales</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }
 
 const s = StyleSheet.create({
-  page: { flexGrow: 1, backgroundColor: C.petrol, paddingHorizontal: 22, paddingTop: 64, paddingBottom: 32 },
+  flex: { flex: 1, backgroundColor: C.petrol },
+  // flexGrow + justifyContent center : le formulaire se centre verticalement et
+  // peut remonter/scroller quand le clavier s'ouvre (iPhone ET iPad).
+  page: { flexGrow: 1, justifyContent: 'center', backgroundColor: C.petrol, paddingHorizontal: 22 },
+  // maxWidth : empêche la carte de s'étirer et d'être « crowded » sur grand écran (iPad).
+  container: { width: '100%', maxWidth: 460, alignSelf: 'center' },
   brand: { alignItems: 'center', marginBottom: 28 },
   logoBox: { width: 46, height: 46, borderRadius: 14, backgroundColor: C.petrol, justifyContent: 'center', alignItems: 'center' },
   logoTxt: { color: 'white', fontWeight: '800', fontSize: 22 },

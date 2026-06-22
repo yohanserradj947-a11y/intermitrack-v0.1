@@ -101,7 +101,7 @@ export default function Previsions(){
   if(loading)return<View style={s.center}><ActivityIndicator size="large" color={C.petrol}/></View>;
 
   return(
-    <ScrollView style={s.container} contentContainerStyle={{paddingBottom:40}}>
+    <ScrollView style={s.container} contentContainerStyle={{paddingBottom:40}} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets>
       <View style={s.header}>
         <Text style={s.title}>Prévisions</Text>
         <Text style={s.sub}>Estimations indicatives. Ne remplacent pas les calculs officiels France Travail.</Text>

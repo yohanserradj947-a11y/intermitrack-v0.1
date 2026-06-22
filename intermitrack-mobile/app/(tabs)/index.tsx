@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { StyleSheet, View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, StatusBar, Platform, Modal, TextInput, Alert, Linking } from 'react-native';
+import { StyleSheet, View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, StatusBar, Platform, Modal, TextInput, Alert, Linking, KeyboardAvoidingView } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -294,9 +294,10 @@ export default function HomeScreen(){
       </View>
 
       <Modal visible={!!editId} animationType="slide" transparent onRequestClose={()=>setEditId(null)}>
+        <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
         <View style={s.modalOverlay}>
           <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text style={s.modalTitle}>Modifier la mission</Text>
 
               <Text style={s.label}>Nom de la production</Text>
@@ -355,6 +356,7 @@ export default function HomeScreen(){
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={showAccount} animationType="fade" transparent onRequestClose={()=>setShowAccount(false)}>

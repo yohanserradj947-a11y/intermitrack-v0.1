@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SessionProvider, useSession } from '../lib/auth';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -28,9 +29,11 @@ function RootNavigator() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <SessionProvider>
-        <RootNavigator />
-      </SessionProvider>
+      <KeyboardProvider>
+        <SessionProvider>
+          <RootNavigator />
+        </SessionProvider>
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
 }

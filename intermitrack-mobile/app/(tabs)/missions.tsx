@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert, Platform } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert, Platform, KeyboardAvoidingView } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -162,9 +162,10 @@ export default function Missions(){
         </View>
 
         <Modal visible={!!editId} animationType="slide" transparent onRequestClose={()=>setEditId(null)}>
+          <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
           <View style={s.modalOverlay}>
             <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
-              <ScrollView showsVerticalScrollIndicator={false}>
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                 <Text style={s.modalTitle}>Modifier la mission</Text>
 
                 <Text style={s.label}>Nom de la production</Text>
@@ -241,6 +242,7 @@ export default function Missions(){
               </ScrollView>
             </View>
           </View>
+          </KeyboardAvoidingView>
         </Modal>
       </ScrollView>
     );
