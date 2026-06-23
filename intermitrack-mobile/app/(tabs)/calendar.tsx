@@ -345,11 +345,11 @@ text:'Modifier : '+(m.production||'Mission')+' ('+(Math.round((Number(m.hours||0
                 </View>
               </View>
               {showStartPicker&&(
-                <DateTimePicker value={fStart} mode="date" display={Platform.OS==='ios'?'spinner':'default'}
+                <DateTimePicker value={fStart} mode="date" themeVariant="light" display={Platform.OS==='ios'?'spinner':'default'}
                   onChange={(_e,date)=>{setShowStartPicker(false);if(date){setFStart(date);if(date>fEnd)setFEnd(date);}}}/>
               )}
               {showEndPicker&&(
-                <DateTimePicker value={fEnd} mode="date" display={Platform.OS==='ios'?'spinner':'default'}
+                <DateTimePicker value={fEnd} mode="date" themeVariant="light" display={Platform.OS==='ios'?'spinner':'default'}
                   onChange={(_e,date)=>{setShowEndPicker(false);if(date)setFEnd(date);}}/>
               )}
 
