@@ -4,6 +4,7 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { supabase } from '../../lib/supabase';
+import { useTrackView } from '../../lib/analytics';
 
 const C = { petrol:'#1F4E5F', sage:'#7A9E7E', bg:'#F5F7F6', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1', orange:'#F97316' };
 
@@ -12,6 +13,7 @@ function fmtDate(d:string){if(!d)return'';return new Date(d+'T00:00:00').toLocal
 function monthLabel(d:Date){const l=d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});return l.charAt(0).toUpperCase()+l.slice(1);}
 
 export default function Actualisation(){
+  useTrackView('actualisation');
   const [missions,setMissions]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
   const [current,setCurrent]=useState(new Date());

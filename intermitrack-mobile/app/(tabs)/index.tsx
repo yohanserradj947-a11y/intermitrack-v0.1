@@ -5,6 +5,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../lib/supabase';
+import { useTrackView } from '../../lib/analytics';
 import { useSession } from '../../lib/auth';
 import Gauge from '../../components/Gauge';
 import NumInput from '../../components/NumInput';
@@ -21,6 +22,7 @@ function isoToDisplay(iso:string){if(!iso)return'';const[y,m,d]=iso.split('-');r
 function iso(d:Date){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 
 export default function HomeScreen(){
+  useTrackView('dashboard');
   const insets=useSafeAreaInsets();
   const { session, signOut } = useSession();
   const [loading,setLoading]=useState(true);

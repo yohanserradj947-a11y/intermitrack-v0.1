@@ -3,6 +3,7 @@ import { useFocusEffect } from 'expo-router';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../lib/supabase';
+import { useTrackView } from '../../lib/analytics';
 import { ajBrute, ajNet, carence, congesSpectacles, etalementCarence, netAPayer, CHARGE_DEFAUT, CONFIG } from '../../lib/calcul';
 import NumInput from '../../components/NumInput';
 
@@ -12,6 +13,7 @@ function eur(n:number){return(n??0).toLocaleString('fr-FR',{minimumFractionDigit
 function num(v:string){if(!v)return NaN;return parseFloat(String(v).replace(/\s/g,'').replace(',','.'));}
 
 export default function Previsions(){
+  useTrackView('previsions');
   const [missions,setMissions]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
 

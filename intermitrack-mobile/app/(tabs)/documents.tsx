@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Modal,
 import * as DocumentPicker from 'expo-document-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
+import { useTrackView } from '../../lib/analytics';
 import NumInput from '../../components/NumInput';
 
 const C = { petrol:'#1F4E5F', sage:'#7A9E7E', bg:'#F5F7F6', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1', orange:'#F97316' };
@@ -14,6 +15,7 @@ function safeFileName(name:string){
 }
 
 export default function Documents(){
+  useTrackView('documents');
   const insets=useSafeAreaInsets();
   const [docs,setDocs]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);

@@ -5,6 +5,7 @@ import { useCallback } from 'react';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
+import { useTrackView } from '../../lib/analytics';
 import DonutChart from '../../components/DonutChart';
 import NumInput from '../../components/NumInput';
 
@@ -18,6 +19,7 @@ function fmtPeriod(s:string,e:string){if(!e||e===s)return fmtDate(s);return fmtD
 function iso(d:Date){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 
 export default function Missions(){
+  useTrackView('missions');
   const insets=useSafeAreaInsets();
   const [missions,setMissions]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);

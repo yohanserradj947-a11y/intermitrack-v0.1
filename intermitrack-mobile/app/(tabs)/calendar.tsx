@@ -4,6 +4,7 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Modal, ActivityIn
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
+import { useTrackView } from '../../lib/analytics';
 import NumInput from '../../components/NumInput';
 import TxtInput from '../../components/TxtInput';
 
@@ -19,6 +20,7 @@ function daysInclusive(a:Date,b:Date){return Math.max(1,Math.round((b.getTime()-
 function isNextDay(aStr:string,bStr:string){const a=new Date(aStr+'T00:00:00');a.setDate(a.getDate()+1);return iso(a)===bStr;}
 
 export default function Calendar(){
+  useTrackView('calendar');
   const insets=useSafeAreaInsets();
   const [missions,setMissions]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
