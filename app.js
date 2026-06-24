@@ -440,6 +440,7 @@ async function init() {
   await loadMissions();
   await loadDocuments();
   await loadFactures();
+  await loadFrais();
   render();
 }
 
@@ -872,6 +873,7 @@ function activateView(viewName) {
 // ===== Auto-entrepreneur : factures =====
 // Valeurs indicatives micro-entreprise (à vérifier chaque année sur autoentrepreneur.urssaf.fr)
 let factures = [];
+let fraisList = [];                  // frais réels (dépenses) pour le calcul fiscal
 const AE_PLAFOND_CA = 77700;        // plafond annuel prestations de services
 const AE_TAUX_COTISATION = 0.246;   // taux par défaut (estimation, modifiable par l'utilisateur)
 
@@ -1130,6 +1132,77 @@ tbody td.amount{text-align:right;font-weight:600;}
   w.document.close();
 }
 
+// ===== Frais réels (dépenses déductibles) =====
+async function loadFrais() {
+  if (!currentUser) return;
+  const { data, error } = await sb.from("frais").select("*").order("frais_date", { ascending: false });
+  if (error) { toast("Erreur chargement frais : " + error.message); return; }
+  fraisList = (data || []).map((x) => ({
+    id: x.id, date: x.frais_date, categorie: x.categorie || "Autres",
+    description: x.description || "", montant: Number(x.montant || 0)
+  }));
+  renderFraisList();
+}
+
+function fraisTotalForYear(year) {
+  return (fraisList || [])
+    .filter((x) => (x.date || "").slice(0, 4) === String(year))
+    .reduce((a, x) => a + x.montant, 0);
+}
+
+function renderFraisList() {
+  const year = new Date().getFullYear();
+  if ($("fraisYearLbl")) $("fraisYearLbl").textContent = year;
+  if ($("fraisTotalPreview")) $("fraisTotalPreview").textContent = money2(fraisTotalForYear(year));
+  const list = $("fraisList");
+  if (!list) return;
+  if (!fraisList.length) {
+    list.innerHTML = `<p class="hint" style="margin-top:12px;">Aucune dépense saisie. Ajoute tes achats, repas, matériel… ci-dessus.</p>`;
+    return;
+  }
+  list.innerHTML = `<div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">` + fraisList.map((x) => `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px;border:1px solid var(--border,#E5E8EB);border-radius:14px;">
+      <div style="display:flex;flex-direction:column;gap:4px;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <strong>${escapeHtml(x.categorie)}</strong>
+          ${x.description ? `<span style="color:#6B7280;">${escapeHtml(x.description)}</span>` : ""}
+        </div>
+        <small style="color:#9AA5B1;">${formatDate(x.date)}</small>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;white-space:nowrap;">
+        <span style="font-weight:700;font-size:16px;">${money2(x.montant)}</span>
+        <button class="delete" type="button" data-frais-delete="${escapeHtml(x.id)}">Supprimer</button>
+      </div>
+    </div>`).join("") + `</div>`;
+}
+
+async function saveFrais(e) {
+  e.preventDefault();
+  if (!currentUser) { toast("Connecte-toi pour ajouter une dépense."); return; }
+  const payload = {
+    user_id: currentUser.id,
+    frais_date: $("fraisDate").value,
+    categorie: $("fraisCategorie").value,
+    description: $("fraisDescription").value.trim() || null,
+    montant: Number($("fraisMontant").value)
+  };
+  const { error } = await sb.from("frais").insert(payload);
+  if (error) { toast("Erreur sauvegarde : " + error.message); return; }
+  $("fraisForm").reset();
+  $("fraisDate").value = new Date().toISOString().slice(0, 10);
+  await loadFrais();
+  render(); // recalcule la fiscalité avec le nouveau total de frais
+  toast("Dépense ajoutée ✓", "success");
+}
+
+async function deleteFrais(id) {
+  if (!(await confirmDialog("Supprimer cette dépense ?"))) return;
+  const { error } = await sb.from("frais").delete().eq("id", id);
+  if (error) { toast("Erreur suppression : " + error.message); return; }
+  await loadFrais();
+  render();
+}
+
 function money(n) {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n || 0);
 }
@@ -1263,7 +1336,8 @@ function renderFiscalite(yearGross, yearMissions) {
   const netAre = arePercue; // ARE = net imposable direct
   const netConges = Math.round(congesSpec * 0.88); // ~12% cotisations sur congés
   const netTotal = netSalaires + netAre + netConges + otherIncome;
-  const totalFraisReels = totalKmAmount + autresFrais;
+  const fraisSaisis = fraisTotalForYear(new Date().getFullYear());
+  const totalFraisReels = totalKmAmount + autresFrais + fraisSaisis;
 
   // Abattement forfaitaire vs frais réels
   const forfait = Math.round(profil.forfait(netSalaires));
@@ -1296,7 +1370,7 @@ function renderFiscalite(yearGross, yearMissions) {
   if ($("fiscaliteAbattementForfait")) $("fiscaliteAbattementForfait").textContent = money(forfait);
   if ($("fiscaliteAbattementForfaitLabel")) $("fiscaliteAbattementForfaitLabel").textContent = profil.label;
   if ($("fiscaliteAbattementReels")) $("fiscaliteAbattementReels").textContent =
-    `Frais réels totaux (km + autres) : ${money(totalFraisReels)}`;
+    `Frais réels totaux (km + dépenses saisies + autres) : ${money(totalFraisReels)}`;
 
   if ($("fiscaliteComparaisonBox")) {
     $("fiscaliteComparaisonBox").style.display = "grid";
@@ -1312,7 +1386,7 @@ function renderFiscalite(yearGross, yearMissions) {
         <div class="fi-comp-title">Frais réels</div>
         <span class="fi-comp-badge ${!useForfait && totalFraisReels > 0 ? 'rec' : 'alt'}">${!useForfait && totalFraisReels > 0 ? '✓ Recommandé' : 'Alternative'}</span>
         <span class="fi-comp-amount">${money(totalFraisReels)}</span>
-        <div class="fi-comp-detail">Km + autres frais</div>
+        <div class="fi-comp-detail">Km + dépenses saisies + autres</div>
       </div>`;
   }
 
@@ -2171,6 +2245,26 @@ function setupEvents() {
     renderFactures();
   });
   if ($("aeProfSave")) $("aeProfSave").addEventListener("click", saveAeProfile);
+
+  // Fiscalité : calcul automatique à chaque saisie
+  const wireFiscal = (id, setter, evt) => {
+    if ($(id)) $(id).addEventListener(evt || "input", () => { setter($(id).value); render(); });
+  };
+  wireFiscal("arePercue", setArePercue);
+  wireFiscal("congesSpectaclesInput", setCongesSpectaclesInput);
+  wireFiscal("otherIncomeInput", setOtherIncome);
+  wireFiscal("taxPartsInput", setTaxParts);
+  wireFiscal("autresFraisReels", setAutresFraisReels);
+  wireFiscal("profileType", setProfileType, "change");
+  if ($("saveTaxSettingsBtn")) $("saveTaxSettingsBtn").addEventListener("click", () => { render(); toast("Calcul mis à jour ✓", "success"); });
+
+  // Frais réels
+  if ($("fraisForm")) $("fraisForm").addEventListener("submit", saveFrais);
+  if ($("fraisDate") && !$("fraisDate").value) $("fraisDate").value = new Date().toISOString().slice(0, 10);
+  if ($("fraisList")) $("fraisList").addEventListener("click", (e) => {
+    const del = e.target.closest("[data-frais-delete]");
+    if (del) deleteFrais(del.getAttribute("data-frais-delete"));
+  });
   if ($("facturesList")) $("facturesList").addEventListener("click", (e) => {
     const pdf = e.target.closest("[data-facture-pdf]");
     const ed = e.target.closest("[data-facture-edit]");

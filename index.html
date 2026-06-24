@@ -398,6 +398,7 @@ z-index: 500 !important;
           <button class="tab" type="button" data-view="documents"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>Documents</button>
           <button class="tab" type="button" data-view="previsions"><svg viewBox="0 0 24 24"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg>Prévisions</button>
           <button class="tab" type="button" data-view="autoentrepreneur"><svg viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Auto-entrepreneur</button>
+          <button class="tab" type="button" data-view="fiscalite"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h2M8 15h2M13 11h3v4h-3z"/></svg>Fiscalité</button>
         </nav>
         <span class="swipe-hint left">‹</span>
         <span class="swipe-hint right">›</span>
@@ -712,6 +713,38 @@ z-index: 500 !important;
             </div>
 
           </div>
+
+          <div style="margin-top:22px;">
+            <div class="historyhead"><div><h2>Mes frais réels</h2><p class="sub">Achats, matériel, repas, transport… déduits automatiquement du calcul ci-dessus</p></div></div>
+            <form id="fraisForm">
+              <label for="fraisDate">Date</label>
+              <input id="fraisDate" type="date" required />
+              <label for="fraisCategorie">Catégorie</label>
+              <select id="fraisCategorie">
+                <option>Matériel / Achat</option>
+                <option>Repas</option>
+                <option>Transport / Déplacement</option>
+                <option>Hébergement</option>
+                <option>Formation</option>
+                <option>Vêtements / Costumes pro</option>
+                <option>Téléphone / Internet</option>
+                <option>Cotisations pro / Syndicat</option>
+                <option>Documentation</option>
+                <option>Autres</option>
+              </select>
+              <label for="fraisDescription">Description</label>
+              <input id="fraisDescription" autocomplete="off" placeholder="Ex : Micro-cravate, repas tournage…" />
+              <label for="fraisMontant">Montant (€)</label>
+              <input id="fraisMontant" type="number" min="0" step="0.01" placeholder="Ex : 120" required />
+              <button class="primary" type="submit">Ajouter la dépense</button>
+            </form>
+            <div class="fi-result-row fi-highlight" style="margin-top:16px;">
+              <span class="fi-label">Total frais réels saisis (année <span id="fraisYearLbl"></span>)</span>
+              <span class="fi-value" id="fraisTotalPreview">0 €</span>
+            </div>
+            <div id="fraisList"></div>
+          </div>
+
           <p class="hint">Les montants affichés sont des estimations indicatives. Ils devront toujours être vérifiés avant toute déclaration fiscale.</p>
         </article>
       </section>
