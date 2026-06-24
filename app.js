@@ -891,9 +891,11 @@ async function loadFactures() {
   if (error) { toast("Erreur chargement factures : " + error.message); return; }
   factures = (data || []).map((x) => ({
     id: x.id, client: x.client, prestation: x.prestation,
+    clientAddress: x.client_address || "", numero: x.numero || "",
     date: x.facture_date, endDate: x.facture_end_date || "",
     amount: Number(x.amount || 0), status: x.status || "impayee"
   }));
+  fillAeProfileForm();
   renderFactures();
 }
 
@@ -942,11 +944,12 @@ function renderFactures() {
           <span class="pill" style="background:${f.status === "payee" ? "#E3F6E9" : "#FDF1DC"};color:${f.status === "payee" ? "#1B7F4B" : "#9A6A00"};">${f.status === "payee" ? "Payée" : "À encaisser"}</span>
         </div>
         <span style="color:#6B7280;">${escapeHtml(f.prestation)}</span>
-        <small style="color:#9AA5B1;">${formatPeriod(f.date, f.endDate)}</small>
+        <small style="color:#9AA5B1;">${f.numero ? "N° " + escapeHtml(f.numero) + " · " : ""}${formatPeriod(f.date, f.endDate)}</small>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;white-space:nowrap;">
         <span style="font-weight:700;font-size:16px;">${money2(f.amount)}</span>
-        <div style="display:flex;gap:6px;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+          <button class="ghost" type="button" data-facture-pdf="${escapeHtml(f.id)}">PDF</button>
           <button class="ghost" type="button" data-facture-edit="${escapeHtml(f.id)}">Modifier</button>
           <button class="delete" type="button" data-facture-delete="${escapeHtml(f.id)}">Supprimer</button>
         </div>
@@ -961,6 +964,7 @@ async function saveFacture(e) {
   const payload = {
     user_id: currentUser.id,
     client: $("aeClient").value.trim(),
+    client_address: $("aeClientAddress").value.trim() || null,
     prestation: $("aePrestation").value.trim(),
     facture_date: $("aeDate").value,
     facture_end_date: $("aeEndDate").value || null,
@@ -969,6 +973,15 @@ async function saveFacture(e) {
   };
   if (payload.facture_end_date && payload.facture_end_date < payload.facture_date) {
     toast("La date de fin doit être après la date de début."); return;
+  }
+  // Numéro de facture chronologique (attribué une seule fois, à la création)
+  if (!editId) {
+    const yr = (payload.facture_date || "").slice(0, 4);
+    const nums = factures
+      .filter((f) => (f.numero || "").startsWith(yr + "-"))
+      .map((f) => Number((f.numero || "").split("-")[1]) || 0);
+    const next = (nums.length ? Math.max(...nums) : 0) + 1;
+    payload.numero = `${yr}-${String(next).padStart(3, "0")}`;
   }
   const result = editId
     ? await sb.from("factures").update(payload).eq("id", editId)
@@ -993,6 +1006,7 @@ function editFacture(id) {
   if (!f) return;
   $("aeEditId").value = f.id;
   $("aeClient").value = f.client;
+  $("aeClientAddress").value = f.clientAddress || "";
   $("aePrestation").value = f.prestation;
   $("aeDate").value = f.date;
   $("aeEndDate").value = f.endDate || "";
@@ -1011,6 +1025,92 @@ async function deleteFacture(id) {
   const { error } = await sb.from("factures").delete().eq("id", id);
   if (error) { toast("Erreur suppression : " + error.message); return; }
   await loadFactures();
+}
+
+// ----- Profil auto-entrepreneur (infos sur les factures) -----
+function aeProfile() {
+  return {
+    nom: localStorage.getItem(storageKey("ae_prof_nom")) || "",
+    siret: localStorage.getItem(storageKey("ae_prof_siret")) || "",
+    adresse: localStorage.getItem(storageKey("ae_prof_adresse")) || "",
+    contact: localStorage.getItem(storageKey("ae_prof_contact")) || "",
+    tva: localStorage.getItem(storageKey("ae_prof_tva")) || "TVA non applicable, art. 293 B du CGI"
+  };
+}
+
+function fillAeProfileForm() {
+  const p = aeProfile();
+  if ($("aeProfNom") && document.activeElement !== $("aeProfNom")) $("aeProfNom").value = p.nom;
+  if ($("aeProfSiret") && document.activeElement !== $("aeProfSiret")) $("aeProfSiret").value = p.siret;
+  if ($("aeProfAdresse") && document.activeElement !== $("aeProfAdresse")) $("aeProfAdresse").value = p.adresse;
+  if ($("aeProfContact") && document.activeElement !== $("aeProfContact")) $("aeProfContact").value = p.contact;
+  if ($("aeProfTva") && document.activeElement !== $("aeProfTva")) $("aeProfTva").value = p.tva;
+}
+
+function saveAeProfile() {
+  localStorage.setItem(storageKey("ae_prof_nom"), $("aeProfNom").value.trim());
+  localStorage.setItem(storageKey("ae_prof_siret"), $("aeProfSiret").value.trim());
+  localStorage.setItem(storageKey("ae_prof_adresse"), $("aeProfAdresse").value.trim());
+  localStorage.setItem(storageKey("ae_prof_contact"), $("aeProfContact").value.trim());
+  localStorage.setItem(storageKey("ae_prof_tva"), $("aeProfTva").value.trim());
+  toast("Informations enregistrées ✓", "success");
+}
+
+// ----- Génération de la facture PDF (via impression navigateur) -----
+function printFacture(id) {
+  const f = factures.find((x) => String(x.id) === String(id));
+  if (!f) return;
+  const p = aeProfile();
+  if (!p.nom || !p.siret) {
+    toast("Renseigne d'abord ton nom et ton SIRET dans « Mes informations ».");
+    if ($("aeProfileBlock")) $("aeProfileBlock").open = true;
+    return;
+  }
+  const nl2br = (s) => escapeHtml(s || "").replace(/\n/g, "<br>");
+  const periode = formatPeriod(f.date, f.endDate);
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<title>Facture ${escapeHtml(f.numero || "")}</title>
+<style>
+*{box-sizing:border-box;}
+body{font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;margin:0;padding:40px;font-size:13px;}
+.head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:36px;}
+.head h1{font-size:26px;margin:0 0 4px;letter-spacing:.04em;}
+.box{line-height:1.5;}
+.muted{color:#666;}
+table{width:100%;border-collapse:collapse;margin:28px 0;}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid #ddd;}
+th{background:#f5f5f5;font-size:11px;text-transform:uppercase;letter-spacing:.04em;}
+td.amount,th.amount{text-align:right;}
+.total{text-align:right;font-size:18px;font-weight:700;margin-top:10px;}
+.status{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.mentions{margin-top:46px;font-size:11px;color:#555;line-height:1.6;border-top:1px solid #eee;padding-top:16px;}
+@media print{body{padding:0;}}
+</style></head><body>
+<div class="head">
+  <div class="box">
+    <h1>FACTURE</h1>
+    <div class="muted">N° ${escapeHtml(f.numero || "—")}</div>
+    <div class="muted">Date : ${formatDate(f.date)}</div>
+  </div>
+  <div class="box" style="text-align:right;">
+    <strong>${escapeHtml(p.nom)}</strong><br>${nl2br(p.adresse)}<br>SIRET : ${escapeHtml(p.siret)}<br>${escapeHtml(p.contact)}
+  </div>
+</div>
+<div class="box"><div class="muted">Facturé à :</div><strong>${escapeHtml(f.client)}</strong><br>${nl2br(f.clientAddress)}</div>
+<table>
+  <thead><tr><th>Prestation</th><th>Période</th><th class="amount">Montant</th></tr></thead>
+  <tbody><tr><td>${escapeHtml(f.prestation)}</td><td>${escapeHtml(periode)}</td><td class="amount">${money2(f.amount)}</td></tr></tbody>
+</table>
+<div class="total">Total : ${money2(f.amount)}</div>
+<div style="text-align:right;margin-top:6px;"><span class="status" style="background:${f.status === "payee" ? "#E3F6E9" : "#FDF1DC"};color:${f.status === "payee" ? "#1B7F4B" : "#9A6A00"};">${f.status === "payee" ? "Payée" : "À régler"}</span></div>
+<div class="mentions">${escapeHtml(p.tva)}<br>En cas de retard de paiement : indemnité forfaitaire pour frais de recouvrement de 40 € (art. L441-10 et D441-5 du Code de commerce). Pas d'escompte pour paiement anticipé.</div>
+<script>window.onload=function(){window.print();}<\/script>
+</body></html>`;
+  const w = window.open("", "_blank");
+  if (!w) { toast("Autorise les pop-ups pour générer le PDF."); return; }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
 }
 
 function money(n) {
@@ -2053,10 +2153,13 @@ function setupEvents() {
     localStorage.setItem(storageKey("ae_taux"), $("aeTaux").value);
     renderFactures();
   });
+  if ($("aeProfSave")) $("aeProfSave").addEventListener("click", saveAeProfile);
   if ($("facturesList")) $("facturesList").addEventListener("click", (e) => {
+    const pdf = e.target.closest("[data-facture-pdf]");
     const ed = e.target.closest("[data-facture-edit]");
     const del = e.target.closest("[data-facture-delete]");
-    if (ed) editFacture(ed.getAttribute("data-facture-edit"));
+    if (pdf) printFacture(pdf.getAttribute("data-facture-pdf"));
+    else if (ed) editFacture(ed.getAttribute("data-facture-edit"));
     else if (del) deleteFacture(del.getAttribute("data-facture-delete"));
   });
 

@@ -6,6 +6,8 @@ create table if not exists public.factures (
   user_id      uuid not null references auth.users (id) on delete cascade,
   client       text not null,
   prestation   text not null,
+  numero       text,
+  client_address text,
   facture_date date not null,
   facture_end_date date,
   amount       numeric(10,2) not null default 0,

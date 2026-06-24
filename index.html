@@ -720,6 +720,24 @@ z-index: 500 !important;
         <article class="card">
           <h2>Auto-entrepreneur</h2>
           <p class="sub">Gère tes prestations facturées en micro-entreprise, séparément de tes cachets d'intermittent. ⚠️ Ces revenus sont à déclarer à France Travail et n'entrent pas dans tes heures intermittent.</p>
+
+          <details id="aeProfileBlock" style="margin-bottom:16px;border:1px solid var(--border,#E5E8EB);border-radius:14px;padding:8px 14px;">
+            <summary style="cursor:pointer;font-weight:600;">Mes informations (figurent sur les factures PDF)</summary>
+            <div style="margin-top:12px;">
+              <label for="aeProfNom">Nom / raison sociale</label>
+              <input id="aeProfNom" autocomplete="off" placeholder="Ex : Jean Dupont" />
+              <label for="aeProfSiret">SIRET</label>
+              <input id="aeProfSiret" autocomplete="off" placeholder="Ex : 123 456 789 00012" />
+              <label for="aeProfAdresse">Adresse</label>
+              <textarea id="aeProfAdresse" rows="2" placeholder="N°, rue, code postal, ville"></textarea>
+              <label for="aeProfContact">Email / téléphone</label>
+              <input id="aeProfContact" autocomplete="off" placeholder="Ex : jean@email.com · 06 12 34 56 78" />
+              <label for="aeProfTva">Mention TVA</label>
+              <input id="aeProfTva" autocomplete="off" value="TVA non applicable, art. 293 B du CGI" />
+              <button class="ghost" type="button" id="aeProfSave" style="margin-top:10px;">Enregistrer mes informations</button>
+            </div>
+          </details>
+
           <div class="fiscalite-grid">
 
             <div class="fiscalite-card">
@@ -767,6 +785,8 @@ z-index: 500 !important;
               <form id="factureForm">
                 <label for="aeClient">Client</label>
                 <input id="aeClient" autocomplete="off" placeholder="Ex : Société de production" required />
+                <label for="aeClientAddress">Adresse du client <span style="color:#9AA5B1;font-weight:400;">(optionnel)</span></label>
+                <textarea id="aeClientAddress" rows="2" placeholder="Adresse du client (figure sur la facture PDF)"></textarea>
                 <label for="aePrestation">Prestation</label>
                 <input id="aePrestation" autocomplete="off" placeholder="Ex : Captation vidéo" required />
                 <label for="aeDate">Date (ou début de période)</label>
