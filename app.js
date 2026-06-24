@@ -873,7 +873,13 @@ function activateView(viewName) {
 // Valeurs indicatives micro-entreprise (à vérifier chaque année sur autoentrepreneur.urssaf.fr)
 let factures = [];
 const AE_PLAFOND_CA = 77700;        // plafond annuel prestations de services
-const AE_TAUX_COTISATION = 0.246;   // cotisations sociales prestations (estimation)
+const AE_TAUX_COTISATION = 0.246;   // taux par défaut (estimation, modifiable par l'utilisateur)
+
+// Taux de cotisation URSSAF en % (réglable, propre à chaque utilisateur)
+function getAeTaux() {
+  const v = localStorage.getItem(storageKey("ae_taux"));
+  return (v === null || v === "") ? AE_TAUX_COTISATION * 100 : Number(v);
+}
 
 function money2(n) {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
@@ -903,17 +909,21 @@ function renderFactures() {
   const year = monthSel.slice(0, 4);
   const ms = sumFactures(factures.filter((f) => (f.date || "").slice(0, 7) === monthSel));
   const ys = sumFactures(factures.filter((f) => (f.date || "").slice(0, 4) === year));
+  const taux = getAeTaux() / 100;
+
+  // Reflète le taux enregistré dans le champ (sauf si l'utilisateur est en train de le saisir)
+  if ($("aeTaux") && document.activeElement !== $("aeTaux")) $("aeTaux").value = getAeTaux();
 
   // Récap du mois
   if ($("aeMonthPaid")) $("aeMonthPaid").textContent = money2(ms.paid);
   if ($("aeMonthPending")) $("aeMonthPending").textContent = money2(ms.pending);
-  if ($("aeMonthCotis")) $("aeMonthCotis").textContent = money2(ms.paid * AE_TAUX_COTISATION);
+  if ($("aeMonthCotis")) $("aeMonthCotis").textContent = money2(ms.paid * taux);
 
   // Récap de l'année
   if ($("aeYearLbl")) $("aeYearLbl").textContent = year;
   if ($("aeCaPaid")) $("aeCaPaid").textContent = money2(ys.paid);
   if ($("aeCaPending")) $("aeCaPending").textContent = money2(ys.pending);
-  if ($("aeCotis")) $("aeCotis").textContent = money2(ys.paid * AE_TAUX_COTISATION);
+  if ($("aeCotis")) $("aeCotis").textContent = money2(ys.paid * taux);
   if ($("aePlafondBox")) {
     const pct = Math.min(100, Math.round((ys.total / AE_PLAFOND_CA) * 100));
     $("aePlafondBox").innerHTML = `<strong>Plafond micro : ${money(AE_PLAFOND_CA)}</strong>CA ${year} : ${money2(ys.total)} (${pct} %)`;
@@ -2039,6 +2049,10 @@ function setupEvents() {
     if (!$("aeMonth").value) $("aeMonth").value = new Date().toISOString().slice(0, 7);
     $("aeMonth").addEventListener("change", renderFactures);
   }
+  if ($("aeTaux")) $("aeTaux").addEventListener("input", () => {
+    localStorage.setItem(storageKey("ae_taux"), $("aeTaux").value);
+    renderFactures();
+  });
   if ($("facturesList")) $("facturesList").addEventListener("click", (e) => {
     const ed = e.target.closest("[data-facture-edit]");
     const del = e.target.closest("[data-facture-delete]");
