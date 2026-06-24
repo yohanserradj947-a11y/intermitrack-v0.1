@@ -724,17 +724,35 @@ z-index: 500 !important;
 
             <div class="fiscalite-card">
               <span class="mini-label">Chiffre d'affaires</span>
-              <h3 id="aeYearTitle">Année en cours</h3>
-              <div class="fi-result-row fi-highlight" style="margin-top:14px;">
-                <span class="fi-label">CA encaissé</span>
+              <h3>Récapitulatif</h3>
+
+              <label for="aeMonth">Mois</label>
+              <input id="aeMonth" type="month" />
+              <div class="fi-result-row fi-highlight" style="margin-top:12px;">
+                <span class="fi-label">CA encaissé (mois)</span>
+                <span class="fi-value" id="aeMonthPaid">0 €</span>
+              </div>
+              <div class="fi-result-row" style="margin-top:8px;">
+                <span class="fi-label">En attente (mois)</span>
+                <span class="fi-value" id="aeMonthPending">0 €</span>
+              </div>
+              <div class="fi-result-row" style="margin-top:8px;">
+                <span class="fi-label">Cotisations URSSAF (mois)</span>
+                <span class="fi-value" id="aeMonthCotis">0 €</span>
+              </div>
+
+              <hr style="border:none;border-top:1px solid var(--border,#E5E8EB);margin:16px 0;" />
+
+              <div class="fi-result-row fi-highlight">
+                <span class="fi-label">CA encaissé (année <span id="aeYearLbl"></span>)</span>
                 <span class="fi-value" id="aeCaPaid">0 €</span>
               </div>
               <div class="fi-result-row" style="margin-top:8px;">
-                <span class="fi-label">En attente de paiement</span>
+                <span class="fi-label">En attente (année)</span>
                 <span class="fi-value" id="aeCaPending">0 €</span>
               </div>
               <div class="fi-result-row" style="margin-top:8px;">
-                <span class="fi-label">Cotisations URSSAF estimées</span>
+                <span class="fi-label">Cotisations URSSAF (année)</span>
                 <span class="fi-value" id="aeCotis">0 €</span>
               </div>
               <div id="aePlafondBox" class="fi-info-box" style="margin-top:12px;"></div>
