@@ -490,8 +490,36 @@ z-index: 500 !important;
               <button class="ghost" type="button" id="kmCalcBtn" style="margin-bottom:12px;">📍 Calculer la distance</button>
               <div class="document-grid">
                 <div><label for="kmDistance">Kilomètres professionnels</label><input id="kmDistance" type="number" min="0" step="1" placeholder="Ex : 42" /></div>
-                <div><label for="kmRate">Barème / taux par km (€)</label><input id="kmRate" type="number" min="0" step="0.01" placeholder="Ex : 0.50" /></div>
+                <div>
+                  <label for="kmCv">Puissance fiscale (carte grise, case P.6)</label>
+                  <select id="kmCv">
+                    <option value="">— Choisir pour remplir le taux —</option>
+                    <option value="0.53">3 CV ou moins</option>
+                    <option value="0.61">4 CV</option>
+                    <option value="0.64">5 CV</option>
+                    <option value="0.67">6 CV</option>
+                    <option value="0.70">7 CV et plus</option>
+                    <option value="0.40">Moto / scooter</option>
+                  </select>
+                </div>
               </div>
+              <label style="display:flex;align-items:center;gap:8px;margin:8px 0;font-weight:400;"><input type="checkbox" id="kmElectric" style="width:auto;" /> Véhicule électrique (+20 %)</label>
+              <div class="document-grid">
+                <div><label for="kmRate">Barème / taux par km (€)</label><input id="kmRate" type="number" min="0" step="0.01" placeholder="Ex : 0.64" /></div>
+              </div>
+              <details style="margin:6px 0 4px;">
+                <summary style="cursor:pointer;color:var(--petrol);font-weight:600;font-size:13px;">📋 Voir le barème kilométrique</summary>
+                <table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;">
+                  <tr style="text-align:left;color:#64748B;"><th style="padding:4px 6px;">Puissance fiscale</th><th style="padding:4px 6px;">€ / km</th></tr>
+                  <tr><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">3 CV ou moins</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,53</td></tr>
+                  <tr><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">4 CV</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,61</td></tr>
+                  <tr><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">5 CV</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,64</td></tr>
+                  <tr><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">6 CV</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,67</td></tr>
+                  <tr><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">7 CV et plus</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,70</td></tr>
+                  <tr><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">Moto / scooter</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">~0,40</td></tr>
+                </table>
+                <p class="hint" style="margin-top:6px;">🔌 Électrique : +20 %. Barème voiture pour un usage ≤ 5 000 km/an, réévalué chaque année — référence : impots.gouv.fr.</p>
+              </details>
               <p class="hint" id="kmPreview">Frais km estimés : 0 EUR</p>
             </div>
             <p class="hint">Pour une mission sur plusieurs jours, indique la période complète et le total d'heures cumulées.</p>

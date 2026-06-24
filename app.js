@@ -364,6 +364,16 @@ function updateKmPreview() {
   preview.textContent = "Frais km estimés : " + money(calculateKmAmount());
 }
 
+// Remplit le taux par km selon la puissance fiscale choisie (+ bonus électrique)
+function applyKmBareme() {
+  const base = Number($("kmCv")?.value || 0);
+  if (!base) return;
+  const electric = $("kmElectric")?.checked;
+  const rate = Math.round(base * (electric ? 1.2 : 1) * 1000) / 1000;
+  if ($("kmRate")) $("kmRate").value = rate;
+  updateKmPreview();
+}
+
 // Distance à vol d'oiseau (km) entre deux points GPS
 function haversineKm(lat1, lon1, lat2, lon2) {
   const R = 6371, toRad = (d) => d * Math.PI / 180;
@@ -2318,6 +2328,8 @@ function setupEvents() {
   if ($("saveTaxSettingsBtn")) $("saveTaxSettingsBtn").addEventListener("click", () => { render(); toast("Calcul mis à jour ✓", "success"); });
 
   if ($("kmCalcBtn")) $("kmCalcBtn").addEventListener("click", calcKmFromAddresses);
+  if ($("kmCv")) $("kmCv").addEventListener("change", applyKmBareme);
+  if ($("kmElectric")) $("kmElectric").addEventListener("change", applyKmBareme);
 
   // Frais réels
   if ($("fraisForm")) $("fraisForm").addEventListener("submit", saveFrais);
