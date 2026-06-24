@@ -364,6 +364,52 @@ function updateKmPreview() {
   preview.textContent = "Frais km estimés : " + money(calculateKmAmount());
 }
 
+// Autocomplétion d'adresse (API Adresse data.gouv.fr) avec suggestions cliquables
+function attachAddressAutocomplete(input) {
+  if (!input || input.dataset.acInit) return;
+  input.dataset.acInit = "1";
+  input.setAttribute("autocomplete", "off");
+  const wrap = input.parentElement;
+  if (wrap) wrap.style.position = "relative";
+  const box = document.createElement("div");
+  box.style.cssText = "position:absolute;left:0;right:0;top:100%;z-index:50;background:#fff;border:1px solid var(--border,#E5E8EB);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);margin-top:4px;overflow:hidden;display:none;";
+  if (wrap) wrap.appendChild(box);
+  const close = () => { box.style.display = "none"; box.innerHTML = ""; };
+  let timer = null;
+
+  input.addEventListener("input", () => {
+    input.dataset.lon = ""; input.dataset.lat = ""; // texte modifié → ville à reconfirmer
+    const q = input.value.trim();
+    if (timer) clearTimeout(timer);
+    if (q.length < 3) { close(); return; }
+    timer = setTimeout(async () => {
+      try {
+        const r = await fetch("https://api-adresse.data.gouv.fr/search/?limit=5&q=" + encodeURIComponent(q));
+        const j = await r.json();
+        if (!j.features || !j.features.length) { close(); return; }
+        box.innerHTML = "";
+        j.features.forEach((f) => {
+          const item = document.createElement("div");
+          item.textContent = f.properties.label;
+          item.style.cssText = "padding:10px 12px;cursor:pointer;font-size:14px;border-bottom:1px solid #F1F5F9;";
+          item.addEventListener("mouseenter", () => { item.style.background = "#F1F5F9"; });
+          item.addEventListener("mouseleave", () => { item.style.background = "#fff"; });
+          item.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            input.value = f.properties.label;
+            input.dataset.lon = f.geometry.coordinates[0];
+            input.dataset.lat = f.geometry.coordinates[1];
+            close();
+          });
+          box.appendChild(item);
+        });
+        box.style.display = "block";
+      } catch (_) { close(); }
+    }, 250);
+  });
+  input.addEventListener("blur", () => setTimeout(close, 150));
+}
+
 // Remplit le taux par km selon la puissance fiscale choisie (+ bonus électrique)
 function applyKmBareme() {
   const base = Number($("kmCv")?.value || 0);
@@ -391,14 +437,19 @@ async function calcKmFromAddresses() {
   const oldLabel = btn ? btn.textContent : "";
   if (btn) { btn.disabled = true; btn.textContent = "Calcul en cours…"; }
   try {
-    const geocode = async (q) => {
+    const geocodeText = async (q) => {
       const r = await fetch("https://api-adresse.data.gouv.fr/search/?limit=1&q=" + encodeURIComponent(q));
       const j = await r.json();
       if (!j.features || !j.features.length) throw new Error("Adresse introuvable : " + q);
       return j.features[0].geometry.coordinates; // [lon, lat]
     };
-    const a = await geocode(from);
-    const b = await geocode(to);
+    // Privilégie les coordonnées de la suggestion choisie (sinon géocode le texte)
+    const coordsOf = async (input, q) =>
+      (input && input.dataset.lon && input.dataset.lat)
+        ? [Number(input.dataset.lon), Number(input.dataset.lat)]
+        : geocodeText(q);
+    const a = await coordsOf($("kmFrom"), from);
+    const b = await coordsOf($("kmTo"), to);
     let km = null;
     try {
       const rr = await fetch(`https://router.project-osrm.org/route/v1/driving/${a[0]},${a[1]};${b[0]},${b[1]}?overview=false`);
@@ -2328,6 +2379,8 @@ function setupEvents() {
   if ($("saveTaxSettingsBtn")) $("saveTaxSettingsBtn").addEventListener("click", () => { render(); toast("Calcul mis à jour ✓", "success"); });
 
   if ($("kmCalcBtn")) $("kmCalcBtn").addEventListener("click", calcKmFromAddresses);
+  attachAddressAutocomplete($("kmFrom"));
+  attachAddressAutocomplete($("kmTo"));
   if ($("kmCv")) $("kmCv").addEventListener("change", applyKmBareme);
   if ($("kmElectric")) $("kmElectric").addEventListener("change", applyKmBareme);
 
