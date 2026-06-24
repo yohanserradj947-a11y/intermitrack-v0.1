@@ -1478,15 +1478,14 @@ function renderFiscalite(yearGross, yearMissions) {
     : null;
 
   // Update DOM
-  if ($("fiscaliteGrossPreview")) $("fiscaliteGrossPreview").textContent = "Brut annuel (missions) : " + money(yearGross);
+  if ($("fiscaliteGrossPreview")) $("fiscaliteGrossPreview").textContent = money(yearGross);
   if ($("fiscaliteTotalRevenusPreview")) $("fiscaliteTotalRevenusPreview").textContent =
-    "Total revenus bruts estimés : " + money(yearGross + arePercue + congesSpec + otherIncome);
-  if ($("fiscaliteNetPreview")) $("fiscaliteNetPreview").textContent = "Net imposable estimé : " + money(netTotal);
-  if ($("fiscaliteKmDeductionPreview")) $("fiscaliteKmDeductionPreview").textContent = "Frais km déduits : " + money(totalKmAmount);
+    money(yearGross + arePercue + congesSpec + otherIncome);
+  if ($("fiscaliteNetPreview")) $("fiscaliteNetPreview").textContent = money(netTotal);
+  if ($("fiscaliteKmDeductionPreview")) $("fiscaliteKmDeductionPreview").textContent = money(totalKmAmount);
   if ($("fiscaliteAbattementForfait")) $("fiscaliteAbattementForfait").textContent = money(forfait);
   if ($("fiscaliteAbattementForfaitLabel")) $("fiscaliteAbattementForfaitLabel").textContent = profil.label;
-  if ($("fiscaliteAbattementReels")) $("fiscaliteAbattementReels").textContent =
-    `Frais réels totaux (km + dépenses saisies + autres) : ${money(totalFraisReels)}`;
+  if ($("fiscaliteAbattementReels")) $("fiscaliteAbattementReels").textContent = money(totalFraisReels);
 
   if ($("fiscaliteComparaisonBox")) {
     $("fiscaliteComparaisonBox").style.display = "grid";
@@ -1506,28 +1505,28 @@ function renderFiscalite(yearGross, yearMissions) {
       </div>`;
   }
 
-  if ($("fiscaliteOtherIncomePreview")) $("fiscaliteOtherIncomePreview").textContent = "Revenus complémentaires : " + money(otherIncome);
-  if ($("fiscaliteTotalIncomePreview")) $("fiscaliteTotalIncomePreview").textContent = "Base imposable estimée : " + money(bestBase);
-  if ($("fiscaliteCSGPreview")) $("fiscaliteCSGPreview").textContent = "CSG/CRDS non déductible (2,4%) : " + money(csgNonDed);
+  if ($("fiscaliteOtherIncomePreview")) $("fiscaliteOtherIncomePreview").textContent = money(otherIncome);
+  if ($("fiscaliteTotalIncomePreview")) $("fiscaliteTotalIncomePreview").textContent = money(bestBase);
+  if ($("fiscaliteCSGPreview")) $("fiscaliteCSGPreview").textContent = money(csgNonDed);
 
   if ($("fiscaliteProjectionPreview")) {
     $("fiscaliteProjectionPreview").textContent = observedMonths > 0
-      ? `Projection annuelle : ${money(projectedBase)} sur ${observedMonths} mois renseigné${observedMonths > 1 ? "s" : ""}`
-      : "Projection annuelle : ajoute une mission";
+      ? `${money(projectedBase)} · ${observedMonths} mois`
+      : "—";
   }
 
   if (taxResult) {
-    if ($("fiscaliteTaxPreview")) $("fiscaliteTaxPreview").textContent = "Impôt estimé : " + money(taxResult.estimatedTax);
-    if ($("fiscaliteRatePreview")) $("fiscaliteRatePreview").textContent = "Taux moyen estimé : " + taxResult.averageRate.toFixed(1).replace(".", ",") + "%";
-    if ($("fiscaliteBracketPreview")) $("fiscaliteBracketPreview").textContent = "Tranche marginale : " + Math.round(taxResult.marginalRate) + "%";
+    if ($("fiscaliteTaxPreview")) $("fiscaliteTaxPreview").textContent = money(taxResult.estimatedTax);
+    if ($("fiscaliteRatePreview")) $("fiscaliteRatePreview").textContent = taxResult.averageRate.toFixed(1).replace(".", ",") + "%";
+    if ($("fiscaliteBracketPreview")) $("fiscaliteBracketPreview").textContent = Math.round(taxResult.marginalRate) + "%";
   } else {
-    if ($("fiscaliteTaxPreview")) $("fiscaliteTaxPreview").textContent = "Impôt estimé : renseigne tes parts";
-    if ($("fiscaliteRatePreview")) $("fiscaliteRatePreview").textContent = "Taux moyen estimé : -";
-    if ($("fiscaliteBracketPreview")) $("fiscaliteBracketPreview").textContent = "Tranche marginale : -";
+    if ($("fiscaliteTaxPreview")) $("fiscaliteTaxPreview").textContent = "Renseigne tes parts";
+    if ($("fiscaliteRatePreview")) $("fiscaliteRatePreview").textContent = "—";
+    if ($("fiscaliteBracketPreview")) $("fiscaliteBracketPreview").textContent = "—";
   }
 
-  if ($("fiscaliteKmPreview")) $("fiscaliteKmPreview").textContent = Math.round(yearMissions.reduce((a, x) => a + Number(x.kmDistance || 0), 0)) + " km enregistrés";
-  if ($("fiscaliteKmAmountPreview")) $("fiscaliteKmAmountPreview").textContent = money(totalKmAmount) + " estimés";
+  if ($("fiscaliteKmPreview")) $("fiscaliteKmPreview").textContent = Math.round(yearMissions.reduce((a, x) => a + Number(x.kmDistance || 0), 0)) + " km";
+  if ($("fiscaliteKmAmountPreview")) $("fiscaliteKmAmountPreview").textContent = money(totalKmAmount);
   if ($("fiscaliteDeclarationPreview")) $("fiscaliteDeclarationPreview").textContent =
     `Net imposable ~${money(netTotal)} · Frais ${useForfait ? "forfait" : "réels"} ${money(useForfait ? forfait : totalFraisReels)}`;
   // Auto-remplir SJR carence depuis vacations
