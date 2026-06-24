@@ -1071,39 +1071,56 @@ function printFacture(id) {
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8">
 <title>Facture ${escapeHtml(f.numero || "")}</title>
 <style>
-*{box-sizing:border-box;}
-body{font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;margin:0;padding:40px;font-size:13px;}
-.head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:36px;}
-.head h1{font-size:26px;margin:0 0 4px;letter-spacing:.04em;}
-.box{line-height:1.5;}
-.muted{color:#666;}
-table{width:100%;border-collapse:collapse;margin:28px 0;}
-th,td{text-align:left;padding:10px 8px;border-bottom:1px solid #ddd;}
-th{background:#f5f5f5;font-size:11px;text-transform:uppercase;letter-spacing:.04em;}
-td.amount,th.amount{text-align:right;}
-.total{text-align:right;font-size:18px;font-weight:700;margin-top:10px;}
-.status{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
-.mentions{margin-top:46px;font-size:11px;color:#555;line-height:1.6;border-top:1px solid #eee;padding-top:16px;}
-@media print{body{padding:0;}}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:#0D1B2A;font-size:13px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+.topbar{background:linear-gradient(135deg,#0D4F6C,#12754A);color:#fff;padding:34px 40px;display:flex;justify-content:space-between;align-items:flex-start;}
+.topbar h1{font-size:30px;letter-spacing:.08em;font-weight:800;}
+.topbar .meta{margin-top:10px;font-size:12px;opacity:.92;line-height:1.6;}
+.seller{text-align:right;line-height:1.6;font-size:12px;}
+.seller .name{font-size:15px;font-weight:800;margin-bottom:2px;}
+.content{padding:32px 40px;}
+.to .lbl{color:#64748B;font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.to .name{font-size:15px;font-weight:700;color:#0D4F6C;}
+.to .addr{color:#475569;line-height:1.5;margin-top:2px;}
+table{width:100%;border-collapse:collapse;margin:26px 0;}
+thead th{background:#0D4F6C;color:#fff;text-align:left;padding:11px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;}
+thead th.amount{text-align:right;}
+tbody td{padding:13px 12px;border-bottom:1px solid #E5E8EB;}
+tbody td.amount{text-align:right;font-weight:600;}
+.total-row{display:flex;justify-content:flex-end;align-items:baseline;gap:18px;margin-top:8px;}
+.total-row .label{color:#64748B;font-weight:600;}
+.total-row .val{font-size:23px;font-weight:800;color:#0D4F6C;}
+.status{display:inline-block;margin-top:14px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;}
+.mentions{margin-top:38px;font-size:11px;color:#64748B;line-height:1.6;border-top:1px solid #E5E8EB;padding-top:16px;}
+.footer{margin-top:26px;text-align:center;font-size:11px;color:#94A3B8;border-top:1px solid #E5E8EB;padding:16px 0 4px;}
+.footer b{color:#0D4F6C;}
+@media print{@page{margin:0;}}
 </style></head><body>
-<div class="head">
-  <div class="box">
+<div class="topbar">
+  <div>
     <h1>FACTURE</h1>
-    <div class="muted">N° ${escapeHtml(f.numero || "—")}</div>
-    <div class="muted">Date : ${formatDate(f.date)}</div>
+    <div class="meta">N° ${escapeHtml(f.numero || "—")}<br>Date : ${formatDate(f.date)}</div>
   </div>
-  <div class="box" style="text-align:right;">
-    <strong>${escapeHtml(p.nom)}</strong><br>${nl2br(p.adresse)}<br>SIRET : ${escapeHtml(p.siret)}<br>${escapeHtml(p.contact)}
+  <div class="seller">
+    <div class="name">${escapeHtml(p.nom)}</div>
+    ${nl2br(p.adresse)}<br>SIRET : ${escapeHtml(p.siret)}<br>${escapeHtml(p.contact)}
   </div>
 </div>
-<div class="box"><div class="muted">Facturé à :</div><strong>${escapeHtml(f.client)}</strong><br>${nl2br(f.clientAddress)}</div>
-<table>
-  <thead><tr><th>Prestation</th><th>Période</th><th class="amount">Montant</th></tr></thead>
-  <tbody><tr><td>${escapeHtml(f.prestation)}</td><td>${escapeHtml(periode)}</td><td class="amount">${money2(f.amount)}</td></tr></tbody>
-</table>
-<div class="total">Total : ${money2(f.amount)}</div>
-<div style="text-align:right;margin-top:6px;"><span class="status" style="background:${f.status === "payee" ? "#E3F6E9" : "#FDF1DC"};color:${f.status === "payee" ? "#1B7F4B" : "#9A6A00"};">${f.status === "payee" ? "Payée" : "À régler"}</span></div>
-<div class="mentions">${escapeHtml(p.tva)}<br>En cas de retard de paiement : indemnité forfaitaire pour frais de recouvrement de 40 € (art. L441-10 et D441-5 du Code de commerce). Pas d'escompte pour paiement anticipé.</div>
+<div class="content">
+  <div class="to">
+    <div class="lbl">Facturé à</div>
+    <div class="name">${escapeHtml(f.client)}</div>
+    <div class="addr">${nl2br(f.clientAddress)}</div>
+  </div>
+  <table>
+    <thead><tr><th>Prestation</th><th>Période</th><th class="amount">Montant</th></tr></thead>
+    <tbody><tr><td>${escapeHtml(f.prestation)}</td><td>${escapeHtml(periode)}</td><td class="amount">${money2(f.amount)}</td></tr></tbody>
+  </table>
+  <div class="total-row"><span class="label">Total à régler</span><span class="val">${money2(f.amount)}</span></div>
+  <div style="text-align:right;"><span class="status" style="background:${f.status === "payee" ? "#E3F6E9" : "#FDF1DC"};color:${f.status === "payee" ? "#12754A" : "#9A6A00"};">${f.status === "payee" ? "Payée" : "À régler"}</span></div>
+  <div class="mentions">${escapeHtml(p.tva)}<br>En cas de retard de paiement : indemnité forfaitaire pour frais de recouvrement de 40 € (art. L441-10 et D441-5 du Code de commerce). Pas d'escompte pour paiement anticipé.</div>
+  <div class="footer">Facture générée avec <b>Intermitrack</b> · intermitrack.fr</div>
+</div>
 <script>window.onload=function(){window.print();}<\/script>
 </body></html>`;
   const w = window.open("", "_blank");
