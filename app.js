@@ -439,6 +439,7 @@ async function init() {
   areAdmissionDate = localStorage.getItem(storageKey("areAdmissionDate")) || "";
   await loadMissions();
   await loadDocuments();
+  await loadFactures();
   render();
 }
 
@@ -866,6 +867,125 @@ function activateView(viewName) {
   document.querySelectorAll(".tab").forEach((tab) => { tab.classList.toggle("active", tab.dataset.view === viewName); });
   document.querySelectorAll(".view").forEach((view) => { view.classList.toggle("active", view.id === "view-" + viewName); });
   trackEvent("view_" + viewName);
+}
+
+// ===== Auto-entrepreneur : factures =====
+// Valeurs indicatives micro-entreprise (à vérifier chaque année sur autoentrepreneur.urssaf.fr)
+let factures = [];
+const AE_PLAFOND_CA = 77700;        // plafond annuel prestations de services
+const AE_TAUX_COTISATION = 0.246;   // cotisations sociales prestations (estimation)
+
+function money2(n) {
+  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
+}
+
+async function loadFactures() {
+  if (!currentUser) return;
+  const { data, error } = await sb.from("factures").select("*").order("facture_date", { ascending: false });
+  if (error) { toast("Erreur chargement factures : " + error.message); return; }
+  factures = (data || []).map((x) => ({
+    id: x.id, client: x.client, prestation: x.prestation,
+    date: x.facture_date, amount: Number(x.amount || 0), status: x.status || "impayee"
+  }));
+  renderFactures();
+}
+
+function aeStats() {
+  const year = new Date().getFullYear();
+  const ofYear = factures.filter((f) => (f.date || "").slice(0, 4) === String(year));
+  const paid = ofYear.filter((f) => f.status === "payee").reduce((a, f) => a + f.amount, 0);
+  const pending = ofYear.filter((f) => f.status !== "payee").reduce((a, f) => a + f.amount, 0);
+  return { year, total: paid + pending, paid, pending };
+}
+
+function renderFactures() {
+  const s = aeStats();
+  if ($("aeYearTitle")) $("aeYearTitle").textContent = "Année " + s.year;
+  if ($("aeCaPaid")) $("aeCaPaid").textContent = money2(s.paid);
+  if ($("aeCaPending")) $("aeCaPending").textContent = money2(s.pending);
+  if ($("aeCotis")) $("aeCotis").textContent = money2(s.paid * AE_TAUX_COTISATION);
+  if ($("aePlafondBox")) {
+    const pct = Math.min(100, Math.round((s.total / AE_PLAFOND_CA) * 100));
+    $("aePlafondBox").innerHTML = `<strong>Plafond micro : ${money(AE_PLAFOND_CA)}</strong>CA ${s.year} : ${money2(s.total)} (${pct} %)`;
+  }
+  const list = $("facturesList");
+  if (!list) return;
+  if (!factures.length) {
+    list.innerHTML = `<p class="hint" style="margin-top:12px;">Aucune facture pour le moment. Crée ta première facture ci-dessus.</p>`;
+    return;
+  }
+  list.innerHTML = `<div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">` + factures.map((f) => `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px;border:1px solid var(--border,#E5E8EB);border-radius:14px;">
+      <div style="display:flex;flex-direction:column;gap:4px;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <strong>${escapeHtml(f.client)}</strong>
+          <span class="pill" style="background:${f.status === "payee" ? "#E3F6E9" : "#FDF1DC"};color:${f.status === "payee" ? "#1B7F4B" : "#9A6A00"};">${f.status === "payee" ? "Payée" : "À encaisser"}</span>
+        </div>
+        <span style="color:#6B7280;">${escapeHtml(f.prestation)}</span>
+        <small style="color:#9AA5B1;">${formatDate(f.date)}</small>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;white-space:nowrap;">
+        <span style="font-weight:700;font-size:16px;">${money2(f.amount)}</span>
+        <div style="display:flex;gap:6px;">
+          <button class="ghost" type="button" data-facture-edit="${escapeHtml(f.id)}">Modifier</button>
+          <button class="delete" type="button" data-facture-delete="${escapeHtml(f.id)}">Supprimer</button>
+        </div>
+      </div>
+    </div>`).join("") + `</div>`;
+}
+
+async function saveFacture(e) {
+  e.preventDefault();
+  if (!currentUser) { toast("Connecte-toi pour enregistrer une facture."); return; }
+  const editId = $("aeEditId").value;
+  const payload = {
+    user_id: currentUser.id,
+    client: $("aeClient").value.trim(),
+    prestation: $("aePrestation").value.trim(),
+    facture_date: $("aeDate").value,
+    amount: Number($("aeAmount").value),
+    status: $("aeStatus").value
+  };
+  const result = editId
+    ? await sb.from("factures").update(payload).eq("id", editId)
+    : await sb.from("factures").insert(payload);
+  if (result.error) { toast("Erreur sauvegarde : " + result.error.message); return; }
+  resetFactureForm();
+  await loadFactures();
+  toast("Facture enregistrée ✓", "success");
+}
+
+function resetFactureForm() {
+  if ($("factureForm")) $("factureForm").reset();
+  if ($("aeEditId")) $("aeEditId").value = "";
+  if ($("aeFormTitle")) $("aeFormTitle").textContent = "Créer une facture";
+  if ($("aeCancelEdit")) $("aeCancelEdit").style.display = "none";
+  const submit = document.querySelector("#factureForm button[type='submit']");
+  if (submit) submit.textContent = "Enregistrer la facture";
+}
+
+function editFacture(id) {
+  const f = factures.find((x) => String(x.id) === String(id));
+  if (!f) return;
+  $("aeEditId").value = f.id;
+  $("aeClient").value = f.client;
+  $("aePrestation").value = f.prestation;
+  $("aeDate").value = f.date;
+  $("aeAmount").value = f.amount;
+  $("aeStatus").value = f.status;
+  if ($("aeFormTitle")) $("aeFormTitle").textContent = "Modifier la facture";
+  if ($("aeCancelEdit")) $("aeCancelEdit").style.display = "";
+  const submit = document.querySelector("#factureForm button[type='submit']");
+  if (submit) submit.textContent = "Mettre à jour la facture";
+  activateView("autoentrepreneur");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function deleteFacture(id) {
+  if (!(await confirmDialog("Supprimer cette facture ?"))) return;
+  const { error } = await sb.from("factures").delete().eq("id", id);
+  if (error) { toast("Erreur suppression : " + error.message); return; }
+  await loadFactures();
 }
 
 function money(n) {
@@ -1896,6 +2016,16 @@ function setupEvents() {
   $("date").addEventListener("change", () => { if (!$("endDate").value || $("endDate").value < $("date").value) $("endDate").value = $("date").value; });
  
   document.querySelectorAll(".tab").forEach((tab) => { tab.addEventListener("click", () => activateView(tab.dataset.view)); });
+
+  if ($("factureForm")) $("factureForm").addEventListener("submit", saveFacture);
+  if ($("aeCancelEdit")) $("aeCancelEdit").addEventListener("click", resetFactureForm);
+  if ($("aeDate") && !$("aeDate").value) $("aeDate").value = new Date().toISOString().slice(0, 10);
+  if ($("facturesList")) $("facturesList").addEventListener("click", (e) => {
+    const ed = e.target.closest("[data-facture-edit]");
+    const del = e.target.closest("[data-facture-delete]");
+    if (ed) editFacture(ed.getAttribute("data-facture-edit"));
+    else if (del) deleteFacture(del.getAttribute("data-facture-delete"));
+  });
 
   const tabsWrap = document.querySelector(".tabs-wrap");
   const tabsNav = document.querySelector(".tabs");
