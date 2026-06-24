@@ -885,7 +885,8 @@ async function loadFactures() {
   if (error) { toast("Erreur chargement factures : " + error.message); return; }
   factures = (data || []).map((x) => ({
     id: x.id, client: x.client, prestation: x.prestation,
-    date: x.facture_date, amount: Number(x.amount || 0), status: x.status || "impayee"
+    date: x.facture_date, endDate: x.facture_end_date || "",
+    amount: Number(x.amount || 0), status: x.status || "impayee"
   }));
   renderFactures();
 }
@@ -922,7 +923,7 @@ function renderFactures() {
           <span class="pill" style="background:${f.status === "payee" ? "#E3F6E9" : "#FDF1DC"};color:${f.status === "payee" ? "#1B7F4B" : "#9A6A00"};">${f.status === "payee" ? "Payée" : "À encaisser"}</span>
         </div>
         <span style="color:#6B7280;">${escapeHtml(f.prestation)}</span>
-        <small style="color:#9AA5B1;">${formatDate(f.date)}</small>
+        <small style="color:#9AA5B1;">${formatPeriod(f.date, f.endDate)}</small>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;white-space:nowrap;">
         <span style="font-weight:700;font-size:16px;">${money2(f.amount)}</span>
@@ -943,9 +944,13 @@ async function saveFacture(e) {
     client: $("aeClient").value.trim(),
     prestation: $("aePrestation").value.trim(),
     facture_date: $("aeDate").value,
+    facture_end_date: $("aeEndDate").value || null,
     amount: Number($("aeAmount").value),
     status: $("aeStatus").value
   };
+  if (payload.facture_end_date && payload.facture_end_date < payload.facture_date) {
+    toast("La date de fin doit être après la date de début."); return;
+  }
   const result = editId
     ? await sb.from("factures").update(payload).eq("id", editId)
     : await sb.from("factures").insert(payload);
@@ -971,6 +976,7 @@ function editFacture(id) {
   $("aeClient").value = f.client;
   $("aePrestation").value = f.prestation;
   $("aeDate").value = f.date;
+  $("aeEndDate").value = f.endDate || "";
   $("aeAmount").value = f.amount;
   $("aeStatus").value = f.status;
   if ($("aeFormTitle")) $("aeFormTitle").textContent = "Modifier la facture";

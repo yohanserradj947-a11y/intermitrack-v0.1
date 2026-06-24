@@ -7,6 +7,7 @@ create table if not exists public.factures (
   client       text not null,
   prestation   text not null,
   facture_date date not null,
+  facture_end_date date,
   amount       numeric(10,2) not null default 0,
   status       text not null default 'impayee',  -- 'impayee' | 'payee'
   created_at   timestamptz not null default now()
@@ -14,6 +15,9 @@ create table if not exists public.factures (
 
 create index if not exists factures_user_date_idx
   on public.factures (user_id, facture_date desc);
+
+-- Droits d'accès pour les utilisateurs connectés (RLS filtre ensuite par utilisateur)
+grant select, insert, update, delete on public.factures to authenticated;
 
 -- Sécurité : chaque utilisateur ne voit/modifie que ses propres factures
 alter table public.factures enable row level security;

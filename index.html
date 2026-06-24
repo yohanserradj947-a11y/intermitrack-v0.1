@@ -749,8 +749,11 @@ z-index: 500 !important;
                 <input id="aeClient" autocomplete="off" placeholder="Ex : Société de production" required />
                 <label for="aePrestation">Prestation</label>
                 <input id="aePrestation" autocomplete="off" placeholder="Ex : Captation vidéo" required />
-                <label for="aeDate">Date</label>
+                <label for="aeDate">Date (ou début de période)</label>
                 <input id="aeDate" type="date" required />
+                <label for="aeEndDate">Date de fin <span style="color:#9AA5B1;font-weight:400;">(optionnel)</span></label>
+                <input id="aeEndDate" type="date" />
+                <p class="hint">Laisse vide pour une prestation d'un seul jour, ou indique une fin pour facturer une période (ex : du 22 au 29).</p>
                 <label for="aeAmount">Montant (€)</label>
                 <input id="aeAmount" type="number" min="0" step="0.01" placeholder="Ex : 450" required />
                 <label for="aeStatus">Statut</label>
