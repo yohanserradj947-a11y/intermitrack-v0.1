@@ -494,6 +494,17 @@ async function logout() {
   showAuth();
 }
 
+// Traduit les erreurs d'authentification Supabase en messages clairs
+function authErrorMessage(msg) {
+  const m = (msg || "").toLowerCase();
+  if (m.includes("email not confirmed")) return "Ton adresse n'est pas encore confirmée. Clique sur le lien reçu par email (pense à vérifier tes spams), puis reconnecte-toi.";
+  if (m.includes("invalid login credentials")) return "Email ou mot de passe incorrect.";
+  if (m.includes("already registered") || m.includes("already been registered")) return "Un compte existe déjà avec cet email. Connecte-toi plutôt.";
+  if (m.includes("rate limit") || m.includes("too many") || m.includes("over_email_send_rate")) return "Trop d'emails envoyés en peu de temps. Patiente quelques minutes avant de réessayer.";
+  if (m.includes("password")) return "Mot de passe trop court (6 caractères minimum).";
+  return "Erreur : " + msg;
+}
+
 async function loadMissions() {
   const { data, error } = await sb.from("missions").select("*").order("mission_date", { ascending: false });
   if (error) { toast("Erreur chargement missions : " + error.message); return; }
@@ -2227,8 +2238,12 @@ function setupEvents() {
     let result;
     if (authMode === "signup") result = await sb.auth.signUp({ email, password });
     else result = await sb.auth.signInWithPassword({ email, password });
-    if (result.error) { $("authMsg").textContent = "Erreur : " + result.error.message; return; }
-    if (authMode === "signup") $("authMsg").textContent = "Compte créé. Vérifiez votre boîte mail si une confirmation est demandée.";
+    if (result.error) { $("authMsg").textContent = authErrorMessage(result.error.message); return; }
+    if (authMode === "signup" && !result.data?.session) {
+      // Confirmation par email requise : aucune session active tant que l'email n'est pas validé
+      $("authMsg").textContent = "✅ Compte créé ! Clique sur le lien de confirmation reçu par email (vérifie tes spams), puis reviens te connecter.";
+      return;
+    }
     await init();
   });
  
