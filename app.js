@@ -364,6 +364,50 @@ function updateKmPreview() {
   preview.textContent = "Frais km estimés : " + money(calculateKmAmount());
 }
 
+// Distance à vol d'oiseau (km) entre deux points GPS
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371, toRad = (d) => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(x));
+}
+
+// Calcule automatiquement la distance entre lieu de départ et d'arrivée
+async function calcKmFromAddresses() {
+  const from = ($("kmFrom")?.value || "").trim();
+  const to = ($("kmTo")?.value || "").trim();
+  if (!from || !to) { toast("Renseigne le lieu de départ et le lieu d'arrivée."); return; }
+  const btn = $("kmCalcBtn");
+  const oldLabel = btn ? btn.textContent : "";
+  if (btn) { btn.disabled = true; btn.textContent = "Calcul en cours…"; }
+  try {
+    const geocode = async (q) => {
+      const r = await fetch("https://api-adresse.data.gouv.fr/search/?limit=1&q=" + encodeURIComponent(q));
+      const j = await r.json();
+      if (!j.features || !j.features.length) throw new Error("Adresse introuvable : " + q);
+      return j.features[0].geometry.coordinates; // [lon, lat]
+    };
+    const a = await geocode(from);
+    const b = await geocode(to);
+    let km = null;
+    try {
+      const rr = await fetch(`https://router.project-osrm.org/route/v1/driving/${a[0]},${a[1]};${b[0]},${b[1]}?overview=false`);
+      const rj = await rr.json();
+      if (rj.routes && rj.routes[0]) km = rj.routes[0].distance / 1000;
+    } catch (_) { /* repli ci-dessous */ }
+    if (km == null) km = haversineKm(a[1], a[0], b[1], b[0]) * 1.3; // estimation routière
+    if ($("kmRoundTrip")?.checked) km *= 2;
+    km = Math.round(km);
+    if ($("kmDistance")) $("kmDistance").value = km;
+    updateKmPreview();
+    toast("Distance estimée : " + km + " km" + ($("kmRoundTrip")?.checked ? " (aller-retour)" : ""), "success");
+  } catch (err) {
+    toast(err.message || "Impossible de calculer la distance.");
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = oldLabel; }
+  }
+}
+
 function setAuthMode(mode) {
   authMode = mode;
   $("authButton").textContent = mode === "login" ? "Se connecter" : "Créer mon compte";
@@ -2257,6 +2301,8 @@ function setupEvents() {
   wireFiscal("autresFraisReels", setAutresFraisReels);
   wireFiscal("profileType", setProfileType, "change");
   if ($("saveTaxSettingsBtn")) $("saveTaxSettingsBtn").addEventListener("click", () => { render(); toast("Calcul mis à jour ✓", "success"); });
+
+  if ($("kmCalcBtn")) $("kmCalcBtn").addEventListener("click", calcKmFromAddresses);
 
   // Frais réels
   if ($("fraisForm")) $("fraisForm").addEventListener("submit", saveFrais);

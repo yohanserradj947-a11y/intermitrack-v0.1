@@ -481,7 +481,13 @@ z-index: 500 !important;
             <input id="gross" type="number" min="0" step="0.01" placeholder="Ex : 230" required />
             <div class="optional-block">
               <h3>Frais kilométriques</h3>
-              <p class="hint">Optionnel : remplis uniquement si tu veux suivre des frais de déplacement pour cette mission.</p>
+              <p class="hint">Optionnel : indique tes lieux de départ et d'arrivée, la distance se calcule automatiquement.</p>
+              <div class="document-grid">
+                <div><label for="kmFrom">Lieu de départ</label><input id="kmFrom" autocomplete="off" placeholder="Ex : 12 rue de Paris, Lyon" /></div>
+                <div><label for="kmTo">Lieu d'arrivée</label><input id="kmTo" autocomplete="off" placeholder="Ex : Studio, Saint-Denis" /></div>
+              </div>
+              <label style="display:flex;align-items:center;gap:8px;margin:8px 0;font-weight:400;"><input type="checkbox" id="kmRoundTrip" style="width:auto;" /> Aller-retour (×2)</label>
+              <button class="ghost" type="button" id="kmCalcBtn" style="margin-bottom:12px;">📍 Calculer la distance</button>
               <div class="document-grid">
                 <div><label for="kmDistance">Kilomètres professionnels</label><input id="kmDistance" type="number" min="0" step="1" placeholder="Ex : 42" /></div>
                 <div><label for="kmRate">Barème / taux par km (€)</label><input id="kmRate" type="number" min="0" step="0.01" placeholder="Ex : 0.50" /></div>
