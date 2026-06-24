@@ -546,6 +546,7 @@ async function init() {
   await loadDocuments();
   await loadFactures();
   await loadFrais();
+  await loadSocietes();
   render();
 }
 
@@ -990,6 +991,16 @@ function activateView(viewName) {
 // Valeurs indicatives micro-entreprise (à vérifier chaque année sur autoentrepreneur.urssaf.fr)
 let factures = [];
 let fraisList = [];                  // frais réels (dépenses) pour le calcul fiscal
+let societes = [];                   // carnet de sociétés (clients, productions, employeurs)
+let factureLignes = [];              // lignes de la facture en cours de création/édition
+let facturesPage = 1;                // page courante de l'historique des factures
+let facturesFilter = "all";          // filtre historique : all | payee | impayee
+const FACTURES_PAR_PAGE = 15;        // 3 colonnes × 5 lignes
+const PRESTA_OPTIONS = [
+  "Régie générale", "Sonorisation / mix", "Éclairage / lumière", "Vidéo / captation",
+  "Montage / post-production", "Montage-démontage plateau", "Création / conception",
+  "Photographie", "Formation", "Communication", "Location de matériel", "Frais de déplacement"
+];
 const AE_PLAFOND_CA = 77700;        // plafond annuel prestations de services
 const AE_TAUX_COTISATION = 0.246;   // taux par défaut (estimation, modifiable par l'utilisateur)
 
@@ -1011,6 +1022,7 @@ async function loadFactures() {
     id: x.id, client: x.client, prestation: x.prestation,
     clientAddress: x.client_address || "", numero: x.numero || "",
     date: x.facture_date, endDate: x.facture_end_date || "",
+    lignes: Array.isArray(x.lignes) ? x.lignes : null,
     amount: Number(x.amount || 0), status: x.status || "impayee"
   }));
   fillAeProfileForm();
@@ -1050,43 +1062,126 @@ function renderFactures() {
   }
   const list = $("facturesList");
   if (!list) return;
+
+  // Barre de filtres (Tout / Payées / À encaisser) avec compteurs
+  const nbPaid = factures.filter((f) => f.status === "payee").length;
+  const nbDue = factures.length - nbPaid;
+  const fBtn = (key, label, n) =>
+    `<button class="ghost" type="button" data-ffilter="${key}" style="padding:7px 12px;${facturesFilter === key ? "background:var(--petrol);color:#fff;border-color:var(--petrol);" : ""}">${label} (${n})</button>`;
+  const filters = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px;">${fBtn("all", "Tout", factures.length)}${fBtn("payee", "Payées", nbPaid)}${fBtn("impayee", "À encaisser", nbDue)}</div>`;
+
   if (!factures.length) {
-    list.innerHTML = `<p class="hint" style="margin-top:12px;">Aucune facture pour le moment. Crée ta première facture ci-dessus.</p>`;
+    list.innerHTML = filters + `<p class="hint" style="margin-top:12px;">Aucune facture pour le moment. Crée ta première facture ci-dessus.</p>`;
     return;
   }
-  list.innerHTML = `<div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">` + factures.map((f) => `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px;border:1px solid var(--border,#E5E8EB);border-radius:14px;">
-      <div style="display:flex;flex-direction:column;gap:4px;min-width:0;">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <strong>${escapeHtml(f.client)}</strong>
-          <span class="pill" style="background:${f.status === "payee" ? "#E3F6E9" : "#FDF1DC"};color:${f.status === "payee" ? "#1B7F4B" : "#9A6A00"};">${f.status === "payee" ? "Payée" : "À encaisser"}</span>
-        </div>
-        <span style="color:#6B7280;">${escapeHtml(f.prestation)}</span>
-        <small style="color:#9AA5B1;">${f.numero ? "N° " + escapeHtml(f.numero) + " · " : ""}${formatPeriod(f.date, f.endDate)}</small>
+
+  const filtered = factures.filter((f) => facturesFilter === "all" ? true : (facturesFilter === "payee" ? f.status === "payee" : f.status !== "payee"));
+  if (!filtered.length) {
+    list.innerHTML = filters + `<p class="hint" style="margin-top:12px;">Aucune facture dans ce filtre.</p>`;
+    return;
+  }
+
+  const pages = Math.max(1, Math.ceil(filtered.length / FACTURES_PAR_PAGE));
+  if (facturesPage > pages) facturesPage = pages;
+  if (facturesPage < 1) facturesPage = 1;
+  const start = (facturesPage - 1) * FACTURES_PAR_PAGE;
+  const pageItems = filtered.slice(start, start + FACTURES_PAR_PAGE);
+
+  const grid = `<div class="factures-grid">` + pageItems.map((f) => `
+    <div style="display:flex;flex-direction:column;gap:8px;padding:14px;border:1px solid var(--border,#E5E8EB);border-radius:16px;background:#fff;box-shadow:0 1px 6px rgba(13,27,42,.05);">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <strong style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(f.client)}</strong>
+        <span class="pill" style="flex:0 0 auto;background:${f.status === "payee" ? "#E3F6E9" : "#FDF1DC"};color:${f.status === "payee" ? "#1B7F4B" : "#9A6A00"};">${f.status === "payee" ? "Payée" : "À encaisser"}</span>
       </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;white-space:nowrap;">
-        <span style="font-weight:700;font-size:16px;">${money2(f.amount)}</span>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
-          <button class="ghost" type="button" data-facture-pdf="${escapeHtml(f.id)}">PDF</button>
-          <button class="ghost" type="button" data-facture-edit="${escapeHtml(f.id)}">Modifier</button>
-          <button class="delete" type="button" data-facture-delete="${escapeHtml(f.id)}">Supprimer</button>
-        </div>
+      <span style="color:#6B7280;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(f.prestation)}</span>
+      <small style="color:#9AA5B1;">${f.numero ? "N° " + escapeHtml(f.numero) + " · " : ""}${formatPeriod(f.date, f.endDate)}</small>
+      <span style="font-weight:800;font-size:18px;color:var(--petrol);">${money2(f.amount)}</span>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:2px;">
+        <button class="ghost" type="button" data-facture-pdf="${escapeHtml(f.id)}" style="padding:7px 10px;">PDF</button>
+        <button class="ghost" type="button" data-facture-edit="${escapeHtml(f.id)}" style="padding:7px 10px;">Modifier</button>
+        <button class="delete" type="button" data-facture-delete="${escapeHtml(f.id)}" style="padding:7px 10px;">Supprimer</button>
       </div>
     </div>`).join("") + `</div>`;
+
+  const pagination = pages > 1 ? `
+    <div style="display:flex;justify-content:center;align-items:center;gap:12px;margin-top:16px;">
+      <button class="ghost" type="button" data-fpage="prev" ${facturesPage === 1 ? "disabled" : ""} style="padding:8px 12px;">‹ Précédent</button>
+      <span style="font-size:13px;color:#64748B;font-weight:600;">Page ${facturesPage} / ${pages}</span>
+      <button class="ghost" type="button" data-fpage="next" ${facturesPage === pages ? "disabled" : ""} style="padding:8px 12px;">Suivant ›</button>
+    </div>` : "";
+
+  list.innerHTML = filters + grid + pagination;
+}
+
+// ----- Constructeur de lignes de facture -----
+function renderPrestaChips() {
+  const c = $("prestaChips");
+  if (!c) return;
+  c.innerHTML = PRESTA_OPTIONS.map((p) =>
+    `<button type="button" class="ghost presta-chip" data-presta="${escapeHtml(p)}" style="font-size:13px;padding:6px 10px;">+ ${escapeHtml(p)}</button>`
+  ).join("");
+}
+
+function addLigne(designation) {
+  factureLignes.push({ designation: designation || "", quantite: 1, unite: "jour", prixUnitaire: 0 });
+  renderLignes();
+}
+
+function ligneTotal(l) { return (Number(l.quantite) || 0) * (Number(l.prixUnitaire) || 0); }
+function facturesTotal() { return factureLignes.reduce((a, l) => a + ligneTotal(l), 0); }
+
+function updateFactureTotal() {
+  const t = facturesTotal();
+  if ($("factureTotalDisplay")) $("factureTotalDisplay").textContent = money2(t);
+  if ($("aeAmount")) $("aeAmount").value = t;
+}
+
+function renderLignes() {
+  const box = $("factureLignesList");
+  if (!box) return;
+  box.innerHTML = "";
+  if (!factureLignes.length) {
+    box.innerHTML = `<p class="hint" style="margin:6px 0;">Ajoute au moins une prestation ci-dessus (ou « Autre »).</p>`;
+    updateFactureTotal();
+    return;
+  }
+  factureLignes.forEach((l) => {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px;padding:8px;border:1px solid var(--border,#E5E8EB);border-radius:10px;";
+    row.innerHTML =
+      `<input class="lg-desc" value="${escapeHtml(l.designation)}" placeholder="Désignation" style="flex:1 1 100%;" />` +
+      `<input class="lg-qte" type="number" min="0" step="0.5" value="${l.quantite}" title="Quantité" style="flex:0 0 64px;" />` +
+      `<select class="lg-unite" style="flex:0 0 92px;">${["jour", "heure", "forfait", "unité"].map((u) => `<option ${u === l.unite ? "selected" : ""}>${u}</option>`).join("")}</select>` +
+      `<input class="lg-pu" type="number" min="0" step="0.01" value="${l.prixUnitaire || ""}" placeholder="PU HT €" title="Prix unitaire HT" style="flex:1 1 110px;" />` +
+      `<button type="button" class="delete lg-del" title="Retirer" style="flex:0 0 auto;">✕</button>`;
+    row.querySelector(".lg-desc").addEventListener("input", (e) => { l.designation = e.target.value; });
+    row.querySelector(".lg-qte").addEventListener("input", (e) => { l.quantite = e.target.value; updateFactureTotal(); });
+    row.querySelector(".lg-unite").addEventListener("change", (e) => { l.unite = e.target.value; });
+    row.querySelector(".lg-pu").addEventListener("input", (e) => { l.prixUnitaire = e.target.value; updateFactureTotal(); });
+    row.querySelector(".lg-del").addEventListener("click", () => { factureLignes.splice(factureLignes.indexOf(l), 1); renderLignes(); });
+    box.appendChild(row);
+  });
+  updateFactureTotal();
 }
 
 async function saveFacture(e) {
   e.preventDefault();
   if (!currentUser) { toast("Connecte-toi pour enregistrer une facture."); return; }
   const editId = $("aeEditId").value;
+  const lignes = factureLignes
+    .filter((l) => (l.designation || "").trim())
+    .map((l) => ({ designation: l.designation.trim(), quantite: Number(l.quantite) || 0, unite: l.unite || "forfait", prixUnitaire: Number(l.prixUnitaire) || 0 }));
+  if (!lignes.length) { toast("Ajoute au moins une prestation à la facture."); return; }
+  const total = lignes.reduce((a, l) => a + l.quantite * l.prixUnitaire, 0);
   const payload = {
     user_id: currentUser.id,
     client: $("aeClient").value.trim(),
     client_address: $("aeClientAddress").value.trim() || null,
-    prestation: $("aePrestation").value.trim(),
+    prestation: lignes.map((l) => l.designation).join(", "),
+    lignes: lignes,
     facture_date: $("aeDate").value,
     facture_end_date: $("aeEndDate").value || null,
-    amount: Number($("aeAmount").value),
+    amount: total,
     status: $("aeStatus").value
   };
   if (payload.facture_end_date && payload.facture_end_date < payload.facture_date) {
@@ -1113,6 +1208,8 @@ async function saveFacture(e) {
 function resetFactureForm() {
   if ($("factureForm")) $("factureForm").reset();
   if ($("aeEditId")) $("aeEditId").value = "";
+  factureLignes = [];
+  renderLignes();
   if ($("aeFormTitle")) $("aeFormTitle").textContent = "Créer une facture";
   if ($("aeCancelEdit")) $("aeCancelEdit").style.display = "none";
   const submit = document.querySelector("#factureForm button[type='submit']");
@@ -1125,10 +1222,12 @@ function editFacture(id) {
   $("aeEditId").value = f.id;
   $("aeClient").value = f.client;
   $("aeClientAddress").value = f.clientAddress || "";
-  $("aePrestation").value = f.prestation;
+  factureLignes = (Array.isArray(f.lignes) && f.lignes.length)
+    ? f.lignes.map((l) => ({ designation: l.designation || "", quantite: l.quantite ?? 1, unite: l.unite || "forfait", prixUnitaire: l.prixUnitaire ?? 0 }))
+    : [{ designation: f.prestation || "", quantite: 1, unite: "forfait", prixUnitaire: f.amount || 0 }];
+  renderLignes();
   $("aeDate").value = f.date;
   $("aeEndDate").value = f.endDate || "";
-  $("aeAmount").value = f.amount;
   $("aeStatus").value = f.status;
   if ($("aeFormTitle")) $("aeFormTitle").textContent = "Modifier la facture";
   if ($("aeCancelEdit")) $("aeCancelEdit").style.display = "";
@@ -1186,6 +1285,12 @@ function printFacture(id) {
   }
   const nl2br = (s) => escapeHtml(s || "").replace(/\n/g, "<br>");
   const periode = formatPeriod(f.date, f.endDate);
+  const lignesPdf = (Array.isArray(f.lignes) && f.lignes.length)
+    ? f.lignes.map((l) => ({ designation: l.designation || "", qte: l.quantite, unite: l.unite || "", pu: Number(l.prixUnitaire) || 0, total: (Number(l.quantite) || 0) * (Number(l.prixUnitaire) || 0) }))
+    : [{ designation: f.prestation || "", qte: "", unite: "", pu: f.amount, total: f.amount }];
+  const lignesRows = lignesPdf.map((l) =>
+    `<tr><td>${escapeHtml(l.designation)}</td><td>${escapeHtml(l.qte === "" || l.qte == null ? "" : (l.qte + " " + l.unite).trim())}</td><td class="amount">${l.pu === "" || l.pu == null ? "" : money2(l.pu)}</td><td class="amount">${money2(l.total)}</td></tr>`
+  ).join("");
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8">
 <title>Facture ${escapeHtml(f.numero || "")}</title>
 <style>
@@ -1221,6 +1326,7 @@ tbody td.amount{text-align:right;font-weight:600;}
   </div>
   <div class="seller">
     <div class="name">${escapeHtml(p.nom)}</div>
+    <div style="font-size:11px;opacity:.9;">Entrepreneur individuel (EI)</div>
     ${nl2br(p.adresse)}<br>SIRET : ${escapeHtml(p.siret)}<br>${escapeHtml(p.contact)}
   </div>
 </div>
@@ -1230,9 +1336,10 @@ tbody td.amount{text-align:right;font-weight:600;}
     <div class="name">${escapeHtml(f.client)}</div>
     <div class="addr">${nl2br(f.clientAddress)}</div>
   </div>
+  <div style="color:#64748B;font-size:12px;margin-bottom:8px;">Période : ${escapeHtml(periode)}</div>
   <table>
-    <thead><tr><th>Prestation</th><th>Période</th><th class="amount">Montant</th></tr></thead>
-    <tbody><tr><td>${escapeHtml(f.prestation)}</td><td>${escapeHtml(periode)}</td><td class="amount">${money2(f.amount)}</td></tr></tbody>
+    <thead><tr><th>Désignation</th><th>Qté</th><th class="amount">PU HT</th><th class="amount">Total</th></tr></thead>
+    <tbody>${lignesRows}</tbody>
   </table>
   <div class="total-row"><span class="label">Total à régler</span><span class="val">${money2(f.amount)}</span></div>
   <div style="text-align:right;"><span class="status" style="background:${f.status === "payee" ? "#E3F6E9" : "#FDF1DC"};color:${f.status === "payee" ? "#12754A" : "#9A6A00"};">${f.status === "payee" ? "Payée" : "À régler"}</span></div>
@@ -1317,6 +1424,132 @@ async function deleteFrais(id) {
   if (error) { toast("Erreur suppression : " + error.message); return; }
   await loadFrais();
   render();
+}
+
+// ===== Carnet de sociétés (clients, productions, employeurs) =====
+async function loadSocietes() {
+  if (!currentUser) return;
+  const { data, error } = await sb.from("societes").select("*").order("nom", { ascending: true });
+  if (error) { toast("Erreur chargement sociétés : " + error.message); return; }
+  societes = (data || []).map((x) => ({
+    id: x.id, nom: x.nom, type: x.type || "Client",
+    adresse: x.adresse || "", telephone: x.telephone || "",
+    email: x.email || "", siret: x.siret || "",
+    delai: x.delai_paiement == null ? "" : Number(x.delai_paiement)
+  }));
+  populateSocieteSelect();
+  renderSocietesList();
+}
+
+function populateSocieteSelect() {
+  const sel = $("aeSocieteSelect");
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = `<option value="">— Saisie manuelle / nouvelle —</option>` +
+    societes.map((s) => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.nom)}${s.type ? " · " + escapeHtml(s.type) : ""}</option>`).join("");
+  sel.value = current;
+}
+
+function renderSocietesList() {
+  const list = $("societesList");
+  if (!list) return;
+  if (!societes.length) {
+    list.innerHTML = `<div style="text-align:center;padding:24px 12px;color:#9AA5B1;">
+      <div style="font-size:30px;">📒</div>
+      <p class="hint" style="margin-top:6px;">Ton carnet est vide. Clique sur « ➕ Ajouter une société » pour créer ton premier contact.</p>
+    </div>`;
+    return;
+  }
+  list.innerHTML =
+    `<div style="font-size:13px;color:#9AA5B1;font-weight:600;margin-bottom:10px;">${societes.length} société${societes.length > 1 ? "s" : ""}</div>` +
+    `<div style="display:flex;flex-direction:column;gap:10px;">` + societes.map((s) => {
+      const initials = ((s.nom || "?").replace(/[^A-Za-zÀ-ÿ0-9]/g, " ").trim().split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase()) || "?";
+      return `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px;border:1px solid var(--border,#E5E8EB);border-radius:16px;background:#fff;box-shadow:0 1px 6px rgba(13,27,42,.05);">
+        <div style="display:flex;gap:12px;min-width:0;">
+          <div style="width:46px;height:46px;border-radius:14px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;background:linear-gradient(150deg,var(--petrol),var(--sage));">${escapeHtml(initials)}</div>
+          <div style="display:flex;flex-direction:column;gap:3px;min-width:0;overflow-wrap:anywhere;word-break:break-word;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><strong>${escapeHtml(s.nom)}</strong><span class="pill" style="background:var(--soft,#EEF3F2);">${escapeHtml(s.type)}</span></div>
+            ${s.adresse ? `<span style="color:#6B7280;font-size:13px;">${escapeHtml(s.adresse)}</span>` : ""}
+            ${s.telephone ? `<small style="color:#9AA5B1;">📞 ${escapeHtml(s.telephone)}</small>` : ""}
+            ${s.email ? `<small style="color:#9AA5B1;">✉️ ${escapeHtml(s.email)}</small>` : ""}
+            ${s.delai !== "" ? `<small style="color:#9AA5B1;">⏱️ Délai de paiement moyen : ${s.delai} jours</small>` : ""}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex:0 0 auto;">
+          <button class="ghost" type="button" data-societe-edit="${escapeHtml(s.id)}" title="Modifier" style="padding:8px 10px;">✏️</button>
+          <button class="delete" type="button" data-societe-delete="${escapeHtml(s.id)}" title="Supprimer" style="padding:8px 10px;">🗑️</button>
+        </div>
+      </div>`;
+    }).join("") + `</div>`;
+}
+
+async function saveSociete(e) {
+  e.preventDefault();
+  if (!currentUser) { toast("Connecte-toi pour enregistrer une société."); return; }
+  const editId = $("societeEditId").value;
+  const payload = {
+    user_id: currentUser.id,
+    nom: $("societeNom").value.trim(),
+    type: $("societeType").value,
+    adresse: $("societeAdresse").value.trim() || null,
+    telephone: $("societeTel").value.trim() || null,
+    email: $("societeEmail").value.trim() || null,
+    siret: $("societeSiret").value.trim() || null,
+    delai_paiement: $("societeDelai").value ? Number($("societeDelai").value) : null
+  };
+  const result = editId
+    ? await sb.from("societes").update(payload).eq("id", editId)
+    : await sb.from("societes").insert(payload);
+  if (result.error) { toast("Erreur sauvegarde : " + result.error.message); return; }
+  resetSocieteForm();
+  await loadSocietes();
+  toast("Société enregistrée ✓", "success");
+}
+
+function resetSocieteForm() {
+  if ($("societeForm")) $("societeForm").reset();
+  if ($("societeEditId")) $("societeEditId").value = "";
+  if ($("societeCancelEdit")) $("societeCancelEdit").style.display = "none";
+  if ($("societeAddBlock")) $("societeAddBlock").open = false;
+  const submit = document.querySelector("#societeForm button[type='submit']");
+  if (submit) submit.textContent = "Enregistrer la société";
+}
+
+function editSociete(id) {
+  const s = societes.find((x) => String(x.id) === String(id));
+  if (!s) return;
+  $("societeEditId").value = s.id;
+  $("societeNom").value = s.nom;
+  $("societeType").value = s.type;
+  $("societeAdresse").value = s.adresse;
+  $("societeTel").value = s.telephone;
+  $("societeEmail").value = s.email;
+  $("societeSiret").value = s.siret;
+  $("societeDelai").value = s.delai;
+  if ($("societeCancelEdit")) $("societeCancelEdit").style.display = "";
+  const submit = document.querySelector("#societeForm button[type='submit']");
+  if (submit) submit.textContent = "Mettre à jour la société";
+  if ($("aeSocietesBlock")) $("aeSocietesBlock").open = true;
+  if ($("societeAddBlock")) $("societeAddBlock").open = true;
+  $("societeNom").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+async function deleteSociete(id) {
+  if (!(await confirmDialog("Supprimer cette société du carnet ?"))) return;
+  const { error } = await sb.from("societes").delete().eq("id", id);
+  if (error) { toast("Erreur suppression : " + error.message); return; }
+  await loadSocietes();
+}
+
+// Sélection d'une société dans le formulaire de facture → remplit client + adresse
+function onSocieteSelectChange() {
+  const id = $("aeSocieteSelect")?.value;
+  if (!id) return;
+  const s = societes.find((x) => String(x.id) === String(id));
+  if (!s) return;
+  if ($("aeClient")) $("aeClient").value = s.nom;
+  if ($("aeClientAddress")) $("aeClientAddress").value = s.adresse || "";
 }
 
 function money(n) {
@@ -2354,6 +2587,13 @@ function setupEvents() {
 
   if ($("factureForm")) $("factureForm").addEventListener("submit", saveFacture);
   if ($("aeCancelEdit")) $("aeCancelEdit").addEventListener("click", resetFactureForm);
+  renderPrestaChips();
+  renderLignes();
+  if ($("prestaChips")) $("prestaChips").addEventListener("click", (e) => {
+    const chip = e.target.closest("[data-presta]");
+    if (chip) addLigne(chip.getAttribute("data-presta"));
+  });
+  if ($("addLigneLibre")) $("addLigneLibre").addEventListener("click", () => addLigne(""));
   if ($("aeDate") && !$("aeDate").value) $("aeDate").value = new Date().toISOString().slice(0, 10);
   if ($("aeMonth")) {
     if (!$("aeMonth").value) $("aeMonth").value = new Date().toISOString().slice(0, 7);
@@ -2364,6 +2604,22 @@ function setupEvents() {
     renderFactures();
   });
   if ($("aeProfSave")) $("aeProfSave").addEventListener("click", saveAeProfile);
+
+  // Carnet de sociétés
+  if ($("societeForm")) $("societeForm").addEventListener("submit", saveSociete);
+  if ($("societeCancelEdit")) $("societeCancelEdit").addEventListener("click", resetSocieteForm);
+  if ($("societesList")) $("societesList").addEventListener("click", (e) => {
+    const ed = e.target.closest("[data-societe-edit]");
+    const del = e.target.closest("[data-societe-delete]");
+    if (ed) editSociete(ed.getAttribute("data-societe-edit"));
+    else if (del) deleteSociete(del.getAttribute("data-societe-delete"));
+  });
+  if ($("aeSocieteSelect")) $("aeSocieteSelect").addEventListener("change", onSocieteSelectChange);
+  if ($("aeSocieteQuickAdd")) $("aeSocieteQuickAdd").addEventListener("click", (e) => {
+    e.preventDefault();
+    if ($("aeSocietesBlock")) $("aeSocietesBlock").open = true;
+    if ($("societeNom")) $("societeNom").scrollIntoView({ behavior: "smooth", block: "center" });
+  });
 
   // Fiscalité : calcul automatique à chaque saisie
   const wireFiscal = (id, setter, evt) => {
@@ -2380,6 +2636,9 @@ function setupEvents() {
   if ($("kmCalcBtn")) $("kmCalcBtn").addEventListener("click", calcKmFromAddresses);
   attachAddressAutocomplete($("kmFrom"));
   attachAddressAutocomplete($("kmTo"));
+  attachAddressAutocomplete($("aeProfAdresse"));
+  attachAddressAutocomplete($("aeClientAddress"));
+  attachAddressAutocomplete($("societeAdresse"));
   if ($("kmCv")) $("kmCv").addEventListener("change", applyKmBareme);
   if ($("kmElectric")) $("kmElectric").addEventListener("change", applyKmBareme);
 
@@ -2391,6 +2650,10 @@ function setupEvents() {
     if (del) deleteFrais(del.getAttribute("data-frais-delete"));
   });
   if ($("facturesList")) $("facturesList").addEventListener("click", (e) => {
+    const ff = e.target.closest("[data-ffilter]");
+    if (ff) { facturesFilter = ff.getAttribute("data-ffilter"); facturesPage = 1; renderFactures(); return; }
+    const pg = e.target.closest("[data-fpage]");
+    if (pg) { facturesPage += pg.getAttribute("data-fpage") === "next" ? 1 : -1; renderFactures(); return; }
     const pdf = e.target.closest("[data-facture-pdf]");
     const ed = e.target.closest("[data-facture-edit]");
     const del = e.target.closest("[data-facture-delete]");

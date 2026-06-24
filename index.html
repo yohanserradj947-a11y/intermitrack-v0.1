@@ -806,12 +806,48 @@ z-index: 500 !important;
               <label for="aeProfSiret">SIRET</label>
               <input id="aeProfSiret" autocomplete="off" placeholder="Ex : 123 456 789 00012" />
               <label for="aeProfAdresse">Adresse</label>
-              <textarea id="aeProfAdresse" rows="2" placeholder="N°, rue, code postal, ville"></textarea>
+              <div><input id="aeProfAdresse" autocomplete="off" placeholder="Commence à taper, choisis dans la liste" /></div>
               <label for="aeProfContact">Email / téléphone</label>
               <input id="aeProfContact" autocomplete="off" placeholder="Ex : jean@email.com · 06 12 34 56 78" />
               <label for="aeProfTva">Mention TVA</label>
               <input id="aeProfTva" autocomplete="off" value="TVA non applicable, art. 293 B du CGI" />
               <button class="ghost" type="button" id="aeProfSave" style="margin-top:10px;">Enregistrer mes informations</button>
+            </div>
+          </details>
+
+          <details id="aeSocietesBlock" style="margin-bottom:16px;border:1px solid var(--border,#E5E8EB);border-radius:14px;padding:8px 14px;">
+            <summary style="cursor:pointer;font-weight:600;">📒 Mon carnet de sociétés <span style="color:#9AA5B1;font-weight:400;">(clients, productions, employeurs)</span></summary>
+            <div style="margin-top:12px;">
+              <details id="societeAddBlock" style="border:1px dashed rgba(13,79,108,.35);border-radius:12px;padding:8px 14px;margin-bottom:16px;">
+                <summary style="cursor:pointer;font-weight:700;color:var(--petrol);">➕ Ajouter une société</summary>
+                <div style="margin-top:12px;">
+                  <form id="societeForm">
+                    <label for="societeNom">Nom de la société</label>
+                    <input id="societeNom" autocomplete="off" placeholder="Ex : Studio Lumière Productions" required />
+                    <label for="societeType">Type</label>
+                    <select id="societeType">
+                      <option>Client</option>
+                      <option>Production</option>
+                      <option>Employeur</option>
+                      <option>Prestataire</option>
+                    </select>
+                    <label for="societeAdresse">Adresse</label>
+                    <div><input id="societeAdresse" autocomplete="off" placeholder="Commence à taper, choisis dans la liste" /></div>
+                    <div class="document-grid">
+                      <div><label for="societeTel">Téléphone</label><input id="societeTel" autocomplete="off" placeholder="06 12 34 56 78" /></div>
+                      <div><label for="societeEmail">Email</label><input id="societeEmail" type="email" autocomplete="off" placeholder="contact@exemple.fr" /></div>
+                    </div>
+                    <div class="document-grid">
+                      <div><label for="societeSiret">SIRET</label><input id="societeSiret" autocomplete="off" placeholder="(optionnel)" /></div>
+                      <div><label for="societeDelai">Délai de paiement (jours)</label><input id="societeDelai" type="number" min="0" step="1" placeholder="Ex : 30" /></div>
+                    </div>
+                    <input type="hidden" id="societeEditId" />
+                    <button class="primary" type="submit">Enregistrer la société</button>
+                    <button class="ghost" type="button" id="societeCancelEdit" style="display:none;margin-top:8px;">Annuler la modification</button>
+                  </form>
+                </div>
+              </details>
+              <div id="societesList"></div>
             </div>
           </details>
 
@@ -860,19 +896,27 @@ z-index: 500 !important;
               <span class="mini-label">Nouvelle facture</span>
               <h3 id="aeFormTitle">Créer une facture</h3>
               <form id="factureForm">
+                <label for="aeSocieteSelect">Société <span style="color:#9AA5B1;font-weight:400;">(carnet d'adresses)</span></label>
+                <select id="aeSocieteSelect"></select>
+                <p class="hint" style="margin:4px 0 10px;">Choisis une société enregistrée pour remplir le client et l'adresse, ou <a href="#" id="aeSocieteQuickAdd" style="color:var(--petrol);font-weight:600;">ajout rapide</a>.</p>
                 <label for="aeClient">Client</label>
                 <input id="aeClient" autocomplete="off" placeholder="Ex : Société de production" required />
                 <label for="aeClientAddress">Adresse du client <span style="color:#9AA5B1;font-weight:400;">(optionnel)</span></label>
-                <textarea id="aeClientAddress" rows="2" placeholder="Adresse du client (figure sur la facture PDF)"></textarea>
-                <label for="aePrestation">Prestation</label>
-                <input id="aePrestation" autocomplete="off" placeholder="Ex : Captation vidéo" required />
+                <div><input id="aeClientAddress" autocomplete="off" placeholder="Commence à taper, choisis dans la liste" /></div>
+                <label>Prestations <span style="color:#9AA5B1;font-weight:400;">(clique pour ajouter une ligne, puis ajuste)</span></label>
+                <div id="prestaChips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>
+                <div id="factureLignesList"></div>
+                <button class="ghost" type="button" id="addLigneLibre" style="margin-bottom:6px;">+ Autre (ligne personnalisée)</button>
                 <label for="aeDate">Date (ou début de période)</label>
                 <input id="aeDate" type="date" required />
                 <label for="aeEndDate">Date de fin <span style="color:#9AA5B1;font-weight:400;">(optionnel)</span></label>
                 <input id="aeEndDate" type="date" />
                 <p class="hint">Laisse vide pour une prestation d'un seul jour, ou indique une fin pour facturer une période (ex : du 22 au 29).</p>
-                <label for="aeAmount">Montant (€)</label>
-                <input id="aeAmount" type="number" min="0" step="0.01" placeholder="Ex : 450" required />
+                <div class="fi-result-row fi-highlight" style="margin:8px 0;">
+                  <span class="fi-label">Total facture</span>
+                  <span class="fi-value" id="factureTotalDisplay">0,00 €</span>
+                </div>
+                <input type="hidden" id="aeAmount" />
                 <label for="aeStatus">Statut</label>
                 <select id="aeStatus">
                   <option value="impayee">À encaisser</option>

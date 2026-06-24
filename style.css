@@ -302,6 +302,11 @@ button {
 @media (max-width: 1100px) { .fiscalite-grid, .previsions-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
 @media (max-width: 720px) { .fiscalite-grid, .previsions-grid { grid-template-columns: 1fr !important; } }
 
+/* Historique des factures : grille 3 / 2 / 1 colonnes */
+.factures-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+@media (max-width: 900px) { .factures-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .factures-grid { grid-template-columns: 1fr; } }
+
 /* Anti-débordement horizontal (mobile + web) */
 html, body { overflow-x: hidden; max-width: 100%; }
 .app, .view, .card, .fiscalite-card, .prevision-card { max-width: 100%; }
