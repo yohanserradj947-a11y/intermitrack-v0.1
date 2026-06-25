@@ -71,15 +71,15 @@ z-index: 500 !important;
     .lp-hero-img img { width: 100%; border-radius: 18px; box-shadow: 0 20px 60px rgba(31,78,95,.18); border: 1px solid rgba(31,78,95,.08); }
 
     /* ===== Hero animé (démo façon vidéo) ===== */
-    .lp-hero { position: relative; }
+    .lp-hero { position: relative; overflow: hidden; }
     .lp-hero > div, .lp-hero-demo { position: relative; z-index: 2; }
-    /* Fond vidéo plein écran (gauche-droite) de la page de présentation */
-    .lp-hero-video { position: absolute; top: 0; height: 100%; left: 50%; width: 100vw; transform: translateX(-50%); object-fit: cover; z-index: 0; }
-    .lp-hero > .lp-hero-overlay { position: absolute; top: 0; height: 100%; left: 50%; width: 100vw; transform: translateX(-50%); background: rgba(255,255,255,.72); z-index: 1; pointer-events: none; }
-    @media (max-width: 768px) {
-      .lp-hero-video { display: none; }
-      .lp-hero { background-image: url('fond-login-poster.jpg?v=1'); background-size: cover; background-position: center; }
-    }
+    /* Aurore animée (couleurs Intermitrack) en fond du hero */
+    .lp-aurora { position: absolute; z-index: 0; border-radius: 50%; filter: blur(66px); pointer-events: none; will-change: transform; }
+    .lp-aurora.a1 { width: 440px; height: 440px; background: radial-gradient(circle, rgba(31,78,95,.34), transparent 70%); top: -130px; left: -90px; animation: aurora 20s ease-in-out infinite; }
+    .lp-aurora.a2 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(122,158,126,.42), transparent 70%); top: -70px; right: -70px; animation: aurora 24s ease-in-out infinite reverse; }
+    .lp-aurora.a3 { width: 360px; height: 360px; background: radial-gradient(circle, rgba(18,117,74,.30), transparent 70%); bottom: -140px; left: 28%; animation: aurora 28s ease-in-out infinite; }
+    .lp-aurora.a4 { width: 320px; height: 320px; background: radial-gradient(circle, rgba(126,206,224,.34), transparent 70%); bottom: -90px; right: 18%; animation: aurora 32s ease-in-out infinite reverse; }
+    @keyframes aurora { 0%,100% { transform: translate3d(0,0,0); } 33% { transform: translate3d(52px,-42px,0); } 66% { transform: translate3d(-42px,52px,0); } }
     .lp-blob { position: absolute; z-index: 0; border-radius: 50%; filter: blur(48px); opacity: .4; pointer-events: none; will-change: transform; transform: translateZ(0); backface-visibility: hidden; }
     .lp-blob.b1 { width: 340px; height: 340px; background: radial-gradient(circle, #1F4E5F, transparent 70%); top: -90px; left: -70px; animation: lpBlob 18s ease-in-out infinite; }
     .lp-blob.b2 { width: 300px; height: 300px; background: radial-gradient(circle, #7A9E7E, transparent 70%); bottom: -110px; right: -50px; animation: lpBlob 22s ease-in-out infinite reverse; }
@@ -284,11 +284,7 @@ z-index: 500 !important;
 
       <!-- HERO -->
       <div class="lp-hero">
-        <video class="lp-hero-video" autoplay muted loop playsinline poster="fond-login-poster.jpg?v=1">
-          <source src="fond-login.webm?v=1" type="video/webm">
-          <source src="fond-login.mp4?v=1" type="video/mp4">
-        </video>
-        <div class="lp-hero-overlay"></div>
+        <span class="lp-aurora a1"></span><span class="lp-aurora a2"></span><span class="lp-aurora a3"></span><span class="lp-aurora a4"></span>
         <div>
           <div class="lp-badge">🎬 Pour les intermittents du spectacle</div>
           <h2 class="lp-h1">Votre <span>intermittence</span>,<br>enfin sous contrôle.</h2>
