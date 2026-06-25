@@ -78,7 +78,6 @@ export default function Calendar(){
 
   const [showMdp,setShowMdp]=useState(false);
   const [mdpDays,setMdpDays]=useState<{date:string;checked:boolean;hours:number}[]>([]);
-  const [defaultH,setDefaultH]=useState('8');
 
   useEffect(()=>{loadMissions();},[]);
   useFocusEffect(useCallback(()=>{loadMissions(true);},[]));
@@ -177,26 +176,18 @@ export default function Calendar(){
     ]);
   }
 
-  function mdpRedistribute(ds:{date:string;checked:boolean;hours:number}[]){
-    const n=ds.filter(d=>d.checked).length;
-    if(!n)return ds;
-    const per=Math.round((Number(fHours)/n)*10)/10||0;
-    return ds.map(d=>d.checked?{...d,hours:per}:d);
-  }
-  function toggleDay(i:number){ setMdpDays(ds=>mdpRedistribute(ds.map((d,idx)=>idx===i?{...d,checked:!d.checked}:d))); }
+  function toggleDay(i:number){ setMdpDays(ds=>ds.map((d,idx)=>idx===i?{...d,checked:!d.checked}:d)); }
   function setDayHours(i:number,h:string){ setMdpDays(ds=>ds.map((d,idx)=>idx===i?{...d,hours:Number(h)||0}:d)); }
-  function setAll(val:boolean){ setMdpDays(ds=>mdpRedistribute(ds.map(d=>({...d,checked:val})))); }
-  function applyDefault(){ const v=Number(defaultH)||0; setMdpDays(ds=>ds.map(d=>d.checked?{...d,hours:v}:d)); }
+  function setAll(val:boolean){ setMdpDays(ds=>ds.map(d=>({...d,checked:val}))); }
   const mdpChecked=mdpDays.filter(d=>d.checked);
   const mdpTotalH=Math.round(mdpChecked.reduce((a,d)=>a+(Number(d.hours)||0),0)*10)/10;
 
   // Ouvre le sélecteur de jours travaillés (au choix des dates).
   function openDayPicker(s:Date,e:Date){
-    const nb=daysInclusive(s,e);
-    const per=Number(fHours)>0?Math.round((Number(fHours)/nb)*10)/10:8;
+    const per=8; // chaque jour démarre à 8h (plus de division automatique = plus de virgules)
     const days:{date:string;checked:boolean;hours:number}[]=[];
     for(let d=new Date(s); d<=e; d.setDate(d.getDate()+1)) days.push({date:iso(d),checked:true,hours:per});
-    setMdpDays(days); setDefaultH(String(per)); setShowForm(false); setShowMdp(true);
+    setMdpDays(days); setShowForm(false); setShowMdp(true);
   }
   // « Continuer » : on garde la sélection des jours et on revient au formulaire (pas de sauvegarde ici).
   function confirmDays(){
@@ -438,6 +429,13 @@ text:'Modifier : '+(m.production||'Mission')+' ('+(Math.round((Number(m.hours||0
 
               <Text style={s.label}>Heures cumulées</Text>
               <NumInput style={s.input} value={fHours} onChangeText={setFHours} placeholder="8" placeholderTextColor={C.muted}/>
+              <View style={{flexDirection:'row',flexWrap:'wrap',gap:8,marginTop:8}}>
+                {[16,24,32,40,48,50].map(h=>(
+                  <TouchableOpacity key={h} style={s.mdpTool} onPress={()=>setFHours(String(h))}>
+                    <Text style={s.mdpToolTxt}>{h}h</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
               {(!editId && daysInclusive(fStart,fEnd)>=2) ? (
                 <TouchableOpacity style={s.kmCalcBtn} onPress={()=>openDayPicker(fStart,fEnd)}>
                   <Text style={s.kmCalcTxt}>📅 {mdpChecked.length>0?`${mdpChecked.length} jour(s) travaillé(s) · modifier`:'Choisir les jours travaillés'}</Text>
@@ -533,10 +531,13 @@ text:'Modifier : '+(m.production||'Mission')+' ('+(Math.round((Number(m.hours||0
                 <TouchableOpacity style={s.mdpTool} onPress={()=>setAll(true)}><Text style={s.mdpToolTxt}>Tout cocher</Text></TouchableOpacity>
                 <TouchableOpacity style={s.mdpTool} onPress={()=>setAll(false)}><Text style={s.mdpToolTxt}>Tout décocher</Text></TouchableOpacity>
               </View>
-              <View style={s.mdpFill}>
-                <Text style={s.mdpFillLbl}>Heures / jour :</Text>
-                <NumInput style={s.mdpFillInput} value={defaultH} onChangeText={setDefaultH}/>
-                <TouchableOpacity style={s.mdpTool} onPress={applyDefault}><Text style={s.mdpToolTxt}>Appliquer</Text></TouchableOpacity>
+              <Text style={s.mdpFillLbl}>Mettre tous les jours cochés à :</Text>
+              <View style={{flexDirection:'row',flexWrap:'wrap',gap:8,marginBottom:12}}>
+                {[4,8,10,12].map(h=>(
+                  <TouchableOpacity key={h} style={s.mdpTool} onPress={()=>setMdpDays(ds=>ds.map(d=>d.checked?{...d,hours:h}:d))}>
+                    <Text style={s.mdpToolTxt}>{h}h</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
               {mdpDays.map((d,i)=>(
                 <View key={d.date} style={[s.mdpDay,!d.checked&&{opacity:0.5}]}>

@@ -6,9 +6,12 @@ let counter = 0;
 export default function NumInput(props: any) {
   const [id] = useState(() => `num-${counter++}`);
   const accessory = Platform.OS === 'ios' ? id : undefined;
+  // Normalise la virgule (clavier FR) en point : sinon Number("1500,5") = NaN
+  // et le calcul se casse / renvoie 0.
+  const handleChange = (text: string) => props.onChangeText?.(text.replace(',', '.'));
   return (
     <>
-      <TextInput {...props} keyboardType="numeric" inputAccessoryViewID={accessory} />
+      <TextInput {...props} onChangeText={handleChange} keyboardType="numeric" inputAccessoryViewID={accessory} />
       {Platform.OS === 'ios' && (
         <InputAccessoryView nativeID={id}>
           <View style={a.bar}>
