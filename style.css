@@ -1135,6 +1135,21 @@ body.theme-dark .lp-modal-box .msg { color: #64748B !important; }
 .contact-body a { color: var(--petrol, #1F4E5F); font-weight: 700; text-decoration: none; word-break: break-word; }
 .contact-body a:hover { text-decoration: underline; }
 .ci { width: 13px; height: 13px; vertical-align: -2px; margin-right: 3px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .5; }
+
+/* ===== Estimation France Travail (dashboard) ===== */
+.pe-card { border: 1px solid var(--line); border-radius: 14px; padding: 13px 15px; background: rgba(31,78,95,.04); }
+.pe-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.pe-label { font-size: 12.5px; font-weight: 800; color: var(--petrol); }
+.pe-val { font-size: 21px; font-weight: 900; color: var(--petrol); white-space: nowrap; }
+.pe-detail { font-size: 11.5px; color: #718096; margin-top: 5px; }
+.pe-note { font-size: 10px; color: #9AA5B1; margin-top: 9px; line-height: 1.5; }
+.pe-empty { font-size: 12.5px; color: #718096; line-height: 1.55; border: 1px dashed var(--line); border-radius: 14px; padding: 12px 14px; }
+.pe-empty b { color: var(--petrol); }
+.pe-empty a, .pe-empty a:visited { color: var(--petrol); font-weight: 700; }
+body.theme-dark .pe-card { background: rgba(110,198,224,.06); border-color: rgba(255,255,255,.08); }
+body.theme-dark .pe-label, body.theme-dark .pe-val, body.theme-dark .pe-empty b, body.theme-dark .pe-empty a { color: #6EC6E0; }
+body.theme-dark .pe-detail { color: rgba(255,255,255,.5); }
+body.theme-dark .pe-note, body.theme-dark .pe-empty { color: rgba(255,255,255,.45); }
 body.theme-dark .contact-card { background: #0D1B2A !important; border-color: rgba(255,255,255,.07) !important; }
 body.theme-dark .contact-name { color: #6EC6E0 !important; }
 body.theme-dark .contact-role { color: rgba(255,255,255,.45) !important; }

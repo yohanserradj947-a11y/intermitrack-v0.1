@@ -1897,6 +1897,28 @@ function renderFiscalite(yearGross, yearMissions) {
   }
 }
 
+// Estimation indicative de l'allocation France Travail pour le mois affiché
+function renderPoleEmploi(list) {
+  const box = $("poleEmploiBox");
+  if (!box) return;
+  const aj = (typeof _profil !== "undefined" && _profil && Number(_profil.taux_journalier)) || 0;
+  if (!aj) {
+    box.innerHTML = '<div class="pe-empty">' + ICO.euro + ' <b>Estimation France Travail</b> — renseigne ton <b>taux journalier (AJ)</b> dans <a href="#" id="peProfilLink">Mes informations</a> pour activer ce calcul.</div>';
+    const lk = $("peProfilLink"); if (lk) lk.onclick = function(e){ e.preventDefault(); if (typeof openProfilModal === "function") openProfilModal(); };
+    return;
+  }
+  const workedDays = list.reduce(function(a,x){ return a + Number(x.vacations || Math.round((Number(x.hours)||0)/8)); }, 0);
+  const daysInMonth = new Date(current.getFullYear(), current.getMonth()+1, 0).getDate();
+  const indemnified = Math.max(0, daysInMonth - workedDays);
+  const estimate = Math.round(aj * indemnified);
+  box.innerHTML =
+    '<div class="pe-card">' +
+      '<div class="pe-head"><span class="pe-label">' + ICO.euro + ' Estimation France Travail (ce mois)</span><span class="pe-val">≈ ' + money(estimate) + '</span></div>' +
+      '<div class="pe-detail">AJ ' + money(Math.round(aj)) + ' × ' + indemnified + ' jour' + (indemnified>1?'s':'') + ' indemnisé' + (indemnified>1?'s':'') + '  (' + daysInMonth + ' jours − ' + workedDays + ' travaillé' + (workedDays>1?'s':'') + ')</div>' +
+      '<div class="pe-note">Estimation indicative, avant actualisation. Ne tient PAS compte des carences / franchises, du calcul exact de France Travail (jours réellement consommés selon ton SJR), des plafonds mensuels, ni d\'éventuelles retenues. À vérifier avec ton actualisation officielle.</div>' +
+    '</div>';
+}
+
 function render() {
   const now = new Date();
   const year = now.getFullYear();
@@ -1919,6 +1941,7 @@ function render() {
   const monthNet = Math.round(monthGross * (1 - getChargeRate() / 100) * (1 - getPasRate() / 100));
   if ($("monthNet")) $("monthNet").textContent = money(monthNet);
   if ($("monthGross")) $("monthGross").textContent = "Brut " + money(monthGross);
+  renderPoleEmploi(selectedMonthMissions);
   if ($("recapMonthPicker")) $("recapMonthPicker").value = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}`;
   const monthRate = monthHours > 0 ? Math.round(monthGross / monthHours) : 0;
   const monthRateNet = monthHours > 0 ? Math.round(monthNet / monthHours) : 0;
