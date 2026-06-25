@@ -316,15 +316,15 @@ export default function Calendar(){
           const has=ms.length>0;
           const isToday=dayISO===todayISO;
           const isPast=dayISO<todayISO;
-          const grad=isToday?GRAD_TODAY:(has?(isPast?GRAD_PAST:GRAD_FUTURE):null);
+          const grad=(!isToday&&has)?(isPast?GRAD_PAST:GRAD_FUTURE):null;
           const filled=grad!=null;
           const first=ms[0];
-          const txtColor=filled?'#fff':C.text;
-          const subColor=filled?'rgba(255,255,255,.85)':C.muted;
+          const txtColor=isToday?C.petrol:(filled?'#fff':C.text);
+          const subColor=isToday?C.muted:(filled?'rgba(255,255,255,.85)':C.muted);
           return(
-            <TouchableOpacity key={i} style={[s.cell,filled?s.cellFilled:s.cellEmpty]} activeOpacity={0.85} onPress={()=>onCellPress(d)}>
+            <TouchableOpacity key={i} style={[s.cell,isToday?s.cellToday:(filled?s.cellFilled:s.cellEmpty)]} activeOpacity={0.85} onPress={()=>onCellPress(d)}>
               {grad&&<LinearGradient colors={grad} start={{x:0,y:0}} end={{x:1,y:1}} style={StyleSheet.absoluteFill}/>}
-              {isToday&&<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill,{opacity:pulse.interpolate({inputRange:[0,1],outputRange:[0,0.55]})}]}><LinearGradient colors={GRAD_TODAY_GLOW} start={{x:0,y:0}} end={{x:1,y:1}} style={StyleSheet.absoluteFill}/></Animated.View>}
+              {isToday&&<Animated.View pointerEvents="none" style={[s.todayFrame,{opacity:pulse.interpolate({inputRange:[0,1],outputRange:[0.35,1]})}]}/>}
               <Text style={[s.cellDay,{color:txtColor},isToday&&s.cellDayToday]}>{d.getDate()}</Text>
               {first&&(
                 <>
@@ -636,7 +636,8 @@ const s=StyleSheet.create({
 cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginBottom:4,overflow:'hidden',shadowColor:'#000',shadowOpacity:0.03,shadowRadius:3,elevation:1},
   cellEmpty:{backgroundColor:C.card,borderColor:C.line},
   cellFilled:{borderColor:'transparent'},
-  todayRing:{position:'absolute',top:0,left:0,right:0,bottom:0,borderRadius:13,borderWidth:2.5,borderColor:'#FFFFFF'},
+  cellToday:{backgroundColor:C.card,borderColor:'transparent'},
+  todayFrame:{position:'absolute',top:0,left:0,right:0,bottom:0,borderRadius:12.5,borderWidth:2.5,borderColor:C.petrol},
   cellDayToday:{fontWeight:'900'},
   cellDay:{fontSize:14,fontWeight:'800'},
   cellProd:{fontSize:9,fontWeight:'900',marginTop:2},
