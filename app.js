@@ -859,11 +859,12 @@ async function addMission(event) {
   if (!currentUser) { toast("Connecte-toi avant d'ajouter une mission."); return; }
   if ($("endDate").value < $("date").value) { toast("La date de fin ne peut pas être avant la date de début."); return; }
 
-  // Période de plus de 2 jours et création (pas une modification) → fenêtre de sélection des jours travaillés
-  const _mdpStart = $("date").value, _mdpEnd = $("endDate").value;
-  const _mdpNb = daysInclusive(new Date(_mdpStart + "T00:00:00"), new Date(_mdpEnd + "T00:00:00"));
-  if (!editingMissionId && _mdpNb > 2) { openMultiDayPicker(_mdpStart, _mdpEnd); return; }
- const payload = {
+  // Jours travaillés déjà choisis via le pop-up pour cette période → enregistrement réparti
+  if (!editingMissionId && _mdpData && _mdpData.start === $("date").value && _mdpData.end === $("endDate").value) {
+    await _mdpSaveBreakdown();
+    return;
+  }
+  const payload = {
     user_id: currentUser.id, production: normalizeProductionName($("production").value),
     emission: $("emission")?.value || "",
     mission_type: $("type").value, mission_date: $("date").value, end_date: $("endDate").value,
@@ -880,6 +881,8 @@ async function addMission(event) {
 
 // Étapes communes après l'enregistrement d'une (ou plusieurs) mission(s)
 async function _afterMissionSave(firstDate) {
+  _mdpData = null;
+  var _hl = document.querySelector('label[for="hours"]'); if (_hl) _hl.textContent = "Nombre d'heures cumulées sur la période";
   $("missionForm").reset();
   editingMissionId = null;
   const submitBtn = document.querySelector("#missionForm button[type='submit']");
@@ -905,14 +908,14 @@ function _mdpEnsureDom(){
   document.head.appendChild(style);
   const ov = document.createElement("div");
   ov.id = "mdpOverlay";
-  ov.innerHTML = '<div class="mdp-box"><div class="mdp-title">Quels jours as-tu travaillés ?</div><div class="mdp-sub" id="mdpSub"></div><div class="mdp-tools"><button type="button" class="mdp-tool" id="mdpAll">Tout cocher</button><button type="button" class="mdp-tool" id="mdpNone">Tout décocher</button></div><div class="mdp-fill">Tous les jours cochés à : <button type="button" class="mdp-tool" data-mdp-quick="4">4h</button><button type="button" class="mdp-tool" data-mdp-quick="8">8h</button><button type="button" class="mdp-tool" data-mdp-quick="10">10h</button><button type="button" class="mdp-tool" data-mdp-quick="12">12h</button></div><div id="mdpList"></div><div class="mdp-total" id="mdpTotal"></div><div class="mdp-actions"><button type="button" class="mdp-cancel" id="mdpCancel">Annuler</button><button type="button" class="mdp-ok" id="mdpOk">Valider</button></div></div>';
+  ov.innerHTML = '<div class="mdp-box"><div class="mdp-title">Quels jours as-tu travaillés ?</div><div class="mdp-sub" id="mdpSub"></div><div class="mdp-tools"><button type="button" class="mdp-tool" id="mdpAll">Tout cocher</button><button type="button" class="mdp-tool" id="mdpNone">Tout décocher</button></div><div class="mdp-fill">Tous les jours cochés à : <button type="button" class="mdp-tool" data-mdp-quick="4">4h</button><button type="button" class="mdp-tool" data-mdp-quick="8">8h</button><button type="button" class="mdp-tool" data-mdp-quick="10">10h</button><button type="button" class="mdp-tool" data-mdp-quick="12">12h</button></div><div id="mdpList"></div><div class="mdp-total" id="mdpTotal"></div><div class="mdp-actions"><button type="button" class="mdp-cancel" id="mdpCancel">Annuler</button><button type="button" class="mdp-ok" id="mdpOk">Continuer →</button></div></div>';
   document.body.appendChild(ov);
-  ov.addEventListener("click", function(e){ if(e.target===ov) _mdpClose(); });
-  document.getElementById("mdpCancel").addEventListener("click", _mdpClose);
+  ov.addEventListener("click", function(e){ if(e.target===ov){ _mdpData=null; _mdpClose(); } });
+  document.getElementById("mdpCancel").addEventListener("click", function(){ _mdpData=null; _mdpClose(); });
   document.getElementById("mdpAll").addEventListener("click", function(){ _mdpSetAll(true); });
   document.getElementById("mdpNone").addEventListener("click", function(){ _mdpSetAll(false); });
   ov.querySelectorAll("[data-mdp-quick]").forEach(function(b){ b.addEventListener("click", function(){ if(!_mdpData) return; var v = Number(b.dataset.mdpQuick); _mdpData.days.forEach(function(d){ if(d.checked) d.hours = v; }); _mdpRender(); }); });
-  document.getElementById("mdpOk").addEventListener("click", _mdpValidate);
+  document.getElementById("mdpOk").addEventListener("click", _mdpContinue);
 }
 
 function openMultiDayPicker(startStr, endStr){
@@ -921,17 +924,10 @@ function openMultiDayPicker(startStr, endStr){
   const days = [];
   for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) days.push(_iso(d));
   _mdpData = {
-    days: days.map(function(ds){ return { date: ds, checked: true, hours: _jourH() }; }),
-    totalHours: Number($("hours").value) || 0,
-    totalGross: Number($("gross").value) || 0,
-    production: normalizeProductionName($("production").value),
-    emission: $("emission") ? $("emission").value : "",
-    type: $("type").value,
-    km_distance: kmEffectiveDistance(),
-    km_rate: kmRateUsed(),
-    km_amount: calculateKmAmount()
+    start: startStr, end: endStr,
+    days: days.map(function(ds){ return { date: ds, checked: true, hours: _jourH() }; })
   };
-  document.getElementById("mdpSub").textContent = "Décoche les jours non travaillés. Chaque jour démarre à 8h — ajuste à la main ou avec les boutons si besoin.";
+  document.getElementById("mdpSub").textContent = "Coche/décoche les jours travaillés. Chaque jour démarre à " + _jourH() + "h — ajuste si besoin. Le total se reportera dans le formulaire.";
   _mdpRender();
   document.getElementById("mdpOverlay").classList.add("open");
 }
@@ -980,11 +976,27 @@ function _mdpApplyDefault(){
 
 function _mdpClose(){ const ov = document.getElementById("mdpOverlay"); if (ov) ov.classList.remove("open"); }
 
-async function _mdpValidate(){
+// « Continuer » : reporte le total des jours travaillés dans le formulaire, garde _mdpData
+function _mdpContinue(){
   const checked = _mdpData.days.filter(function(d){ return d.checked; });
   if (!checked.length) { toast("Coche au moins un jour travaillé."); return; }
   const sumHours = checked.reduce(function(s,d){ return s + (Number(d.hours) || 0); }, 0);
-  // Regrouper les jours cochés consécutifs ayant le même nombre d'heures
+  $("hours").value = sumHours;
+  const lbl = document.querySelector('label[for="hours"]');
+  if (lbl) lbl.textContent = "Heures cumulées — " + checked.length + " jour" + (checked.length>1?"s":"") + " travaillé" + (checked.length>1?"s":"");
+  _mdpClose();
+}
+
+// Enregistrement réparti (appelé à la validation du formulaire) : lit le brut/production du formulaire
+async function _mdpSaveBreakdown(){
+  const checked = _mdpData.days.filter(function(d){ return d.checked; });
+  if (!checked.length) { toast("Coche au moins un jour travaillé."); return; }
+  const sumHours = checked.reduce(function(s,d){ return s + (Number(d.hours) || 0); }, 0);
+  const totalGross = Number($("gross").value) || 0;
+  const production = normalizeProductionName($("production").value);
+  const emission = $("emission") ? $("emission").value : "";
+  const type = $("type").value;
+  const km_distance = kmEffectiveDistance(), km_rate = kmRateUsed(), km_amount = calculateKmAmount();
   const runs = [];
   let cur = null;
   for (const d of _mdpData.days){
@@ -994,24 +1006,28 @@ async function _mdpValidate(){
   }
   const payloads = runs.map(function(r, idx){
     const runHours = r.hours * r.days;
-    const gross = sumHours > 0 ? Math.round(_mdpData.totalGross * (runHours / sumHours)) : Math.round(_mdpData.totalGross / runs.length);
+    const gross = sumHours > 0 ? Math.round(totalGross * (runHours / sumHours)) : Math.round(totalGross / runs.length);
     return {
-      user_id: currentUser.id, production: _mdpData.production, emission: _mdpData.emission,
-      mission_type: _mdpData.type, mission_date: r.start, end_date: r.end,
+      user_id: currentUser.id, production: production, emission: emission,
+      mission_type: type, mission_date: r.start, end_date: r.end,
       hours: runHours, gross_amount: gross,
-      km_distance: idx === 0 ? _mdpData.km_distance : 0,
-      km_rate: idx === 0 ? _mdpData.km_rate : 0,
-      km_amount: idx === 0 ? _mdpData.km_amount : 0
+      km_distance: idx === 0 ? km_distance : 0, km_rate: idx === 0 ? km_rate : 0, km_amount: idx === 0 ? km_amount : 0
     };
   });
   const grossSum = payloads.reduce(function(s,p){ return s + p.gross_amount; }, 0);
-  if (payloads.length) payloads[0].gross_amount += (_mdpData.totalGross - grossSum);
-  const ok = document.getElementById("mdpOk"); ok.disabled = true; ok.textContent = "Enregistrement...";
+  if (payloads.length) payloads[0].gross_amount += (totalGross - grossSum);
   const res = await sb.from("missions").insert(payloads);
-  ok.disabled = false; ok.textContent = "Valider";
   if (res.error){ toast("Erreur sauvegarde : " + res.error.message); return; }
-  _mdpClose();
   await _afterMissionSave(payloads[0].mission_date);
+}
+
+// Ouvre le pop-up des jours travaillés dès qu'une période de 3 jours ou plus est saisie (création)
+function _maybeOpenMdp(){
+  if (editingMissionId) return;
+  const s = $("date").value, e = $("endDate").value;
+  if (!s || !e || e < s) return;
+  const nb = daysInclusive(new Date(s+"T00:00:00"), new Date(e+"T00:00:00"));
+  if (nb > 2) openMultiDayPicker(s, e);
 }
 
 function editMission(id) {
@@ -2953,6 +2969,7 @@ function initProfilFeature(){
     btn.dataset.init='1';
     btn.addEventListener('click', function(){ var dd=document.getElementById('accountDropdown'); if(dd) dd.classList.add('hidden'); openProfilModal(); });
   }
+  ['date','endDate'].forEach(function(idd){ var el=document.getElementById(idd); if(el && !el.dataset.mdptrig){ el.dataset.mdptrig='1'; el.addEventListener('change', _maybeOpenMdp); } });
 }
 // ====================================================================
 // INTERMITRACK — JS des cartes Prévisions (à AJOUTER à ton app.js)
