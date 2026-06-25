@@ -869,6 +869,7 @@ async function addMission(event) {
     emission: $("emission")?.value || "",
     mission_type: $("type").value, mission_date: $("date").value, end_date: $("endDate").value,
     hours: Number($("hours").value), gross_amount: Number($("gross").value),
+    vacations: Number($("vacations").value) || Math.round((Number($("hours").value)||0)/8),
     km_distance: kmEffectiveDistance(), km_rate: kmRateUsed(), km_amount: calculateKmAmount()
   };
   let result;
@@ -982,6 +983,7 @@ function _mdpContinue(){
   if (!checked.length) { toast("Coche au moins un jour travaillé."); return; }
   const sumHours = checked.reduce(function(s,d){ return s + (Number(d.hours) || 0); }, 0);
   $("hours").value = sumHours;
+  if ($("vacations")) $("vacations").value = checked.length;
   const lbl = document.querySelector('label[for="hours"]');
   if (lbl) lbl.textContent = "Heures cumulées — " + checked.length + " jour" + (checked.length>1?"s":"") + " travaillé" + (checked.length>1?"s":"");
   _mdpClose();
@@ -1010,7 +1012,7 @@ async function _mdpSaveBreakdown(){
     return {
       user_id: currentUser.id, production: production, emission: emission,
       mission_type: type, mission_date: r.start, end_date: r.end,
-      hours: runHours, gross_amount: gross,
+      hours: runHours, gross_amount: gross, vacations: r.days,
       km_distance: idx === 0 ? km_distance : 0, km_rate: idx === 0 ? km_rate : 0, km_amount: idx === 0 ? km_amount : 0
     };
   });
@@ -1027,7 +1029,7 @@ function _maybeOpenMdp(){
   const s = $("date").value, e = $("endDate").value;
   if (!s || !e || e < s) return;
   const nb = daysInclusive(new Date(s+"T00:00:00"), new Date(e+"T00:00:00"));
-  if (nb > 2) openMultiDayPicker(s, e);
+  if (nb > 1) openMultiDayPicker(s, e);
 }
 
 function editMission(id) {
