@@ -2094,7 +2094,7 @@ function renderChart(doneHours, plannedHours = 0) {
   if (!$("chart")) return;
  const isDark = document.body.classList.contains('theme-dark');
   $("chart").innerHTML = `
- <svg viewBox="0 0 340 210" width="100%" role="img" aria-label="Arc progression heures">
+ <svg viewBox="-20 0 340 210" width="100%" role="img" aria-label="Arc progression heures">
       <defs>
         <linearGradient id="g3done" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stop-color="${isDark ? '#1F6E8F' : '#1F4E5F'}"/>
