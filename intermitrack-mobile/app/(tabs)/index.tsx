@@ -1,18 +1,18 @@
 import { showAlert } from "../../lib/dialog";
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { StyleSheet, View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, StatusBar, Platform, Modal, TextInput, Alert, Linking, KeyboardAvoidingView } from 'react-native';
+import { StyleSheet, View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, StatusBar, Platform, Modal, KeyboardAvoidingView } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../lib/supabase';
 import { useTrackView } from '../../lib/analytics';
-import { useSession } from '../../lib/auth';
 import Gauge from '../../components/Gauge';
 import NumInput from '../../components/NumInput';
 import KmSection, { KmHandle } from '../../components/KmSection';
 import TxtInput from '../../components/TxtInput';
 import { GradientButton } from '../../components/GradientButton';
+import { openMesInfos } from '../../components/AccountMenu';
 import { Ionicons } from '@expo/vector-icons';
 
 const C = { petrol:'#1F4E5F', sage:'#7A9E7E', bg:'#F5F7F6', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1', orange:'#F97316' };
@@ -30,7 +30,6 @@ function iso(d:Date){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(
 export default function HomeScreen(){
   useTrackView('dashboard');
   const insets=useSafeAreaInsets();
-  const { session, signOut } = useSession();
   const [loading,setLoading]=useState(true);
   const [missions,setMissions]=useState<any[]>([]);
   const [current,setCurrent]=useState(new Date());
@@ -42,14 +41,7 @@ export default function HomeScreen(){
   const [showMonthPicker,setShowMonthPicker]=useState(false);
   const [pickerYear,setPickerYear]=useState(new Date().getFullYear());
 
-  const [showAccount,setShowAccount]=useState(false);
   const [profil,setProfil]=useState<any>(null);
-
-  const [showMesInfos,setShowMesInfos]=useState(false);
-  const [miAnnexe,setMiAnnexe]=useState<'technicien'|'artiste'|'les_deux'|''>('');
-  const [miDroits,setMiDroits]=useState<boolean|null>(null);
-  const [miAj,setMiAj]=useState('');
-  const [miImpot,setMiImpot]=useState('');
 
   const kmRef=useRef<KmHandle>(null);
   const [editKmDist,setEditKmDist]=useState(0);
@@ -128,54 +120,6 @@ export default function HomeScreen(){
     ]);
   }
 
-  async function deleteAccount(){
-    showAlert(
-      'Supprimer mon compte ?',
-      'Cette action est définitive : ton compte et toutes tes données (missions, documents) seront supprimés. Cette action est irréversible.',
-      [
-        {text:'Annuler',style:'cancel'},
-        {text:'Supprimer définitivement',style:'destructive',onPress:async()=>{
-          try{
-            const { data:{ session } }=await supabase.auth.getSession();
-            const token=session?.access_token;
-            if(!token)throw new Error('Session expirée, reconnecte-toi.');
-            const { error }=await supabase.functions.invoke('delete-account',{
-              headers:{ Authorization:`Bearer ${token}` },
-            });
-            if(error)throw error;
-            await supabase.auth.signOut();
-          }catch(e:any){
-            showAlert('Erreur',"La suppression a échoué : "+(e?.message||'réessaie plus tard.'));
-          }
-        }},
-      ]
-    );
-  }
-
-  function reportBug(){
-    setShowAccount(false);
-    const body=`Décris ici le bug rencontré ou ta suggestion :\n\n\n\n— Infos techniques (merci de ne pas effacer) —\nAppareil : ${Platform.OS} ${Platform.Version}\nCompte : ${session?.user.email||'?'}`;
-    const url=`mailto:Intermitrack@gmail.com?subject=${encodeURIComponent('Bug / suggestion — Intermitrack (bêta)')}&body=${encodeURIComponent(body)}`;
-    Linking.openURL(url).catch(()=>showAlert('Impossible d\'ouvrir le mail','Écris-nous directement à Intermitrack@gmail.com'));
-  }
-
-  function openMesInfos(){
-    setMiAnnexe(profil?.annexe||'');
-    setMiDroits(profil?profil.droits_ouverts:null);
-    setMiAj(profil?.taux_journalier!=null?String(profil.taux_journalier):'');
-    setMiImpot(profil?.taux_impot!=null?String(profil.taux_impot):'');
-    setShowMesInfos(true);
-  }
-
-  async function saveMesInfos(){
-    const { data:{ user } }=await supabase.auth.getUser();
-    if(!user)return;
-    const droits=miDroits===true;
-    const { error }=await supabase.from('profiles').upsert({ id:user.id, annexe:miAnnexe||null, droits_ouverts:miDroits, taux_journalier:droits?(Number(miAj)||null):null, taux_impot:droits?(Number(miImpot)||null):null },{onConflict:'id'});
-    if(error){ showAlert('Erreur',error.message); return; }
-    setShowMesInfos(false); loadData(true);
-  }
-
   const stats=useMemo(()=>{
     const today=new Date();today.setHours(0,0,0,0);
     const areStart=areDate?new Date(areDate+'T00:00:00'):null;
@@ -230,7 +174,6 @@ export default function HomeScreen(){
 
   if(loading)return<View style={s.center}><ActivityIndicator size="large" color={C.petrol}/></View>;
 
-  const initials=(session?.user.email||'??').slice(0,2).toUpperCase();
   return(
     <ScrollView style={s.container} contentContainerStyle={{paddingBottom:40}}>
       <StatusBar barStyle="dark-content" backgroundColor="white"/>
@@ -243,9 +186,6 @@ export default function HomeScreen(){
             <Text style={s.brandTag}>Le tableau de bord des intermittents.</Text>
           </View>
         </View>
-        <TouchableOpacity style={s.avatarBtn} onPress={()=>setShowAccount(true)}>
-          <Text style={s.avatarTxt}>{initials}</Text>
-        </TouchableOpacity>
       </View>
 
       <View style={s.badgesRow}>
@@ -458,94 +398,6 @@ export default function HomeScreen(){
               </TouchableOpacity>
               <TouchableOpacity style={s.cancelBtn} onPress={()=>setEditId(null)}>
                 <Text style={s.cancelBtnTxt}>Annuler</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      <Modal visible={showAccount} animationType="fade" transparent onRequestClose={()=>setShowAccount(false)}>
-        <TouchableOpacity style={s.accountOverlay} activeOpacity={1} onPress={()=>setShowAccount(false)}>
-          <View style={s.accountCard}>
-            <Text style={s.accountTitle}>Mon compte</Text>
-            <Text style={s.accountEmail}>{session?.user.email}</Text>
-
-            <GradientButton onPress={()=>{setShowAccount(false);signOut();}} style={s.accountBtn} textStyle={s.accountBtnTxt} label="Se déconnecter" />
-
-            <TouchableOpacity style={s.accountReportBtn} onPress={()=>{setShowAccount(false);openMesInfos();}}>
-              <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="create-outline" size={13} color={C.petrol} /><Text style={s.accountReportTxt}>Mes informations</Text></View>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={s.accountReportBtn} onPress={reportBug}>
-              <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="bug-outline" size={13} color={C.petrol} /><Text style={s.accountReportTxt}>Signaler un bug</Text></View>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={s.accountDeleteBtn} onPress={()=>{setShowAccount(false);deleteAccount();}}>
-              <Text style={s.accountDeleteTxt}>Supprimer mon compte</Text>
-            </TouchableOpacity>
-
-            <View style={s.legalRow}>
-              <TouchableOpacity onPress={()=>Linking.openURL('https://intermitrack.fr/cgu.html')}>
-                <Text style={s.legalLink}>CGU</Text>
-              </TouchableOpacity>
-              <Text style={s.legalSep}>·</Text>
-              <TouchableOpacity onPress={()=>Linking.openURL('https://intermitrack.fr/confidentialite.html')}>
-                <Text style={s.legalLink}>Confidentialité</Text>
-              </TouchableOpacity>
-              <Text style={s.legalSep}>·</Text>
-              <TouchableOpacity onPress={()=>Linking.openURL('https://intermitrack.fr/mentions-legales.html')}>
-                <Text style={s.legalLink}>Mentions légales</Text>
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity style={s.accountCancel} onPress={()=>setShowAccount(false)}>
-              <Text style={s.accountCancelTxt}>Fermer</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      <Modal visible={showMesInfos} animationType="slide" transparent onRequestClose={()=>setShowMesInfos(false)}>
-        <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
-        <View style={s.modalOverlay}>
-          <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <Text style={s.modalTitle}>Mes informations</Text>
-
-              <Text style={s.label}>Tu es plutôt…</Text>
-              <View style={s.typeWrap}>
-                {([['technicien','Technicien (annexe 8)'],['artiste','Artiste (annexe 10)'],['les_deux','Les deux']] as ['technicien'|'artiste'|'les_deux',string][]).map(([val,lbl])=>(
-                  <TouchableOpacity key={val} style={[s.typeChip,miAnnexe===val&&s.typeChipActive]} onPress={()=>setMiAnnexe(val)}>
-                    <Text style={miAnnexe===val?s.typeChipTxtActive:s.typeChipTxt}>{lbl}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={s.label}>As-tu déjà ouvert tes droits ?</Text>
-              <View style={s.typeWrap}>
-                <TouchableOpacity style={[s.typeChip,miDroits===true&&s.typeChipActive]} onPress={()=>setMiDroits(true)}>
-                  <Text style={miDroits===true?s.typeChipTxtActive:s.typeChipTxt}>Oui</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[s.typeChip,miDroits===false&&s.typeChipActive]} onPress={()=>setMiDroits(false)}>
-                  <Text style={miDroits===false?s.typeChipTxtActive:s.typeChipTxt}>Pas encore</Text>
-                </TouchableOpacity>
-              </View>
-
-              {miDroits===true&&(
-                <>
-                  <Text style={s.label}>Ton taux journalier (AJ)</Text>
-                  <NumInput style={s.input} value={miAj} onChangeText={setMiAj} placeholder="67.60" placeholderTextColor={C.muted}/>
-                  <Text style={s.ftDetail}>L'allocation journalière nette de ta notification France Travail.</Text>
-
-                  <Text style={s.label}>Ton taux d'imposition (%)</Text>
-                  <NumInput style={s.input} value={miImpot} onChangeText={setMiImpot} placeholder="8.6" placeholderTextColor={C.muted}/>
-                </>
-              )}
-
-              <GradientButton onPress={saveMesInfos} style={s.saveBtn} textStyle={s.saveBtnTxt} label="Enregistrer" />
-              <TouchableOpacity style={s.cancelBtn} onPress={()=>setShowMesInfos(false)}>
-                <Text style={s.cancelBtnTxt}>Fermer</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>

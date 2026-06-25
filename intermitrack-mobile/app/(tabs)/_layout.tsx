@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScrollArrowHint } from '@/components/scroll-arrow-hint';
 import { SwipeHint } from '@/components/swipe-hint';
+import { AccountMenu } from '@/components/AccountMenu';
 
 // Onglets "material top tabs" → permettent le swipe gauche/droite,
 // mais positionnés en bas (tabBarPosition="bottom") pour garder le look actuel.
@@ -79,6 +80,7 @@ export default function TabLayout() {
     </MaterialTopTabs>
     <ScrollArrowHint tabs={['index', 'calendar', 'missions', 'actualisation', 'previsions', 'documents', 'autoentrepreneur', 'fiscalite', 'contacts']} />
     <SwipeHint />
+    <AccountMenu />
     </View>
   );
 }

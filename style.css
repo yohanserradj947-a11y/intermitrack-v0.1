@@ -533,7 +533,7 @@ html, body { overflow-x: hidden; max-width: 100%; }
 .new-cal-day {
   height: 52px; display: flex; flex-direction: column;
   align-items: flex-start; justify-content: flex-start;
-  border-radius: 9px; cursor: pointer;
+  border-radius: 9px; cursor: pointer; border: 1.5px solid #CAD3DC;
   transition: all .12s; position: relative; padding: 5px 6px;
   background: #F6F8FA;
 }
@@ -1083,7 +1083,7 @@ body.theme-dark .account-dropdown { background: #0D1B2A !important; border-color
 body.theme-dark .account-dd-email, body.theme-dark .account-dd-plan, body.theme-dark .account-dd-themes { border-color: rgba(255,255,255,.07) !important; }
 
 /* Calendrier dark */
-body.theme-dark .new-cal-day { background: rgba(255,255,255,.03); }
+body.theme-dark .new-cal-day { background: rgba(255,255,255,.03); border-color: rgba(255,255,255,.12); }
 body.theme-dark .new-cal-day:hover { background: rgba(255,255,255,.07) !important; }
 body.theme-dark .new-cal-day.today { background: rgba(255,255,255,.05) !important; border-color: transparent !important; animation: calTodayPulseDark 1.5s ease-in-out infinite; }
 body.theme-dark .new-cal-day.today .new-cal-num,
