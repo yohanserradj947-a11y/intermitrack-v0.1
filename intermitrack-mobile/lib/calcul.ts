@@ -75,3 +75,50 @@ export function etalementCarence(delai:number, franchiseSal:number, franchiseCP:
   }
   return lignes;
 }
+// ---- Fiscalité : impôt sur le revenu (formules reprises à l'identique du site) ----
+export function calculateProgressiveTax(taxableIncome:number, parts:number){
+  const safeIncome=Math.max(0,Number(taxableIncome||0));
+  const safeParts=Math.max(0.5,Number(parts||1));
+  const incomePerPart=safeIncome/safeParts;
+  const brackets=[
+    {limit:11600,rate:0},{limit:29579,rate:0.11},
+    {limit:84577,rate:0.30},{limit:181917,rate:0.41},{limit:Infinity,rate:0.45},
+  ];
+  let previous=0,taxPerPart=0,marginalRate=0;
+  for(const b of brackets){
+    if(incomePerPart>previous){
+      const slice=Math.min(incomePerPart,b.limit)-previous;
+      taxPerPart+=slice*b.rate;
+      if(slice>0)marginalRate=b.rate;
+    }
+    if(incomePerPart<=b.limit)break;
+    previous=b.limit;
+  }
+  const estimatedTax=Math.max(0,Math.round(taxPerPart*safeParts));
+  const averageRate=safeIncome?(estimatedTax/safeIncome)*100:0;
+  return {estimatedTax,averageRate,marginalRate:marginalRate*100,incomePerPart};
+}
+
+export type ProfilFiscal='technicien'|'musicien'|'artiste';
+export const PROFILS_FISCAUX:Record<ProfilFiscal,{label:string;forfaitLabel:string;netCoeff:number;forfait:(net:number)=>number}>={
+  technicien:{label:'Technicien du spectacle',forfaitLabel:'Forfait 10% standard',netCoeff:0.775,forfait:(net)=>Math.min(net*0.10,14555)},
+  musicien:{label:'Artiste musicien / choriste',forfaitLabel:'Forfait 14% + 5% musicien',netCoeff:0.775,forfait:(net)=>Math.min(net*0.14,14555)+net*0.05},
+  artiste:{label:'Artiste dramatique / lyrique',forfaitLabel:'Forfait 10% (abattement 18% en paie)',netCoeff:0.79,forfait:(net)=>Math.min(net*0.10,14555)},
+};
+
+export function fiscalite(i:{profil:ProfilFiscal;yearGross:number;arePercue:number;congesSpec:number;otherIncome:number;taxParts:number;totalKmAmount:number;autresFrais:number;fraisSaisis:number;}){
+  const p=PROFILS_FISCAUX[i.profil]||PROFILS_FISCAUX.technicien;
+  const netSalaires=Math.round(i.yearGross*p.netCoeff);
+  const netAre=i.arePercue;
+  const netConges=Math.round(i.congesSpec*0.88);
+  const netTotal=netSalaires+netAre+netConges+i.otherIncome;
+  const totalFraisReels=i.totalKmAmount+i.autresFrais+i.fraisSaisis;
+  const forfait=Math.round(p.forfait(netSalaires));
+  const baseAvecForfait=Math.max(0,netTotal-forfait);
+  const baseAvecReels=Math.max(0,netTotal-totalFraisReels);
+  const bestBase=Math.min(baseAvecForfait,baseAvecReels);
+  const useForfait=forfait>=totalFraisReels;
+  const csgNonDed=Math.round((i.yearGross+i.arePercue)*0.024);
+  const tax=(bestBase>0&&i.taxParts>0)?calculateProgressiveTax(bestBase,i.taxParts):null;
+  return {netSalaires,netConges,netTotal,totalFraisReels,forfait,baseAvecForfait,baseAvecReels,bestBase,useForfait,csgNonDed,forfaitLabel:p.forfaitLabel,profilLabel:p.label,tax};
+}

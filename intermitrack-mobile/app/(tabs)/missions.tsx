@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert, Platform, KeyboardAvoidingView } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
@@ -8,6 +8,8 @@ import { supabase } from '../../lib/supabase';
 import { useTrackView } from '../../lib/analytics';
 import DonutChart from '../../components/DonutChart';
 import NumInput from '../../components/NumInput';
+import KmSection, { KmHandle } from '../../components/KmSection';
+import { GradientButton } from '../../components/GradientButton';
 
 const C = { petrol:'#1F4E5F', sage:'#7A9E7E', bg:'#F5F7F6', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1', orange:'#F97316' };
 const COLORS = ['#1F4E5F','#2A6174','#3A7A8F','#7A9E7E','#8AB08E','#9AC09E','#F97316','#FDBA74','#4A8FA5','#5A9FB5'];
@@ -27,6 +29,9 @@ export default function Missions(){
   const [period,setPeriod]=useState<'all'|'year'|'custom'>('all');
   const [customYear,setCustomYear]=useState(new Date().getFullYear());
 
+  const kmRef=useRef<KmHandle>(null);
+  const [editKmDist,setEditKmDist]=useState(0);
+  const [editKmRate,setEditKmRate]=useState(0);
   const [editId,setEditId]=useState<string|null>(null);
   const [fProduction,setFProduction]=useState('');
   const [fEmission,setFEmission]=useState('');
@@ -55,6 +60,7 @@ export default function Missions(){
     setFStart(new Date(m.mission_date+'T00:00:00'));
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
     setFHours(String(m.hours||'')); setFGross(String(m.gross_amount||''));
+    setEditKmDist(Number(m.km_distance) || 0); setEditKmRate(Number(m.km_rate) || 0);
     setShowSuggest(false); setShowEmSuggest(false);
   }
 
@@ -63,10 +69,13 @@ export default function Missions(){
     if(!fProduction.trim()){ Alert.alert('Production manquante','Indique la production.'); return; }
     setSaving(true);
     const startISO=iso(fStart), endISO=iso(fEnd);
+    const nbDays=Math.max(1,Math.min(Math.round((fEnd.getTime()-fStart.getTime())/86400000)+1,Math.round((Number(fHours)||0)/8)));
+    const km=kmRef.current?.values(nbDays)||{};
     const { error }=await supabase.from('missions').update({
       production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, mission_type:fType,
       mission_date:startISO, end_date:endISO!==startISO?endISO:null,
       hours:Number(fHours)||0, vacations:Math.round((Number(fHours)||0)/8), gross_amount:Number(fGross)||0,
+      ...km,
     }).eq('id',editId);
     setSaving(false);
     if(error){ Alert.alert('Erreur',error.message); return; }
@@ -232,9 +241,9 @@ export default function Missions(){
                 <Text style={s.label}>Montant brut (€)</Text>
                 <NumInput style={s.input} value={fGross} onChangeText={setFGross}/>
 
-                <TouchableOpacity style={s.saveBtn} onPress={saveEdit} disabled={saving}>
-                  <Text style={s.saveBtnTxt}>{saving?'Enregistrement…':'Mettre à jour'}</Text>
-                </TouchableOpacity>
+                <KmSection key={editId} ref={kmRef} nbDays={Math.max(1, Math.min(Math.round((fEnd.getTime() - fStart.getTime()) / 86400000) + 1, Math.round((Number(fHours) || 0) / 8)))} initialDistance={editKmDist} initialRate={editKmRate} />
+
+                <GradientButton onPress={saveEdit} disabled={saving} style={s.saveBtn} textStyle={s.saveBtnTxt} label={saving?'Enregistrement…':'Mettre à jour'} />
                 <TouchableOpacity style={s.deleteBtn} onPress={deleteEdit}>
                   <Text style={s.deleteBtnTxt}>🗑️ Supprimer cette mission</Text>
                 </TouchableOpacity>

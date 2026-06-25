@@ -487,46 +487,56 @@ z-index: 500 !important;
             <input id="gross" type="number" min="0" step="0.01" placeholder="Ex : 230" required />
             <details class="optional-block">
               <summary style="cursor:pointer;font-weight:700;font-size:17px;color:var(--petrol);">🚗 Frais kilométriques <span style="font-weight:400;font-size:13px;color:#9AA5B1;">(optionnel)</span></summary>
-              <p class="hint" style="margin-top:10px;">Indique tes lieux de départ et d'arrivée, la distance se calcule automatiquement.</p>
+              <p class="hint" style="margin-top:10px;">Indique tes lieux de départ et d'arrivée, la distance (aller simple) se calcule automatiquement.</p>
               <div class="document-grid">
                 <div><label for="kmFrom">Lieu de départ</label><input id="kmFrom" autocomplete="off" placeholder="Ex : 12 rue de Paris, Lyon" /></div>
                 <div><label for="kmTo">Lieu d'arrivée</label><input id="kmTo" autocomplete="off" placeholder="Ex : Studio, Saint-Denis" /></div>
               </div>
               <label style="display:flex;align-items:center;gap:8px;margin:8px 0;font-weight:400;"><input type="checkbox" id="kmRoundTrip" style="width:auto;" /> Aller-retour (×2)</label>
+              <label style="display:flex;align-items:center;gap:8px;margin:8px 0;font-weight:400;"><input type="checkbox" id="kmEveryDay" style="width:auto;" /> Trajet chaque jour travaillé (× nb jours)</label>
+              <label style="display:flex;align-items:center;gap:8px;margin:8px 0;font-weight:400;"><input type="checkbox" id="kmJustify" style="width:auto;" /> Je justifie un trajet de plus de 40 km</label>
+              <p class="hint" id="kmCapWarn" style="display:none;color:#F97316;font-weight:700;margin:6px 0;">⚠️ Trajet plafonné à 40 km (règle domicile-travail). Coche « Je justifie… » si tu peux justifier la distance réelle.</p>
               <button class="ghost" type="button" id="kmCalcBtn" style="margin-bottom:12px;">📍 Calculer la distance</button>
               <div class="document-grid">
-                <div><label for="kmDistance">Kilomètres professionnels</label><input id="kmDistance" type="number" min="0" step="1" placeholder="Ex : 42" /></div>
+                <div><label for="kmDistance">Kilomètres (aller simple)</label><input id="kmDistance" type="number" min="0" step="1" placeholder="Ex : 42" /></div>
+                <div><label for="kmRate">Taux €/km (manuel)</label><input id="kmRate" type="number" min="0" step="0.01" placeholder="sinon choisis CV ci-dessous" /></div>
+              </div>
+              <div class="document-grid">
                 <div>
                   <label for="kmCv">Puissance fiscale (carte grise, case P.6)</label>
                   <select id="kmCv">
-                    <option value="">— Choisir pour remplir le taux —</option>
-                    <option value="0.53">3 CV ou moins</option>
-                    <option value="0.61">4 CV</option>
-                    <option value="0.64">5 CV</option>
-                    <option value="0.67">6 CV</option>
-                    <option value="0.70">7 CV et plus</option>
-                    <option value="0.40">Moto / scooter</option>
+                    <option value="">— Choisir —</option>
+                    <option value="3">3 CV ou moins</option>
+                    <option value="4">4 CV</option>
+                    <option value="5">5 CV</option>
+                    <option value="6">6 CV</option>
+                    <option value="7">7 CV et plus</option>
+                    <option value="moto">Moto / scooter</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="kmTranche">Tes km parcourus par an (environ)</label>
+                  <select id="kmTranche">
+                    <option value="1">≤ 5 000 km/an</option>
+                    <option value="2">5 001 – 20 000 km/an</option>
+                    <option value="3">&gt; 20 000 km/an</option>
                   </select>
                 </div>
               </div>
-              <label style="display:flex;align-items:center;gap:8px;margin:8px 0;font-weight:400;"><input type="checkbox" id="kmElectric" style="width:auto;" /> Véhicule électrique (+20 %)</label>
-              <div class="document-grid">
-                <div><label for="kmRate">Barème / taux par km (€)</label><input id="kmRate" type="number" min="0" step="0.01" placeholder="Ex : 0.64" /></div>
-              </div>
               <details style="margin:6px 0 4px;">
-                <summary style="cursor:pointer;color:var(--petrol);font-weight:600;font-size:13px;">📋 Voir le barème kilométrique</summary>
+                <summary style="cursor:pointer;color:var(--petrol);font-weight:600;font-size:13px;">📋 Voir le barème kilométrique (€/km par tranche)</summary>
                 <table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;">
-                  <tr style="text-align:left;color:#64748B;"><th style="padding:4px 6px;">Puissance fiscale</th><th style="padding:4px 6px;">€ / km</th></tr>
-                  <tr><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">3 CV ou moins</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,53</td></tr>
-                  <tr><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">4 CV</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,61</td></tr>
-                  <tr><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">5 CV</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,64</td></tr>
-                  <tr><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">6 CV</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,67</td></tr>
-                  <tr><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">7 CV et plus</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,70</td></tr>
-                  <tr><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">Moto / scooter</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">~0,40</td></tr>
+                  <tr style="text-align:left;color:#64748B;"><th style="padding:4px 6px;">Puissance</th><th style="padding:4px 6px;">≤5 000</th><th style="padding:4px 6px;">5–20k</th><th style="padding:4px 6px;">&gt;20k</th></tr>
+                  <tr><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">3 CV</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,529</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,316</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,370</td></tr>
+                  <tr><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">4 CV</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,606</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,340</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,407</td></tr>
+                  <tr><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">5 CV</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,636</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,357</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,427</td></tr>
+                  <tr><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">6 CV</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,665</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,374</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,447</td></tr>
+                  <tr><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">7+ CV</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,697</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,394</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,470</td></tr>
+                  <tr><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">Moto</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,395</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,099</td><td style="padding:4px 6px;border-top:1px solid #E5E8EB;">0,234</td></tr>
                 </table>
-                <p class="hint" style="margin-top:6px;">🔌 Électrique : +20 %. Barème voiture pour un usage ≤ 5 000 km/an, réévalué chaque année — référence : impots.gouv.fr.</p>
+                <p class="hint" style="margin-top:6px;">Barème kilométrique officiel (coefficient par tranche de km annuels), réévalué chaque année — référence : impots.gouv.fr.</p>
               </details>
-              <p class="hint" id="kmPreview">Frais km estimés : 0 EUR</p>
+              <p class="hint" id="kmPreview" style="font-weight:600;">Distance comptée : 0 km<br>Frais estimés : 0 EUR</p>
             </details>
             <p class="hint">Pour une mission sur plusieurs jours, indique la période complète et le total d'heures cumulées.</p>
             <button class="primary" type="submit">Enregistrer la mission</button>

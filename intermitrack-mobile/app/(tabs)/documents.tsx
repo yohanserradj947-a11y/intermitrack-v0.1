@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useTrackView } from '../../lib/analytics';
 import NumInput from '../../components/NumInput';
+import { GradientButton } from '../../components/GradientButton';
 
 const C = { petrol:'#1F4E5F', sage:'#7A9E7E', bg:'#F5F7F6', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1', orange:'#F97316' };
 const TYPES = ['AEM','Fiche de paie','Congés Spectacles','Contrat','Autre'];
@@ -111,9 +112,7 @@ export default function Documents(){
         <Text style={s.sub}>Tes papiers importants, toujours sous la main.</Text>
       </View>
 
-      <TouchableOpacity style={s.addBtn} onPress={()=>setShowForm(true)}>
-        <Text style={s.addBtnTxt}>＋ Ajouter un document</Text>
-      </TouchableOpacity>
+      <GradientButton onPress={()=>setShowForm(true)} style={s.addBtn} textStyle={s.addBtnTxt} label="＋ Ajouter un document" />
 
       {(!openProd||!groups[openProd])?(
         <View style={{padding:16,gap:10}}>
@@ -201,9 +200,7 @@ export default function Documents(){
                 <Text style={s.fileBtnTxt}>{fFile?`📎 ${fFile.name}`:'📎 Choisir un PDF ou une image'}</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={s.saveBtn} onPress={saveDoc} disabled={saving}>
-                <Text style={s.saveBtnTxt}>{saving?'Envoi…':'Enregistrer le document'}</Text>
-              </TouchableOpacity>
+              <GradientButton onPress={saveDoc} disabled={saving} style={s.saveBtn} textStyle={s.saveBtnTxt} label={saving?'Envoi…':'Enregistrer le document'} />
               <TouchableOpacity style={s.cancelBtn} onPress={()=>setShowForm(false)}>
                 <Text style={s.cancelBtnTxt}>Annuler</Text>
               </TouchableOpacity>

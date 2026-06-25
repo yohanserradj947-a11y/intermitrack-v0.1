@@ -20,6 +20,11 @@
       "android": {
         "serviceAccountKeyPath": "./google-play-key.json",
         "track": "internal"
+      },
+      "ios": {
+        "appleId": "serrftv@gmail.com",
+        "ascAppId": "6781755113",
+        "appleTeamId": "8RHAK6PW39"
       }
     }
   }

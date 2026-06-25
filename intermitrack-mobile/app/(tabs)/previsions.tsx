@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase';
 import { useTrackView } from '../../lib/analytics';
 import { ajBrute, ajNet, carence, congesSpectacles, etalementCarence, netAPayer, CHARGE_DEFAUT, CONFIG } from '../../lib/calcul';
 import NumInput from '../../components/NumInput';
+import { GradientButton } from '../../components/GradientButton';
 
 const C = { petrol:'#1F4E5F', sage:'#7A9E7E', bg:'#F5F7F6', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1', orange:'#F97316' };
 
@@ -110,16 +111,6 @@ export default function Previsions(){
       </View>
 
       <View style={s.card}>
-        <Text style={s.cardTitle}>Réouverture des droits</Text>
-        <Text style={s.cardSub}>Avancement vers les 507 h (heures effectuées).</Text>
-        <View style={s.progressTrack}><View style={[s.progressFill,{width:`${pct}%`}]}/></View>
-        <View style={s.row2}>
-          <Text style={s.bigVal}>{doneH}h</Text>
-          <Text style={s.bigValMuted}>{remaining}h restantes</Text>
-        </View>
-      </View>
-
-      <View style={s.card}>
         <Text style={s.cardTitle}>Taux journalier (AJ)</Text>
         <Text style={s.cardSub}>Simulation indicative de l'allocation journalière.</Text>
         <View style={s.toggleRow}>
@@ -141,7 +132,7 @@ export default function Previsions(){
             </TouchableOpacity>
           ))}
         </View>
-        <TouchableOpacity style={s.calcBtn} onPress={calcC1}><Text style={s.calcBtnTxt}>Calculer</Text></TouchableOpacity>
+        <GradientButton label="Calculer" onPress={calcC1} style={s.calcBtn} textStyle={s.calcBtnTxt} />
         {c1Res?.err&&<Text style={s.err}>Renseigne les heures et le salaire de référence.</Text>}
         {c1Res&&!c1Res.err&&(
           <View style={s.result}>
@@ -188,7 +179,7 @@ export default function Previsions(){
             </TouchableOpacity>
           ))}
         </View>
-        <TouchableOpacity style={s.calcBtn} onPress={calcC2}><Text style={s.calcBtnTxt}>Calculer</Text></TouchableOpacity>
+        <GradientButton label="Calculer" onPress={calcC2} style={s.calcBtn} textStyle={s.calcBtnTxt} />
         {c2Res?.err&&<Text style={s.err}>Renseigne les heures, le brut et les jours travaillés.</Text>}
         {c2Res&&!c2Res.err&&(
           <View style={s.result}>
@@ -228,7 +219,7 @@ export default function Previsions(){
         <Text style={s.cardSub}>Estimation indicative (≈ 10 % du brut).</Text>
         <Text style={s.label}>Brut annuel (€)</Text>
         <NumInput style={s.input} value={c3Brut} onChangeText={setC3Brut} placeholder="20000" placeholderTextColor={C.muted}/>
-        <TouchableOpacity style={s.calcBtn} onPress={calcC3}><Text style={s.calcBtnTxt}>Calculer</Text></TouchableOpacity>
+        <GradientButton label="Calculer" onPress={calcC3} style={s.calcBtn} textStyle={s.calcBtnTxt} />
         {c3Res?.err&&<Text style={s.err}>Renseigne ton brut annuel.</Text>}
         {c3Res&&!c3Res.err&&(
           <View style={s.result}>
@@ -255,7 +246,7 @@ export default function Previsions(){
         <Text style={s.label}>Prélèvement à la source (%)</Text>
         <NumInput style={s.input} value={c4Pas} onChangeText={setC4Pas} placeholder="0" placeholderTextColor={C.muted}/>
         <Text style={s.note}>Ton taux perso (impots.gouv.fr / fiche de paie). Laisse vide si tu ne le connais pas.</Text>
-        <TouchableOpacity style={s.calcBtn} onPress={calcC4}><Text style={s.calcBtnTxt}>Calculer</Text></TouchableOpacity>
+        <GradientButton label="Calculer" onPress={calcC4} style={s.calcBtn} textStyle={s.calcBtnTxt} />
         {c4Res?.err&&<Text style={s.err}>Renseigne le brut de la mission.</Text>}
         {c4Res&&!c4Res.err&&(
           <View style={s.result}>

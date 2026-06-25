@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { StyleSheet, View, Text, Image, TextInput, TouchableOpacity, StatusBar, Linking } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useSession } from '../lib/auth';
+import { GradientButton } from '../components/GradientButton';
 
 const C = { petrol:'#1F4E5F', bg:'#F5F7F6', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1' };
 
@@ -75,20 +77,28 @@ export default function LoginScreen() {
   }
 
   return (
-    <KeyboardAwareScrollView
-      style={s.flex}
-      contentContainerStyle={[s.page, { paddingTop: insets.top + 28, paddingBottom: insets.bottom + 28 }]}
-      keyboardShouldPersistTaps="handled"
-      keyboardDismissMode="interactive"
-      bottomOffset={90}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={s.flex}>
+      <LinearGradient colors={['#1F4E5F', '#155E54', '#12754A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      <Image source={require('../assets/images/icon.png')} style={s.watermark} resizeMode="contain" />
       <StatusBar barStyle="light-content" backgroundColor={C.petrol} />
+      <KeyboardAwareScrollView
+        style={s.scroll}
+        contentContainerStyle={[s.page, { paddingTop: insets.top + 28, paddingBottom: insets.bottom + 28 }]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        bottomOffset={90}
+        showsVerticalScrollIndicator={false}
+      >
       <View style={s.container}>
           <View style={s.brand}>
             <Image source={require('../assets/images/icon.png')} style={s.logoBox} resizeMode="cover" />
             <Text style={s.mainline}>{"Toute votre\nintermittence\nau même endroit."}</Text>
             <Text style={s.intro}>{"Suivi des missions, heures ARE,\ndocuments et prévisions."}</Text>
+            <View style={s.features}>
+              <View style={s.featurePill}><Text style={s.featureTxt}>⏱ Heures & ARE</Text></View>
+              <View style={s.featurePill}><Text style={s.featureTxt}>📅 Missions</Text></View>
+              <View style={s.featurePill}><Text style={s.featureTxt}>💶 Fiscalité</Text></View>
+            </View>
           </View>
 
           <View style={s.card}>
@@ -118,11 +128,7 @@ export default function LoginScreen() {
 
                 {info && <Text style={s.info}>{info}</Text>}
 
-                <TouchableOpacity style={s.btn} onPress={submit} disabled={busy}>
-                  <Text style={s.btnTxt}>
-                    {busy ? 'Patiente…' : mode === 'signin' ? 'Se connecter' : 'Créer mon compte'}
-                  </Text>
-                </TouchableOpacity>
+                <GradientButton onPress={submit} disabled={busy} style={s.btn} textStyle={s.btnTxt} label={busy ? 'Patiente…' : mode === 'signin' ? 'Se connecter' : 'Créer mon compte'} />
 
                 {mode === 'signin' && (
                   <TouchableOpacity onPress={askResetCode} disabled={busy} style={s.forgotBtn}>
@@ -158,9 +164,7 @@ export default function LoginScreen() {
 
                 {info && <Text style={s.info}>{info}</Text>}
 
-                <TouchableOpacity style={s.btn} onPress={confirmReset} disabled={busy}>
-                  <Text style={s.btnTxt}>{busy ? 'Patiente…' : 'Valider le nouveau mot de passe'}</Text>
-                </TouchableOpacity>
+                <GradientButton onPress={confirmReset} disabled={busy} style={s.btn} textStyle={s.btnTxt} label={busy ? 'Patiente…' : 'Valider le nouveau mot de passe'} />
 
                 <TouchableOpacity onPress={askResetCode} disabled={busy} style={s.forgotBtn}>
                   <Text style={s.forgotTxt}>Renvoyer un code</Text>
@@ -189,15 +193,18 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
       </View>
-    </KeyboardAwareScrollView>
+      </KeyboardAwareScrollView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
   flex: { flex: 1, backgroundColor: C.petrol },
+  scroll: { flex: 1, backgroundColor: 'transparent' },
+  watermark: { position: 'absolute', width: 360, height: 360, top: -70, right: -90, opacity: 0.06 },
   // flexGrow + justifyContent center : le formulaire se centre verticalement et
   // peut remonter/scroller quand le clavier s'ouvre (iPhone ET iPad).
-  page: { flexGrow: 1, justifyContent: 'center', backgroundColor: C.petrol, paddingHorizontal: 22 },
+  page: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 22 },
   // maxWidth : empêche la carte de s'étirer et d'être « crowded » sur grand écran (iPad).
   container: { width: '100%', maxWidth: 460, alignSelf: 'center' },
   brand: { alignItems: 'center', marginBottom: 28 },
@@ -205,7 +212,10 @@ const s = StyleSheet.create({
   logoTxt: { color: 'white', fontWeight: '800', fontSize: 22 },
   mainline: { fontSize: 24, fontWeight: '900', color: 'white', textAlign: 'center', lineHeight: 30, letterSpacing: -0.5, marginTop: 14 },
   intro: { fontSize: 13, color: 'rgba(255,255,255,.65)', textAlign: 'center', marginTop: 8, lineHeight: 18 },
-  card: { backgroundColor: C.card, borderRadius: 22, padding: 22 },
+  features: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 16 },
+  featurePill: { backgroundColor: 'rgba(255,255,255,0.14)', borderColor: 'rgba(255,255,255,0.22)', borderWidth: 1, borderRadius: 99, paddingVertical: 7, paddingHorizontal: 12 },
+  featureTxt: { color: 'white', fontSize: 12, fontWeight: '700' },
+  card: { backgroundColor: C.card, borderRadius: 22, padding: 22, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }, elevation: 10 },
   tabs: { flexDirection: 'row', gap: 8, marginBottom: 14 },
   tab: { flex: 1, paddingVertical: 11, borderRadius: 14, backgroundColor: C.soft, alignItems: 'center' },
   tabActive: { backgroundColor: C.petrol },

@@ -352,19 +352,85 @@ async function classerDocumentAnalyseIa(file, data) {
   if (insertError) { await sb.storage.from("documents").remove([filePath]); throw new Error("Erreur sauvegarde document : " + insertError.message); }
 }
 
+// ===== Barème kilométrique officiel (coefficient €/km par tranche de km annuels) =====
+const KM_BAREME = {
+  "3":    { c1: 0.529, c2: 0.316, c3: 0.370 }, // 3 CV ou moins
+  "4":    { c1: 0.606, c2: 0.340, c3: 0.407 },
+  "5":    { c1: 0.636, c2: 0.357, c3: 0.427 },
+  "6":    { c1: 0.665, c2: 0.374, c3: 0.447 },
+  "7":    { c1: 0.697, c2: 0.394, c3: 0.470 }, // 7 CV et plus
+  "moto": { c1: 0.395, c2: 0.099, c3: 0.234 },
+};
+function kmPf(v) { const n = Number(String(v ?? "").replace(",", ".").replace(/\s/g, "")); return isFinite(n) ? n : 0; }
+function kmCoef(cvKey, tranche) { const b = KM_BAREME[cvKey]; if (!b) return 0; return tranche === "2" ? b.c2 : tranche === "3" ? b.c3 : b.c1; }
+function kmTrancheLabel(t) { return t === "2" ? "5 001–20 000 km/an" : t === "3" ? "> 20 000 km/an" : "≤ 5 000 km/an"; }
+
+// Nombre de jours travaillés (pour l'option "trajet chaque jour travaillé")
+function kmNbDays() {
+  const h = Number($("hours")?.value || 0);
+  const s = $("date")?.value, e = $("endDate")?.value;
+  let di = 1;
+  if (s && e) { try { di = daysInclusive(new Date(s + "T00:00:00"), new Date(e + "T00:00:00")); } catch (_) {} }
+  return Math.max(1, Math.min(di || 1, Math.round(h / 8) || 1));
+}
+
+// Distance de base plafonnée à 40 km (règle domicile-travail), sauf justification
+function kmBaseDistance() {
+  const d = kmPf($("kmDistance")?.value);
+  return $("kmJustify")?.checked ? d : Math.min(d, 40);
+}
+
+// Distance effective comptée = base × (aller-retour) × (jours travaillés)
+function kmEffectiveDistance() {
+  const rt = $("kmRoundTrip")?.checked ? 2 : 1;
+  const days = $("kmEveryDay")?.checked ? kmNbDays() : 1;
+  return Math.round(kmBaseDistance() * rt * days);
+}
+
+// Taux €/km réellement utilisé : barème CV (selon tranche) sinon taux manuel
+function kmRateUsed() {
+  const cv = $("kmCv")?.value || "";
+  const tranche = $("kmTranche")?.value || "1";
+  return cv ? kmCoef(cv, tranche) : kmPf($("kmRate")?.value);
+}
+
 function calculateKmAmount() {
-  const distance = Number($("kmDistance")?.value || 0);
-  const rate = Number($("kmRate")?.value || 0);
-  return Math.round(distance * rate * 100) / 100;
+  return Math.round(kmEffectiveDistance() * kmRateUsed() * 100) / 100;
 }
 
 function updateKmPreview() {
   const preview = $("kmPreview");
   if (!preview) return;
-  preview.textContent = "Frais km estimés : " + money(calculateKmAmount());
+  const base = kmBaseDistance();
+  const eff = kmEffectiveDistance();
+  const cv = $("kmCv")?.value || "";
+  const tranche = $("kmTranche")?.value || "1";
+  const rt = $("kmRoundTrip")?.checked;
+  const everyDay = $("kmEveryDay")?.checked;
+  const justify = $("kmJustify")?.checked;
+  const capped = !justify && kmPf($("kmDistance")?.value) > 40;
+  const nbDays = kmNbDays();
+
+  // Avertissement plafond 40 km
+  const warn = $("kmCapWarn");
+  if (warn) warn.style.display = capped ? "block" : "none";
+
+  // Le taux manuel et le barème CV s'excluent : choisir un CV désactive le taux saisi
+  if ($("kmRate")) $("kmRate").style.opacity = cv ? "0.5" : "1";
+
+  if (eff > 0 && !cv && kmPf($("kmRate")?.value) <= 0) {
+    preview.innerHTML = "👉 Choisis ta puissance fiscale (ou un taux €/km) pour estimer les frais.";
+    return;
+  }
+  let detail = "";
+  if (rt || everyDay || capped) {
+    detail = " = " + Math.round(base) + " km" + (capped ? " (plafond 40)" : "") + (rt ? " × 2 (A/R)" : "") + (everyDay ? " × " + nbDays + " j" : "");
+  }
+  preview.innerHTML = "Distance comptée : <strong>" + eff + " km</strong>" + detail +
+    "<br>Frais estimés : <strong>" + money(calculateKmAmount()) + "</strong>" + (cv ? " · " + kmTrancheLabel(tranche) : "");
 }
 
-// Autocomplétion d'adresse (API Adresse data.gouv.fr) avec suggestions cliquables
+// Autocomplétion d'adresse (API Adresse data.gouv.fr) avec suggestions cliquables + département
 function attachAddressAutocomplete(input) {
   if (!input || input.dataset.acInit) return;
   input.dataset.acInit = "1";
@@ -384,19 +450,25 @@ function attachAddressAutocomplete(input) {
     if (q.length < 3) { close(); return; }
     timer = setTimeout(async () => {
       try {
-        const r = await fetch("https://api-adresse.data.gouv.fr/search/?limit=5&q=" + encodeURIComponent(q));
+        const r = await fetch("https://api-adresse.data.gouv.fr/search/?limit=6&q=" + encodeURIComponent(q));
         const j = await r.json();
         if (!j.features || !j.features.length) { close(); return; }
         box.innerHTML = "";
         j.features.forEach((f) => {
+          const p = f.properties || {};
+          const ctx = String(p.context || "");
+          const dep = ctx.split(",")[0].trim();                       // n° de département
+          const rest = ctx.split(",").slice(1).join(",").trim();      // nom + région
+          const sub = (dep ? "Dépt " + dep : "") + (rest ? " · " + rest : "");
           const item = document.createElement("div");
-          item.textContent = f.properties.label;
+          item.innerHTML = "<div style='font-weight:600;'>📍 " + escapeHtml(p.label || "") + "</div>" +
+            (sub ? "<div style='font-size:12px;color:#12754A;font-weight:600;margin-top:2px;'>" + escapeHtml(sub) + "</div>" : "");
           item.style.cssText = "padding:10px 12px;cursor:pointer;font-size:14px;border-bottom:1px solid #F1F5F9;";
           item.addEventListener("mouseenter", () => { item.style.background = "#F1F5F9"; });
           item.addEventListener("mouseleave", () => { item.style.background = "#fff"; });
           item.addEventListener("mousedown", (e) => {
             e.preventDefault();
-            input.value = f.properties.label;
+            input.value = p.label;
             input.dataset.lon = f.geometry.coordinates[0];
             input.dataset.lat = f.geometry.coordinates[1];
             close();
@@ -410,16 +482,6 @@ function attachAddressAutocomplete(input) {
   input.addEventListener("blur", () => setTimeout(close, 150));
 }
 
-// Remplit le taux par km selon la puissance fiscale choisie (+ bonus électrique)
-function applyKmBareme() {
-  const base = Number($("kmCv")?.value || 0);
-  if (!base) return;
-  const electric = $("kmElectric")?.checked;
-  const rate = Math.round(base * (electric ? 1.2 : 1) * 1000) / 1000;
-  if ($("kmRate")) $("kmRate").value = rate;
-  updateKmPreview();
-}
-
 // Distance à vol d'oiseau (km) entre deux points GPS
 function haversineKm(lat1, lon1, lat2, lon2) {
   const R = 6371, toRad = (d) => d * Math.PI / 180;
@@ -428,7 +490,8 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   return 2 * R * Math.asin(Math.sqrt(x));
 }
 
-// Calcule automatiquement la distance entre lieu de départ et d'arrivée
+// Calcule automatiquement la distance (aller simple) entre lieu de départ et d'arrivée.
+// L'aller-retour et les jours travaillés sont appliqués ensuite comme multiplicateurs.
 async function calcKmFromAddresses() {
   const from = ($("kmFrom")?.value || "").trim();
   const to = ($("kmTo")?.value || "").trim();
@@ -457,11 +520,10 @@ async function calcKmFromAddresses() {
       if (rj.routes && rj.routes[0]) km = rj.routes[0].distance / 1000;
     } catch (_) { /* repli ci-dessous */ }
     if (km == null) km = haversineKm(a[1], a[0], b[1], b[0]) * 1.3; // estimation routière
-    if ($("kmRoundTrip")?.checked) km *= 2;
     km = Math.round(km);
     if ($("kmDistance")) $("kmDistance").value = km;
     updateKmPreview();
-    toast("Distance estimée : " + km + " km" + ($("kmRoundTrip")?.checked ? " (aller-retour)" : ""), "success");
+    toast("Distance estimée : " + km + " km (aller simple)", "success");
   } catch (err) {
     toast(err.message || "Impossible de calculer la distance.");
   } finally {
@@ -805,7 +867,7 @@ async function addMission(event) {
     emission: $("emission")?.value || "",
     mission_type: $("type").value, mission_date: $("date").value, end_date: $("endDate").value,
     hours: Number($("hours").value), gross_amount: Number($("gross").value),
-    km_distance: Number($("kmDistance")?.value || 0), km_rate: Number($("kmRate")?.value || 0), km_amount: calculateKmAmount()
+    km_distance: kmEffectiveDistance(), km_rate: kmRateUsed(), km_amount: calculateKmAmount()
   };
   let result;
   if (editingMissionId) result = await sb.from("missions").update(payload).eq("id", editingMissionId);
@@ -864,8 +926,8 @@ function openMultiDayPicker(startStr, endStr){
     production: normalizeProductionName($("production").value),
     emission: $("emission") ? $("emission").value : "",
     type: $("type").value,
-    km_distance: Number($("kmDistance") ? $("kmDistance").value : 0) || 0,
-    km_rate: Number($("kmRate") ? $("kmRate").value : 0) || 0,
+    km_distance: kmEffectiveDistance(),
+    km_rate: kmRateUsed(),
     km_amount: calculateKmAmount()
   };
   _mdpRedistribute();
@@ -967,6 +1029,11 @@ function editMission(id) {
   $("gross").value = mission.gross || 0;
   if ($("kmDistance")) $("kmDistance").value = mission.kmDistance || "";
   if ($("kmRate")) $("kmRate").value = mission.kmRate || "";
+  // La distance stockée est déjà la distance finale comptée : on évite de la re-plafonner / re-multiplier
+  if ($("kmCv")) $("kmCv").value = "";
+  if ($("kmRoundTrip")) $("kmRoundTrip").checked = false;
+  if ($("kmEveryDay")) $("kmEveryDay").checked = false;
+  if ($("kmJustify")) $("kmJustify").checked = Number(mission.kmDistance || 0) > 0;
   updateKmPreview();
   const submitBtn = document.querySelector("#missionForm button[type='submit']");
   if (submitBtn) submitBtn.textContent = "Mettre à jour la mission";
@@ -2543,7 +2610,7 @@ function setupEvents() {
   $("missionForm").addEventListener("submit", addMission);
   if ($("addMissionBackBtn")) $("addMissionBackBtn").addEventListener("click", () => activateView(addMissionReturnView));
   if ($("kmDistance")) $("kmDistance").addEventListener("input", updateKmPreview);
-  if ($("kmRate")) $("kmRate").addEventListener("input", updateKmPreview);
+  if ($("kmRate")) $("kmRate").addEventListener("input", () => { if ($("kmRate").value && $("kmCv")) $("kmCv").value = ""; updateKmPreview(); });
   if ($("saveAreAdmissionDateBtn")) {
     $("saveAreAdmissionDateBtn").addEventListener("click", () => {
       const value = $("areAdmissionDate").value;
@@ -2639,8 +2706,14 @@ function setupEvents() {
   attachAddressAutocomplete($("aeProfAdresse"));
   attachAddressAutocomplete($("aeClientAddress"));
   attachAddressAutocomplete($("societeAdresse"));
-  if ($("kmCv")) $("kmCv").addEventListener("change", applyKmBareme);
-  if ($("kmElectric")) $("kmElectric").addEventListener("change", applyKmBareme);
+  // Choisir une puissance fiscale prime le taux manuel
+  if ($("kmCv")) $("kmCv").addEventListener("change", updateKmPreview);
+  if ($("kmTranche")) $("kmTranche").addEventListener("change", updateKmPreview);
+  if ($("kmRoundTrip")) $("kmRoundTrip").addEventListener("change", updateKmPreview);
+  if ($("kmEveryDay")) $("kmEveryDay").addEventListener("change", updateKmPreview);
+  if ($("kmJustify")) $("kmJustify").addEventListener("change", updateKmPreview);
+  // Recalcul des "jours travaillés" quand on change la période / les heures
+  ["hours", "date", "endDate"].forEach((id) => { if ($(id)) $(id).addEventListener("input", updateKmPreview); });
 
   // Frais réels
   if ($("fraisForm")) $("fraisForm").addEventListener("submit", saveFrais);

@@ -7,6 +7,26 @@ import { supabase } from '../../lib/supabase';
 import { useTrackView } from '../../lib/analytics';
 import NumInput from '../../components/NumInput';
 import TxtInput from '../../components/TxtInput';
+import AddressInput from '../../components/AddressInput';
+import { GradientButton } from '../../components/GradientButton';
+
+// Barème kilométrique officiel : coefficient par tranche de km annuels.
+// t1/t2 = seuils des tranches ; c1 (≤t1) · c2·km + add2 (t1→t2) · c3 (>t2).
+const BAREME = [
+  { key: '3', label: '3 CV', t1: 5000, t2: 20000, c1: 0.529, c2: 0.316, add2: 1065, c3: 0.370 },
+  { key: '4', label: '4 CV', t1: 5000, t2: 20000, c1: 0.606, c2: 0.340, add2: 1330, c3: 0.407 },
+  { key: '5', label: '5 CV', t1: 5000, t2: 20000, c1: 0.636, c2: 0.357, add2: 1395, c3: 0.427 },
+  { key: '6', label: '6 CV', t1: 5000, t2: 20000, c1: 0.665, c2: 0.374, add2: 1457, c3: 0.447 },
+  { key: '7', label: '7+ CV', t1: 5000, t2: 20000, c1: 0.697, c2: 0.394, add2: 1515, c3: 0.470 },
+  { key: 'moto', label: 'Moto', t1: 3000, t2: 6000, c1: 0.395, c2: 0.099, add2: 891, c3: 0.234 },
+];
+// La personne choisit sa tranche de km annuels (elle connaît son kilométrage).
+const TRANCHE_OPTIONS = [{ key: '1', label: '≤5 000 km/an' }, { key: '2', label: '5 001–20 000' }, { key: '3', label: '>20 000' }];
+function pf(v: string) { const n = Number(String(v ?? '').replace(',', '.').replace(/\s/g, '')); return isFinite(n) ? n : 0; }
+// Coefficient €/km selon la tranche choisie (le forfait annuel des tranches 2/3 n'est pas appliqué par mission).
+function kmCoef(cvKey: string, tranche: string) { const b = BAREME.find((x) => x.key === cvKey); if (!b) return 0; return tranche === '2' ? b.c2 : tranche === '3' ? b.c3 : b.c1; }
+function trancheLabel(tranche: string) { return tranche === '2' ? '5 001–20 000 km/an' : tranche === '3' ? '> 20 000 km/an' : '≤ 5 000 km/an'; }
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) { const R = 6371, tr = (d: number) => d * Math.PI / 180; const dLat = tr(lat2 - lat1), dLon = tr(lon2 - lon1); const x = Math.sin(dLat / 2) ** 2 + Math.cos(tr(lat1)) * Math.cos(tr(lat2)) * Math.sin(dLon / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); }
 
 const C = { petrol:'#1F4E5F', sage:'#7A9E7E', sageSoft:'#E6F0E8', bg:'#EEF2F1', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1', orange:'#F97316', orangeSoft:'#FFF1E6' };
 const TYPES = ['Montage','Tournage','Démontage'];
@@ -42,6 +62,20 @@ export default function Calendar(){
   const [showSuggest,setShowSuggest]=useState(false);
   const [showEmSuggest,setShowEmSuggest]=useState(false);
 
+  const [kmOpen,setKmOpen]=useState(false);
+  const [kmFrom,setKmFrom]=useState('');
+  const [kmTo,setKmTo]=useState('');
+  const [kmFromCoords,setKmFromCoords]=useState<number[]|null>(null);
+  const [kmToCoords,setKmToCoords]=useState<number[]|null>(null);
+  const [kmRT,setKmRT]=useState(false);
+  const [kmEveryDay,setKmEveryDay]=useState(false);
+  const [kmJustify,setKmJustify]=useState(false);
+  const [kmCv,setKmCv]=useState('');
+  const [kmTranche,setKmTranche]=useState('1');
+  const [kmDistance,setKmDistance]=useState('');
+  const [kmRate,setKmRate]=useState('');
+  const [kmCalc,setKmCalc]=useState(false);
+
   const [showMdp,setShowMdp]=useState(false);
   const [mdpDays,setMdpDays]=useState<{date:string;checked:boolean;hours:number}[]>([]);
   const [defaultH,setDefaultH]=useState('8');
@@ -57,7 +91,8 @@ export default function Calendar(){
   function openCreate(day:Date){
     setEditId(null);
     setFProduction(''); setFEmission(''); setFType('Montage'); setFStart(day); setFEnd(day);
-    setFHours(''); setFGross('');
+    setFHours(''); setFGross(''); setMdpDays([]);
+    setKmOpen(false); setKmFrom(''); setKmTo(''); setKmFromCoords(null); setKmToCoords(null); setKmRT(false); setKmEveryDay(false); setKmJustify(false); setKmCv(''); setKmTranche('1'); setKmDistance(''); setKmRate('');
     setShowSuggest(false); setShowEmSuggest(false);
     setShowForm(true);
   }
@@ -67,9 +102,34 @@ export default function Calendar(){
     setFStart(new Date((m.mission_date)+'T00:00:00'));
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
     setFHours(String(m.hours||'')); setFGross(String(m.gross_amount||''));
+    setKmFrom(''); setKmTo(''); setKmFromCoords(null); setKmToCoords(null); setKmRT(false); setKmEveryDay(false); setKmJustify(false); setKmCv(''); setKmTranche('1');
+    setKmDistance(m.km_distance?String(m.km_distance):''); setKmRate(m.km_rate?String(m.km_rate):'');
+    setKmOpen(!!(m.km_distance||m.km_amount));
     setShowSuggest(false); setShowEmSuggest(false);
     setShowForm(true);
   }
+
+  async function calcKm(){
+    if(!kmFrom.trim()||!kmTo.trim()){ Alert.alert('Adresses manquantes','Indique le lieu de départ et d\'arrivée.'); return; }
+    setKmCalc(true);
+    try{
+      const geo=async(q:string)=>{const r=await fetch('https://api-adresse.data.gouv.fr/search/?limit=1&q='+encodeURIComponent(q));const j=await r.json();if(!j.features||!j.features.length)throw new Error('Adresse introuvable : '+q);return j.features[0].geometry.coordinates;};
+      const a=kmFromCoords||await geo(kmFrom), b=kmToCoords||await geo(kmTo);
+      let km:number|null=null;
+      try{const rr=await fetch(`https://router.project-osrm.org/route/v1/driving/${a[0]},${a[1]};${b[0]},${b[1]}?overview=false`);const rj=await rr.json();if(rj.routes&&rj.routes[0])km=rj.routes[0].distance/1000;}catch{}
+      if(km==null)km=haversineKm(a[1],a[0],b[1],b[0])*1.3;
+      setKmDistance(String(Math.round(km)));
+    }catch(e:any){ Alert.alert('Erreur',e?.message||'Impossible de calculer la distance.'); }
+    finally{ setKmCalc(false); }
+  }
+  // Distance totale = trajet × (aller-retour ? 2) × (chaque jour ? nb jours travaillés)
+  // Plafond domicile-travail : 40 km par trajet, sauf si l'utilisateur justifie une distance plus longue.
+  function kmBase(){ return kmJustify ? pf(kmDistance) : Math.min(pf(kmDistance), 40); }
+  function kmEff(nbDays:number){ return kmBase()*(kmRT?2:1)*(kmEveryDay?Math.max(1,nbDays):1); }
+  // Jours travaillés = heures ÷ 8, plafonné à la durée de la période (pas la durée calendaire seule).
+  const kmWorkedDays = Math.max(1, Math.min(daysInclusive(fStart,fEnd), Math.round(pf(fHours)/8)));
+  // Frais : barème officiel si une puissance est choisie (s'adapte à la tranche de km), sinon taux manuel.
+  function kmFraisFor(nbDays:number){ const e=kmEff(nbDays); return kmCv ? e*kmCoef(kmCv,kmTranche) : pf(kmRate)*e; }
 
   async function saveSimple(){
     setSaving(true);
@@ -81,6 +141,8 @@ export default function Calendar(){
       mission_date:startISO, end_date:endISO!==startISO?endISO:null,
       hours:Number(fHours)||0, vacations:Math.round((Number(fHours)||0)/8),
       gross_amount:Number(fGross)||0, status:'effectue',
+      km_distance:Math.round(kmEff(kmWorkedDays)), km_rate:pf(kmRate),
+      km_amount:Math.round(kmFraisFor(kmWorkedDays)*100)/100,
     };
     const { error }= editId
       ? await supabase.from('missions').update(payload).eq('id',editId)
@@ -95,11 +157,8 @@ export default function Calendar(){
     if(!fHours.trim()){ Alert.alert('Heures manquantes','Indique le nombre d\'heures.'); return; }
     const nb=daysInclusive(fStart,fEnd);
     if(!editId && nb>=2){
-      // Heures/jour proposées = total saisi ÷ nombre de jours (arrondi à 0,1h), 8h par défaut si vide.
-      const perDay=Math.round((Number(fHours)/nb)*10)/10 || 8;
-      const days:{date:string;checked:boolean;hours:number}[]=[];
-      for(let d=new Date(fStart); d<=fEnd; d.setDate(d.getDate()+1)) days.push({date:iso(d),checked:true,hours:perDay});
-      setMdpDays(days); setDefaultH(String(perDay)); setShowForm(false); setShowMdp(true);
+      if(mdpDays.length===0){ openDayPicker(fStart,fEnd); return; }
+      commitMultiDay();
     }else{
       saveSimple();
     }
@@ -131,7 +190,21 @@ export default function Calendar(){
   const mdpChecked=mdpDays.filter(d=>d.checked);
   const mdpTotalH=Math.round(mdpChecked.reduce((a,d)=>a+(Number(d.hours)||0),0)*10)/10;
 
-  async function validateMdp(){
+  // Ouvre le sélecteur de jours travaillés (au choix des dates).
+  function openDayPicker(s:Date,e:Date){
+    const nb=daysInclusive(s,e);
+    const per=Number(fHours)>0?Math.round((Number(fHours)/nb)*10)/10:8;
+    const days:{date:string;checked:boolean;hours:number}[]=[];
+    for(let d=new Date(s); d<=e; d.setDate(d.getDate()+1)) days.push({date:iso(d),checked:true,hours:per});
+    setMdpDays(days); setDefaultH(String(per)); setShowForm(false); setShowMdp(true);
+  }
+  // « Continuer » : on garde la sélection des jours et on revient au formulaire (pas de sauvegarde ici).
+  function confirmDays(){
+    if(mdpChecked.length===0){ Alert.alert('Aucun jour','Coche au moins un jour travaillé.'); return; }
+    setFHours(String(mdpTotalH));
+    setShowMdp(false); setShowForm(true);
+  }
+  async function commitMultiDay(){
     if(mdpChecked.length===0){ Alert.alert('Aucun jour','Coche au moins un jour travaillé.'); return; }
     setSaving(true);
     const { data:{ user } } = await supabase.auth.getUser();
@@ -150,14 +223,22 @@ export default function Calendar(){
       const gross=sumHours>0?Math.round(totalGross*(runHours/sumHours)):Math.round(totalGross/runs.length);
       return { user_id:user.id, production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, mission_type:fType,
         mission_date:r.start, end_date:r.end!==r.start?r.end:null,
-        hours:runHours, vacations:Math.round(runHours/8), gross_amount:gross, status:'effectue' };
+        hours:runHours, vacations:Math.round(runHours/8), gross_amount:gross, status:'effectue',
+        km_distance:0, km_rate:0, km_amount:0 };
     });
     const grossSum=payloads.reduce((a,p)=>a+p.gross_amount,0);
     if(payloads.length)payloads[0].gross_amount+=(totalGross-grossSum);
+    // Frais km : appliqués une seule fois sur la 1re ligne (total sur la période)
+    if(payloads.length){
+      const nbDays=mdpChecked.length;
+      payloads[0].km_distance=Math.round(kmEff(nbDays));
+      payloads[0].km_rate=pf(kmRate);
+      payloads[0].km_amount=Math.round(kmFraisFor(nbDays)*100)/100;
+    }
     const { error }=await supabase.from('missions').insert(payloads);
     setSaving(false);
     if(error){ Alert.alert('Erreur',error.message); return; }
-    setShowMdp(false); loadMissions(true);
+    setShowMdp(false); setShowForm(false); setEditId(null); setMdpDays([]); loadMissions(true);
   }
 
   const year=current.getFullYear(), month=current.getMonth();
@@ -352,20 +433,81 @@ text:'Modifier : '+(m.production||'Mission')+' ('+(Math.round((Number(m.hours||0
               )}
               {showEndPicker&&(
                 <DateTimePicker value={fEnd} mode="date" themeVariant="light" display={Platform.OS==='ios'?'spinner':'default'}
-                  onChange={(_e,date)=>{setShowEndPicker(false);if(date)setFEnd(date);}}/>
+                  onChange={(_e,date)=>{setShowEndPicker(false);if(date){setFEnd(date);if(!editId&&daysInclusive(fStart,date)>=2)openDayPicker(fStart,date);}}}/>
               )}
 
               <Text style={s.label}>Heures cumulées</Text>
               <NumInput style={s.input} value={fHours} onChangeText={setFHours} placeholder="8" placeholderTextColor={C.muted}/>
+              {(!editId && daysInclusive(fStart,fEnd)>=2) ? (
+                <TouchableOpacity style={s.kmCalcBtn} onPress={()=>openDayPicker(fStart,fEnd)}>
+                  <Text style={s.kmCalcTxt}>📅 {mdpChecked.length>0?`${mdpChecked.length} jour(s) travaillé(s) · modifier`:'Choisir les jours travaillés'}</Text>
+                </TouchableOpacity>
+              ) : null}
 
               <Text style={s.label}>Montant brut (€)</Text>
               <NumInput style={s.input} value={fGross} onChangeText={setFGross} placeholder="0" placeholderTextColor={C.muted}/>
 
+              <TouchableOpacity style={s.kmHead} onPress={()=>setKmOpen(o=>!o)}>
+                <Text style={s.kmHeadTxt}>🚗 Frais kilométriques (optionnel)</Text>
+                <Text style={s.kmChevron}>{kmOpen?'▲':'▼'}</Text>
+              </TouchableOpacity>
+              {kmOpen&&(
+                <View style={s.kmBody}>
+                  <Text style={s.label}>Lieu de départ</Text>
+                  <AddressInput style={s.input} value={kmFrom} onChangeText={setKmFrom} onCoords={setKmFromCoords} placeholder="Ville / adresse de départ"/>
+                  <Text style={s.label}>Lieu d'arrivée</Text>
+                  <AddressInput style={s.input} value={kmTo} onChangeText={setKmTo} onCoords={setKmToCoords} placeholder="Ville / adresse d'arrivée"/>
+                  <TouchableOpacity style={s.kmCheck} onPress={()=>setKmRT(v=>!v)}>
+                    <View style={[s.kmBox,kmRT&&s.kmBoxOn]}>{kmRT&&<Text style={s.kmBoxTxt}>✓</Text>}</View>
+                    <Text style={s.kmCheckTxt}>Aller-retour (×2)</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={s.kmCheck} onPress={()=>setKmEveryDay(v=>!v)}>
+                    <View style={[s.kmBox,kmEveryDay&&s.kmBoxOn]}>{kmEveryDay&&<Text style={s.kmBoxTxt}>✓</Text>}</View>
+                    <Text style={s.kmCheckTxt}>Trajet chaque jour travaillé (× nb jours)</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={s.kmCheck} onPress={()=>setKmJustify(v=>!v)}>
+                    <View style={[s.kmBox,kmJustify&&s.kmBoxOn]}>{kmJustify&&<Text style={s.kmBoxTxt}>✓</Text>}</View>
+                    <Text style={s.kmCheckTxt}>Je justifie un trajet de plus de 40 km</Text>
+                  </TouchableOpacity>
+                  {(!kmJustify&&pf(kmDistance)>40)?<Text style={[s.miniHint,{color:C.orange,fontWeight:'700'}]}>⚠️ Trajet plafonné à 40 km (règle domicile-travail). Coche ci-dessus si tu peux justifier la distance réelle.</Text>:null}
+                  <TouchableOpacity style={s.kmCalcBtn} onPress={calcKm} disabled={kmCalc}>
+                    <Text style={s.kmCalcTxt}>{kmCalc?'Calcul…':'📍 Calculer la distance'}</Text>
+                  </TouchableOpacity>
+                  <View style={s.row}>
+                    <View style={{flex:1}}>
+                      <Text style={s.label}>Kilomètres</Text>
+                      <NumInput style={s.input} value={kmDistance} onChangeText={setKmDistance} placeholder="0" placeholderTextColor={C.muted}/>
+                    </View>
+                    <View style={{flex:1}}>
+                      <Text style={s.label}>Taux €/km (manuel)</Text>
+                      <NumInput style={[s.input,kmCv?{opacity:0.5}:null]} value={kmRate} onChangeText={(t:string)=>{setKmRate(t);if(t)setKmCv('');}} placeholder="sinon choisis CV" placeholderTextColor={C.muted}/>
+                    </View>
+                  </View>
+                  <Text style={s.label}>Puissance fiscale</Text>
+                  <View style={s.cvWrap}>
+                    {BAREME.map(o=>(
+                      <TouchableOpacity key={o.key} style={[s.cvChip,kmCv===o.key&&s.cvChipOn]} onPress={()=>setKmCv(c=>c===o.key?'':o.key)}><Text style={kmCv===o.key?s.cvChipTxtOn:s.cvChipTxt}>{o.label}</Text></TouchableOpacity>
+                    ))}
+                  </View>
+                  <Text style={s.label}>Tes km parcourus par an (environ)</Text>
+                  <View style={s.cvWrap}>
+                    {TRANCHE_OPTIONS.map(o=>(
+                      <TouchableOpacity key={o.key} style={[s.cvChip,kmTranche===o.key&&s.cvChipOn]} onPress={()=>setKmTranche(o.key)}><Text style={kmTranche===o.key?s.cvChipTxtOn:s.cvChipTxt}>{o.label}</Text></TouchableOpacity>
+                    ))}
+                  </View>
+                  {(kmEff(kmWorkedDays)>0 && !kmCv && pf(kmRate)<=0)
+                    ? <Text style={[s.miniHint,{color:C.orange,fontWeight:'700'}]}>👉 Choisis ta puissance fiscale ci-dessus (ou entre un taux €/km) pour estimer les frais.</Text>
+                    : <View style={s.kmResult}>
+                        <Text style={s.kmResultLine}>Distance comptée : <Text style={{fontWeight:'900'}}>{Math.round(kmEff(kmWorkedDays))} km</Text>{(kmRT||kmEveryDay||(!kmJustify&&pf(kmDistance)>40))?`  =  ${Math.round(kmBase())} km${(!kmJustify&&pf(kmDistance)>40)?' (plafond 40)':''}${kmRT?' × 2 (A/R)':''}${kmEveryDay?` × ${kmWorkedDays} j`:''}`:''}</Text>
+                        <Text style={s.kmResultFrais}>Frais estimés : {money(Math.round(kmFraisFor(kmWorkedDays)))}{kmCv?`  ·  ${trancheLabel(kmTranche)}`:''}</Text>
+                      </View>}
+                  <Text style={s.miniHint}>Tu choisis ta tranche selon ton kilométrage annuel : le coefficient €/km correspondant s&apos;applique (ex. 7 CV : 0,697 si ≤5 000 · 0,394 si 5 001–20 000 · 0,470 si &gt;20 000).</Text>
+                </View>
+              )}
+
               {!editId&&<Text style={s.miniHint}>Pour une période de 3 jours ou plus, tu pourras choisir les jours travaillés à l'étape suivante.</Text>}
 
-              <TouchableOpacity style={s.saveBtn} onPress={handleSave} disabled={saving}>
-                <Text style={s.saveBtnTxt}>{saving?'Enregistrement…':(editId?'Mettre à jour':'Enregistrer la mission')}</Text>
-              </TouchableOpacity>
+              <GradientButton onPress={handleSave} disabled={saving} style={s.saveBtn} textStyle={s.saveBtnTxt} label={saving?'Enregistrement…':(editId?'Mettre à jour':'Enregistrer la mission')} />
               {editId&&(
                 <TouchableOpacity style={s.deleteBtn} onPress={deleteMission}>
                   <Text style={s.deleteBtnTxt}>🗑️ Supprimer cette mission</Text>
@@ -407,9 +549,7 @@ text:'Modifier : '+(m.production||'Mission')+' ('+(Math.round((Number(m.hours||0
                 </View>
               ))}
               <View style={s.mdpTotal}><Text style={s.mdpTotalTxt}>Total : {mdpTotalH} h sur {mdpChecked.length} jour{mdpChecked.length>1?'s':''}</Text></View>
-              <TouchableOpacity style={s.saveBtn} onPress={validateMdp} disabled={saving}>
-                <Text style={s.saveBtnTxt}>{saving?'Enregistrement…':'Valider'}</Text>
-              </TouchableOpacity>
+              <GradientButton onPress={confirmDays} style={s.saveBtn} textStyle={s.saveBtnTxt} label="Continuer →" />
               <TouchableOpacity style={s.cancelBtn} onPress={()=>setShowMdp(false)}>
                 <Text style={s.cancelBtnTxt}>Annuler</Text>
               </TouchableOpacity>
@@ -462,6 +602,25 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   suggestItem:{paddingVertical:12,paddingHorizontal:14,borderBottomWidth:1,borderBottomColor:C.soft},
   suggestTxt:{fontSize:15,fontWeight:'700',color:C.petrol},
   row:{flexDirection:'row',gap:10},
+  kmHead:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:16,paddingVertical:12,paddingHorizontal:14,borderRadius:14,backgroundColor:C.soft},
+  kmHeadTxt:{fontSize:14,fontWeight:'800',color:C.petrol},
+  kmChevron:{fontSize:12,color:C.petrol,fontWeight:'800'},
+  kmBody:{marginTop:6,paddingTop:4},
+  kmCheck:{flexDirection:'row',alignItems:'center',gap:8,marginTop:12},
+  kmBox:{width:24,height:24,borderRadius:7,borderWidth:1,borderColor:C.line,backgroundColor:'white',alignItems:'center',justifyContent:'center'},
+  kmBoxOn:{backgroundColor:C.petrol,borderColor:C.petrol},
+  kmBoxTxt:{color:'white',fontWeight:'900',fontSize:13},
+  kmCheckTxt:{fontSize:14,fontWeight:'600',color:C.text},
+  kmCalcBtn:{backgroundColor:C.soft,borderRadius:12,paddingVertical:12,alignItems:'center',marginTop:12},
+  kmCalcTxt:{color:C.petrol,fontWeight:'800',fontSize:14},
+  cvWrap:{flexDirection:'row',flexWrap:'wrap',gap:8,marginTop:10},
+  cvChip:{paddingVertical:8,paddingHorizontal:12,borderRadius:99,backgroundColor:'white',borderWidth:1,borderColor:C.line},
+  cvChipOn:{backgroundColor:C.petrol,borderColor:C.petrol},
+  cvChipTxt:{fontSize:12,fontWeight:'700',color:C.petrol},
+  cvChipTxtOn:{fontSize:12,fontWeight:'700',color:'white'},
+  kmResult:{marginTop:12,padding:12,borderRadius:12,backgroundColor:'rgba(31,78,95,0.06)'},
+  kmResultLine:{fontSize:13,color:C.text,fontWeight:'600'},
+  kmResultFrais:{fontSize:16,fontWeight:'900',color:C.petrol,marginTop:4},
   typeWrap:{flexDirection:'row',flexWrap:'wrap',gap:8},
   typeChip:{paddingVertical:9,paddingHorizontal:14,borderRadius:99,backgroundColor:C.soft},
   typeChipActive:{backgroundColor:C.petrol},

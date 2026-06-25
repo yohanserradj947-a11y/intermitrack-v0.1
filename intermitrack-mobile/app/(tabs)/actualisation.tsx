@@ -5,6 +5,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { supabase } from '../../lib/supabase';
 import { useTrackView } from '../../lib/analytics';
+import { GradientButton } from '../../components/GradientButton';
 
 const C = { petrol:'#1F4E5F', sage:'#7A9E7E', bg:'#F5F7F6', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1', orange:'#F97316' };
 
@@ -117,9 +118,7 @@ export default function Actualisation(){
         <View style={[s.statBox,{borderColor:C.petrol,borderWidth:1}]}><Text style={s.statVal}>{money(totalGross)}</Text><Text style={s.statLbl}>Brut total</Text></View>
       </View>
 
-      <TouchableOpacity style={s.pdfBtn} onPress={generatePDF} disabled={generating}>
-        <Text style={s.pdfBtnTxt}>{generating?'Génération…':'📄 Générer le PDF'}</Text>
-      </TouchableOpacity>
+      <GradientButton onPress={generatePDF} disabled={generating} style={s.pdfBtn} textStyle={s.pdfBtnTxt} label={generating?'Génération…':'📄 Générer le PDF'} />
 
       <Text style={s.listTitle}>Détail des missions</Text>
       <View style={{paddingHorizontal:16,gap:10}}>
