@@ -1907,16 +1907,25 @@ function renderPoleEmploi(list) {
     const lk = $("peProfilLink"); if (lk) lk.onclick = function(e){ e.preventDefault(); if (typeof openProfilModal === "function") openProfilModal(); };
     return;
   }
-  const workedDays = list.reduce(function(a,x){ return a + Number(x.vacations || Math.round((Number(x.hours)||0)/8)); }, 0);
+  const heures = list.reduce(function(a,x){ return a + (Number(x.hours)||0); }, 0);
+  const artiste = (_profil && _profil.annexe === "artiste");
+  const coef = artiste ? 1.3 : 1.4, divJ = artiste ? 10 : 8;
   const daysInMonth = new Date(current.getFullYear(), current.getMonth()+1, 0).getDate();
-  const indemnified = Math.max(0, daysInMonth - workedDays);
-  const estimate = Math.round(aj * indemnified);
+  const jniBase = heures * coef / divJ;                       // jours non indemnisables (base formule FT)
+  function clampDays(v){ return Math.max(0, Math.min(daysInMonth, v)); }
+  const indemHaut = clampDays(daysInMonth - jniBase * 1.05);  // optimiste (formule officielle)
+  const indemBas  = clampDays(daysInMonth - jniBase * 1.20);  // prudent (heures majorées FT ~+15-20%)
+  const tax = (_profil && Number(_profil.taux_impot)) || 0;
+  const fNet = 1 - tax/100, showNet = tax > 0;
+  const bas = Math.round(aj * indemBas * fNet), haut = Math.round(aj * indemHaut * fNet);
+  const heuresR = Math.round(heures*10)/10;
   box.innerHTML =
     '<div class="pe-card">' +
-      '<div class="pe-head"><span class="pe-label">' + ICO.euro + ' Estimation France Travail (ce mois)</span><span class="pe-val">≈ ' + money(estimate) + '</span></div>' +
-      '<div class="pe-detail">AJ ' + money(Math.round(aj)) + ' × ' + indemnified + ' jour' + (indemnified>1?'s':'') + ' indemnisé' + (indemnified>1?'s':'') + '  (' + daysInMonth + ' jours − ' + workedDays + ' travaillé' + (workedDays>1?'s':'') + ')</div>' +
-      '<div class="pe-note">Estimation indicative, avant actualisation. Ne tient PAS compte des carences / franchises, du calcul exact de France Travail (jours réellement consommés selon ton SJR), des plafonds mensuels, ni d\'éventuelles retenues. À vérifier avec ton actualisation officielle.</div>' +
+      '<div class="pe-head"><span class="pe-label">' + ICO.euro + ' Estimation France Travail (ce mois)</span><span class="pe-val">≈ ' + bas.toLocaleString('fr-FR') + ' – ' + money(haut) + '</span></div>' +
+      '<div class="pe-detail">' + (showNet ? 'fourchette nette (après ' + tax + ' % d\'impôt)' : 'fourchette brute') + ' · basée sur ' + heuresR + ' h ce mois' + (artiste ? ' (artiste, annexe 10)' : ' (technicien, annexe 8)') + '</div>' +
+      '<div class="pe-note">Fourchette <b>indicative</b> : le calcul exact de France Travail (heures majorées, SJR, plafonds) ne peut pas être reproduit précisément ici. Ne tient pas compte des <b>carences / franchises</b> (début de droits). Fiable seulement si tu saisis tes <b>vraies heures</b>. Montant exact → ton espace <a href="https://www.francetravail.fr/spectacle/" target="_blank" rel="noopener">France Travail</a>.' + (showNet ? '' : ' <a href="#" id="peTaxLink">Ajouter mon taux d\'impôt</a> pour le net.') + '</div>' +
     '</div>';
+  if (!showNet) { const tk = $("peTaxLink"); if (tk) tk.onclick = function(e){ e.preventDefault(); if (typeof openProfilModal === "function") openProfilModal(); }; }
 }
 
 function render() {
@@ -2911,7 +2920,7 @@ var POSTES_ARTISTE = ['Comédien','Chanteur','Musicien','Danseur','Choriste'];
 async function loadProfil(){
   if(!currentUser) return;
   try{
-    const { data } = await sb.from('profiles').select('annexe,postes,droits_ouverts,taux_journalier').eq('id', currentUser.id).maybeSingle();
+    const { data } = await sb.from('profiles').select('annexe,postes,droits_ouverts,taux_journalier,taux_impot').eq('id', currentUser.id).maybeSingle();
     _profil = data || null;
   }catch(e){ _profil = null; }
 }
@@ -2933,7 +2942,7 @@ function _profilEnsureDom(){
     + '<div class="pf-seg" id="pfPostes"></div>'
     + '<div class="pf-label">As-tu déjà ouvert tes droits ?</div>'
     + '<div class="pf-seg" id="pfDroits"><button type="button" class="pf-opt" data-droits="oui">Oui</button><button type="button" class="pf-opt" data-droits="non">Pas encore</button></div>'
-    + '<div id="pfAjWrap" style="display:none;"><div class="pf-label">Ton taux journalier (AJ)</div><input type="number" id="pfAj" class="pf-input" placeholder="Ex : 50" min="0" step="0.01"/><div class="pf-hint">Ce que France Travail te verse par jour indemnisé. Sert au calcul du revenu mensuel.</div></div>'
+    + '<div id="pfAjWrap" style="display:none;"><div class="pf-label">Ton taux journalier (AJ)</div><input type="number" id="pfAj" class="pf-input" placeholder="Ex : 67.60" min="0" step="0.01"/><div class="pf-hint">L\'allocation journalière nette de ta notification France Travail. Sert au calcul du revenu mensuel.</div><div class="pf-label">Ton taux d\'imposition (prélèvement à la source)</div><input type="number" id="pfImpot" class="pf-input" placeholder="Ex : 8.6" min="0" max="100" step="0.1"/><div class="pf-hint">En %, celui de ta notification / tes paies. Pour estimer ton allocation nette d\'impôt. Optionnel.</div></div>'
     + '<div class="pf-actions"><button type="button" class="pf-cancel" id="pfCancel">Fermer</button><button type="button" class="pf-ok" id="pfSave">Enregistrer</button></div>'
     + '</div>';
   document.body.appendChild(ov);
@@ -2978,6 +2987,7 @@ function openProfilModal(){
   if(dr===true){ ov.querySelector('[data-droits="oui"]').classList.add('on'); document.getElementById('pfAjWrap').style.display='block'; }
   else if(dr===false){ ov.querySelector('[data-droits="non"]').classList.add('on'); document.getElementById('pfAjWrap').style.display='none'; }
   document.getElementById('pfAj').value = (_profil && _profil.taux_journalier!=null) ? _profil.taux_journalier : '';
+  document.getElementById('pfImpot').value = (_profil && _profil.taux_impot!=null) ? _profil.taux_impot : '';
   ov.classList.add('open');
 }
 
@@ -2991,7 +3001,8 @@ async function _profilSave(){
     annexe: aBtn ? aBtn.dataset.annexe : null,
     postes: _profilPostes,
     droits_ouverts: droits,
-    taux_journalier: droits===true ? (Number(document.getElementById('pfAj').value)||null) : null
+    taux_journalier: droits===true ? (Number(document.getElementById('pfAj').value)||null) : null,
+    taux_impot: droits===true ? (Number(document.getElementById('pfImpot').value)||null) : null
   };
   var res = await sb.from('profiles').upsert(Object.assign({ id: currentUser.id }, p), { onConflict:'id' });
   if(res.error){ if(typeof toast==='function') toast('Erreur : '+res.error.message); return; }
