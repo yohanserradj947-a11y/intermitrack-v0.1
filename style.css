@@ -1150,6 +1150,14 @@ body.theme-dark .pe-card { background: rgba(110,198,224,.06); border-color: rgba
 body.theme-dark .pe-label, body.theme-dark .pe-val, body.theme-dark .pe-empty b, body.theme-dark .pe-empty a { color: #6EC6E0; }
 body.theme-dark .pe-detail { color: rgba(255,255,255,.5); }
 body.theme-dark .pe-note, body.theme-dark .pe-empty { color: rgba(255,255,255,.45); }
+.pe-total { margin-top: 11px; padding: 11px 13px; border-radius: 11px; background: rgba(31,78,95,.09); }
+.pe-total-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.pe-total-label { font-size: 12.5px; font-weight: 800; color: var(--petrol); }
+.pe-total-val { font-size: 18px; font-weight: 900; color: var(--petrol); white-space: nowrap; }
+.pe-total-sub { font-size: 11px; color: #718096; margin-top: 3px; }
+body.theme-dark .pe-total { background: rgba(110,198,224,.11); }
+body.theme-dark .pe-total-label, body.theme-dark .pe-total-val { color: #6EC6E0; }
+body.theme-dark .pe-total-sub { color: rgba(255,255,255,.5); }
 body.theme-dark .contact-card { background: #0D1B2A !important; border-color: rgba(255,255,255,.07) !important; }
 body.theme-dark .contact-name { color: #6EC6E0 !important; }
 body.theme-dark .contact-role { color: rgba(255,255,255,.45) !important; }

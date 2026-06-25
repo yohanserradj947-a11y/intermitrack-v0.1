@@ -1898,9 +1898,10 @@ function renderFiscalite(yearGross, yearMissions) {
 }
 
 // Estimation indicative de l'allocation France Travail pour le mois affiché
-function renderPoleEmploi(list) {
+function renderPoleEmploi(list, salaireNet) {
   const box = $("poleEmploiBox");
   if (!box) return;
+  salaireNet = Number(salaireNet) || 0;
   const aj = (typeof _profil !== "undefined" && _profil && Number(_profil.taux_journalier)) || 0;
   if (!aj) {
     box.innerHTML = '<div class="pe-empty">' + ICO.euro + ' <b>Estimation France Travail</b> — renseigne ton <b>taux journalier (AJ)</b> dans <a href="#" id="peProfilLink">Mes informations</a> pour activer ce calcul.</div>';
@@ -1923,6 +1924,7 @@ function renderPoleEmploi(list) {
     '<div class="pe-card">' +
       '<div class="pe-head"><span class="pe-label">' + ICO.euro + ' Estimation France Travail (ce mois)</span><span class="pe-val">≈ ' + bas.toLocaleString('fr-FR') + ' – ' + money(haut) + '</span></div>' +
       '<div class="pe-detail">' + (showNet ? 'fourchette nette (après ' + tax + ' % d\'impôt)' : 'fourchette brute') + ' · basée sur ' + heuresR + ' h ce mois' + (artiste ? ' (artiste, annexe 10)' : ' (technicien, annexe 8)') + '</div>' +
+      '<div class="pe-total"><div class="pe-total-row"><span class="pe-total-label">Revenu total estimé ce mois</span><span class="pe-total-val">≈ ' + (salaireNet + bas).toLocaleString('fr-FR') + ' – ' + money(salaireNet + haut) + '</span></div><div class="pe-total-sub">salaire net ' + money(salaireNet) + ' + allocation France Travail</div></div>' +
       '<div class="pe-note">Fourchette <b>indicative</b> : le calcul exact de France Travail (heures majorées, SJR, plafonds) ne peut pas être reproduit précisément ici. Ne tient pas compte des <b>carences / franchises</b> (début de droits). Fiable seulement si tu saisis tes <b>vraies heures</b>. Montant exact → ton espace <a href="https://www.francetravail.fr/spectacle/" target="_blank" rel="noopener">France Travail</a>.' + (showNet ? '' : ' <a href="#" id="peTaxLink">Ajouter mon taux d\'impôt</a> pour le net.') + '</div>' +
     '</div>';
   if (!showNet) { const tk = $("peTaxLink"); if (tk) tk.onclick = function(e){ e.preventDefault(); if (typeof openProfilModal === "function") openProfilModal(); }; }
@@ -1950,7 +1952,7 @@ function render() {
   const monthNet = Math.round(monthGross * (1 - getChargeRate() / 100) * (1 - getPasRate() / 100));
   if ($("monthNet")) $("monthNet").textContent = money(monthNet);
   if ($("monthGross")) $("monthGross").textContent = "Brut " + money(monthGross);
-  renderPoleEmploi(selectedMonthMissions);
+  renderPoleEmploi(selectedMonthMissions, monthNet);
   if ($("recapMonthPicker")) $("recapMonthPicker").value = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}`;
   const monthRate = monthHours > 0 ? Math.round(monthGross / monthHours) : 0;
   const monthRateNet = monthHours > 0 ? Math.round(monthNet / monthHours) : 0;
