@@ -313,7 +313,7 @@ export default function Missions(){
       <View style={s.statsRow}>
         <View style={s.statBox}><Text style={s.statVal}>{totalVac}</Text><Text style={s.statLbl}>VACATIONS</Text></View>
         <View style={s.statBox}><Text style={s.statVal}>{totalHours}h</Text><Text style={s.statLbl}>HEURES</Text></View>
-        <View style={[s.statBox,s.statHL]}><Text style={[s.statVal,{color:'white'}]}>{money(totalGross)}</Text><Text style={[s.statLbl,{color:'rgba(255,255,255,.7)'}]}>BRUT TOTAL</Text></View>
+        <View style={s.statBox}><Text style={s.statVal}>{money(totalGross)}</Text><Text style={s.statLbl}>BRUT TOTAL</Text></View>
         <View style={s.statBox}><Text style={s.statVal}>{sorted.length}</Text><Text style={s.statLbl}>PROD.</Text></View>
       </View>
 

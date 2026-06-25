@@ -256,7 +256,7 @@ export default function HomeScreen(){
           <View style={s.statBox}><Text style={s.statVal}>{monthH}h</Text><Text style={s.statLbl}>Heures</Text></View>
           <View style={s.statBox}><Text style={s.statVal}>{money(monthNet)}</Text><Text style={s.statSub}>Brut {money(monthG)}</Text><Text style={s.statLbl}>Net à payer (est.)</Text></View>
           <View style={s.statBox}><Text style={s.statVal}>{monthVac}</Text><Text style={s.statLbl}>Vacations</Text></View>
-          <View style={[s.statBox,{borderColor:C.petrol,borderWidth:1}]}><Text style={s.statVal}>{money(monthRateNet)}/h</Text><Text style={s.statSub}>Brut {money(monthRate)}/h</Text><Text style={s.statLbl}>Moyenne €/h (net est.)</Text></View>
+          <View style={s.statBox}><Text style={s.statVal}>{money(monthRateNet)}/h</Text><Text style={s.statSub}>Brut {money(monthRate)}/h</Text><Text style={s.statLbl}>Moyenne €/h (net est.)</Text></View>
         </View>
       </View>
 

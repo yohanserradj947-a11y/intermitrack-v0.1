@@ -614,7 +614,7 @@ html, body { overflow-x: hidden; max-width: 100%; }
 /* ── Missions graph ───────────────────────────────────────────────── */
 .missions-stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
 .mstat-box { background: #F7F9FB; border: 1px solid var(--line); border-radius: 14px; padding: 14px; text-align: center; }
-.mstat-box.highlight { background: linear-gradient(145deg, rgba(13,79,108,.08), rgba(13,79,108,.04)); border-color: rgba(13,79,108,.14); }
+.mstat-box.highlight { background: #F7F9FB; border-color: var(--line); }
 .mstat-box strong { display: block; font-size: 21px; font-weight: 800; color: var(--petrol); letter-spacing: -.04em; }
 .mstat-box span { display: block; font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-top: 4px; }
 .missions-graph-layout { display: grid; grid-template-columns: 220px 1fr; gap: 28px; align-items: center; }
