@@ -72,8 +72,12 @@ export default function TabLayout() {
         name="fiscalite"
         options={{ title: 'Fiscalité', tabBarIcon: ({ color }: { color: string }) => <Ionicons name="calculator-outline" size={ICON} color={color} /> }}
       />
+      <MaterialTopTabs.Screen
+        name="contacts"
+        options={{ title: 'Contacts', tabBarIcon: ({ color }: { color: string }) => <Ionicons name="call-outline" size={ICON} color={color} /> }}
+      />
     </MaterialTopTabs>
-    <ScrollArrowHint tabs={['index', 'calendar', 'missions', 'actualisation', 'previsions', 'documents', 'autoentrepreneur', 'fiscalite']} />
+    <ScrollArrowHint tabs={['index', 'calendar', 'missions', 'actualisation', 'previsions', 'documents', 'autoentrepreneur', 'fiscalite', 'contacts']} />
     <SwipeHint />
     </View>
   );
