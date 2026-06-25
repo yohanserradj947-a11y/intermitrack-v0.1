@@ -192,7 +192,7 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
 <div style="color:#64748B;font-size:12px;margin-top:8px;">Période : ${esc(fmtPeriod(f.facture_date, f.facture_end_date))}</div>
 <table><thead><tr><th>Désignation</th><th>Qté</th><th class="r">PU HT</th><th class="r">Total</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="tot">Total : ${money2(Number(f.amount))}</div>
-<div class="ment">${esc(profile.tva)}<br>En cas de retard de paiement : indemnité forfaitaire pour frais de recouvrement de 40 € (art. L441-10 et D441-5 du Code de commerce).</div>
+<div class="ment">${esc(profile.tva)}<br>En cas de retard de paiement : indemnité forfaitaire pour frais de recouvrement de 40 € (art. L441-10 et D441-5 du Code de commerce).<br><span style="font-size:10px;color:#94A3B8;">Document généré à titre d'aide à la gestion via Intermitrack. L'émetteur reste seul responsable de l'exactitude et de la conformité légale de cette facture.</span></div>
 <div class="foot">Facture générée avec <b>Intermitrack</b> · intermitrack.fr</div></div></body></html>`;
     try {
       const { uri } = await Print.printToFileAsync({ html });
@@ -393,6 +393,7 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
                 <GradientButton label={saving ? 'Enregistrement…' : 'Enregistrer la facture'} onPress={saveFacture} disabled={saving} style={s.saveBtn} textStyle={s.saveBtnTxt} />
                 {facEditId && <TouchableOpacity style={s.deleteBtn} onPress={deleteFacture}><Text style={s.deleteBtnTxt}>🗑️ Supprimer</Text></TouchableOpacity>}
                 <TouchableOpacity style={s.cancelBtn} onPress={() => setShowFac(false)}><Text style={s.cancelBtnTxt}>Annuler</Text></TouchableOpacity>
+                <Text style={s.disclaimer}>ℹ️ Intermitrack est un outil d&apos;aide à la gestion : tu restes seul responsable de l&apos;exactitude et de la conformité légale de tes factures (numérotation, SIRET, « TVA non applicable, art. 293 B du CGI »). À noter : la facturation électronique B2B deviendra obligatoire (réforme 2026-2027). En cas de doute, rapproche-toi d&apos;un expert-comptable.</Text>
               </ScrollView>
             </View>
           </View>
@@ -563,4 +564,5 @@ const s = StyleSheet.create({
   deleteBtnTxt: { color: '#E53E3E', fontWeight: '800', fontSize: 14 },
   cancelBtn: { paddingVertical: 14, alignItems: 'center', marginTop: 4 },
   cancelBtnTxt: { color: C.muted, fontWeight: '700', fontSize: 14 },
+  disclaimer: { fontSize: 11, color: '#94A3B8', lineHeight: 16, marginTop: 14, paddingHorizontal: 4 },
 });
