@@ -1134,6 +1134,7 @@ body.theme-dark .lp-modal-box .msg { color: #64748B !important; }
 .contact-body { font-size: 12.5px; color: #2D3748; line-height: 1.65; }
 .contact-body a { color: var(--petrol, #1F4E5F); font-weight: 700; text-decoration: none; word-break: break-word; }
 .contact-body a:hover { text-decoration: underline; }
+.ci { width: 13px; height: 13px; vertical-align: -2px; margin-right: 3px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .5; }
 body.theme-dark .contact-card { background: #0D1B2A !important; border-color: rgba(255,255,255,.07) !important; }
 body.theme-dark .contact-name { color: #6EC6E0 !important; }
 body.theme-dark .contact-role { color: rgba(255,255,255,.45) !important; }
