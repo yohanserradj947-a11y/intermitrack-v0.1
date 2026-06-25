@@ -2945,13 +2945,6 @@ function _profilShowIntroIfNeeded(){
 
 // Taux horaire / jour selon l'annexe du profil (8h technicien, 12h artiste)
 function _jourH(){ return (_profil && _profil.annexe === 'artiste') ? 12 : 8; }
-// Pré-remplit le champ "heures cumulées" = nb de jours × taux (l'utilisateur ajuste ensuite)
-function _autoFillHours(){
-  var d=document.getElementById('date'), e=document.getElementById('endDate'), h=document.getElementById('hours');
-  if(!d||!e||!h||!d.value||!e.value||e.value<d.value) return;
-  var nb=daysInclusive(new Date(d.value+'T00:00:00'), new Date(e.value+'T00:00:00'));
-  h.value = nb * _jourH();
-}
 function initProfilFeature(){
   _profilEnsureDom();
   loadProfil().then(function(){ _profilShowIntroIfNeeded(); });
@@ -2960,7 +2953,6 @@ function initProfilFeature(){
     btn.dataset.init='1';
     btn.addEventListener('click', function(){ var dd=document.getElementById('accountDropdown'); if(dd) dd.classList.add('hidden'); openProfilModal(); });
   }
-  ['date','endDate'].forEach(function(idd){ var el=document.getElementById(idd); if(el && !el.dataset.autoh){ el.dataset.autoh='1'; el.addEventListener('change', _autoFillHours); } });
 }
 // ====================================================================
 // INTERMITRACK — JS des cartes Prévisions (à AJOUTER à ton app.js)
