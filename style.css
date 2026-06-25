@@ -42,9 +42,9 @@ body {
 
 /* ── Arrière-plan animé (formes floutées flottantes) ────────────── */
 .bg-fx { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
-.bg-fx .blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .30; will-change: transform; }
+.bg-fx .blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: .16; will-change: transform; }
 .bg-fx .b1 { width: 44vw; max-width: 520px; aspect-ratio: 1; background: var(--petrol-2); top: -8vh; left: -6vw; animation: blobA 24s ease-in-out infinite; }
-.bg-fx .b2 { width: 40vw; max-width: 460px; aspect-ratio: 1; background: var(--sage);     bottom: -12vh; right: -6vw; animation: blobB 30s ease-in-out infinite; }
+.bg-fx .b2 { width: 40vw; max-width: 460px; aspect-ratio: 1; background: var(--petrol-2);  bottom: -12vh; right: -6vw; animation: blobB 30s ease-in-out infinite; }
 .bg-fx .b3 { width: 34vw; max-width: 400px; aspect-ratio: 1; background: var(--petrol);    top: 45%; left: 50%; animation: blobC 34s ease-in-out infinite; }
 .bg-fx .b4 { width: 26vw; max-width: 320px; aspect-ratio: 1; background: var(--petrol-2); top: 18%; right: 16%; animation: blobA 28s ease-in-out infinite reverse; }
 @keyframes blobA { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(6vw,5vh) scale(1.12); } }
