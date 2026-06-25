@@ -1,3 +1,4 @@
+import { showAlert } from "../../lib/dialog";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,6 +8,7 @@ import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import AddressInput from '../../components/AddressInput';
 import { GradientButton } from '../../components/GradientButton';
 import NumInput from '../../components/NumInput';
@@ -135,8 +137,8 @@ export default function AutoEntrepreneur() {
   async function saveFacture() {
     if (!uid) return;
     const valid = lignes.filter((l) => (l.designation || '').trim());
-    if (!facClient.trim()) { Alert.alert('Client manquant', 'Indique le client.'); return; }
-    if (!valid.length) { Alert.alert('Prestation manquante', 'Ajoute au moins une prestation.'); return; }
+    if (!facClient.trim()) { showAlert('Client manquant', 'Indique le client.'); return; }
+    if (!valid.length) { showAlert('Prestation manquante', 'Ajoute au moins une prestation.'); return; }
     setSaving(true);
     const total = valid.reduce((a, l) => a + l.quantite * l.prixUnitaire, 0);
     const startISO = iso(facStart);
@@ -154,19 +156,19 @@ export default function AutoEntrepreneur() {
     }
     const res = facEditId ? await supabase.from('factures').update(payload).eq('id', facEditId) : await supabase.from('factures').insert(payload);
     setSaving(false);
-    if (res.error) { Alert.alert('Erreur', res.error.message); return; }
+    if (res.error) { showAlert('Erreur', res.error.message); return; }
     setShowFac(false); load();
   }
   function deleteFacture() {
     if (!facEditId) return;
-    Alert.alert('Supprimer ?', 'Cette facture sera supprimée.', [
+    showAlert('Supprimer ?', 'Cette facture sera supprimée.', [
       { text: 'Annuler', style: 'cancel' },
-      { text: 'Supprimer', style: 'destructive', onPress: async () => { const { error } = await supabase.from('factures').delete().eq('id', facEditId); if (error) { Alert.alert('Erreur', error.message); return; } setShowFac(false); load(); } },
+      { text: 'Supprimer', style: 'destructive', onPress: async () => { const { error } = await supabase.from('factures').delete().eq('id', facEditId); if (error) { showAlert('Erreur', error.message); return; } setShowFac(false); load(); } },
     ]);
   }
 
   async function generatePdf(f: any) {
-    if (!profile.nom || !profile.siret) { Alert.alert('Infos manquantes', 'Renseigne ton nom et ton SIRET dans « Mes informations ».'); return; }
+    if (!profile.nom || !profile.siret) { showAlert('Infos manquantes', 'Renseigne ton nom et ton SIRET dans « Mes informations ».'); return; }
     const lp = (Array.isArray(f.lignes) && f.lignes.length) ? f.lignes : [{ designation: f.prestation, quantite: '', unite: '', prixUnitaire: f.amount }];
     const rows = lp.map((l: any) => {
       const tot = (Number(l.quantite) || 0) * (Number(l.prixUnitaire) || 0) || (Array.isArray(f.lignes) && f.lignes.length ? 0 : Number(f.amount) || 0);
@@ -197,7 +199,7 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
     try {
       const { uri } = await Print.printToFileAsync({ html });
       if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' });
-    } catch (e: any) { Alert.alert('Erreur PDF', e?.message || 'Impossible de générer le PDF.'); }
+    } catch (e: any) { showAlert('Erreur PDF', e?.message || 'Impossible de générer le PDF.'); }
   }
 
   // ---- Société ----
@@ -205,17 +207,17 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
   function openEditSoc(s: any) { setSocEditId(s.id); setSocNom(s.nom || ''); setSocType(s.type || 'Client'); setSocAddr(s.adresse || ''); setSocTel(s.telephone || ''); setSocEmail(s.email || ''); setSocSiret(s.siret || ''); setShowSoc(true); }
   async function saveSociete() {
     if (!uid) return;
-    if (!socNom.trim()) { Alert.alert('Nom manquant', 'Indique le nom de la société.'); return; }
+    if (!socNom.trim()) { showAlert('Nom manquant', 'Indique le nom de la société.'); return; }
     const payload: any = { user_id: uid, nom: socNom.trim(), type: socType, adresse: socAddr.trim() || null, telephone: socTel.trim() || null, email: socEmail.trim() || null, siret: socSiret.trim() || null };
     const res = socEditId ? await supabase.from('societes').update(payload).eq('id', socEditId) : await supabase.from('societes').insert(payload);
-    if (res.error) { Alert.alert('Erreur', res.error.message); return; }
+    if (res.error) { showAlert('Erreur', res.error.message); return; }
     setShowSoc(false); load();
   }
   function deleteSociete() {
     if (!socEditId) return;
-    Alert.alert('Supprimer ?', 'Cette société sera supprimée du carnet.', [
+    showAlert('Supprimer ?', 'Cette société sera supprimée du carnet.', [
       { text: 'Annuler', style: 'cancel' },
-      { text: 'Supprimer', style: 'destructive', onPress: async () => { const { error } = await supabase.from('societes').delete().eq('id', socEditId); if (error) { Alert.alert('Erreur', error.message); return; } setShowSoc(false); load(); } },
+      { text: 'Supprimer', style: 'destructive', onPress: async () => { const { error } = await supabase.from('societes').delete().eq('id', socEditId); if (error) { showAlert('Erreur', error.message); return; } setShowSoc(false); load(); } },
     ]);
   }
 
@@ -229,7 +231,7 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
       </View>
 
       <TouchableOpacity style={s.infoBtn} onPress={() => setShowProfile(true)}>
-        <Text style={s.infoBtnTxt}>🧾 Mes informations (pour les factures)</Text>
+        <View style={{flexDirection:'row',alignItems:'center',gap:5,flex:1}}><Ionicons name="receipt-outline" size={13} color={C.petrol} /><Text style={s.infoBtnTxt}>Mes informations (pour les factures)</Text></View>
         <Text style={s.infoBtnArrow}>Modifier ›</Text>
       </TouchableOpacity>
 
@@ -287,7 +289,7 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
             <View style={s.facBottom}>
               <Text style={s.facAmount}>{money2(Number(f.amount))}</Text>
               <View style={s.facActions}>
-                <GradientButton label="📄 PDF" onPress={() => generatePdf(f)} style={s.pdfBtn} textStyle={s.pdfBtnTxt} />
+                <GradientButton label="PDF" onPress={() => generatePdf(f)} style={s.pdfBtn} textStyle={s.pdfBtnTxt} />
                 <TouchableOpacity style={s.ghostBtn} onPress={() => openEditFacture(f)}><Text style={s.ghostBtnTxt}>Modifier</Text></TouchableOpacity>
               </View>
             </View>
@@ -391,7 +393,7 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
                 </View>
 
                 <GradientButton label={saving ? 'Enregistrement…' : 'Enregistrer la facture'} onPress={saveFacture} disabled={saving} style={s.saveBtn} textStyle={s.saveBtnTxt} />
-                {facEditId && <TouchableOpacity style={s.deleteBtn} onPress={deleteFacture}><Text style={s.deleteBtnTxt}>🗑️ Supprimer</Text></TouchableOpacity>}
+                {facEditId && <TouchableOpacity style={s.deleteBtn} onPress={deleteFacture}><View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6}}><Ionicons name="trash-outline" size={15} color="#E53E3E"/><Text style={s.deleteBtnTxt}>Supprimer</Text></View></TouchableOpacity>}
                 <TouchableOpacity style={s.cancelBtn} onPress={() => setShowFac(false)}><Text style={s.cancelBtnTxt}>Annuler</Text></TouchableOpacity>
                 <Text style={s.disclaimer}>ℹ️ Intermitrack est un outil d&apos;aide à la gestion : tu restes seul responsable de l&apos;exactitude et de la conformité légale de tes factures (numérotation, SIRET, « TVA non applicable, art. 293 B du CGI »). À noter : la facturation électronique B2B deviendra obligatoire (réforme 2026-2027). En cas de doute, rapproche-toi d&apos;un expert-comptable.</Text>
               </ScrollView>
@@ -450,7 +452,7 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
                 <Text style={s.label}>SIRET (optionnel)</Text>
                 <TextInput style={s.input} value={socSiret} onChangeText={setSocSiret} placeholder="SIRET" placeholderTextColor={C.muted} />
                 <GradientButton label="Enregistrer la société" onPress={saveSociete} style={s.saveBtn} textStyle={s.saveBtnTxt} />
-                {socEditId && <TouchableOpacity style={s.deleteBtn} onPress={deleteSociete}><Text style={s.deleteBtnTxt}>🗑️ Supprimer</Text></TouchableOpacity>}
+                {socEditId && <TouchableOpacity style={s.deleteBtn} onPress={deleteSociete}><View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6}}><Ionicons name="trash-outline" size={15} color="#E53E3E"/><Text style={s.deleteBtnTxt}>Supprimer</Text></View></TouchableOpacity>}
                 <TouchableOpacity style={s.cancelBtn} onPress={() => setShowSoc(false)}><Text style={s.cancelBtnTxt}>Annuler</Text></TouchableOpacity>
               </ScrollView>
             </View>

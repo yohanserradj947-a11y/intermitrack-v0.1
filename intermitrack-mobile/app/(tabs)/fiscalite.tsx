@@ -1,9 +1,11 @@
+import { showAlert } from "../../lib/dialog";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { GradientButton } from '../../components/GradientButton';
 import NumInput from '../../components/NumInput';
 import { useTrackView } from '../../lib/analytics';
@@ -83,15 +85,15 @@ export default function Fiscalite() {
 
   async function saveFrais() {
     if (!uid) return;
-    if (!(num(fMontant) > 0)) { Alert.alert('Montant manquant', 'Indique un montant.'); return; }
+    if (!(num(fMontant) > 0)) { showAlert('Montant manquant', 'Indique un montant.'); return; }
     const { error } = await supabase.from('frais').insert({ user_id: uid, frais_date: iso(fDate), categorie: fCat, description: fDesc.trim() || null, montant: num(fMontant) });
-    if (error) { Alert.alert('Erreur', error.message); return; }
+    if (error) { showAlert('Erreur', error.message); return; }
     setShowFrais(false); setFDesc(''); setFMontant(''); load();
   }
   function deleteFrais(id: string) {
-    Alert.alert('Supprimer ?', 'Cette dépense sera supprimée.', [
+    showAlert('Supprimer ?', 'Cette dépense sera supprimée.', [
       { text: 'Annuler', style: 'cancel' },
-      { text: 'Supprimer', style: 'destructive', onPress: async () => { const { error } = await supabase.from('frais').delete().eq('id', id); if (error) { Alert.alert('Erreur', error.message); return; } load(); } },
+      { text: 'Supprimer', style: 'destructive', onPress: async () => { const { error } = await supabase.from('frais').delete().eq('id', id); if (error) { showAlert('Erreur', error.message); return; } load(); } },
     ]);
   }
 
@@ -105,7 +107,7 @@ export default function Fiscalite() {
       </View>
 
       <View style={s.warn}>
-        <Text style={s.warnTitle}>⚠️ Version bêta — estimations</Text>
+        <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="warning-outline" size={13} color={C.warnTx} /><Text style={s.warnTitle}>Version bêta — estimations</Text></View>
         <Text style={s.warnTxt}>Tous les montants sont des estimations pouvant être faussées selon ta situation. Vérifie sur impots.gouv.fr avant toute déclaration.</Text>
       </View>
 

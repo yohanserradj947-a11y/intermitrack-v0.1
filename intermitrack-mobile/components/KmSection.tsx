@@ -1,5 +1,7 @@
+import { showAlert } from "../lib/dialog";
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AddressInput from './AddressInput';
 import NumInput from './NumInput';
 
@@ -55,7 +57,7 @@ const KmSection = forwardRef<KmHandle, { nbDays: number; initialDistance?: numbe
     const frais = cv ? eff * kmCoef(cv, tranche) : pf(rate) * eff;
 
     async function doCalc() {
-      if (!from.trim() || !to.trim()) { Alert.alert('Adresses manquantes', "Indique le lieu de départ et d'arrivée."); return; }
+      if (!from.trim() || !to.trim()) { showAlert('Adresses manquantes', "Indique le lieu de départ et d'arrivée."); return; }
       setCalc(true);
       try {
         const geo = async (q: string) => { const r = await fetch('https://api-adresse.data.gouv.fr/search/?limit=1&q=' + encodeURIComponent(q)); const j = await r.json(); if (!j.features || !j.features.length) throw new Error('Adresse introuvable : ' + q); return j.features[0].geometry.coordinates; };
@@ -64,14 +66,14 @@ const KmSection = forwardRef<KmHandle, { nbDays: number; initialDistance?: numbe
         try { const rr = await fetch(`https://router.project-osrm.org/route/v1/driving/${a[0]},${a[1]};${b[0]},${b[1]}?overview=false`); const rj = await rr.json(); if (rj.routes && rj.routes[0]) km = rj.routes[0].distance / 1000; } catch {}
         if (km == null) km = haversineKm(a[1], a[0], b[1], b[0]) * 1.3;
         setDistance(String(Math.round(km)));
-      } catch (e: any) { Alert.alert('Erreur', e?.message || 'Impossible de calculer la distance.'); }
+      } catch (e: any) { showAlert('Erreur', e?.message || 'Impossible de calculer la distance.'); }
       finally { setCalc(false); }
     }
 
     return (
       <>
         <TouchableOpacity style={s.head} onPress={() => setOpen((o) => !o)}>
-          <Text style={s.headTxt}>🚗 Frais kilométriques (optionnel)</Text>
+          <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="car-outline" size={13} color={C.petrol} /><Text style={s.headTxt}>Frais kilométriques (optionnel)</Text></View>
           <Text style={s.chevron}>{open ? '▲' : '▼'}</Text>
         </TouchableOpacity>
         {open && (
@@ -92,9 +94,9 @@ const KmSection = forwardRef<KmHandle, { nbDays: number; initialDistance?: numbe
               <View style={[s.box, justify && s.boxOn]}>{justify && <Text style={s.boxTxt}>✓</Text>}</View>
               <Text style={s.checkTxt}>Je justifie un trajet de plus de 40 km</Text>
             </TouchableOpacity>
-            {(!justify && pf(distance) > 40) ? <Text style={[s.hint, { color: C.orange, fontWeight: '700' }]}>⚠️ Trajet plafonné à 40 km (règle domicile-travail). Coche ci-dessus si tu peux justifier la distance réelle.</Text> : null}
+            {(!justify && pf(distance) > 40) ? <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="warning-outline" size={13} color={C.orange} /><Text style={[s.hint, { color: C.orange, fontWeight: '700', flex: 1 }]}>Trajet plafonné à 40 km (règle domicile-travail). Coche ci-dessus si tu peux justifier la distance réelle.</Text></View> : null}
             <TouchableOpacity style={s.calcBtn} onPress={doCalc} disabled={calc}>
-              <Text style={s.calcTxt}>{calc ? 'Calcul…' : '📍 Calculer la distance'}</Text>
+              {calc ? <Text style={s.calcTxt}>Calcul…</Text> : <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="location-outline" size={13} color={C.petrol} /><Text style={s.calcTxt}>Calculer la distance</Text></View>}
             </TouchableOpacity>
             <View style={s.row}>
               <View style={{ flex: 1 }}>
@@ -119,7 +121,7 @@ const KmSection = forwardRef<KmHandle, { nbDays: number; initialDistance?: numbe
               ))}
             </View>
             {(eff > 0 && !cv && pf(rate) <= 0)
-              ? <Text style={[s.hint, { color: C.orange, fontWeight: '700' }]}>👉 Choisis ta puissance fiscale (ou un taux €/km) pour estimer les frais.</Text>
+              ? <Text style={[s.hint, { color: C.orange, fontWeight: '700' }]}>Choisis ta puissance fiscale (ou un taux €/km) pour estimer les frais.</Text>
               : <View style={s.result}>
                   <Text style={s.resultLine}>Distance comptée : <Text style={{ fontWeight: '900' }}>{Math.round(eff)} km</Text>{(rt || everyDay || (!justify && pf(distance) > 40)) ? `  =  ${Math.round(kmBase())} km${(!justify && pf(distance) > 40) ? ' (plafond 40)' : ''}${rt ? ' × 2 (A/R)' : ''}${everyDay ? ` × ${nbDays} j` : ''}` : ''}</Text>
                   <Text style={s.resultFrais}>Frais estimés : {money(Math.round(frais))}{cv ? `  ·  ${trancheLabel(tranche)}` : ''}</Text>

@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { showAlert } from "../../lib/dialog";
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Modal, ActivityIndicator, Platform, Alert, KeyboardAvoidingView } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Modal, ActivityIndicator, Platform, Alert, KeyboardAvoidingView, Animated } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
@@ -9,6 +11,7 @@ import NumInput from '../../components/NumInput';
 import TxtInput from '../../components/TxtInput';
 import AddressInput from '../../components/AddressInput';
 import { GradientButton } from '../../components/GradientButton';
+import { Ionicons } from '@expo/vector-icons';
 
 // Barème kilométrique officiel : coefficient par tranche de km annuels.
 // t1/t2 = seuils des tranches ; c1 (≤t1) · c2·km + add2 (t1→t2) · c3 (>t2).
@@ -29,7 +32,13 @@ function trancheLabel(tranche: string) { return tranche === '2' ? '5 001–20 00
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) { const R = 6371, tr = (d: number) => d * Math.PI / 180; const dLat = tr(lat2 - lat1), dLon = tr(lon2 - lon1); const x = Math.sin(dLat / 2) ** 2 + Math.cos(tr(lat1)) * Math.cos(tr(lat2)) * Math.sin(dLon / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); }
 
 const C = { petrol:'#1F4E5F', sage:'#7A9E7E', sageSoft:'#E6F0E8', bg:'#EEF2F1', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1', orange:'#F97316', orangeSoft:'#FFF1E6' };
-const TYPES = ['Montage','Tournage','Démontage'];
+const POSTES_TECH = ['Montage','Tournage','Démontage','Régie','Son','Lumière','Image / Vidéo','Machiniste','Électricien','Poursuiteur','Plateau','Décor','HMC'];
+const POSTES_ARTISTE = ['Comédien','Chanteur','Musicien','Danseur','Choriste'];
+const POSTES_AUTRE = ['Autres'];
+const GRAD_PAST: readonly [string, string] = ['#1F4E5F', '#2F8F6B'];   // pétrole → vert (dates passées)
+const GRAD_FUTURE: readonly [string, string] = ['#F97316', '#FDBA74']; // orange (dates à venir)
+const GRAD_TODAY: readonly [string, string] = ['#2F8F6B', '#1F4E5F'];      // dégradé des dates passées, INVERSÉ (vert → pétrole)
+const GRAD_TODAY_GLOW: readonly [string, string] = ['#54C194', '#2C6E83']; // halo clair qui pulse en douceur
 
 function money(n:number){return(n??0).toLocaleString('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0});}
 function fmtDate(d:string){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});}
@@ -52,6 +61,9 @@ export default function Calendar(){
   const [fProduction,setFProduction]=useState('');
   const [fEmission,setFEmission]=useState('');
   const [fType,setFType]=useState('Montage');
+  const [showTypePicker,setShowTypePicker]=useState(false);
+  const [fVacations,setFVacations]=useState('');
+  const [dayMenu,setDayMenu]=useState<{date:Date;missions:any[]}|null>(null);
   const [fStart,setFStart]=useState(new Date());
   const [fEnd,setFEnd]=useState(new Date());
   const [fHours,setFHours]=useState('');
@@ -79,8 +91,14 @@ export default function Calendar(){
   const [showMdp,setShowMdp]=useState(false);
   const [mdpDays,setMdpDays]=useState<{date:string;checked:boolean;hours:number}[]>([]);
 
+  const pulse=useRef(new Animated.Value(0)).current;
   useEffect(()=>{loadMissions();},[]);
-  useFocusEffect(useCallback(()=>{loadMissions(true);},[]));
+  useFocusEffect(useCallback(()=>{
+    loadMissions(true);
+    const loop=Animated.loop(Animated.sequence([Animated.timing(pulse,{toValue:1,duration:850,useNativeDriver:true}),Animated.timing(pulse,{toValue:0,duration:850,useNativeDriver:true})]));
+    loop.start();
+    return()=>loop.stop();
+  },[pulse]));
   async function loadMissions(silent=false){
     const{data}=await supabase.from('missions').select('*').order('mission_date',{ascending:true});
     if(data)setMissions(data);
@@ -90,7 +108,7 @@ export default function Calendar(){
   function openCreate(day:Date){
     setEditId(null);
     setFProduction(''); setFEmission(''); setFType('Montage'); setFStart(day); setFEnd(day);
-    setFHours(''); setFGross(''); setMdpDays([]);
+    setFHours(''); setFGross(''); setFVacations(''); setMdpDays([]);
     setKmOpen(false); setKmFrom(''); setKmTo(''); setKmFromCoords(null); setKmToCoords(null); setKmRT(false); setKmEveryDay(false); setKmJustify(false); setKmCv(''); setKmTranche('1'); setKmDistance(''); setKmRate('');
     setShowSuggest(false); setShowEmSuggest(false);
     setShowForm(true);
@@ -100,7 +118,7 @@ export default function Calendar(){
     setFProduction(m.production||''); setFEmission(m.emission||''); setFType(m.mission_type||'Montage');
     setFStart(new Date((m.mission_date)+'T00:00:00'));
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
-    setFHours(String(m.hours||'')); setFGross(String(m.gross_amount||''));
+    setFHours(String(m.hours||'')); setFGross(String(m.gross_amount||'')); setFVacations(String(m.vacations||''));
     setKmFrom(''); setKmTo(''); setKmFromCoords(null); setKmToCoords(null); setKmRT(false); setKmEveryDay(false); setKmJustify(false); setKmCv(''); setKmTranche('1');
     setKmDistance(m.km_distance?String(m.km_distance):''); setKmRate(m.km_rate?String(m.km_rate):'');
     setKmOpen(!!(m.km_distance||m.km_amount));
@@ -109,7 +127,7 @@ export default function Calendar(){
   }
 
   async function calcKm(){
-    if(!kmFrom.trim()||!kmTo.trim()){ Alert.alert('Adresses manquantes','Indique le lieu de départ et d\'arrivée.'); return; }
+    if(!kmFrom.trim()||!kmTo.trim()){ showAlert('Adresses manquantes','Indique le lieu de départ et d\'arrivée.'); return; }
     setKmCalc(true);
     try{
       const geo=async(q:string)=>{const r=await fetch('https://api-adresse.data.gouv.fr/search/?limit=1&q='+encodeURIComponent(q));const j=await r.json();if(!j.features||!j.features.length)throw new Error('Adresse introuvable : '+q);return j.features[0].geometry.coordinates;};
@@ -118,7 +136,7 @@ export default function Calendar(){
       try{const rr=await fetch(`https://router.project-osrm.org/route/v1/driving/${a[0]},${a[1]};${b[0]},${b[1]}?overview=false`);const rj=await rr.json();if(rj.routes&&rj.routes[0])km=rj.routes[0].distance/1000;}catch{}
       if(km==null)km=haversineKm(a[1],a[0],b[1],b[0])*1.3;
       setKmDistance(String(Math.round(km)));
-    }catch(e:any){ Alert.alert('Erreur',e?.message||'Impossible de calculer la distance.'); }
+    }catch(e:any){ showAlert('Erreur',e?.message||'Impossible de calculer la distance.'); }
     finally{ setKmCalc(false); }
   }
   // Distance totale = trajet × (aller-retour ? 2) × (chaque jour ? nb jours travaillés)
@@ -133,12 +151,12 @@ export default function Calendar(){
   async function saveSimple(){
     setSaving(true);
     const { data:{ user } } = await supabase.auth.getUser();
-    if(!user){ Alert.alert('Erreur','Tu n\'es plus connecté.'); setSaving(false); return; }
+    if(!user){ showAlert('Erreur','Tu n\'es plus connecté.'); setSaving(false); return; }
     const startISO=iso(fStart), endISO=iso(fEnd);
     const payload={
       user_id:user.id, production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, mission_type:fType,
       mission_date:startISO, end_date:endISO!==startISO?endISO:null,
-      hours:Number(fHours)||0, vacations:Math.round((Number(fHours)||0)/8),
+      hours:Number(fHours)||0, vacations:Number(fVacations)||Math.round((Number(fHours)||0)/8),
       gross_amount:Number(fGross)||0, status:'effectue',
       km_distance:Math.round(kmEff(kmWorkedDays)), km_rate:pf(kmRate),
       km_amount:Math.round(kmFraisFor(kmWorkedDays)*100)/100,
@@ -147,13 +165,13 @@ export default function Calendar(){
       ? await supabase.from('missions').update(payload).eq('id',editId)
       : await supabase.from('missions').insert(payload);
     setSaving(false);
-    if(error){ Alert.alert('Erreur',error.message); return; }
+    if(error){ showAlert('Erreur',error.message); return; }
     setShowForm(false); setEditId(null); loadMissions(true);
   }
 
   function handleSave(){
-    if(!fProduction.trim()){ Alert.alert('Production manquante','Indique le nom de la production.'); return; }
-    if(!fHours.trim()){ Alert.alert('Heures manquantes','Indique le nombre d\'heures.'); return; }
+    if(!fProduction.trim()){ showAlert('Production manquante','Indique le nom de la production.'); return; }
+    if(!fHours.trim()){ showAlert('Heures manquantes','Indique le nombre d\'heures.'); return; }
     const nb=daysInclusive(fStart,fEnd);
     if(!editId && nb>=2){
       if(mdpDays.length===0){ openDayPicker(fStart,fEnd); return; }
@@ -165,12 +183,12 @@ export default function Calendar(){
 
   async function deleteMission(){
     if(!editId)return;
-    Alert.alert('Supprimer ?','Cette mission sera définitivement supprimée.',[
+    showAlert('Supprimer ?','Cette mission sera définitivement supprimée.',[
       {text:'Annuler',style:'cancel'},
       {text:'Supprimer',style:'destructive',onPress:async()=>{
         const { error, count }=await supabase.from('missions').delete({count:'exact'}).eq('id',editId);
-        if(error){ Alert.alert('Erreur',error.message); return; }
-        if(count===0){ Alert.alert('Bloqué','La suppression a été refusée (droits Supabase / RLS).'); return; }
+        if(error){ showAlert('Erreur',error.message); return; }
+        if(count===0){ showAlert('Bloqué','La suppression a été refusée (droits Supabase / RLS).'); return; }
         setShowForm(false); setEditId(null); loadMissions(true);
       }},
     ]);
@@ -191,15 +209,16 @@ export default function Calendar(){
   }
   // « Continuer » : on garde la sélection des jours et on revient au formulaire (pas de sauvegarde ici).
   function confirmDays(){
-    if(mdpChecked.length===0){ Alert.alert('Aucun jour','Coche au moins un jour travaillé.'); return; }
+    if(mdpChecked.length===0){ showAlert('Aucun jour','Coche au moins un jour travaillé.'); return; }
     setFHours(String(mdpTotalH));
+    setFVacations(String(mdpChecked.length));
     setShowMdp(false); setShowForm(true);
   }
   async function commitMultiDay(){
-    if(mdpChecked.length===0){ Alert.alert('Aucun jour','Coche au moins un jour travaillé.'); return; }
+    if(mdpChecked.length===0){ showAlert('Aucun jour','Coche au moins un jour travaillé.'); return; }
     setSaving(true);
     const { data:{ user } } = await supabase.auth.getUser();
-    if(!user){ Alert.alert('Erreur','Tu n\'es plus connecté.'); setSaving(false); return; }
+    if(!user){ showAlert('Erreur','Tu n\'es plus connecté.'); setSaving(false); return; }
     const totalGross=Number(fGross)||0;
     const sumHours=mdpChecked.reduce((a,d)=>a+(Number(d.hours)||0),0);
     const runs:{start:string;end:string;hours:number;days:number}[]=[];
@@ -214,7 +233,7 @@ export default function Calendar(){
       const gross=sumHours>0?Math.round(totalGross*(runHours/sumHours)):Math.round(totalGross/runs.length);
       return { user_id:user.id, production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, mission_type:fType,
         mission_date:r.start, end_date:r.end!==r.start?r.end:null,
-        hours:runHours, vacations:Math.round(runHours/8), gross_amount:gross, status:'effectue',
+        hours:runHours, vacations:r.days, gross_amount:gross, status:'effectue',
         km_distance:0, km_rate:0, km_amount:0 };
     });
     const grossSum=payloads.reduce((a,p)=>a+p.gross_amount,0);
@@ -228,7 +247,7 @@ export default function Calendar(){
     }
     const { error }=await supabase.from('missions').insert(payloads);
     setSaving(false);
-    if(error){ Alert.alert('Erreur',error.message); return; }
+    if(error){ showAlert('Erreur',error.message); return; }
     setShowMdp(false); setShowForm(false); setEditId(null); setMdpDays([]); loadMissions(true);
   }
 
@@ -254,16 +273,7 @@ export default function Calendar(){
   function onCellPress(d:Date){
     const ms=missionsOn(d);
     if(ms.length===0){ openCreate(d); return; }
-    const buttons:any[] = ms.map((m:any)=>({
-text:'Modifier : '+(m.production||'Mission')+' ('+(Math.round((Number(m.hours||0)/daysInclusive(new Date((m.mission_date)+'T00:00:00'),new Date((m.end_date||m.mission_date)+'T00:00:00')))*10)/10)+'h/jour)',      onPress:()=>openEdit(m),
-    }));
-    buttons.push({ text:'+ Ajouter une mission ce jour', onPress:()=>openCreate(d) });
-    buttons.push({ text:'Annuler', style:'cancel' });
-    Alert.alert(
-      frDay(iso(d)).charAt(0).toUpperCase()+frDay(iso(d)).slice(1),
-      'Que veux-tu faire ?',
-      buttons
-    );
+    setDayMenu({date:d,missions:ms});
   }
   // Suggestions de production : on prend les productions déjà saisies (dans `missions`),
   // sans doublons, insensible à la casse, et on garde celles qui contiennent le texte tapé.
@@ -306,20 +316,22 @@ text:'Modifier : '+(m.production||'Mission')+' ('+(Math.round((Number(m.hours||0
           const has=ms.length>0;
           const isToday=dayISO===todayISO;
           const isPast=dayISO<todayISO;
-          let bg=C.card, border=C.line;
-          if(has){ if(isPast){bg=C.sageSoft;border=C.sage;} else {bg=C.orangeSoft;border=C.orange;} }
-          if(isToday){bg=C.petrol;border=C.petrol;}
+          const grad=isToday?GRAD_TODAY:(has?(isPast?GRAD_PAST:GRAD_FUTURE):null);
+          const filled=grad!=null;
           const first=ms[0];
-          const txtColor=isToday?'white':(has?(isPast?C.petrol:C.orange):C.text);
+          const txtColor=filled?'#fff':C.text;
+          const subColor=filled?'rgba(255,255,255,.85)':C.muted;
           return(
-            <TouchableOpacity key={i} style={[s.cell,{backgroundColor:bg,borderColor:border}]} onPress={()=>onCellPress(d)}>
-              <Text style={[s.cellDay,{color:txtColor}]}>{d.getDate()}</Text>
+            <TouchableOpacity key={i} style={[s.cell,filled?s.cellFilled:s.cellEmpty]} activeOpacity={0.85} onPress={()=>onCellPress(d)}>
+              {grad&&<LinearGradient colors={grad} start={{x:0,y:0}} end={{x:1,y:1}} style={StyleSheet.absoluteFill}/>}
+              {isToday&&<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill,{opacity:pulse.interpolate({inputRange:[0,1],outputRange:[0,0.55]})}]}><LinearGradient colors={GRAD_TODAY_GLOW} start={{x:0,y:0}} end={{x:1,y:1}} style={StyleSheet.absoluteFill}/></Animated.View>}
+              <Text style={[s.cellDay,{color:txtColor},isToday&&s.cellDayToday]}>{d.getDate()}</Text>
               {first&&(
                 <>
-                  <Text style={[s.cellProd,{color:isToday?'white':txtColor}]} numberOfLines={1}>
+                  <Text style={[s.cellProd,{color:txtColor}]} numberOfLines={1}>
                     {(first.production||'').slice(0,3).toUpperCase()}
                   </Text>
-                  <Text style={[s.cellInfo,{color:isToday?'rgba(255,255,255,.8)':C.muted}]} numberOfLines={1}>
+                  <Text style={[s.cellInfo,{color:subColor}]} numberOfLines={1}>
                     {Math.round((Number(first.hours||0)/daysInclusive(new Date((first.mission_date)+'T00:00:00'),new Date((first.end_date||first.mission_date)+'T00:00:00')))*10)/10}h{ms.length>1?` · +${ms.length-1}`:''}
                   </Text>
                 </>
@@ -377,7 +389,7 @@ text:'Modifier : '+(m.production||'Mission')+' ('+(Math.round((Number(m.hours||0
                 <View style={s.suggestBox}>
                   {prodSuggestions.map(p=>(
                     <TouchableOpacity key={p} style={s.suggestItem} onPress={()=>{setFProduction(p);setShowSuggest(false);}}>
-                      <Text style={s.suggestTxt}>🔁 {p}</Text>
+                      <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="repeat" size={13} color={C.petrol} /><Text style={s.suggestTxt}>{p}</Text></View>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -389,20 +401,33 @@ text:'Modifier : '+(m.production||'Mission')+' ('+(Math.round((Number(m.hours||0
                 <View style={s.suggestBox}>
                   {emSuggestions.map(e=>(
                     <TouchableOpacity key={e} style={s.suggestItem} onPress={()=>{setFEmission(e);setShowEmSuggest(false);}}>
-                      <Text style={s.suggestTxt}>🎬 {e}</Text>
+                      <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="videocam-outline" size={13} color={C.petrol} /><Text style={s.suggestTxt}>{e}</Text></View>
                     </TouchableOpacity>
                   ))}
                 </View>
               )}
 
               <Text style={s.label}>Type de mission</Text>
-              <View style={s.typeWrap}>
-                {TYPES.map(t=>(
-                  <TouchableOpacity key={t} style={[s.typeChip,fType===t&&s.typeChipActive]} onPress={()=>setFType(t)}>
-                    <Text style={fType===t?s.typeChipTxtActive:s.typeChipTxt}>{t}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <TouchableOpacity style={s.typeBtn} onPress={()=>setShowTypePicker(v=>!v)}>
+                <Text style={s.typeBtnTxt}>{fType}</Text>
+                <Text style={s.typeBtnChevron}>{showTypePicker?'▴':'▾'}</Text>
+              </TouchableOpacity>
+              {showTypePicker && (
+                <View style={s.typePickerInline}>
+                  {([['Technique',POSTES_TECH],['Artiste',POSTES_ARTISTE],['Autre',POSTES_AUTRE]] as [string,string[]][]).map(([grp,list])=>(
+                    <View key={grp}>
+                      <Text style={s.typeGroupLbl}>{grp}</Text>
+                      <View style={s.typeWrap}>
+                        {list.map(p=>(
+                          <TouchableOpacity key={p} style={[s.typeChip,fType===p&&s.typeChipActive]} onPress={()=>{setFType(p);setShowTypePicker(false);}}>
+                            <Text style={fType===p?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
 
               <View style={s.row}>
                 <View style={{flex:1}}>
@@ -438,15 +463,19 @@ text:'Modifier : '+(m.production||'Mission')+' ('+(Math.round((Number(m.hours||0
               </View>
               {(!editId && daysInclusive(fStart,fEnd)>=2) ? (
                 <TouchableOpacity style={s.kmCalcBtn} onPress={()=>openDayPicker(fStart,fEnd)}>
-                  <Text style={s.kmCalcTxt}>📅 {mdpChecked.length>0?`${mdpChecked.length} jour(s) travaillé(s) · modifier`:'Choisir les jours travaillés'}</Text>
+                  <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6}}><Ionicons name="calendar-outline" size={14} color={C.petrol} /><Text style={s.kmCalcTxt}>{mdpChecked.length>0?`${mdpChecked.length} jour(s) travaillé(s) · modifier`:'Choisir les jours travaillés'}</Text></View>
                 </TouchableOpacity>
               ) : null}
+
+              <Text style={s.label}>Nombre de vacations</Text>
+              <NumInput style={s.input} value={fVacations} onChangeText={setFVacations} placeholder="Ex : 1" placeholderTextColor={C.muted}/>
+              <Text style={s.miniHint}>Nombre de jours travaillés. Se remplit tout seul depuis le sélecteur de jours.</Text>
 
               <Text style={s.label}>Montant brut (€)</Text>
               <NumInput style={s.input} value={fGross} onChangeText={setFGross} placeholder="0" placeholderTextColor={C.muted}/>
 
               <TouchableOpacity style={s.kmHead} onPress={()=>setKmOpen(o=>!o)}>
-                <Text style={s.kmHeadTxt}>🚗 Frais kilométriques (optionnel)</Text>
+                <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="car-outline" size={14} color={C.petrol} /><Text style={s.kmHeadTxt}>Frais kilométriques (optionnel)</Text></View>
                 <Text style={s.kmChevron}>{kmOpen?'▲':'▼'}</Text>
               </TouchableOpacity>
               {kmOpen&&(
@@ -467,9 +496,9 @@ text:'Modifier : '+(m.production||'Mission')+' ('+(Math.round((Number(m.hours||0
                     <View style={[s.kmBox,kmJustify&&s.kmBoxOn]}>{kmJustify&&<Text style={s.kmBoxTxt}>✓</Text>}</View>
                     <Text style={s.kmCheckTxt}>Je justifie un trajet de plus de 40 km</Text>
                   </TouchableOpacity>
-                  {(!kmJustify&&pf(kmDistance)>40)?<Text style={[s.miniHint,{color:C.orange,fontWeight:'700'}]}>⚠️ Trajet plafonné à 40 km (règle domicile-travail). Coche ci-dessus si tu peux justifier la distance réelle.</Text>:null}
+                  {(!kmJustify&&pf(kmDistance)>40)?<View style={{flexDirection:'row',alignItems:'flex-start',gap:5}}><Ionicons name="warning-outline" size={13} color={C.orange} style={{marginTop:2}} /><Text style={[s.miniHint,{color:C.orange,fontWeight:'700',flex:1}]}>Trajet plafonné à 40 km (règle domicile-travail). Coche ci-dessus si tu peux justifier la distance réelle.</Text></View>:null}
                   <TouchableOpacity style={s.kmCalcBtn} onPress={calcKm} disabled={kmCalc}>
-                    <Text style={s.kmCalcTxt}>{kmCalc?'Calcul…':'📍 Calculer la distance'}</Text>
+                    <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6}}>{!kmCalc&&<Ionicons name="location-outline" size={14} color={C.petrol} />}<Text style={s.kmCalcTxt}>{kmCalc?'Calcul…':'Calculer la distance'}</Text></View>
                   </TouchableOpacity>
                   <View style={s.row}>
                     <View style={{flex:1}}>
@@ -494,7 +523,7 @@ text:'Modifier : '+(m.production||'Mission')+' ('+(Math.round((Number(m.hours||0
                     ))}
                   </View>
                   {(kmEff(kmWorkedDays)>0 && !kmCv && pf(kmRate)<=0)
-                    ? <Text style={[s.miniHint,{color:C.orange,fontWeight:'700'}]}>👉 Choisis ta puissance fiscale ci-dessus (ou entre un taux €/km) pour estimer les frais.</Text>
+                    ? <Text style={[s.miniHint,{color:C.orange,fontWeight:'700'}]}>Choisis ta puissance fiscale ci-dessus (ou entre un taux €/km) pour estimer les frais.</Text>
                     : <View style={s.kmResult}>
                         <Text style={s.kmResultLine}>Distance comptée : <Text style={{fontWeight:'900'}}>{Math.round(kmEff(kmWorkedDays))} km</Text>{(kmRT||kmEveryDay||(!kmJustify&&pf(kmDistance)>40))?`  =  ${Math.round(kmBase())} km${(!kmJustify&&pf(kmDistance)>40)?' (plafond 40)':''}${kmRT?' × 2 (A/R)':''}${kmEveryDay?` × ${kmWorkedDays} j`:''}`:''}</Text>
                         <Text style={s.kmResultFrais}>Frais estimés : {money(Math.round(kmFraisFor(kmWorkedDays)))}{kmCv?`  ·  ${trancheLabel(kmTranche)}`:''}</Text>
@@ -508,7 +537,7 @@ text:'Modifier : '+(m.production||'Mission')+' ('+(Math.round((Number(m.hours||0
               <GradientButton onPress={handleSave} disabled={saving} style={s.saveBtn} textStyle={s.saveBtnTxt} label={saving?'Enregistrement…':(editId?'Mettre à jour':'Enregistrer la mission')} />
               {editId&&(
                 <TouchableOpacity style={s.deleteBtn} onPress={deleteMission}>
-                  <Text style={s.deleteBtnTxt}>🗑️ Supprimer cette mission</Text>
+                  <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6}}><Ionicons name="trash-outline" size={15} color="#E53E3E"/><Text style={s.deleteBtnTxt}>Supprimer cette mission</Text></View>
                 </TouchableOpacity>
               )}
               <TouchableOpacity style={s.cancelBtn} onPress={()=>{setShowForm(false);setEditId(null);}}>
@@ -559,6 +588,35 @@ text:'Modifier : '+(m.production||'Mission')+' ('+(Math.round((Number(m.hours||0
         </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <Modal visible={!!dayMenu} animationType="slide" transparent onRequestClose={()=>setDayMenu(null)}>
+        <View style={s.modalOverlay}>
+          <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={s.modalTitle}>{dayMenu?(frDay(iso(dayMenu.date)).charAt(0).toUpperCase()+frDay(iso(dayMenu.date)).slice(1)):''}</Text>
+              <Text style={s.dayMenuSub}>Que veux-tu faire ?</Text>
+              {dayMenu?.missions.map((m:any)=>{
+                const hpj=Math.round((Number(m.hours||0)/daysInclusive(new Date((m.mission_date)+'T00:00:00'),new Date((m.end_date||m.mission_date)+'T00:00:00')))*10)/10;
+                return(
+                  <TouchableOpacity key={m.id} style={s.dayMenuItem} onPress={()=>{const mm=m;setDayMenu(null);openEdit(mm);}}>
+                    <View style={{flex:1}}>
+                      <Text style={s.dayMenuItemProd} numberOfLines={1}>{m.production||'Mission'}</Text>
+                      <Text style={s.dayMenuItemMeta}>{hpj}h/jour · {m.mission_type}</Text>
+                    </View>
+                    <Text style={s.dayMenuChevron}>›</Text>
+                  </TouchableOpacity>
+                );
+              })}
+              <TouchableOpacity style={s.dayMenuAdd} onPress={()=>{const dd=dayMenu?.date;setDayMenu(null);if(dd)openCreate(dd);}}>
+                <Text style={s.dayMenuAddTxt}>+ Ajouter une mission ce jour</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.cancelBtn} onPress={()=>setDayMenu(null)}>
+                <Text style={s.cancelBtnTxt}>Annuler</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -575,7 +633,12 @@ const s=StyleSheet.create({
   weekRow:{flexDirection:'row',paddingHorizontal:10,marginBottom:6},
   weekDay:{flex:1,textAlign:'center',fontSize:12,fontWeight:'800',color:C.muted},
   grid:{flexDirection:'row',flexWrap:'wrap',paddingHorizontal:8},
-cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginBottom:4,overflow:'hidden',shadowColor:'#000',shadowOpacity:0.03,shadowRadius:3,elevation:1},   cellDay:{fontSize:14,fontWeight:'800'},
+cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginBottom:4,overflow:'hidden',shadowColor:'#000',shadowOpacity:0.03,shadowRadius:3,elevation:1},
+  cellEmpty:{backgroundColor:C.card,borderColor:C.line},
+  cellFilled:{borderColor:'transparent'},
+  todayRing:{position:'absolute',top:0,left:0,right:0,bottom:0,borderRadius:13,borderWidth:2.5,borderColor:'#FFFFFF'},
+  cellDayToday:{fontWeight:'900'},
+  cellDay:{fontSize:14,fontWeight:'800'},
   cellProd:{fontSize:9,fontWeight:'900',marginTop:2},
   cellInfo:{fontSize:8,fontWeight:'600'},
   hint:{textAlign:'center',fontSize:11,color:C.muted,fontStyle:'italic',marginTop:8,marginBottom:4,paddingHorizontal:20},
@@ -627,6 +690,18 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   typeChipActive:{backgroundColor:C.petrol},
   typeChipTxt:{fontSize:13,fontWeight:'700',color:C.petrol},
   typeChipTxtActive:{fontSize:13,fontWeight:'700',color:'white'},
+  typeBtn:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingVertical:12,paddingHorizontal:14,borderRadius:12,backgroundColor:C.card,borderWidth:1,borderColor:C.line},
+  typeBtnTxt:{fontSize:14,fontWeight:'700',color:C.text},
+  typeBtnChevron:{fontSize:13,color:C.muted},
+  typeGroupLbl:{fontSize:11.5,fontWeight:'800',color:C.muted,marginTop:14,marginBottom:8,textTransform:'uppercase',letterSpacing:0.5},
+  typePickerInline:{marginTop:8,padding:12,borderRadius:12,backgroundColor:C.soft,borderWidth:1,borderColor:C.line},
+  dayMenuSub:{fontSize:13,color:C.muted,marginBottom:14,textAlign:'center'},
+  dayMenuItem:{flexDirection:'row',alignItems:'center',gap:10,padding:13,borderRadius:13,borderWidth:1,borderColor:C.line,marginBottom:8,backgroundColor:C.card},
+  dayMenuItemProd:{fontSize:14,fontWeight:'800',color:C.text},
+  dayMenuItemMeta:{fontSize:12,color:C.muted,marginTop:2},
+  dayMenuChevron:{fontSize:22,color:C.muted,fontWeight:'700'},
+  dayMenuAdd:{padding:14,borderRadius:13,backgroundColor:C.soft,alignItems:'center',marginBottom:4,marginTop:4},
+  dayMenuAddTxt:{fontSize:14,fontWeight:'800',color:C.petrol},
   saveBtn:{backgroundColor:C.petrol,borderRadius:15,paddingVertical:15,alignItems:'center',marginTop:20},
   saveBtnTxt:{color:'white',fontWeight:'800',fontSize:15},
   deleteBtn:{backgroundColor:'#FFF5F5',borderRadius:15,paddingVertical:14,alignItems:'center',marginTop:10},

@@ -1,3 +1,4 @@
+import { showAlert } from "../../lib/dialog";
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
@@ -43,7 +44,7 @@ export default function Actualisation(){
   function moveMonth(n:number){const d=new Date(current);d.setMonth(d.getMonth()+n);d.setDate(1);setCurrent(d);}
 
   async function generatePDF(){
-    if(monthMissions.length===0){ Alert.alert('Aucune mission','Aucune mission à déclarer ce mois-ci.'); return; }
+    if(monthMissions.length===0){ showAlert('Aucune mission','Aucune mission à déclarer ce mois-ci.'); return; }
     setGenerating(true);
     try{
       const rows=monthMissions.map((m:any)=>`
@@ -88,10 +89,10 @@ export default function Actualisation(){
       if(await Sharing.isAvailableAsync()){
         await Sharing.shareAsync(uri,{ mimeType:'application/pdf', dialogTitle:'Actualisation '+monthLabel(current) });
       }else{
-        Alert.alert('PDF généré','Le PDF a été créé mais le partage n\'est pas disponible sur cet appareil.');
+        showAlert('PDF généré','Le PDF a été créé mais le partage n\'est pas disponible sur cet appareil.');
       }
     }catch(e:any){
-      Alert.alert('Erreur',e.message||'Impossible de générer le PDF.');
+      showAlert('Erreur',e.message||'Impossible de générer le PDF.');
     }
     setGenerating(false);
   }
@@ -118,7 +119,7 @@ export default function Actualisation(){
         <View style={[s.statBox,{borderColor:C.petrol,borderWidth:1}]}><Text style={s.statVal}>{money(totalGross)}</Text><Text style={s.statLbl}>Brut total</Text></View>
       </View>
 
-      <GradientButton onPress={generatePDF} disabled={generating} style={s.pdfBtn} textStyle={s.pdfBtnTxt} label={generating?'Génération…':'📄 Générer le PDF'} />
+      <GradientButton onPress={generatePDF} disabled={generating} style={s.pdfBtn} textStyle={s.pdfBtnTxt} label={generating?'Génération…':'Générer le PDF'} />
 
       <Text style={s.listTitle}>Détail des missions</Text>
       <View style={{paddingHorizontal:16,gap:10}}>

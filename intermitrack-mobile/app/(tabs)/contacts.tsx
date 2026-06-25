@@ -18,27 +18,27 @@ const CONTACTS: Contact[] = [
   { ic: 'briefcase-outline', name: 'France Travail Spectacle', role: 'Allocations chômage (annexes 8 & 10)', lines: [
     { type: 'tel', label: '3995 (puis « spectacle »)', value: '3995' },
     { type: 'tel', label: 'Étranger : +33 1 77 86 39 95', value: '+33177863995' },
-    { type: 'text', label: '📍 Centre de recouvrement Cinéma Spectacle, TSA 70113, 92891 Nanterre Cedex 09' },
+    { type: 'text', label: 'Centre de recouvrement Cinéma Spectacle, TSA 70113, 92891 Nanterre Cedex 09' },
     { type: 'url', label: 'francetravail.fr/spectacle', value: 'https://www.francetravail.fr/spectacle/' },
   ] },
   { ic: 'shield-checkmark-outline', name: 'Audiens', role: 'Retraite, prévoyance, santé, action sociale', lines: [
     { type: 'tel', label: '0 173 173 755 (intermittents & pigistes)', value: '0173173755' },
-    { type: 'text', label: '📍 74 rue Jean-Bleuzen, 92177 Vanves Cedex' },
+    { type: 'text', label: '74 rue Jean-Bleuzen, 92177 Vanves Cedex' },
     { type: 'url', label: 'audiens.org', value: 'https://www.audiens.org' },
   ] },
   { ic: 'sunny-outline', name: 'Congés Spectacles', role: 'Caisse des congés payés (gérée par Audiens)', lines: [
     { type: 'tel', label: '0 173 173 434 (lun-ven 8h30-18h)', value: '0173173434' },
-    { type: 'text', label: '📍 Audiens – Indemnités de congés payés, TSA 90406, 92177 Vanves Cedex' },
+    { type: 'text', label: 'Audiens – Indemnités de congés payés, TSA 90406, 92177 Vanves Cedex' },
     { type: 'url', label: 'conges-spectacles.com', value: 'https://www.conges-spectacles.com' },
   ] },
   { ic: 'school-outline', name: 'Afdas', role: 'Formation professionnelle & conseil carrière', lines: [
     { type: 'tel', label: '01 44 78 55 87 (intermittents)', value: '0144785587' },
-    { type: 'text', label: '📍 66 rue Stendhal, 75020 Paris' },
+    { type: 'text', label: '66 rue Stendhal, 75020 Paris' },
     { type: 'url', label: 'afdas.com', value: 'https://www.afdas.com' },
   ] },
   { ic: 'medkit-outline', name: 'Thalie Santé (ex-CMB)', role: 'Médecine du travail du spectacle', lines: [
     { type: 'tel', label: '01 49 27 60 05', value: '0149276005' },
-    { type: 'text', label: '📍 7 rue Bergère, 75009 Paris' },
+    { type: 'text', label: '7 rue Bergère, 75009 Paris' },
     { type: 'url', label: 'thalie-sante.org', value: 'https://www.thalie-sante.org' },
   ] },
   { ic: 'document-text-outline', name: 'Guso', role: 'Guichet unique du spectacle occasionnel', lines: [
@@ -58,7 +58,7 @@ function open(line: Line) {
   Linking.openURL(url).catch(() => {});
 }
 
-const ICON: Record<string, string> = { tel: '📞', mail: '✉️', url: '🔗', text: '' };
+const LINE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = { tel: 'call-outline', mail: 'mail-outline', url: 'link-outline' };
 
 export default function Contacts() {
   useTrackView('contacts');
@@ -86,9 +86,12 @@ export default function Contacts() {
             <View style={s.body}>
               {ct.lines.map((ln, i) => (
                 ln.type === 'text'
-                  ? <Text key={i} style={s.lineText}>{ln.label}</Text>
+                  ? <View key={i} style={s.lineRow}>
+                      <Ionicons name="location-outline" size={14} color={C.muted} style={s.lineIcSvg} />
+                      <Text style={s.lineText}>{ln.label}</Text>
+                    </View>
                   : <TouchableOpacity key={i} onPress={() => open(ln)} style={s.lineRow}>
-                      <Text style={s.lineIc}>{ICON[ln.type]}</Text>
+                      <Ionicons name={LINE_ICON[ln.type]} size={14} color={C.petrol} style={s.lineIcSvg} />
                       <Text style={s.lineLink}>{ln.label}</Text>
                     </TouchableOpacity>
               ))}
@@ -112,8 +115,8 @@ const s = StyleSheet.create({
   name: { fontSize: 15, fontWeight: '800', color: C.petrol },
   role: { fontSize: 12, color: C.muted, marginTop: 2 },
   body: { gap: 7 },
-  lineText: { fontSize: 13, color: C.text, lineHeight: 19 },
+  lineText: { flex: 1, fontSize: 13, color: C.text, lineHeight: 19 },
   lineRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 7 },
-  lineIc: { fontSize: 13, lineHeight: 19 },
+  lineIcSvg: { marginTop: 2 },
   lineLink: { flex: 1, fontSize: 13, color: C.petrol, fontWeight: '700', lineHeight: 19 },
 });

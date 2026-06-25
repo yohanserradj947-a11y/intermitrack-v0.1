@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 const C = { petrol: '#1F4E5F', line: '#E2E8F0', soft: '#EEF4F1', muted: '#718096', sage: '#12754A' };
 
@@ -40,7 +41,7 @@ export default function AddressInput({ value, onChangeText, onCoords, style, pla
                 key={i}
                 style={a.item}
                 onPress={() => { onChangeText(p.label); if (onCoords) onCoords(f.geometry?.coordinates || null); setSugs([]); }}>
-                <Text style={a.txt}>📍 {p.label}</Text>
+                <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="location-outline" size={13} color={C.muted} /><Text style={a.txt}>{p.label}</Text></View>
                 {ctx ? <Text style={a.sub}>{dep ? `Dépt ${dep}` : ''}{rest ? ` · ${rest}` : ''}</Text> : null}
               </TouchableOpacity>
             );

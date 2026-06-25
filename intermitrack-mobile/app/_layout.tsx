@@ -3,6 +3,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SessionProvider, useSession } from '../lib/auth';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { DialogHost } from '../lib/dialog';
 
 function RootNavigator() {
   const { session, loading } = useSession();
@@ -32,6 +33,7 @@ export default function RootLayout() {
       <KeyboardProvider>
         <SessionProvider>
           <RootNavigator />
+          <DialogHost />
         </SessionProvider>
       </KeyboardProvider>
     </SafeAreaProvider>

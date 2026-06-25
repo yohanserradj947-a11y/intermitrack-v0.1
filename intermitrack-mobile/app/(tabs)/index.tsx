@@ -1,3 +1,4 @@
+import { showAlert } from "../../lib/dialog";
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { StyleSheet, View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, StatusBar, Platform, Modal, TextInput, Alert, Linking, KeyboardAvoidingView } from 'react-native';
@@ -12,9 +13,12 @@ import NumInput from '../../components/NumInput';
 import KmSection, { KmHandle } from '../../components/KmSection';
 import TxtInput from '../../components/TxtInput';
 import { GradientButton } from '../../components/GradientButton';
+import { Ionicons } from '@expo/vector-icons';
 
 const C = { petrol:'#1F4E5F', sage:'#7A9E7E', bg:'#F5F7F6', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1', orange:'#F97316' };
-const TYPES = ['Montage','Tournage','Démontage'];
+const POSTES_TECH = ['Montage','Tournage','Démontage','Régie','Son','Lumière','Image / Vidéo','Machiniste','Électricien','Poursuiteur','Plateau','Décor','HMC'];
+const POSTES_ARTISTE = ['Comédien','Chanteur','Musicien','Danseur','Choriste'];
+const POSTES_AUTRE = ['Autres'];
 
 function fmtDate(d:string){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});}
 function fmtPeriod(s:string,e:string){if(!e||e===s)return fmtDate(s);return fmtDate(s)+' → '+fmtDate(e);}
@@ -39,6 +43,13 @@ export default function HomeScreen(){
   const [pickerYear,setPickerYear]=useState(new Date().getFullYear());
 
   const [showAccount,setShowAccount]=useState(false);
+  const [profil,setProfil]=useState<any>(null);
+
+  const [showMesInfos,setShowMesInfos]=useState(false);
+  const [miAnnexe,setMiAnnexe]=useState<'technicien'|'artiste'|'les_deux'|''>('');
+  const [miDroits,setMiDroits]=useState<boolean|null>(null);
+  const [miAj,setMiAj]=useState('');
+  const [miImpot,setMiImpot]=useState('');
 
   const kmRef=useRef<KmHandle>(null);
   const [editKmDist,setEditKmDist]=useState(0);
@@ -47,6 +58,8 @@ export default function HomeScreen(){
   const [fProduction,setFProduction]=useState('');
   const [fEmission,setFEmission]=useState('');
   const [fType,setFType]=useState('Montage');
+  const [showTypePicker,setShowTypePicker]=useState(false);
+  const [fVacations,setFVacations]=useState('');
   const [fStart,setFStart]=useState(new Date());
   const [fEnd,setFEnd]=useState(new Date());
   const [fHours,setFHours]=useState('');
@@ -67,6 +80,8 @@ export default function HomeScreen(){
     setChargeRate(ch!==null?Number(ch):22.5);
     const pas=await AsyncStorage.getItem('intermitrack_pas_rate');
     setPasRate(pas!==null?Number(pas):0);
+    const { data:{ user } }=await supabase.auth.getUser();
+    if(user){ const { data:prof }=await supabase.from('profiles').select('annexe,droits_ouverts,taux_journalier,taux_impot').eq('id',user.id).maybeSingle(); setProfil(prof||null); }
     if(!silent)setLoading(false);
   }
 
@@ -77,13 +92,14 @@ export default function HomeScreen(){
     setFProduction(m.production||''); setFEmission(m.emission||''); setFType(m.mission_type||'Montage');
     setFStart(new Date(m.mission_date+'T00:00:00'));
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
-    setFHours(String(m.hours||'')); setFGross(String(m.gross_amount||''));
+    setFHours(String(m.hours||'')); setFGross(String(m.gross_amount||'')); setFVacations(String(m.vacations||''));
+    setShowTypePicker(false);
     setEditKmDist(Number(m.km_distance) || 0); setEditKmRate(Number(m.km_rate) || 0);
   }
 
   async function saveEdit(){
     if(!editId)return;
-    if(!fProduction.trim()){ Alert.alert('Production manquante','Indique la production.'); return; }
+    if(!fProduction.trim()){ showAlert('Production manquante','Indique la production.'); return; }
     setSaving(true);
     const startISO=iso(fStart), endISO=iso(fEnd);
     const nbDays=Math.max(1,Math.min(Math.round((fEnd.getTime()-fStart.getTime())/86400000)+1,Math.round((Number(fHours)||0)/8)));
@@ -91,29 +107,29 @@ export default function HomeScreen(){
     const { error }=await supabase.from('missions').update({
       production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, mission_type:fType,
       mission_date:startISO, end_date:endISO!==startISO?endISO:null,
-      hours:Number(fHours)||0, vacations:Math.round((Number(fHours)||0)/8), gross_amount:Number(fGross)||0,
+      hours:Number(fHours)||0, vacations:Number(fVacations)||Math.round((Number(fHours)||0)/8), gross_amount:Number(fGross)||0,
       ...km,
     }).eq('id',editId);
     setSaving(false);
-    if(error){ Alert.alert('Erreur',error.message); return; }
+    if(error){ showAlert('Erreur',error.message); return; }
     setEditId(null); loadData(true);
   }
 
   async function deleteEdit(){
     if(!editId)return;
-    Alert.alert('Supprimer ?','Cette mission sera définitivement supprimée.',[
+    showAlert('Supprimer ?','Cette mission sera définitivement supprimée.',[
       {text:'Annuler',style:'cancel'},
       {text:'Supprimer',style:'destructive',onPress:async()=>{
         const { error,count }=await supabase.from('missions').delete({count:'exact'}).eq('id',editId);
-        if(error){ Alert.alert('Erreur',error.message); return; }
-        if(count===0){ Alert.alert('Bloqué','Suppression refusée (droits Supabase).'); return; }
+        if(error){ showAlert('Erreur',error.message); return; }
+        if(count===0){ showAlert('Bloqué','Suppression refusée (droits Supabase).'); return; }
         setEditId(null); loadData(true);
       }},
     ]);
   }
 
   async function deleteAccount(){
-    Alert.alert(
+    showAlert(
       'Supprimer mon compte ?',
       'Cette action est définitive : ton compte et toutes tes données (missions, documents) seront supprimés. Cette action est irréversible.',
       [
@@ -129,7 +145,7 @@ export default function HomeScreen(){
             if(error)throw error;
             await supabase.auth.signOut();
           }catch(e:any){
-            Alert.alert('Erreur',"La suppression a échoué : "+(e?.message||'réessaie plus tard.'));
+            showAlert('Erreur',"La suppression a échoué : "+(e?.message||'réessaie plus tard.'));
           }
         }},
       ]
@@ -140,7 +156,24 @@ export default function HomeScreen(){
     setShowAccount(false);
     const body=`Décris ici le bug rencontré ou ta suggestion :\n\n\n\n— Infos techniques (merci de ne pas effacer) —\nAppareil : ${Platform.OS} ${Platform.Version}\nCompte : ${session?.user.email||'?'}`;
     const url=`mailto:Intermitrack@gmail.com?subject=${encodeURIComponent('Bug / suggestion — Intermitrack (bêta)')}&body=${encodeURIComponent(body)}`;
-    Linking.openURL(url).catch(()=>Alert.alert('Impossible d\'ouvrir le mail','Écris-nous directement à Intermitrack@gmail.com'));
+    Linking.openURL(url).catch(()=>showAlert('Impossible d\'ouvrir le mail','Écris-nous directement à Intermitrack@gmail.com'));
+  }
+
+  function openMesInfos(){
+    setMiAnnexe(profil?.annexe||'');
+    setMiDroits(profil?profil.droits_ouverts:null);
+    setMiAj(profil?.taux_journalier!=null?String(profil.taux_journalier):'');
+    setMiImpot(profil?.taux_impot!=null?String(profil.taux_impot):'');
+    setShowMesInfos(true);
+  }
+
+  async function saveMesInfos(){
+    const { data:{ user } }=await supabase.auth.getUser();
+    if(!user)return;
+    const droits=miDroits===true;
+    const { error }=await supabase.from('profiles').upsert({ id:user.id, annexe:miAnnexe||null, droits_ouverts:miDroits, taux_journalier:droits?(Number(miAj)||null):null, taux_impot:droits?(Number(miImpot)||null):null },{onConflict:'id'});
+    if(error){ showAlert('Erreur',error.message); return; }
+    setShowMesInfos(false); loadData(true);
   }
 
   const stats=useMemo(()=>{
@@ -177,6 +210,21 @@ export default function HomeScreen(){
   },[missions,areDate,current,chargeRate,pasRate]);
 
   const { doneH, planH, remaining, monthH, monthG, monthNet, monthVac, monthRate, monthRateNet, upcoming } = stats;
+
+  const ft=useMemo(()=>{
+    const aj=(profil&&Number(profil.taux_journalier))||0;
+    if(!aj)return null;
+    const artiste=profil.annexe==='artiste';
+    const coef=artiste?1.3:1.4, divJ=artiste?10:8;
+    const daysInMonth=new Date(current.getFullYear(),current.getMonth()+1,0).getDate();
+    const jniBase=monthH*coef/divJ;
+    const clamp=(v:number)=>Math.max(0,Math.min(daysInMonth,v));
+    const indemHaut=clamp(daysInMonth-jniBase*1.05), indemBas=clamp(daysInMonth-jniBase*1.20);
+    const tax=(profil&&Number(profil.taux_impot))||0;
+    const fNet=1-tax/100, showNet=tax>0;
+    const bas=Math.round(aj*indemBas*fNet), haut=Math.round(aj*indemHaut*fNet);
+    return { bas, haut, showNet, tax, totalBas:monthNet+bas, totalHaut:monthNet+haut };
+  },[profil,monthH,current,monthNet]);
   const totalPages=Math.ceil(upcoming.length/6);
   const visibleM=useMemo(()=>upcoming.slice(missionPage*6,(missionPage+1)*6),[upcoming,missionPage]);
 
@@ -216,12 +264,12 @@ export default function HomeScreen(){
       </View>
 
       <View style={s.areBox}>
-        <Text style={s.areLabel}>📅 Date d'admission ARE</Text>
+        <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="calendar-outline" size={13} color={C.petrol} /><Text style={s.areLabel}>Date d'admission ARE</Text></View>
         <TouchableOpacity style={s.arePickerBtn} onPress={()=>setShowDatePicker(true)}>
           <Text style={areDate?s.arePickerTxt:s.arePickerPlaceholder}>
             {areDate?isoToDisplay(areDate):'Choisir une date'}
           </Text>
-          <Text style={s.arePickerIcon}>📅</Text>
+          <Ionicons name="calendar-outline" size={16} color={C.petrol} />
         </TouchableOpacity>
         {areDate
           ?<Text style={s.areInfo}>Calcul depuis le {isoToDisplay(areDate)}</Text>
@@ -273,6 +321,36 @@ export default function HomeScreen(){
       </View>
 
       <View style={s.section}>
+        {ft===null
+          ?(
+            <View style={s.ftCard}>
+              <View style={{flexDirection:'row',alignItems:'flex-start',gap:5}}><Ionicons name="cash-outline" size={13} color={C.petrol} /><Text style={s.ftDetail}>Estimation France Travail — renseigne ton taux journalier (AJ) dans Mes informations.</Text></View>
+              <TouchableOpacity style={s.ftBtn} onPress={()=>openMesInfos()}>
+                <Text style={s.ftBtnTxt}>Renseigner mes infos</Text>
+              </TouchableOpacity>
+            </View>
+          )
+          :(
+            <View style={s.ftCard}>
+              <View style={s.ftHead}>
+                <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="cash-outline" size={13} color={C.petrol} /><Text style={s.ftLabel}>Estimation France Travail (ce mois)</Text></View>
+                <Text style={s.ftVal}>≈ {ft.bas.toLocaleString('fr-FR')} – {money(ft.haut)}</Text>
+              </View>
+              <Text style={s.ftDetail}>{ft.showNet?`fourchette nette (après ${ft.tax} % d'impôt)`:'fourchette brute'} · sur {monthH} h</Text>
+              <View style={s.ftTotal}>
+                <View style={s.ftTotalRow}>
+                  <Text style={s.ftTotalLabel}>Revenu total estimé ce mois</Text>
+                  <Text style={s.ftTotalVal}>≈ {ft.totalBas.toLocaleString('fr-FR')} – {money(ft.totalHaut)}</Text>
+                </View>
+                <Text style={s.ftTotalSub}>salaire net {money(monthNet)} + allocation France Travail</Text>
+              </View>
+              <Text style={s.ftNote}>Estimation indicative — nous affinons en continu notre formule pour nous rapprocher du montant réel (calcul France Travail complexe : heures majorées, SJR, carences, plafonds). Ne tient pas compte des carences/franchises. Montant exact : ton espace France Travail.</Text>
+            </View>
+          )
+        }
+      </View>
+
+      <View style={s.section}>
         <Text style={s.sectionTitle}>Missions à venir</Text>
         {upcoming.length===0
           ?<Text style={s.empty}>Aucune mission à venir.</Text>
@@ -284,9 +362,9 @@ export default function HomeScreen(){
                   <View style={s.pill}><Text style={s.pillTxt}>{m.mission_type}</Text></View>
                 </View>
                 <View style={s.missionInfo}>
-                  {m.emission?<Text style={s.meta}>🎬 {m.emission}</Text>:null}
-                  <Text style={s.meta}>📅 {fmtPeriod(m.mission_date,m.end_date)}</Text>
-                  <Text style={s.meta}>🕒 {m.hours}h · {money(m.gross_amount)}</Text>
+                  {m.emission?<View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="videocam-outline" size={13} color={C.muted} /><Text style={s.meta}>{m.emission}</Text></View>:null}
+                  <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="calendar-outline" size={13} color={C.muted} /><Text style={s.meta}>{fmtPeriod(m.mission_date,m.end_date)}</Text></View>
+                  <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="time-outline" size={13} color={C.muted} /><Text style={s.meta}>{m.hours}h · {money(m.gross_amount)}</Text></View>
                 </View>
               </TouchableOpacity>
             ))}
@@ -319,13 +397,26 @@ export default function HomeScreen(){
               <TxtInput style={s.input} value={fEmission} onChangeText={setFEmission} placeholder="Ex : Koh-Lanta" placeholderTextColor={C.muted}/>
 
               <Text style={s.label}>Type de mission</Text>
-              <View style={s.typeWrap}>
-                {TYPES.map(t=>(
-                  <TouchableOpacity key={t} style={[s.typeChip,fType===t&&s.typeChipActive]} onPress={()=>setFType(t)}>
-                    <Text style={fType===t?s.typeChipTxtActive:s.typeChipTxt}>{t}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <TouchableOpacity style={s.typeBtn} onPress={()=>setShowTypePicker(v=>!v)}>
+                <Text style={s.typeBtnTxt}>{fType}</Text>
+                <Text style={s.typeBtnChevron}>{showTypePicker?'▴':'▾'}</Text>
+              </TouchableOpacity>
+              {showTypePicker && (
+                <View style={s.typePickerInline}>
+                  {([['Technique',POSTES_TECH],['Artiste',POSTES_ARTISTE],['Autre',POSTES_AUTRE]] as [string,string[]][]).map(([grp,list])=>(
+                    <View key={grp}>
+                      <Text style={s.typeGroupLbl}>{grp}</Text>
+                      <View style={s.typeWrap}>
+                        {list.map(p=>(
+                          <TouchableOpacity key={p} style={[s.typeChip,fType===p&&s.typeChipActive]} onPress={()=>{setFType(p);setShowTypePicker(false);}}>
+                            <Text style={fType===p?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
 
               <View style={s.row}>
                 <View style={{flex:1}}>
@@ -353,6 +444,9 @@ export default function HomeScreen(){
               <Text style={s.label}>Heures cumulées</Text>
               <NumInput style={s.input} value={fHours} onChangeText={setFHours}/>
 
+              <Text style={s.label}>Nombre de vacations</Text>
+              <NumInput style={s.input} value={fVacations} onChangeText={setFVacations} placeholder="Ex : 1" placeholderTextColor={C.muted}/>
+
               <Text style={s.label}>Montant brut (€)</Text>
               <NumInput style={s.input} value={fGross} onChangeText={setFGross}/>
 
@@ -360,7 +454,7 @@ export default function HomeScreen(){
 
               <GradientButton onPress={saveEdit} disabled={saving} style={s.saveBtn} textStyle={s.saveBtnTxt} label={saving?'Enregistrement…':'Mettre à jour'} />
               <TouchableOpacity style={s.deleteBtn} onPress={deleteEdit}>
-                <Text style={s.deleteBtnTxt}>🗑️ Supprimer cette mission</Text>
+                <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6}}><Ionicons name="trash-outline" size={15} color="#E53E3E"/><Text style={s.deleteBtnTxt}>Supprimer cette mission</Text></View>
               </TouchableOpacity>
               <TouchableOpacity style={s.cancelBtn} onPress={()=>setEditId(null)}>
                 <Text style={s.cancelBtnTxt}>Annuler</Text>
@@ -379,8 +473,12 @@ export default function HomeScreen(){
 
             <GradientButton onPress={()=>{setShowAccount(false);signOut();}} style={s.accountBtn} textStyle={s.accountBtnTxt} label="Se déconnecter" />
 
+            <TouchableOpacity style={s.accountReportBtn} onPress={()=>{setShowAccount(false);openMesInfos();}}>
+              <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="create-outline" size={13} color={C.petrol} /><Text style={s.accountReportTxt}>Mes informations</Text></View>
+            </TouchableOpacity>
+
             <TouchableOpacity style={s.accountReportBtn} onPress={reportBug}>
-              <Text style={s.accountReportTxt}>🐞 Signaler un bug</Text>
+              <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="bug-outline" size={13} color={C.petrol} /><Text style={s.accountReportTxt}>Signaler un bug</Text></View>
             </TouchableOpacity>
 
             <TouchableOpacity style={s.accountDeleteBtn} onPress={()=>{setShowAccount(false);deleteAccount();}}>
@@ -406,6 +504,53 @@ export default function HomeScreen(){
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
+      </Modal>
+
+      <Modal visible={showMesInfos} animationType="slide" transparent onRequestClose={()=>setShowMesInfos(false)}>
+        <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
+        <View style={s.modalOverlay}>
+          <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <Text style={s.modalTitle}>Mes informations</Text>
+
+              <Text style={s.label}>Tu es plutôt…</Text>
+              <View style={s.typeWrap}>
+                {([['technicien','Technicien (annexe 8)'],['artiste','Artiste (annexe 10)'],['les_deux','Les deux']] as ['technicien'|'artiste'|'les_deux',string][]).map(([val,lbl])=>(
+                  <TouchableOpacity key={val} style={[s.typeChip,miAnnexe===val&&s.typeChipActive]} onPress={()=>setMiAnnexe(val)}>
+                    <Text style={miAnnexe===val?s.typeChipTxtActive:s.typeChipTxt}>{lbl}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={s.label}>As-tu déjà ouvert tes droits ?</Text>
+              <View style={s.typeWrap}>
+                <TouchableOpacity style={[s.typeChip,miDroits===true&&s.typeChipActive]} onPress={()=>setMiDroits(true)}>
+                  <Text style={miDroits===true?s.typeChipTxtActive:s.typeChipTxt}>Oui</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[s.typeChip,miDroits===false&&s.typeChipActive]} onPress={()=>setMiDroits(false)}>
+                  <Text style={miDroits===false?s.typeChipTxtActive:s.typeChipTxt}>Pas encore</Text>
+                </TouchableOpacity>
+              </View>
+
+              {miDroits===true&&(
+                <>
+                  <Text style={s.label}>Ton taux journalier (AJ)</Text>
+                  <NumInput style={s.input} value={miAj} onChangeText={setMiAj} placeholder="67.60" placeholderTextColor={C.muted}/>
+                  <Text style={s.ftDetail}>L'allocation journalière nette de ta notification France Travail.</Text>
+
+                  <Text style={s.label}>Ton taux d'imposition (%)</Text>
+                  <NumInput style={s.input} value={miImpot} onChangeText={setMiImpot} placeholder="8.6" placeholderTextColor={C.muted}/>
+                </>
+              )}
+
+              <GradientButton onPress={saveMesInfos} style={s.saveBtn} textStyle={s.saveBtnTxt} label="Enregistrer" />
+              <TouchableOpacity style={s.cancelBtn} onPress={()=>setShowMesInfos(false)}>
+                <Text style={s.cancelBtnTxt}>Fermer</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {showMonthPicker&&(
@@ -516,6 +661,11 @@ const s=StyleSheet.create({
   typeChipActive:{backgroundColor:C.petrol},
   typeChipTxt:{fontSize:13,fontWeight:'700',color:C.petrol},
   typeChipTxtActive:{fontSize:13,fontWeight:'700',color:'white'},
+  typeBtn:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingVertical:12,paddingHorizontal:14,borderRadius:12,backgroundColor:C.card,borderWidth:1,borderColor:C.line},
+  typeBtnTxt:{fontSize:14,fontWeight:'700',color:C.text},
+  typeBtnChevron:{fontSize:13,color:C.muted},
+  typeGroupLbl:{fontSize:11.5,fontWeight:'800',color:C.muted,marginTop:14,marginBottom:8,textTransform:'uppercase',letterSpacing:0.5},
+  typePickerInline:{marginTop:8,padding:12,borderRadius:12,backgroundColor:C.soft,borderWidth:1,borderColor:C.line},
   saveBtn:{backgroundColor:C.petrol,borderRadius:15,paddingVertical:15,alignItems:'center',marginTop:20},
   saveBtnTxt:{color:'white',fontWeight:'800',fontSize:15},
   deleteBtn:{backgroundColor:'#FFF5F5',borderRadius:15,paddingVertical:14,alignItems:'center',marginTop:10},
@@ -537,4 +687,17 @@ const s=StyleSheet.create({
   legalRow:{flexDirection:'row',justifyContent:'center',alignItems:'center',flexWrap:'wrap',gap:6,marginTop:14},
   legalLink:{fontSize:11,color:C.muted,fontWeight:'700',textDecorationLine:'underline'},
   legalSep:{fontSize:11,color:C.muted},
+  ftCard:{backgroundColor:'rgba(31,78,95,.05)',borderRadius:14,padding:14,borderWidth:1,borderColor:C.line},
+  ftHead:{flexDirection:'row',flexWrap:'wrap',justifyContent:'space-between',alignItems:'center',gap:6},
+  ftLabel:{fontSize:12.5,fontWeight:'900',color:C.petrol},
+  ftVal:{fontSize:20,fontWeight:'900',color:C.petrol,letterSpacing:-0.5,flexShrink:1,flexWrap:'wrap'},
+  ftDetail:{fontSize:11.5,color:C.muted,fontWeight:'600',marginTop:6},
+  ftTotal:{backgroundColor:'rgba(31,78,95,.09)',borderRadius:11,padding:11,marginTop:11},
+  ftTotalRow:{flexDirection:'row',flexWrap:'wrap',justifyContent:'space-between',alignItems:'center',gap:6},
+  ftTotalLabel:{fontSize:12,fontWeight:'800',color:C.petrol},
+  ftTotalVal:{fontSize:17,fontWeight:'900',color:C.petrol,flexShrink:1,flexWrap:'wrap'},
+  ftTotalSub:{fontSize:11,color:C.muted,fontWeight:'600',marginTop:4},
+  ftNote:{fontSize:10,color:C.muted,lineHeight:15,marginTop:11},
+  ftBtn:{backgroundColor:C.petrol,borderRadius:12,paddingVertical:12,alignItems:'center',marginTop:12},
+  ftBtnTxt:{color:'white',fontWeight:'800',fontSize:14},
 });

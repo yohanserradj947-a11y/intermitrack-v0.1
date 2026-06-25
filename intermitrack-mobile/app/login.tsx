@@ -95,9 +95,9 @@ export default function LoginScreen() {
             <Text style={s.mainline}>{"Toute votre\nintermittence\nau même endroit."}</Text>
             <Text style={s.intro}>{"Suivi des missions, heures ARE,\ndocuments et prévisions."}</Text>
             <View style={s.features}>
-              <View style={s.featurePill}><Text style={s.featureTxt}>⏱ Heures & ARE</Text></View>
-              <View style={s.featurePill}><Text style={s.featureTxt}>📅 Missions</Text></View>
-              <View style={s.featurePill}><Text style={s.featureTxt}>💶 Fiscalité</Text></View>
+              <View style={s.featurePill}><View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="time-outline" size={13} color="white" /><Text style={s.featureTxt}>Heures & ARE</Text></View></View>
+              <View style={s.featurePill}><View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="calendar-outline" size={13} color="white" /><Text style={s.featureTxt}>Missions</Text></View></View>
+              <View style={s.featurePill}><View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="cash-outline" size={13} color="white" /><Text style={s.featureTxt}>Fiscalité</Text></View></View>
             </View>
           </View>
 
@@ -177,7 +177,7 @@ export default function LoginScreen() {
             )}
           </View>
 
-          <Text style={s.secure}>🔒 Données chiffrées — accès uniquement à votre compte</Text>
+          <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:5,marginTop:16}}><Ionicons name="lock-closed-outline" size={13} color="rgba(255,255,255,.5)" /><Text style={[s.secure,{marginTop:0}]}>Données chiffrées — accès uniquement à votre compte</Text></View>
 
           <View style={s.legalRow}>
             <TouchableOpacity onPress={() => Linking.openURL('https://intermitrack.fr/cgu.html')}>

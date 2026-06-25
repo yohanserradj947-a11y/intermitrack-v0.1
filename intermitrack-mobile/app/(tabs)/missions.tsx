@@ -1,3 +1,4 @@
+import { showAlert } from "../../lib/dialog";
 import { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert, Platform, KeyboardAvoidingView } from 'react-native';
 import { useFocusEffect } from 'expo-router';
@@ -10,10 +11,13 @@ import DonutChart from '../../components/DonutChart';
 import NumInput from '../../components/NumInput';
 import KmSection, { KmHandle } from '../../components/KmSection';
 import { GradientButton } from '../../components/GradientButton';
+import { Ionicons } from '@expo/vector-icons';
 
 const C = { petrol:'#1F4E5F', sage:'#7A9E7E', bg:'#F5F7F6', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1', orange:'#F97316' };
 const COLORS = ['#1F4E5F','#2A6174','#3A7A8F','#7A9E7E','#8AB08E','#9AC09E','#F97316','#FDBA74','#4A8FA5','#5A9FB5'];
-const TYPES = ['Montage','Tournage','Démontage'];
+const POSTES_TECH = ['Montage','Tournage','Démontage','Régie','Son','Lumière','Image / Vidéo','Machiniste','Électricien','Poursuiteur','Plateau','Décor','HMC'];
+const POSTES_ARTISTE = ['Comédien','Chanteur','Musicien','Danseur','Choriste'];
+const POSTES_AUTRE = ['Autres'];
 
 function money(n:number){return(n??0).toLocaleString('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0});}
 function fmtDate(d:string){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});}
@@ -36,6 +40,8 @@ export default function Missions(){
   const [fProduction,setFProduction]=useState('');
   const [fEmission,setFEmission]=useState('');
   const [fType,setFType]=useState('Montage');
+  const [showTypePicker,setShowTypePicker]=useState(false);
+  const [fVacations,setFVacations]=useState('');
   const [fStart,setFStart]=useState(new Date());
   const [fEnd,setFEnd]=useState(new Date());
   const [fHours,setFHours]=useState('');
@@ -59,14 +65,14 @@ export default function Missions(){
     setFProduction(m.production||''); setFEmission(m.emission||''); setFType(m.mission_type||'Montage');
     setFStart(new Date(m.mission_date+'T00:00:00'));
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
-    setFHours(String(m.hours||'')); setFGross(String(m.gross_amount||''));
+    setFHours(String(m.hours||'')); setFGross(String(m.gross_amount||'')); setFVacations(String(m.vacations||''));
     setEditKmDist(Number(m.km_distance) || 0); setEditKmRate(Number(m.km_rate) || 0);
-    setShowSuggest(false); setShowEmSuggest(false);
+    setShowSuggest(false); setShowEmSuggest(false); setShowTypePicker(false);
   }
 
   async function saveEdit(){
     if(!editId)return;
-    if(!fProduction.trim()){ Alert.alert('Production manquante','Indique la production.'); return; }
+    if(!fProduction.trim()){ showAlert('Production manquante','Indique la production.'); return; }
     setSaving(true);
     const startISO=iso(fStart), endISO=iso(fEnd);
     const nbDays=Math.max(1,Math.min(Math.round((fEnd.getTime()-fStart.getTime())/86400000)+1,Math.round((Number(fHours)||0)/8)));
@@ -74,22 +80,22 @@ export default function Missions(){
     const { error }=await supabase.from('missions').update({
       production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, mission_type:fType,
       mission_date:startISO, end_date:endISO!==startISO?endISO:null,
-      hours:Number(fHours)||0, vacations:Math.round((Number(fHours)||0)/8), gross_amount:Number(fGross)||0,
+      hours:Number(fHours)||0, vacations:Number(fVacations)||Math.round((Number(fHours)||0)/8), gross_amount:Number(fGross)||0,
       ...km,
     }).eq('id',editId);
     setSaving(false);
-    if(error){ Alert.alert('Erreur',error.message); return; }
+    if(error){ showAlert('Erreur',error.message); return; }
     setEditId(null); loadMissions();
   }
 
   async function deleteEdit(){
     if(!editId)return;
-    Alert.alert('Supprimer ?','Cette mission sera définitivement supprimée.',[
+    showAlert('Supprimer ?','Cette mission sera définitivement supprimée.',[
       {text:'Annuler',style:'cancel'},
       {text:'Supprimer',style:'destructive',onPress:async()=>{
         const { error,count }=await supabase.from('missions').delete({count:'exact'}).eq('id',editId);
-        if(error){ Alert.alert('Erreur',error.message); return; }
-        if(count===0){ Alert.alert('Bloqué','Suppression refusée (droits Supabase).'); return; }
+        if(error){ showAlert('Erreur',error.message); return; }
+        if(count===0){ showAlert('Bloqué','Suppression refusée (droits Supabase).'); return; }
         setEditId(null); setSelected(null); loadMissions();
       }},
     ]);
@@ -162,9 +168,9 @@ export default function Missions(){
                 <View style={s.pill}><Text style={s.pillTxt}>{m.mission_type}</Text></View>
               </View>
               <View style={{gap:4,marginTop:8}}>
-                {m.emission?<Text style={s.meta}>🎬 {m.emission}</Text>:null}
-                <Text style={s.meta}>📅 {fmtPeriod(m.mission_date,m.end_date)}</Text>
-                <Text style={s.meta}>🕒 {m.hours}h · 💼 {m.vacations||Math.round(Number(m.hours||0)/8)} vacation(s)</Text>
+                {m.emission?<View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="videocam-outline" size={13} color={C.muted} /><Text style={s.meta}>{m.emission}</Text></View>:null}
+                <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="calendar-outline" size={13} color={C.muted} /><Text style={s.meta}>{fmtPeriod(m.mission_date,m.end_date)}</Text></View>
+                <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="time-outline" size={13} color={C.muted} /><Text style={s.meta}>{m.hours}h · </Text><Ionicons name="briefcase-outline" size={13} color={C.muted} /><Text style={s.meta}> {m.vacations||Math.round(Number(m.hours||0)/8)} vacation(s)</Text></View>
                 <Text style={s.meta}>€ {money(m.gross_amount)}</Text>
               </View>
               <Text style={s.tapHint}>Toucher pour modifier</Text>
@@ -185,7 +191,7 @@ export default function Missions(){
                   <View style={s.suggestBox}>
                     {prodSuggestions.map(p=>(
                       <TouchableOpacity key={p} style={s.suggestItem} onPress={()=>{setFProduction(p);setShowSuggest(false);}}>
-                        <Text style={s.suggestTxt}>🔁 {p}</Text>
+                        <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="repeat" size={13} color={C.petrol} /><Text style={s.suggestTxt}>{p}</Text></View>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -197,20 +203,33 @@ export default function Missions(){
                   <View style={s.suggestBox}>
                     {emSuggestions.map(e=>(
                       <TouchableOpacity key={e} style={s.suggestItem} onPress={()=>{setFEmission(e);setShowEmSuggest(false);}}>
-                        <Text style={s.suggestTxt}>🎬 {e}</Text>
+                        <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="videocam-outline" size={13} color={C.petrol} /><Text style={s.suggestTxt}>{e}</Text></View>
                       </TouchableOpacity>
                     ))}
                   </View>
                 )}
 
                 <Text style={s.label}>Type de mission</Text>
-                <View style={s.typeWrap}>
-                  {TYPES.map(t=>(
-                    <TouchableOpacity key={t} style={[s.typeChip,fType===t&&s.typeChipActive]} onPress={()=>setFType(t)}>
-                      <Text style={fType===t?s.typeChipTxtActive:s.typeChipTxt}>{t}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                <TouchableOpacity style={s.typeBtn} onPress={()=>setShowTypePicker(v=>!v)}>
+                  <Text style={s.typeBtnTxt}>{fType}</Text>
+                  <Text style={s.typeBtnChevron}>{showTypePicker?'▴':'▾'}</Text>
+                </TouchableOpacity>
+                {showTypePicker && (
+                  <View style={s.typePickerInline}>
+                    {([['Technique',POSTES_TECH],['Artiste',POSTES_ARTISTE],['Autre',POSTES_AUTRE]] as [string,string[]][]).map(([grp,list])=>(
+                      <View key={grp}>
+                        <Text style={s.typeGroupLbl}>{grp}</Text>
+                        <View style={s.typeWrap}>
+                          {list.map(p=>(
+                            <TouchableOpacity key={p} style={[s.typeChip,fType===p&&s.typeChipActive]} onPress={()=>{setFType(p);setShowTypePicker(false);}}>
+                              <Text style={fType===p?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
 
                 <View style={s.row}>
                   <View style={{flex:1}}>
@@ -238,6 +257,9 @@ export default function Missions(){
                 <Text style={s.label}>Heures cumulées</Text>
                 <NumInput style={s.input} value={fHours} onChangeText={setFHours}/>
 
+                <Text style={s.label}>Nombre de vacations</Text>
+                <NumInput style={s.input} value={fVacations} onChangeText={setFVacations} placeholder="Ex : 1" placeholderTextColor={C.muted}/>
+
                 <Text style={s.label}>Montant brut (€)</Text>
                 <NumInput style={s.input} value={fGross} onChangeText={setFGross}/>
 
@@ -245,7 +267,7 @@ export default function Missions(){
 
                 <GradientButton onPress={saveEdit} disabled={saving} style={s.saveBtn} textStyle={s.saveBtnTxt} label={saving?'Enregistrement…':'Mettre à jour'} />
                 <TouchableOpacity style={s.deleteBtn} onPress={deleteEdit}>
-                  <Text style={s.deleteBtnTxt}>🗑️ Supprimer cette mission</Text>
+                  <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6}}><Ionicons name="trash-outline" size={15} color="#E53E3E"/><Text style={s.deleteBtnTxt}>Supprimer cette mission</Text></View>
                 </TouchableOpacity>
                 <TouchableOpacity style={s.cancelBtn} onPress={()=>setEditId(null)}>
                   <Text style={s.cancelBtnTxt}>Annuler</Text>
@@ -379,6 +401,11 @@ const s=StyleSheet.create({
   typeChipActive:{backgroundColor:C.petrol},
   typeChipTxt:{fontSize:13,fontWeight:'700',color:C.petrol},
   typeChipTxtActive:{fontSize:13,fontWeight:'700',color:'white'},
+  typeBtn:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingVertical:12,paddingHorizontal:14,borderRadius:12,backgroundColor:C.card,borderWidth:1,borderColor:C.line},
+  typeBtnTxt:{fontSize:14,fontWeight:'700',color:C.text},
+  typeBtnChevron:{fontSize:13,color:C.muted},
+  typeGroupLbl:{fontSize:11.5,fontWeight:'800',color:C.muted,marginTop:14,marginBottom:8,textTransform:'uppercase',letterSpacing:0.5},
+  typePickerInline:{marginTop:8,padding:12,borderRadius:12,backgroundColor:C.soft,borderWidth:1,borderColor:C.line},
   saveBtn:{backgroundColor:C.petrol,borderRadius:15,paddingVertical:15,alignItems:'center',marginTop:20},
   saveBtnTxt:{color:'white',fontWeight:'800',fontSize:15},
   deleteBtn:{backgroundColor:'#FFF5F5',borderRadius:15,paddingVertical:14,alignItems:'center',marginTop:10},

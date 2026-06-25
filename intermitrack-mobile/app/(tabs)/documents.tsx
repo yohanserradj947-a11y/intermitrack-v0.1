@@ -1,6 +1,8 @@
+import { showAlert } from "../../lib/dialog";
 import { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert, Linking, Platform, KeyboardAvoidingView } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useTrackView } from '../../lib/analytics';
@@ -52,8 +54,8 @@ export default function Documents(){
   }
 
   async function saveDoc(){
-    if(!fProd.trim()){ Alert.alert('Production manquante','Indique la production.'); return; }
-    if(!fFile){ Alert.alert('Fichier manquant','Choisis un PDF ou une image.'); return; }
+    if(!fProd.trim()){ showAlert('Production manquante','Indique la production.'); return; }
+    if(!fFile){ showAlert('Fichier manquant','Choisis un PDF ou une image.'); return; }
     setSaving(true);
     try{
       const { data:{ user } } = await supabase.auth.getUser();
@@ -72,28 +74,28 @@ export default function Documents(){
       if(insErr){ await supabase.storage.from('documents').remove([path]); throw new Error('Sauvegarde : '+insErr.message); }
       setShowForm(false); setFFile(null); setFProd('');
       loadDocs();
-    }catch(e:any){ Alert.alert('Erreur',e.message); }
+    }catch(e:any){ showAlert('Erreur',e.message); }
     setSaving(false);
   }
 
   async function openDoc(path:string){
     const { data,error }=await supabase.storage.from('documents').createSignedUrl(path,120);
-    if(error||!data){ Alert.alert('Erreur',error?.message||'Impossible d\'ouvrir.'); return; }
+    if(error||!data){ showAlert('Erreur',error?.message||'Impossible d\'ouvrir.'); return; }
     Linking.openURL(data.signedUrl);
   }
 
  async function deleteDoc(id:string,path:string){
-    Alert.alert('Supprimer ?','Ce document sera définitivement supprimé.',[
+    showAlert('Supprimer ?','Ce document sera définitivement supprimé.',[
       {text:'Annuler',style:'cancel'},
       {text:'Supprimer',style:'destructive',onPress:async()=>{
         try{
           const { error:stErr }=await supabase.storage.from('documents').remove([path]);
           if(stErr) console.log('Storage remove:',stErr.message);
           const { error:dbErr }=await supabase.from('documents').delete().eq('id',id);
-          if(dbErr){ Alert.alert('Erreur','Suppression impossible : '+dbErr.message); return; }
+          if(dbErr){ showAlert('Erreur','Suppression impossible : '+dbErr.message); return; }
           loadDocs();
         }catch(e:any){
-          Alert.alert('Erreur',e?.message||'Une erreur est survenue lors de la suppression.');
+          showAlert('Erreur',e?.message||'Une erreur est survenue lors de la suppression.');
         }
       }},
     ]);
@@ -120,7 +122,7 @@ export default function Documents(){
             ?<Text style={s.empty}>Aucun document enregistré pour le moment.</Text>
             :prodNames.map((p)=>(
               <TouchableOpacity key={p} style={s.folder} onPress={()=>{setOpenProd(p);setFilter('Tous');}}>
-                <Text style={s.folderIcon}>📁</Text>
+                <Ionicons name="folder-outline" size={26} color={C.petrol} />
                 <View style={{flex:1}}>
                   <Text style={s.folderName}>{p}</Text>
                   <Text style={s.folderSub}>{groups[p].length} document{groups[p].length>1?'s':''}</Text>
@@ -197,7 +199,7 @@ export default function Documents(){
 
               <Text style={s.label}>Fichier</Text>
               <TouchableOpacity style={s.fileBtn} onPress={pickFile}>
-                <Text style={s.fileBtnTxt}>{fFile?`📎 ${fFile.name}`:'📎 Choisir un PDF ou une image'}</Text>
+                <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="document-attach-outline" size={14} color={C.petrol} /><Text style={s.fileBtnTxt}>{fFile?fFile.name:'Choisir un PDF ou une image'}</Text></View>
               </TouchableOpacity>
 
               <GradientButton onPress={saveDoc} disabled={saving} style={s.saveBtn} textStyle={s.saveBtnTxt} label={saving?'Envoi…':'Enregistrer le document'} />
