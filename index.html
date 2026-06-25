@@ -79,40 +79,15 @@ z-index: 500 !important;
     @keyframes lpBlob { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(44px,-30px) scale(1.12); } 66% { transform: translate(-32px,40px) scale(.94); } }
 
     .lp-hero-demo { display: flex; justify-content: center; align-items: center; }
-    .demo-phone { width: 286px; background: #fff; border-radius: 36px; padding: 12px; box-shadow: 0 34px 80px rgba(31,78,95,.30), 0 0 0 1px rgba(31,78,95,.06); animation: demoFloat 6s ease-in-out infinite; }
-    @keyframes demoFloat { 0%,100% { transform: translateY(0) rotate(-1.2deg); } 50% { transform: translateY(-14px) rotate(1.2deg); } }
-    .demo-head { background: linear-gradient(135deg,#1F4E5F,#12754A); border-radius: 26px 26px 14px 14px; padding: 16px 18px 14px; color: #fff; }
-    .demo-head b { font-size: 15px; font-weight: 900; letter-spacing: -.02em; }
-    .demo-head span { display: block; font-size: 10.5px; opacity: .85; margin-top: 2px; }
-    .demo-screen { height: 230px; overflow: hidden; background: #F5F7F6; }
-    .demo-strip { animation: demoStrip 9s ease-in-out infinite; }
-    @keyframes demoStrip { 0%,28% { transform: translateY(0); } 33%,61% { transform: translateY(-230px); } 66%,94% { transform: translateY(-460px); } 100% { transform: translateY(0); } }
-    .demo-view { height: 230px; padding: 18px 16px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
-    .demo-gauge-wrap { position: relative; width: 124px; height: 124px; }
-    .demo-ring { position: absolute; inset: 0; transform: rotate(-90deg); }
-    .demo-ring .bg { stroke: #E2EAE7; }
-    .demo-ring .fg { stroke: url(#demoGrad); stroke-linecap: round; stroke-dasharray: 264; stroke-dashoffset: 264; animation: demoRing 9s ease-in-out infinite; }
-    @keyframes demoRing { 0% { stroke-dashoffset: 264; } 22%,100% { stroke-dashoffset: 74; } }
-    .demo-gauge-pct { position: absolute; inset: 0; display: grid; place-items: center; font-size: 28px; font-weight: 900; color: #1F4E5F; }
-    .demo-cap { font-size: 11.5px; font-weight: 700; color: #5B6B72; text-align: center; }
-    .demo-vtitle { font-size: 13px; font-weight: 800; color: #1F4E5F; align-self: flex-start; }
-    .demo-cal { display: grid; grid-template-columns: repeat(7,1fr); gap: 5px; width: 100%; }
-    .demo-cal i { aspect-ratio: 1; border-radius: 5px; background: #E6EDEA; display: block; }
-    .demo-cal i.on { background: linear-gradient(135deg,#1F4E5F,#12754A); }
-    .demo-cal i.pl { background: #FDBA74; }
-    .demo-fcard { width: 100%; background: #fff; border: 1px solid #E2E8F0; border-radius: 14px; padding: 14px; box-shadow: 0 6px 18px rgba(31,78,95,.07); }
-    .demo-frow { display: flex; justify-content: space-between; align-items: center; }
-    .demo-frow span { font-size: 12px; font-weight: 700; color: #5B6B72; }
-    .demo-frow b { font-size: 20px; font-weight: 900; color: #1F4E5F; }
-    .demo-fbar { height: 8px; border-radius: 99px; background: #EEF4F1; margin: 12px 0 10px; overflow: hidden; }
-    .demo-fbar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg,#1F4E5F,#12754A); animation: demoBar 9s ease-in-out infinite; }
-    @keyframes demoBar { 0%,66% { width: 0; } 80%,100% { width: 78%; } }
-    .demo-fnote { font-size: 11px; font-weight: 700; color: #7A9E7E; }
-    .demo-tabs { position: relative; display: flex; border-top: 1px solid #E2E8F0; background: #fff; border-radius: 0 0 26px 26px; padding: 8px 6px; }
-    .demo-tabs i { flex: 1; height: 30px; display: grid; place-items: center; z-index: 1; }
-    .demo-tabs i svg { width: 19px; height: 19px; fill: none; stroke: #1F4E5F; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    .demo-tab-ind { position: absolute; top: 6px; left: 6px; width: calc((100% - 12px)/3); height: 34px; border-radius: 11px; background: rgba(31,78,95,.10); animation: demoTab 9s ease-in-out infinite; }
-    @keyframes demoTab { 0%,28% { transform: translateX(0%); } 33%,61% { transform: translateX(100%); } 66%,94% { transform: translateX(200%); } 100% { transform: translateX(0%); } }
+    .demo-browser { width: 100%; max-width: 480px; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 34px 80px rgba(31,78,95,.28), 0 0 0 1px rgba(31,78,95,.06); animation: demoFloat 7s ease-in-out infinite; }
+    @keyframes demoFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+    .demo-bar { display: flex; align-items: center; padding: 11px 14px; background: #F1F5F4; border-bottom: 1px solid #E6ECEA; }
+    .demo-dot { width: 10px; height: 10px; border-radius: 50%; margin-right: 7px; }
+    .demo-url { margin-left: 8px; flex: 1; height: 24px; background: #fff; border-radius: 7px; border: 1px solid #E2E8F0; display: flex; align-items: center; gap: 6px; padding: 0 10px; font-size: 11.5px; color: #7A8A92; font-weight: 600; }
+    .demo-screen { position: relative; aspect-ratio: 733 / 408; overflow: hidden; background: #F5F7F6; }
+    .demo-track { display: flex; width: 200%; height: 100%; animation: demoSlide 11s ease-in-out infinite; }
+    .demo-track img { width: 50%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+    @keyframes demoSlide { 0%,42% { transform: translateX(0); } 50%,92% { transform: translateX(-50%); } 100% { transform: translateX(0); } }
 
     /* ===== Bandeau d'onglets défilant ===== */
     .lp-marquee { overflow: hidden; padding: 16px 0; background: #fff; border-top: 1px solid #EEF1F0; border-bottom: 1px solid #EEF1F0; -webkit-mask: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); mask: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); }
@@ -302,40 +277,18 @@ z-index: 500 !important;
           </div>
         </div>
         <div class="lp-hero-demo">
-          <div class="demo-phone">
-            <div class="demo-head"><b>Intermitrack</b><span>Suivi des 507h en temps réel</span></div>
-            <div class="demo-screen">
-              <div class="demo-strip">
-                <div class="demo-view">
-                  <div class="demo-gauge-wrap">
-                    <svg class="demo-ring" viewBox="0 0 100 100">
-                      <defs><linearGradient id="demoGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1F4E5F"/><stop offset="1" stop-color="#12754A"/></linearGradient></defs>
-                      <circle class="bg" cx="50" cy="50" r="42" fill="none" stroke-width="9"/>
-                      <circle class="fg" cx="50" cy="50" r="42" fill="none" stroke-width="9"/>
-                    </svg>
-                    <div class="demo-gauge-pct">73%</div>
-                  </div>
-                  <div class="demo-cap">370 h effectuées · 137 h restantes</div>
-                </div>
-                <div class="demo-view">
-                  <div class="demo-vtitle">Juin 2026</div>
-                  <div class="demo-cal"><i></i><i></i><i class="on"></i><i class="on"></i><i></i><i class="pl"></i><i></i><i></i><i class="on"></i><i></i><i></i><i class="pl"></i><i class="pl"></i><i></i><i class="on"></i><i class="on"></i><i></i><i></i><i class="pl"></i><i></i><i class="on"></i></div>
-                  <div class="demo-cap">3 missions cette semaine</div>
-                </div>
-                <div class="demo-view">
-                  <div class="demo-fcard">
-                    <div class="demo-frow"><span>Facture 2026-014</span><b>320 €</b></div>
-                    <div class="demo-fbar"><i></i></div>
-                    <div class="demo-fnote">CA du mois · 2 480 €</div>
-                  </div>
-                </div>
-              </div>
+          <div class="demo-browser">
+            <div class="demo-bar">
+              <span class="demo-dot" style="background:#FF5F57"></span>
+              <span class="demo-dot" style="background:#FEBC2E"></span>
+              <span class="demo-dot" style="background:#28C840"></span>
+              <span class="demo-url">🔒 intermitrack.fr</span>
             </div>
-            <div class="demo-tabs">
-              <span class="demo-tab-ind"></span>
-              <i><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></i>
-              <i><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></i>
-              <i><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></i>
+            <div class="demo-screen">
+              <div class="demo-track">
+                <img src="screen-dashboard.png?v=1" alt="Tableau de bord Intermitrack" />
+                <img src="screen-missions.png?v=1" alt="Missions et productions Intermitrack" />
+              </div>
             </div>
           </div>
         </div>
