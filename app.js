@@ -904,13 +904,13 @@ function _mdpEnsureDom(){
   document.head.appendChild(style);
   const ov = document.createElement("div");
   ov.id = "mdpOverlay";
-  ov.innerHTML = '<div class="mdp-box"><div class="mdp-title">Quels jours as-tu travaillés ?</div><div class="mdp-sub" id="mdpSub"></div><div class="mdp-tools"><button type="button" class="mdp-tool" id="mdpAll">Tout cocher</button><button type="button" class="mdp-tool" id="mdpNone">Tout décocher</button></div><div class="mdp-fill">Heures par jour : <input type="number" id="mdpDefault" value="8" min="0" step="0.5" class="mdp-fill-input"/><button type="button" class="mdp-tool" id="mdpApply">Appliquer aux jours cochés</button></div><div id="mdpList"></div><div class="mdp-total" id="mdpTotal"></div><div class="mdp-actions"><button type="button" class="mdp-cancel" id="mdpCancel">Annuler</button><button type="button" class="mdp-ok" id="mdpOk">Valider</button></div></div>';
+  ov.innerHTML = '<div class="mdp-box"><div class="mdp-title">Quels jours as-tu travaillés ?</div><div class="mdp-sub" id="mdpSub"></div><div class="mdp-tools"><button type="button" class="mdp-tool" id="mdpAll">Tout cocher</button><button type="button" class="mdp-tool" id="mdpNone">Tout décocher</button></div><div class="mdp-fill">Tous les jours cochés à : <button type="button" class="mdp-tool" data-mdp-quick="4">4h</button><button type="button" class="mdp-tool" data-mdp-quick="8">8h</button><button type="button" class="mdp-tool" data-mdp-quick="10">10h</button><button type="button" class="mdp-tool" data-mdp-quick="12">12h</button></div><div id="mdpList"></div><div class="mdp-total" id="mdpTotal"></div><div class="mdp-actions"><button type="button" class="mdp-cancel" id="mdpCancel">Annuler</button><button type="button" class="mdp-ok" id="mdpOk">Valider</button></div></div>';
   document.body.appendChild(ov);
   ov.addEventListener("click", function(e){ if(e.target===ov) _mdpClose(); });
   document.getElementById("mdpCancel").addEventListener("click", _mdpClose);
   document.getElementById("mdpAll").addEventListener("click", function(){ _mdpSetAll(true); });
   document.getElementById("mdpNone").addEventListener("click", function(){ _mdpSetAll(false); });
-  document.getElementById("mdpApply").addEventListener("click", _mdpApplyDefault);
+  ov.querySelectorAll("[data-mdp-quick]").forEach(function(b){ b.addEventListener("click", function(){ if(!_mdpData) return; var v = Number(b.dataset.mdpQuick); _mdpData.days.forEach(function(d){ if(d.checked) d.hours = v; }); _mdpRender(); }); });
   document.getElementById("mdpOk").addEventListener("click", _mdpValidate);
 }
 
@@ -920,7 +920,7 @@ function openMultiDayPicker(startStr, endStr){
   const days = [];
   for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) days.push(_iso(d));
   _mdpData = {
-    days: days.map(function(ds){ return { date: ds, checked: true, hours: 0 }; }),
+    days: days.map(function(ds){ return { date: ds, checked: true, hours: 8 }; }),
     totalHours: Number($("hours").value) || 0,
     totalGross: Number($("gross").value) || 0,
     production: normalizeProductionName($("production").value),
@@ -930,10 +930,7 @@ function openMultiDayPicker(startStr, endStr){
     km_rate: kmRateUsed(),
     km_amount: calculateKmAmount()
   };
-  _mdpRedistribute();
-  var _firstChecked = _mdpData.days.find(function(d){ return d.checked; });
-  document.getElementById("mdpDefault").value = _firstChecked ? _firstChecked.hours : 8;
-  document.getElementById("mdpSub").textContent = "Décoche les jours non travaillés : le total d'heures se répartit automatiquement entre les jours cochés. Tu peux aussi ajuster chaque jour à la main.";
+  document.getElementById("mdpSub").textContent = "Décoche les jours non travaillés. Chaque jour démarre à 8h — ajuste à la main ou avec les boutons si besoin.";
   _mdpRender();
   document.getElementById("mdpOverlay").classList.add("open");
 }
@@ -948,7 +945,7 @@ function _mdpRender(){
       '<span class="mdp-hours-u">h</span></div>';
   }).join("");
   list.querySelectorAll("[data-mdp-check]").forEach(function(cb){
-    cb.addEventListener("change", function(e){ _mdpData.days[+e.target.dataset.mdpCheck].checked = e.target.checked; _mdpRedistribute(); _mdpRender(); });
+    cb.addEventListener("change", function(e){ _mdpData.days[+e.target.dataset.mdpCheck].checked = e.target.checked; _mdpRender(); });
   });
   list.querySelectorAll("[data-mdp-hours]").forEach(function(inp){
     inp.addEventListener("input", function(e){ _mdpData.days[+e.target.dataset.mdpHours].hours = Number(e.target.value) || 0; _mdpUpdateTotal(); });
@@ -971,7 +968,7 @@ function _mdpRedistribute(){
   _mdpData.days.forEach(function(d){ if (d.checked) d.hours = per; });
 }
 
-function _mdpSetAll(val){ _mdpData.days.forEach(function(d){ d.checked = val; }); _mdpRedistribute(); _mdpRender(); }
+function _mdpSetAll(val){ _mdpData.days.forEach(function(d){ d.checked = val; }); _mdpRender(); }
 
 // Applique la valeur "heures par jour" à tous les jours cochés (confort ; reste modifiable jour par jour)
 function _mdpApplyDefault(){
