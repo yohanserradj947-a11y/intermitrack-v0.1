@@ -2103,8 +2103,8 @@ function renderChart(doneHours, plannedHours = 0) {
   const plannedPercent = Math.round(plannedFrac * 100);
   const totalPercent = Math.round((doneFrac + plannedFrac) * 100);
   const CIRC = 377;
-  const doneDash = Math.min((donePercent / 100) * CIRC, CIRC);
-  const plannedDash = Math.min((plannedPercent / 100) * CIRC, CIRC - doneDash);
+  const doneDash = Math.min(doneFrac * CIRC, CIRC);
+  const plannedDash = Math.min(plannedFrac * CIRC, CIRC - doneDash);
   if (!$("chart")) return;
  const isDark = document.body.classList.contains('theme-dark');
   $("chart").innerHTML = `
@@ -2159,7 +2159,7 @@ function renderHistory() {
             <span>📅 ${formatPeriod(mission.date, mission.endDate)}</span>
             ${mission.emission ? `<span>🎬 ${escapeHtml(mission.emission)}</span>` : ""}
             <span>🕒 ${mission.hours}h</span>
-            <span>€ ${money(mission.gross)}</span>
+            <span>💶 ${money(mission.gross)}</span>
           </div>
           <div class="mission-history-actions">
             <button class="edit-icon-btn" data-edit="${mission.id}" type="button" title="Modifier">✏️</button>
@@ -2333,7 +2333,7 @@ const list = missions.filter((m) => normalizeProductionName(m.production || "San
             <span>📅 ${formatPeriod(mission.date, mission.endDate)}</span>
             ${mission.emission ? `<span>🎬 ${escapeHtml(mission.emission)}</span>` : ""}
             <span>🕒 ${mission.hours}h</span>
-            <span>€ ${money(mission.gross)}</span>
+            <span>💶 ${money(mission.gross)}</span>
           </div>
           <div class="mission-history-actions">
             <button class="edit-icon-btn" data-edit="${mission.id}" type="button" title="Modifier">✏️</button>
@@ -2556,7 +2556,7 @@ function renderActualisation() {
       <div class="mission-history-info">
         <span>📅 ${escapeHtml(formatPeriod(mission.date, mission.endDate))}</span>
         <span>🕒 ${mission.hours}h</span>
-        <span>€ ${money(mission.gross)}</span>
+        <span>💶 ${money(mission.gross)}</span>
       </div>
     </div>
   `).join("");

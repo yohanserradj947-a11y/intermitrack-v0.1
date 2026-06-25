@@ -937,7 +937,8 @@ html, body { overflow-x: hidden; max-width: 100%; }
 .theme-btn {
   width: 32px; height: 32px; border-radius: 10px;
   border: 1.5px solid var(--line); background: #F0F2F5;
-  cursor: pointer; font-size: 15px; display: grid; place-items: center; transition: all .15s;
+  cursor: pointer; font-size: 15px; line-height: 1; padding: 0;
+  display: flex; align-items: center; justify-content: center; transition: all .15s;
 }
 .theme-btn:hover { border-color: var(--petrol); transform: scale(1.1); background: white; }
 .theme-btn.active { border-color: var(--petrol); background: white; box-shadow: 0 2px 8px rgba(13,79,108,.15); }
