@@ -24,6 +24,7 @@
       inset: 0 !important;
 z-index: 500 !important;
       overflow-y: auto !important;
+      overflow-x: hidden !important;
       background:
         radial-gradient(1100px 600px at 85% -8%, rgba(122,158,126,0.30), transparent 60%),
         radial-gradient(900px 520px at -10% 112%, rgba(31,78,95,0.28), transparent 60%),
@@ -70,8 +71,15 @@ z-index: 500 !important;
     .lp-hero-img img { width: 100%; border-radius: 18px; box-shadow: 0 20px 60px rgba(31,78,95,.18); border: 1px solid rgba(31,78,95,.08); }
 
     /* ===== Hero animé (démo façon vidéo) ===== */
-    .lp-hero { position: relative; overflow: hidden; }
+    .lp-hero { position: relative; }
     .lp-hero > div, .lp-hero-demo { position: relative; z-index: 2; }
+    /* Fond vidéo plein écran (gauche-droite) de la page de présentation */
+    .lp-hero-video { position: absolute; top: 0; height: 100%; left: 50%; width: 100vw; transform: translateX(-50%); object-fit: cover; z-index: 0; }
+    .lp-hero > .lp-hero-overlay { position: absolute; top: 0; height: 100%; left: 50%; width: 100vw; transform: translateX(-50%); background: rgba(255,255,255,.72); z-index: 1; pointer-events: none; }
+    @media (max-width: 768px) {
+      .lp-hero-video { display: none; }
+      .lp-hero { background-image: url('fond-login-poster.jpg?v=1'); background-size: cover; background-position: center; }
+    }
     .lp-blob { position: absolute; z-index: 0; border-radius: 50%; filter: blur(48px); opacity: .4; pointer-events: none; will-change: transform; transform: translateZ(0); backface-visibility: hidden; }
     .lp-blob.b1 { width: 340px; height: 340px; background: radial-gradient(circle, #1F4E5F, transparent 70%); top: -90px; left: -70px; animation: lpBlob 18s ease-in-out infinite; }
     .lp-blob.b2 { width: 300px; height: 300px; background: radial-gradient(circle, #7A9E7E, transparent 70%); bottom: -110px; right: -50px; animation: lpBlob 22s ease-in-out infinite reverse; }
@@ -267,7 +275,11 @@ z-index: 500 !important;
 
       <!-- HERO -->
       <div class="lp-hero">
-        <span class="lp-blob b1"></span><span class="lp-blob b2"></span><span class="lp-blob b3"></span>
+        <video class="lp-hero-video" autoplay muted loop playsinline poster="fond-login-poster.jpg?v=1">
+          <source src="fond-login.webm?v=1" type="video/webm">
+          <source src="fond-login.mp4?v=1" type="video/mp4">
+        </video>
+        <div class="lp-hero-overlay"></div>
         <div>
           <div class="lp-badge">🎬 Pour les intermittents du spectacle</div>
           <h2 class="lp-h1">Votre <span>intermittence</span>,<br>enfin sous contrôle.</h2>
