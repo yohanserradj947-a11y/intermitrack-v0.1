@@ -594,6 +594,7 @@ if (typeof monterWidgetParser === "function") monterWidgetParser();
   }
 
   if ($("feedbackBtn")) $("feedbackBtn").classList.remove("hidden");
+  if (typeof initProfilFeature === "function") initProfilFeature();
 }
 
 
@@ -2467,7 +2468,7 @@ function resetMissionFormForDate(dateStr) {
   editingMissionId = null;
   if ($("missionForm")) $("missionForm").reset();
   if ($("production")) $("production").value = "";
-  if ($("type")) $("type").value = "Montage";
+  if ($("type")) $("type").value = (_profil && Array.isArray(_profil.postes) && _profil.postes[0]) || "Montage";
   if ($("date")) $("date").value = dateStr;
   if ($("endDate")) $("endDate").value = dateStr;
   if ($("hours")) $("hours").value = "";
@@ -2836,6 +2837,121 @@ sb.auth.onAuthStateChange((_event, session) => {
  
 setupEvents();
 init();
+
+
+// ===== Profil "Mes informations" =====
+var _profil = null;
+var _profilPostes = [];
+var POSTES_TECH = ['Montage','Tournage','Démontage','Régie','Son','Lumière','Image / Vidéo','Machiniste','Électricien','Poursuiteur','Plateau','Décor','HMC'];
+var POSTES_ARTISTE = ['Comédien','Chanteur','Musicien','Danseur','Choriste'];
+
+async function loadProfil(){
+  if(!currentUser) return;
+  try{
+    const { data } = await sb.from('profiles').select('annexe,postes,droits_ouverts,taux_journalier').eq('id', currentUser.id).maybeSingle();
+    _profil = data || null;
+  }catch(e){ _profil = null; }
+}
+
+function _profilEnsureDom(){
+  if(document.getElementById('profilOverlay')) return;
+  const st = document.createElement('style');
+  st.textContent = "#profilOverlay,#profilIntroOverlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:100002;padding:16px;}#profilOverlay.open,#profilIntroOverlay.open{display:flex;}.pf-box{background:#fff;border-radius:20px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.25);font-family:inherit;}.pf-title{font-size:19px;font-weight:800;color:#1F4E5F;margin:0 0 4px;}.pf-sub{font-size:13px;color:#718096;margin:0 0 18px;line-height:1.5;}.pf-label{font-size:13px;font-weight:700;color:#2D3748;margin:16px 0 8px;}.pf-seg{display:flex;gap:8px;flex-wrap:wrap;}.pf-opt{padding:9px 14px;border:1px solid #E2E8F0;background:#fff;color:#1F4E5F;border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}.pf-opt.on{background:#1F4E5F;color:#fff;border-color:#1F4E5F;}.pf-input{width:100%;padding:11px 13px;border:1px solid #E2E8F0;border-radius:11px;font-size:14px;font-family:inherit;box-sizing:border-box;}.pf-actions{display:flex;gap:10px;margin-top:22px;}.pf-cancel{flex:1;padding:13px;border:1px solid #E2E8F0;background:#F5F7F6;color:#718096;border-radius:12px;font-weight:700;cursor:pointer;font-family:inherit;}.pf-ok{flex:1;padding:13px;border:none;background:#1F4E5F;color:#fff;border-radius:12px;font-weight:800;cursor:pointer;font-family:inherit;}.pf-hint{font-size:11px;color:#9AA5B1;margin-top:6px;}";
+  document.head.appendChild(st);
+
+  const ov = document.createElement('div');
+  ov.id = 'profilOverlay';
+  ov.innerHTML = '<div class="pf-box">'
+    + '<div class="pf-title">📝 Mes informations</div>'
+    + '<div class="pf-sub">Optionnel — ça pré-remplit tes missions et permet de calculer ton revenu mensuel. Modifiable à tout moment ici.</div>'
+    + '<div class="pf-label">Tu es plutôt…</div>'
+    + '<div class="pf-seg" id="pfAnnexe"><button type="button" class="pf-opt" data-annexe="technicien">Technicien (annexe 8)</button><button type="button" class="pf-opt" data-annexe="artiste">Artiste (annexe 10)</button><button type="button" class="pf-opt" data-annexe="les_deux">Les deux</button></div>'
+    + '<div class="pf-label">Ton / tes poste(s) <span style="font-weight:400;color:#9AA5B1;">— le 1er = défaut sur tes missions</span></div>'
+    + '<div class="pf-seg" id="pfPostes"></div>'
+    + '<div class="pf-label">As-tu déjà ouvert tes droits ?</div>'
+    + '<div class="pf-seg" id="pfDroits"><button type="button" class="pf-opt" data-droits="oui">Oui</button><button type="button" class="pf-opt" data-droits="non">Pas encore</button></div>'
+    + '<div id="pfAjWrap" style="display:none;"><div class="pf-label">Ton taux journalier (AJ)</div><input type="number" id="pfAj" class="pf-input" placeholder="Ex : 50" min="0" step="0.01"/><div class="pf-hint">Ce que France Travail te verse par jour indemnisé. Sert au calcul du revenu mensuel.</div></div>'
+    + '<div class="pf-actions"><button type="button" class="pf-cancel" id="pfCancel">Fermer</button><button type="button" class="pf-ok" id="pfSave">Enregistrer</button></div>'
+    + '</div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function(e){ if(e.target===ov) ov.classList.remove('open'); });
+
+  const intro = document.createElement('div');
+  intro.id = 'profilIntroOverlay';
+  intro.innerHTML = '<div class="pf-box" style="max-width:420px;">'
+    + '<div style="font-size:40px;text-align:center;margin-bottom:8px;">👋</div>'
+    + '<div class="pf-title" style="text-align:center;">Une nouveauté pour toi</div>'
+    + '<div class="pf-sub" style="text-align:center;">Tu peux maintenant remplir <b>« Mes informations »</b> (annexe, poste, taux journalier).<br/><br/>C\'est <b>optionnel</b> — ça sert à <b>pré-remplir tes missions</b> et à <b>calculer ton revenu mensuel</b>.<br/><br/>Tu le retrouveras quand tu veux dans ton <b>menu en haut à droite → Mes informations</b>.</div>'
+    + '<div class="pf-actions"><button type="button" class="pf-cancel" id="pfIntroLater">Plus tard</button><button type="button" class="pf-ok" id="pfIntroFill">Remplir maintenant</button></div>'
+    + '</div>';
+  document.body.appendChild(intro);
+
+  ov.querySelector('#pfAnnexe').addEventListener('click', function(e){ var b=e.target.closest('[data-annexe]'); if(!b)return; ov.querySelectorAll('#pfAnnexe .pf-opt').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); _profilRenderPostes(b.dataset.annexe); });
+  ov.querySelector('#pfDroits').addEventListener('click', function(e){ var b=e.target.closest('[data-droits]'); if(!b)return; ov.querySelectorAll('#pfDroits .pf-opt').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); document.getElementById('pfAjWrap').style.display = b.dataset.droits==='oui'?'block':'none'; });
+  document.getElementById('pfCancel').addEventListener('click', function(){ ov.classList.remove('open'); });
+  document.getElementById('pfSave').addEventListener('click', _profilSave);
+  document.getElementById('pfIntroLater').addEventListener('click', function(){ localStorage.setItem('intermitrack_profil_intro_v1','1'); intro.classList.remove('open'); });
+  document.getElementById('pfIntroFill').addEventListener('click', function(){ localStorage.setItem('intermitrack_profil_intro_v1','1'); intro.classList.remove('open'); openProfilModal(); });
+}
+
+function _profilRenderPostes(annexe){
+  var wrap = document.getElementById('pfPostes');
+  var list = annexe==='technicien' ? POSTES_TECH : (annexe==='artiste' ? POSTES_ARTISTE : POSTES_TECH.concat(POSTES_ARTISTE));
+  wrap.innerHTML = list.map(function(p){ return '<button type="button" class="pf-opt '+(_profilPostes.indexOf(p)>=0?'on':'')+'" data-poste="'+p+'">'+p+'</button>'; }).join('');
+  wrap.querySelectorAll('[data-poste]').forEach(function(b){
+    b.addEventListener('click', function(){ b.classList.toggle('on'); _profilPostes = Array.prototype.map.call(wrap.querySelectorAll('.pf-opt.on'), function(x){return x.dataset.poste;}); });
+  });
+}
+
+function openProfilModal(){
+  _profilEnsureDom();
+  var ov = document.getElementById('profilOverlay');
+  var annexe = (_profil && _profil.annexe) || '';
+  _profilPostes = (_profil && Array.isArray(_profil.postes)) ? _profil.postes.slice() : [];
+  ov.querySelectorAll('#pfAnnexe .pf-opt').forEach(function(x){ x.classList.toggle('on', x.dataset.annexe===annexe); });
+  _profilRenderPostes(annexe || 'les_deux');
+  ov.querySelectorAll('#pfDroits .pf-opt').forEach(function(x){ x.classList.remove('on'); });
+  var dr = _profil ? _profil.droits_ouverts : null;
+  if(dr===true){ ov.querySelector('[data-droits="oui"]').classList.add('on'); document.getElementById('pfAjWrap').style.display='block'; }
+  else if(dr===false){ ov.querySelector('[data-droits="non"]').classList.add('on'); document.getElementById('pfAjWrap').style.display='none'; }
+  document.getElementById('pfAj').value = (_profil && _profil.taux_journalier!=null) ? _profil.taux_journalier : '';
+  ov.classList.add('open');
+}
+
+async function _profilSave(){
+  if(!currentUser) return;
+  var ov = document.getElementById('profilOverlay');
+  var aBtn = ov.querySelector('#pfAnnexe .pf-opt.on');
+  var dBtn = ov.querySelector('#pfDroits .pf-opt.on');
+  var droits = dBtn ? (dBtn.dataset.droits==='oui') : null;
+  var p = {
+    annexe: aBtn ? aBtn.dataset.annexe : null,
+    postes: _profilPostes,
+    droits_ouverts: droits,
+    taux_journalier: droits===true ? (Number(document.getElementById('pfAj').value)||null) : null
+  };
+  var res = await sb.from('profiles').upsert(Object.assign({ id: currentUser.id }, p), { onConflict:'id' });
+  if(res.error){ if(typeof toast==='function') toast('Erreur : '+res.error.message); return; }
+  _profil = p;
+  ov.classList.remove('open');
+  if(typeof toast==='function') toast('Infos enregistrées ✅');
+}
+
+function _profilShowIntroIfNeeded(){
+  if(localStorage.getItem('intermitrack_profil_intro_v1')) return;
+  _profilEnsureDom();
+  setTimeout(function(){ var i=document.getElementById('profilIntroOverlay'); if(i) i.classList.add('open'); }, 900);
+}
+
+function initProfilFeature(){
+  _profilEnsureDom();
+  loadProfil().then(function(){ _profilShowIntroIfNeeded(); });
+  var btn = document.getElementById('profileBtn');
+  if(btn && !btn.dataset.init){
+    btn.dataset.init='1';
+    btn.addEventListener('click', function(){ var dd=document.getElementById('accountDropdown'); if(dd) dd.classList.add('hidden'); openProfilModal(); });
+  }
+}
 // ====================================================================
 // INTERMITRACK — JS des cartes Prévisions (à AJOUTER à ton app.js)
 // À coller TOUT EN BAS de app.js (après setupEvents(); init();).

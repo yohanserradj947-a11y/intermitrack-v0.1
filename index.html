@@ -248,6 +248,11 @@ z-index: 500 !important;
               <span class="account-dd-badge">🚧 Open Bêta</span>
             </div>
 
+            <!-- Mes informations -->
+            <button class="account-dd-logout" type="button" id="profileBtn" style="background:#EEF4F1;color:#1F4E5F;margin-bottom:8px;">
+              <span>📝</span> Mes informations
+            </button>
+
             <!-- Thème -->
             <div class="account-dd-themes">
               <span class="account-dd-theme-label">Apparence</span>
@@ -586,7 +591,7 @@ z-index: 500 !important;
             <label for="emission">Émission</label>
             <input id="emission" list="emissionsList" autocomplete="off" placeholder="Ex :The voice..." />
             <datalist id="emissionsList"></datalist>
-            <select id="type"><option>Montage</option><option>Tournage</option><option>Démontage</option><option>Régie</option><option>Son</option><option>Lumière</option><option>Autres</option></select>
+            <select id="type"><optgroup label="Technique"><option>Montage</option><option>Tournage</option><option>Démontage</option><option>Régie</option><option>Son</option><option>Lumière</option><option>Image / Vidéo</option><option>Machiniste</option><option>Électricien</option><option>Poursuiteur</option><option>Plateau</option><option>Décor</option><option>HMC</option></optgroup><optgroup label="Artiste"><option>Comédien</option><option>Chanteur</option><option>Musicien</option><option>Danseur</option><option>Choriste</option></optgroup><option>Autres</option></select>
             <label for="date">Date début</label><input id="date" type="date" required />
             <label for="endDate">Date fin</label><input id="endDate" type="date" required />
             <label for="hours">Nombre d'heures cumulées sur la période</label>
