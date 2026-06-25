@@ -1121,3 +1121,18 @@ body.theme-dark .lp-modal-box .primary { background: #0D4F6C !important; color: 
 body.theme-dark .lp-modal-box .ghost { background: #EEF4F2 !important; color: #0D4F6C !important; }
 body.theme-dark .lp-modal-box .home-mainline { color: #0D1B2A !important; }
 body.theme-dark .lp-modal-box .msg { color: #64748B !important; }
+
+/* ===== Contacts utiles ===== */
+.contact-card { border: 1px solid var(--border, #E5E8EB); border-radius: 16px; padding: 16px; background: #fff; box-shadow: 0 1px 6px rgba(13,27,42,.05); display: flex; flex-direction: column; gap: 10px; }
+.contact-head { display: flex; align-items: center; gap: 10px; }
+.contact-ic { width: 44px; height: 44px; border-radius: 13px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; font-size: 21px; background: linear-gradient(150deg, var(--petrol, #1F4E5F), var(--sage, #12754A)); }
+.contact-name { font-weight: 800; color: var(--petrol, #1F4E5F); font-size: 15px; line-height: 1.2; }
+.contact-role { font-size: 12px; color: #718096; margin-top: 2px; }
+.contact-body { font-size: 13px; color: #2D3748; line-height: 1.7; }
+.contact-body a { color: var(--petrol, #1F4E5F); font-weight: 700; text-decoration: none; word-break: break-word; }
+.contact-body a:hover { text-decoration: underline; }
+body.theme-dark .contact-card { background: #0D1B2A !important; border-color: rgba(255,255,255,.07) !important; }
+body.theme-dark .contact-name { color: #6EC6E0 !important; }
+body.theme-dark .contact-role { color: rgba(255,255,255,.45) !important; }
+body.theme-dark .contact-body { color: #DCF0FA !important; }
+body.theme-dark .contact-body a { color: #6EC6E0 !important; }

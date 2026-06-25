@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=3" />
+  <link rel="stylesheet" href="style.css?v=4" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     /* ===== LANDING PAGE FIXE PAR-DESSUS TOUT ===== */
@@ -405,6 +405,7 @@ z-index: 500 !important;
           <button class="tab" type="button" data-view="previsions"><svg viewBox="0 0 24 24"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg>Prévisions</button>
           <button class="tab" type="button" data-view="autoentrepreneur"><svg viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Auto-entrepreneur</button>
           <button class="tab" type="button" data-view="fiscalite"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h2M8 15h2M13 11h3v4h-3z"/></svg>Fiscalité</button>
+          <button class="tab" type="button" data-view="contacts"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Contacts</button>
         </nav>
         <span class="swipe-hint left">‹</span>
         <span class="swipe-hint right">›</span>
@@ -1084,11 +1085,91 @@ z-index: 500 !important;
 </div>
 </section>
 
+      <section class="view" id="view-contacts">
+        <article class="card">
+          <div class="historyhead" style="margin-bottom:6px;">
+            <div>
+              <h2>Contacts utiles</h2>
+              <p class="sub">Les organismes clés de l'intermittent du spectacle</p>
+            </div>
+          </div>
+          <p class="hint" style="margin-bottom:18px;">Coordonnées des principaux organismes. Les numéros et horaires peuvent évoluer — vérifie toujours sur les sites officiels.</p>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;">
+
+            <div class="contact-card">
+              <div class="contact-head">
+                <div class="contact-ic">🎬</div>
+                <div><div class="contact-name">Intermitrack</div><div class="contact-role">Support, bug ou suggestion</div></div>
+              </div>
+              <div class="contact-body">✉️ <a href="mailto:intermitrack@gmail.com">intermitrack@gmail.com</a><br>🔗 <a href="https://intermitrack.fr" target="_blank">intermitrack.fr</a></div>
+            </div>
+
+            <div class="contact-card">
+              <div class="contact-head">
+                <div class="contact-ic">🎭</div>
+                <div><div class="contact-name">France Travail Spectacle</div><div class="contact-role">Allocations chômage (annexes 8 &amp; 10)</div></div>
+              </div>
+              <div class="contact-body">📞 <a href="tel:3995">3995</a> (puis « spectacle ») · étranger : <a href="tel:+33177863995">+33 1 77 86 39 95</a><br>📍 Centre de recouvrement Cinéma Spectacle, TSA 70113, 92891 Nanterre Cedex 09<br>🔗 <a href="https://www.francetravail.fr/spectacle/" target="_blank">francetravail.fr/spectacle</a></div>
+            </div>
+
+            <div class="contact-card">
+              <div class="contact-head">
+                <div class="contact-ic">🛡️</div>
+                <div><div class="contact-name">Audiens</div><div class="contact-role">Retraite, prévoyance, santé, action sociale</div></div>
+              </div>
+              <div class="contact-body">📞 <a href="tel:0173173755">0 173 173 755</a> (intermittents &amp; pigistes, lun-ven 8h30-17h30)<br>📍 74 rue Jean-Bleuzen, 92177 Vanves Cedex<br>🔗 <a href="https://www.audiens.org" target="_blank">audiens.org</a></div>
+            </div>
+
+            <div class="contact-card">
+              <div class="contact-head">
+                <div class="contact-ic">🏖️</div>
+                <div><div class="contact-name">Congés Spectacles</div><div class="contact-role">Caisse des congés payés (gérée par Audiens)</div></div>
+              </div>
+              <div class="contact-body">📞 <a href="tel:0173173434">0 173 173 434</a> (lun-ven 8h30-18h)<br>📍 Audiens – Indemnités de congés payés, TSA 90406, 92177 Vanves Cedex<br>🔗 <a href="https://www.conges-spectacles.com" target="_blank">conges-spectacles.com</a></div>
+            </div>
+
+            <div class="contact-card">
+              <div class="contact-head">
+                <div class="contact-ic">🎓</div>
+                <div><div class="contact-name">Afdas</div><div class="contact-role">Formation professionnelle &amp; conseil carrière</div></div>
+              </div>
+              <div class="contact-body">📞 <a href="tel:0144785587">01 44 78 55 87</a> (intermittents)<br>📍 66 rue Stendhal, 75020 Paris<br>🔗 <a href="https://www.afdas.com" target="_blank">afdas.com</a></div>
+            </div>
+
+            <div class="contact-card">
+              <div class="contact-head">
+                <div class="contact-ic">🩺</div>
+                <div><div class="contact-name">Thalie Santé (ex-CMB)</div><div class="contact-role">Médecine du travail du spectacle</div></div>
+              </div>
+              <div class="contact-body">📞 <a href="tel:0149276005">01 49 27 60 05</a><br>📍 7 rue Bergère, 75009 Paris<br>🔗 <a href="https://www.thalie-sante.org" target="_blank">thalie-sante.org</a></div>
+            </div>
+
+            <div class="contact-card">
+              <div class="contact-head">
+                <div class="contact-ic">📋</div>
+                <div><div class="contact-name">Guso</div><div class="contact-role">Guichet unique du spectacle occasionnel</div></div>
+              </div>
+              <div class="contact-body">📞 <a href="tel:0805414041">0 805 41 40 41</a> (gratuit, lun-ven 9h-17h)<br>🔗 <a href="https://www.guso.fr" target="_blank">guso.fr</a></div>
+            </div>
+
+            <div class="contact-card">
+              <div class="contact-head">
+                <div class="contact-ic">🔗</div>
+                <div><div class="contact-name">Autres liens utiles</div><div class="contact-role">Démarches en ligne</div></div>
+              </div>
+              <div class="contact-body">🧾 <a href="https://www.autoentrepreneur.urssaf.fr" target="_blank">autoentrepreneur.urssaf.fr</a> (micro-entreprise)<br>💶 <a href="https://www.impots.gouv.fr" target="_blank">impots.gouv.fr</a> (déclaration, impôt)<br>📑 <a href="https://www.service-public.fr" target="_blank">service-public.fr</a></div>
+            </div>
+
+          </div>
+        </article>
+      </section>
+
     </section>
   </main>
 
-  <script src="document-parser.js?v=3"></script>
-  <script src="app.js?v=3"></script>
+  <script src="document-parser.js?v=4"></script>
+  <script src="app.js?v=4"></script>
 
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>
