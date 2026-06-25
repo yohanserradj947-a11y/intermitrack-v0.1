@@ -542,14 +542,19 @@ html, body { overflow-x: hidden; max-width: 100%; }
 .new-cal-empty { background: transparent !important; cursor: default !important; }
 .new-cal-empty:hover { background: transparent !important; }
 .new-cal-num { font-size: 12px; font-weight: 700; color: var(--text); line-height: 1; }
-.new-cal-day.today { background: var(--petrol) !important; }
-.new-cal-day.today .new-cal-num { color: white !important; }
-.new-cal-day.has-done { background: #EAF3EF; border: 1.5px solid rgba(13,79,108,.3) !important; }
+.new-cal-day.has-done { background: linear-gradient(135deg, #1F4E5F, #2F8F6B) !important; border-color: transparent !important; }
+.new-cal-day.has-done .new-cal-num,
 .new-cal-day.has-done .new-cal-tag-prod,
-.new-cal-day.has-done .new-cal-tag-meta { color: var(--petrol); }
-.new-cal-day.has-planned { background: #FFF3EA; border: 1.5px solid rgba(232,101,10,.35) !important; }
+.new-cal-day.has-done .new-cal-tag-meta { color: #fff !important; }
+.new-cal-day.has-planned { background: linear-gradient(135deg, #F97316, #FDBA74) !important; border-color: transparent !important; }
+.new-cal-day.has-planned .new-cal-num,
 .new-cal-day.has-planned .new-cal-tag-prod,
-.new-cal-day.has-planned .new-cal-tag-meta { color: var(--orange); }
+.new-cal-day.has-planned .new-cal-tag-meta { color: #fff !important; }
+.new-cal-day.today { background: linear-gradient(135deg, #2F8F6B, #1F4E5F) !important; border-color: transparent !important; animation: calTodayPulse 1.7s ease-in-out infinite; }
+.new-cal-day.today .new-cal-num,
+.new-cal-day.today .new-cal-tag-prod,
+.new-cal-day.today .new-cal-tag-meta { color: #fff !important; }
+@keyframes calTodayPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(47,143,107,0); } 50% { box-shadow: 0 0 0 4px rgba(47,143,107,.5); } }
 
 .new-cal-tag { display:flex; flex-direction:column; gap:1px; margin-top:2px; width:100%; line-height:1.1; text-align:left; }
 .new-cal-tag-prod { font-size:9px; font-weight:800; letter-spacing:.03em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -1080,10 +1085,10 @@ body.theme-dark .account-dd-email, body.theme-dark .account-dd-plan, body.theme-
 /* Calendrier dark */
 body.theme-dark .new-cal-day { background: rgba(255,255,255,.03); }
 body.theme-dark .new-cal-day:hover { background: rgba(255,255,255,.07) !important; }
-body.theme-dark .new-cal-day.today { background: #0D4F6C !important; }
+body.theme-dark .new-cal-day.today { background: linear-gradient(135deg, #2F8F6B, #1F4E5F) !important; border-color: transparent !important; }
 body.theme-dark .new-cal-num { color: #DCF0FA; }
-body.theme-dark .new-cal-day.has-done { background: rgba(13,79,108,.18) !important; border: 1.5px solid rgba(110,198,224,.28) !important; }
-body.theme-dark .new-cal-day.has-planned { background: rgba(232,101,10,.12) !important; border: 1.5px solid rgba(249,115,22,.35) !important; }
+body.theme-dark .new-cal-day.has-done { background: linear-gradient(135deg, #1F4E5F, #2F8F6B) !important; border-color: transparent !important; }
+body.theme-dark .new-cal-day.has-planned { background: linear-gradient(135deg, #F97316, #FDBA74) !important; border-color: transparent !important; }
 body.theme-dark .new-cal-day.has-done .new-cal-tag-prod,
 body.theme-dark .new-cal-day.has-done .new-cal-tag-meta { color: #6EC6E0; }
 body.theme-dark .new-cal-day.has-planned .new-cal-tag-prod,
