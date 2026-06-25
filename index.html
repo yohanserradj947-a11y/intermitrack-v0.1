@@ -121,12 +121,7 @@ z-index: 500 !important;
     .lp-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: linear-gradient(135deg,#1F4E5F,#12754A); flex-shrink: 0; }
     @keyframes lpMarquee { to { transform: translateX(-50%); } }
 
-    @media (prefers-reduced-motion: reduce) {
-      .lp-blob, .demo-phone, .demo-strip, .demo-ring .fg, .demo-tab-ind, .demo-fbar i, .lp-marquee-track { animation: none !important; }
-      .demo-strip { transform: translateY(0); }
-      .demo-ring .fg { stroke-dashoffset: 74; }
-      .demo-fbar i { width: 78%; }
-    }
+    /* Animations du hero actives pour tous les visiteurs (volontairement non conditionnées au reglage systeme). */
 
     .lp-warn { max-width: 1200px; margin: 0 auto; padding: 0 40px 36px; }
     .lp-warn-inner { background: #FFFBEB; border: 2px solid #FCD34D; border-radius: 18px; padding: 16px 20px; display: flex; gap: 12px; align-items: flex-start; }
