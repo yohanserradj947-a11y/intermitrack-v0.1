@@ -1410,7 +1410,7 @@ tbody td.amount{text-align:right;font-weight:600;}
   </table>
   <div class="total-row"><span class="label">Total à régler</span><span class="val">${money2(f.amount)}</span></div>
   <div style="text-align:right;"><span class="status" style="background:${f.status === "payee" ? "#E3F6E9" : "#FDF1DC"};color:${f.status === "payee" ? "#12754A" : "#9A6A00"};">${f.status === "payee" ? "Payée" : "À régler"}</span></div>
-  <div class="mentions">${escapeHtml(p.tva)}<br>En cas de retard de paiement : indemnité forfaitaire pour frais de recouvrement de 40 € (art. L441-10 et D441-5 du Code de commerce). Pas d'escompte pour paiement anticipé.</div>
+  <div class="mentions">${escapeHtml(p.tva)}<br>En cas de retard de paiement : indemnité forfaitaire pour frais de recouvrement de 40 € (art. L441-10 et D441-5 du Code de commerce). Pas d'escompte pour paiement anticipé.<br><span style="font-size:10px;color:#94A3B8;">Document généré à titre d'aide à la gestion via Intermitrack. L'émetteur reste seul responsable de l'exactitude et de la conformité légale de cette facture.</span></div>
   <div class="footer">Facture générée avec <b>Intermitrack</b> · intermitrack.fr</div>
 </div>
 <script>window.onload=function(){window.print();}<\/script>
