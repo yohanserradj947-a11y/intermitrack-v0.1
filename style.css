@@ -55,7 +55,7 @@ body.theme-dark .bg-fx .blob { opacity: .22; }
 
 /* ── Layout ─────────────────────────────────────────────────────── */
 .app { max-width: 1060px; margin: 0 auto; padding: 22px; position: relative; z-index: 1; }
-.top { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 20px; }
+.top { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 20px; position: sticky; top: 0; z-index: 90; background: var(--bg); padding: 10px 0; }
 .brand { display: flex; align-items: center; gap: 12px; }
 
 /* ── Logo ───────────────────────────────────────────────────────── */
