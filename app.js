@@ -864,6 +864,12 @@ async function addMission(event) {
     await _mdpSaveBreakdown();
     return;
   }
+  // Période de 2 jours ou plus non encore traitée → ouvrir le pop-up des jours travaillés
+  if (!editingMissionId && $("date").value && $("endDate").value &&
+      daysInclusive(new Date($("date").value+"T00:00:00"), new Date($("endDate").value+"T00:00:00")) > 1) {
+    openMultiDayPicker($("date").value, $("endDate").value);
+    return;
+  }
   const payload = {
     user_id: currentUser.id, production: normalizeProductionName($("production").value),
     emission: $("emission")?.value || "",
@@ -1031,6 +1037,12 @@ function _maybeOpenMdp(){
   const nb = daysInclusive(new Date(s+"T00:00:00"), new Date(e+"T00:00:00"));
   if (nb > 1) openMultiDayPicker(s, e);
 }
+
+// Branche l'ouverture du pop-up dès le choix des dates (change + blur), au chargement
+(function(){
+  function _wireMdpDates(){ ["date","endDate"].forEach(function(idd){ var el=document.getElementById(idd); if(el && !el.dataset.mdptrig){ el.dataset.mdptrig="1"; el.addEventListener("change", _maybeOpenMdp); el.addEventListener("blur", _maybeOpenMdp); } }); }
+  if (document.readyState !== "loading") _wireMdpDates(); else document.addEventListener("DOMContentLoaded", _wireMdpDates);
+})();
 
 function editMission(id) {
   const mission = missions.find((m) => String(m.id) === String(id));
@@ -2123,7 +2135,7 @@ function renderChart(doneHours, plannedHours = 0) {
         <filter id="arcShadow"><feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.15"/></filter>
       </defs>
       <path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="${isDark ? 'rgba(255,255,255,.12)' : '#EEF4F1'}" stroke-width="30" stroke-linecap="butt"/>
-      ${doneDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3done)" stroke-width="30" stroke-linecap="butt" stroke-dasharray="${doneDash} ${CIRC}" filter="url(#arcShadow)"/>` : ""}
+      ${doneDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3done)" stroke-width="30" stroke-linecap="butt" stroke-dasharray="${doneDash} ${CIRC}"/>` : ""}
       ${plannedDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3plan)" stroke-width="30" stroke-linecap="butt" stroke-dasharray="${plannedDash} ${CIRC}" stroke-dashoffset="${-doneDash}"/>` : ""}
       <text x="150" y="132" text-anchor="middle" font-size="44" font-weight="900" fill="${isDark ? '#7ACCE0' : '#1F4E5F'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${totalPercent}%</text>
       <text x="150" y="155" text-anchor="middle" font-size="13" fill="${isDark ? 'rgba(255,255,255,.4)' : '#718096'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">potentiel total</text>
