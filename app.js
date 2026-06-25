@@ -1051,6 +1051,7 @@ function editMission(id) {
   $("production").value = mission.production || "";
   if ($("emission")) $("emission").value = mission.emission || "";
   $("type").value = mission.type || "Autre";
+  if (typeof _syncTypeBtn === "function") _syncTypeBtn();
   $("date").value = mission.date || "";
   $("endDate").value = mission.endDate || mission.date || "";
   $("hours").value = mission.hours || 0;
@@ -2499,6 +2500,7 @@ function resetMissionFormForDate(dateStr) {
   if ($("missionForm")) $("missionForm").reset();
   if ($("production")) $("production").value = "";
   if ($("type")) $("type").value = (_profil && Array.isArray(_profil.postes) && _profil.postes[0]) || "Montage";
+  if (typeof _syncTypeBtn === "function") _syncTypeBtn();
   if ($("date")) $("date").value = dateStr;
   if ($("endDate")) $("endDate").value = dateStr;
   if ($("hours")) $("hours").value = "";
@@ -2985,6 +2987,36 @@ function initProfilFeature(){
   }
   ['date','endDate'].forEach(function(idd){ var el=document.getElementById(idd); if(el && !el.dataset.mdptrig){ el.dataset.mdptrig='1'; el.addEventListener('change', _maybeOpenMdp); } });
 }
+// ===== Sélecteur de type de mission (pop-up à boutons, comme les jours) =====
+function _syncTypeBtn(){ var l=document.getElementById('typeBtnLabel'); var t=document.getElementById('type'); if(l && t) l.textContent = t.value || 'Choisir…'; }
+function _openTypePicker(){
+  _profilEnsureDom(); // garantit les styles .pf-*
+  var ov = document.getElementById('typePickerOverlay');
+  if(!ov){
+    ov = document.createElement('div');
+    ov.id = 'typePickerOverlay';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:100003;padding:16px;';
+    var groups = [['Technique', POSTES_TECH],['Artiste', POSTES_ARTISTE],['Autre', ['Autres']]];
+    var html = '<div class="pf-box"><div class="pf-title">Type de mission</div>';
+    groups.forEach(function(g){ html += '<div class="pf-label">'+g[0]+'</div><div class="pf-seg">' + g[1].map(function(p){ return '<button type="button" class="pf-opt" data-type="'+p+'">'+p+'</button>'; }).join('') + '</div>'; });
+    html += '<div class="pf-actions"><button type="button" class="pf-cancel" id="typePickClose">Fermer</button></div></div>';
+    ov.innerHTML = html;
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function(e){
+      if(e.target===ov || e.target.id==='typePickClose'){ ov.style.display='none'; return; }
+      var b = e.target.closest('[data-type]');
+      if(b){ var t=document.getElementById('type'); if(t) t.value = b.dataset.type; _syncTypeBtn(); ov.style.display='none'; }
+    });
+  }
+  var cur = document.getElementById('type') ? document.getElementById('type').value : '';
+  ov.querySelectorAll('.pf-opt').forEach(function(x){ x.classList.toggle('on', x.dataset.type===cur); });
+  ov.style.display='flex';
+}
+(function(){
+  function wire(){ var tb=document.getElementById('typeBtn'); if(tb && !tb.dataset.init){ tb.dataset.init='1'; tb.addEventListener('click', _openTypePicker); _syncTypeBtn(); } }
+  if (document.readyState !== "loading") wire(); else document.addEventListener("DOMContentLoaded", wire);
+})();
+
 // ====================================================================
 // INTERMITRACK — JS des cartes Prévisions (à AJOUTER à ton app.js)
 // À coller TOUT EN BAS de app.js (après setupEvents(); init();).
