@@ -21,6 +21,14 @@ const DOCS_PER_PAGE_DESKTOP = 9;
 const DOCS_PER_PAGE_MOBILE = 5;
 
 const OBJECTIVE_HOURS = 507;
+
+// Icônes SVG fines (remplacent les emoji dans les cartes de mission)
+const ICO = {
+  cal:  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;opacity:.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+  clock:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;opacity:.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>',
+  euro: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;opacity:.5"><path d="M17 7a6 6 0 1 0 0 10"/><line x1="4" y1="10.5" x2="13" y2="10.5"/><line x1="4" y1="13.5" x2="13" y2="13.5"/></svg>',
+  film: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;opacity:.5"><rect x="2" y="2" width="20" height="20" rx="2.5"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>'
+};
 const MAX_DISPLAY_PERCENT = 300;
 
 const $ = (id) => document.getElementById(id);
@@ -2171,10 +2179,10 @@ function renderHistory() {
             <span class="pill">${escapeHtml(mission.type)}</span>
           </div>
           <div class="mission-history-info">
-            <span>📅 ${formatPeriod(mission.date, mission.endDate)}</span>
-            ${mission.emission ? `<span>🎬 ${escapeHtml(mission.emission)}</span>` : ""}
-            <span>🕒 ${mission.hours}h</span>
-            <span>💶 ${money(mission.gross)}</span>
+            <span>${ICO.cal}${formatPeriod(mission.date, mission.endDate)}</span>
+            ${mission.emission ? `<span>${ICO.film}${escapeHtml(mission.emission)}</span>` : ""}
+            <span>${ICO.clock}${mission.hours}h</span>
+            <span>${ICO.euro}${money(mission.gross)}</span>
           </div>
           <div class="mission-history-actions">
             <button class="edit-icon-btn" data-edit="${mission.id}" type="button" title="Modifier">✏️</button>
@@ -2345,10 +2353,10 @@ const list = missions.filter((m) => normalizeProductionName(m.production || "San
        <div class="mission-history-card">
           <div class="mission-history-head"><strong>${escapeHtml(mission.production)}</strong><span class="pill">${escapeHtml(mission.type)}</span></div>
           <div class="mission-history-info">
-            <span>📅 ${formatPeriod(mission.date, mission.endDate)}</span>
-            ${mission.emission ? `<span>🎬 ${escapeHtml(mission.emission)}</span>` : ""}
-            <span>🕒 ${mission.hours}h</span>
-            <span>💶 ${money(mission.gross)}</span>
+            <span>${ICO.cal}${formatPeriod(mission.date, mission.endDate)}</span>
+            ${mission.emission ? `<span>${ICO.film}${escapeHtml(mission.emission)}</span>` : ""}
+            <span>${ICO.clock}${mission.hours}h</span>
+            <span>${ICO.euro}${money(mission.gross)}</span>
           </div>
           <div class="mission-history-actions">
             <button class="edit-icon-btn" data-edit="${mission.id}" type="button" title="Modifier">✏️</button>
@@ -2570,9 +2578,9 @@ function renderActualisation() {
     <div class="mission-history-card">
       <div class="mission-history-head"><strong>${escapeHtml(mission.production)}</strong><span class="pill">${escapeHtml(mission.type)}</span></div>
       <div class="mission-history-info">
-        <span>📅 ${escapeHtml(formatPeriod(mission.date, mission.endDate))}</span>
-        <span>🕒 ${mission.hours}h</span>
-        <span>💶 ${money(mission.gross)}</span>
+        <span>${ICO.cal}${escapeHtml(formatPeriod(mission.date, mission.endDate))}</span>
+        <span>${ICO.clock}${mission.hours}h</span>
+        <span>${ICO.euro}${money(mission.gross)}</span>
       </div>
     </div>
   `).join("");
