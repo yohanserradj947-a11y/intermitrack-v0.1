@@ -269,6 +269,7 @@ button {
   color: var(--petrol) !important; font-weight: 700 !important; font-size: 14px !important;
 }
 .historyhead .ghost, .calhead .ghost { width: 42px !important; height: 42px !important; min-width: 42px !important; padding: 0 !important; display: grid !important; place-items: center !important; border-radius: 12px !important; }
+#addMissionBackBtn { width: auto !important; height: auto !important; min-width: 0 !important; padding: 9px 16px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; gap: 6px; border-radius: 12px !important; font-size: 14px !important; font-weight: 700 !important; }
 .history-month-nav { display: flex; align-items: center; gap: 8px; }
 .history-month-nav .ghost { width: 42px; height: 42px; border-radius: 50%; padding: 0; }
 
@@ -541,6 +542,22 @@ html, body { overflow-x: hidden; max-width: 100%; }
 .new-cal-day:active { transform: scale(.95); }
 .new-cal-empty { background: transparent !important; cursor: default !important; }
 .new-cal-empty:hover { background: transparent !important; }
+
+/* ── Panneau "missions du jour" (clic sur une case) ──────────────── */
+.calendar-day-panel { margin-top: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: #F7F9FB; }
+.calendar-day-panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.calendar-day-panel-head strong { display: block; font-size: 14px; color: var(--petrol); font-weight: 800; }
+.calendar-day-panel-head span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+.calendar-day-missions { display: flex; flex-direction: column; gap: 9px; }
+.calendar-day-mission { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 11px 13px; background: #fff; border: 1px solid var(--line); border-left: 3px solid var(--petrol); border-radius: 12px; flex-wrap: wrap; }
+.calendar-day-mission > div:first-child { min-width: 0; }
+.calendar-day-mission strong { display: block; font-size: 13.5px; color: var(--text); font-weight: 800; }
+.calendar-day-mission > div:first-child span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+.calendar-day-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.calendar-day-actions .ghost { padding: 7px 14px !important; font-size: 13px; }
+body.theme-dark .calendar-day-panel-head strong { color: #6EC6E0; }
+body.theme-dark .calendar-day-mission strong { color: #DCF0FA; }
+body.theme-dark .calendar-day-panel-head span, body.theme-dark .calendar-day-mission > div:first-child span { color: rgba(255,255,255,.55); }
 .new-cal-num { font-size: 12px; font-weight: 700; color: var(--text); line-height: 1; }
 .new-cal-day.has-done { background: linear-gradient(135deg, #1F4E5F, #2F8F6B) !important; border-color: transparent !important; }
 .new-cal-day.has-done .new-cal-num,
@@ -851,9 +868,9 @@ html, body { overflow-x: hidden; max-width: 100%; }
 }
 .itk-calc * { box-sizing: border-box; }
 .itk-calc .itk-intro { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
-.itk-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
-.itk-card { min-width: 0; box-sizing: border-box; }
-@media(max-width:760px) { .itk-grid { grid-template-columns: 1fr; } }
+.itk-grid { columns: 2; column-gap: 18px; }
+.itk-card { min-width: 0; box-sizing: border-box; break-inside: avoid; margin-bottom: 18px; }
+@media(max-width:760px) { .itk-grid { columns: 1; } }
 .itk-calc .itk-card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 18px; box-shadow: var(--shadow-md); }
 .itk-calc .itk-h2 { margin: 0 0 12px; color: var(--petrol); font-size: 20px; letter-spacing: -.03em; font-weight: 800; }
 .itk-calc .itk-label { display: block; font-weight: 700; font-size: 13px; margin: 12px 0 6px; color: var(--text); }

@@ -2918,6 +2918,7 @@ var _profil = null;
 var _profilPostes = [];
 var POSTES_TECH = ['Montage','Tournage','Démontage','Régie','Son','Lumière','Image / Vidéo','Machiniste','Électricien','Poursuiteur','Plateau','Décor','HMC'];
 var POSTES_ARTISTE = ['Comédien','Chanteur','Musicien','Danseur','Choriste'];
+var POSTES_MUSIQUE = ['Concert','Répétition','Session studio','Atelier / Pédagogique','Tournée','Captation'];
 
 async function loadProfil(){
   if(!currentUser) return;
@@ -3040,7 +3041,7 @@ function _openTypePicker(){
     ov = document.createElement('div');
     ov.id = 'typePickerOverlay';
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:100003;padding:16px;';
-    var groups = [['Technique', POSTES_TECH],['Artiste', POSTES_ARTISTE],['Autre', ['Autres']]];
+    var groups = [['Technique', POSTES_TECH],['Artiste', POSTES_ARTISTE],['Musique / scène', POSTES_MUSIQUE],['Autre', ['Autres']]];
     var html = '<div class="pf-box"><div class="pf-title">Type de mission</div>';
     groups.forEach(function(g){ html += '<div class="pf-label">'+g[0]+'</div><div class="pf-seg">' + g[1].map(function(p){ return '<button type="button" class="pf-opt" data-type="'+p+'">'+p+'</button>'; }).join('') + '</div>'; });
     html += '<div class="pf-actions"><button type="button" class="pf-cancel" id="typePickClose">Fermer</button></div></div>';
