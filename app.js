@@ -2426,6 +2426,7 @@ function renderCalendar() {
     </div>
     <div class="new-cal-daynames"><div>L</div><div>M</div><div>M</div><div>J</div><div>V</div><div>S</div><div>D</div></div>
     <div class="new-cal-grid" id="calendar"></div>
+    <div id="calendarDayPanel"></div>
     <div class="new-mission-section">
       <div class="new-mission-header">
         <span class="new-mission-title">Missions du mois</span>
@@ -2437,7 +2438,6 @@ function renderCalendar() {
         <button class="new-pag-btn" id="calMissionNext" type="button">›</button>
       </div>
     </div>
-    <div id="calendarDayPanel"></div>
   `;
   $("calendarPrevBtn").addEventListener("click", () => moveMonth(-1));
   $("calendarNextBtn").addEventListener("click", () => moveMonth(1));
@@ -2556,7 +2556,7 @@ function openCalendarDay(dateStr) {
   if (missionsOfDay.length > 0) {
     activateView("calendar");
     renderCalendarDayPanel(dateStr);
-    setTimeout(() => { const panel = $("calendarDayPanel"); if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" }); }, 100);
+    setTimeout(() => { const panel = $("calendarDayPanel"); if (panel) panel.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, 100);
   } else {
     addMissionReturnView = "calendar";
     activateView("add-mission");
