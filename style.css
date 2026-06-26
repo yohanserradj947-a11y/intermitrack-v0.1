@@ -1189,3 +1189,35 @@ body.theme-dark .contact-name { color: #6EC6E0 !important; }
 body.theme-dark .contact-role { color: rgba(255,255,255,.45) !important; }
 body.theme-dark .contact-body { color: #DCF0FA !important; }
 body.theme-dark .contact-body a { color: #6EC6E0 !important; }
+
+/* ═══ Hero flyer (nouvel écran d'accueil) ═══ */
+.fly-hero { position: relative; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 48px 20px; background: #0a1622 url('hero-bg.jpg') center/cover no-repeat; overflow: hidden; }
+.fly-overlay { position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(8,15,25,.55) 0%, rgba(8,15,25,.30) 38%, rgba(8,15,25,.80) 100%); }
+.fly-content { position: relative; z-index: 2; width: 100%; max-width: 560px; text-align: center; color: #fff; }
+.fly-logo { width: 70px; height: 70px; margin: 0 auto 12px; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 34px rgba(0,0,0,.45); }
+.fly-logo img { width: 100%; height: 100%; object-fit: cover; }
+.fly-title { font-family: 'Plus Jakarta Sans','Inter',sans-serif; font-size: 42px; font-weight: 800; margin: 0; letter-spacing: -.03em; color: #fff; text-shadow: 0 2px 18px rgba(0,0,0,.4); }
+.fly-sub { font-size: 12px; letter-spacing: .16em; color: rgba(255,255,255,.72); font-weight: 700; margin: 5px 0 24px; text-transform: uppercase; }
+.fly-card { background: rgba(255,255,255,.10); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid rgba(255,255,255,.20); border-radius: 24px; padding: 26px 24px; text-align: left; box-shadow: 0 28px 70px rgba(0,0,0,.45); }
+.fly-card-h { font-size: 27px; font-weight: 900; margin: 0 0 12px; color: #fff; letter-spacing: -.02em; line-height: 1.12; }
+.fly-card-p { font-size: 14.5px; color: rgba(255,255,255,.86); line-height: 1.55; margin: 0 0 18px; }
+.fly-feats { list-style: none; padding: 0; margin: 0 0 22px; display: flex; flex-direction: column; gap: 10px; }
+.fly-feats li { position: relative; padding-left: 24px; font-size: 14px; color: rgba(255,255,255,.94); line-height: 1.3; }
+.fly-feats li::before { content: ''; position: absolute; left: 0; top: 6px; width: 8px; height: 8px; border-radius: 50%; background: #E8650A; }
+.fly-cta { display: block; width: 100%; padding: 15px; background: #E8650A; color: #fff; border: none; border-radius: 14px; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 12px 28px rgba(232,101,10,.42); transition: filter .15s, transform .15s; font-family: inherit; }
+.fly-cta:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.fly-stores { display: flex; gap: 10px; margin-top: 14px; }
+.fly-badge { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 8px; background: #000; color: #fff; border-radius: 12px; text-decoration: none; font-size: 13px; font-weight: 700; border: 1px solid rgba(255,255,255,.20); transition: background .15s; }
+.fly-badge:hover { background: #1a1a1a; }
+.fly-badge svg { width: 17px; height: 17px; fill: #fff; flex-shrink: 0; }
+.fly-beta { font-size: 11.5px; color: rgba(255,255,255,.68); text-align: center; margin: 13px 0 0; line-height: 1.45; }
+.fly-scroll { display: inline-block; margin-top: 26px; color: rgba(255,255,255,.82); font-size: 13px; font-weight: 700; text-decoration: none; animation: flyBounce 1.8s ease-in-out infinite; }
+.fly-scroll:hover { color: #fff; }
+@keyframes flyBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(7px); } }
+@media (max-width: 600px) {
+  .fly-hero { padding: 32px 16px; }
+  .fly-title { font-size: 33px; }
+  .fly-card-h { font-size: 23px; }
+  .fly-card { padding: 22px 18px; }
+  .fly-stores { flex-direction: column; }
+}

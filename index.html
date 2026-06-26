@@ -189,7 +189,7 @@ z-index: 500 !important;
     #loginModal .lp-modal-box { position: relative; z-index: 2; }
     @media (max-width: 768px) {
       .login-bg-video { display: none; }
-      #loginModal { background-image: url('fond-login-poster.jpg?v=1'); background-size: cover; background-position: center; }
+      #loginModal { background-image: url('hero-bg.jpg'); background-size: cover; background-position: center; }
     }
 
     @media (max-width: 900px) {
@@ -292,6 +292,42 @@ z-index: 500 !important;
         </div>
       </nav>
 
+      <!-- ===== HERO FLYER (nouvel ecran d'accueil) ===== -->
+      <section class="fly-hero">
+        <div class="fly-overlay"></div>
+        <div class="fly-content">
+          <div class="fly-logo"><img src="icon-512.png" alt="Intermitrack"></div>
+          <h1 class="fly-title">Intermitrack</h1>
+          <p class="fly-sub">Le tableau de bord des intermittents</p>
+          <div class="fly-card">
+            <h2 class="fly-card-h">Toute ton intermittence, enfin maîtrisée.</h2>
+            <p class="fly-card-p">Tes missions, tes 507h, ton actualisation, ton estimation France Travail, ta fiscalité et tes documents — réunis au même endroit, gratuit et dans ta poche.</p>
+            <ul class="fly-feats">
+              <li>Calendrier des missions + suivi des 507 heures</li>
+              <li>Estimation France Travail : combien tu vas toucher</li>
+              <li>Récap mensuel pour ton actualisation</li>
+              <li>Simulateurs : taux journalier (AJ), carences, net</li>
+              <li>Estimation fiscale + frais kilométriques</li>
+              <li>Tous tes documents classés par production</li>
+            </ul>
+            <button class="fly-cta" type="button" onclick="openLoginModal('signup')">Créer mon compte — gratuit →</button>
+            <div class="fly-stores">
+              <a class="fly-badge" href="mailto:intermitrack@gmail.com?subject=Acc%C3%A8s%20b%C3%AAta%20Intermitrack%20-%20iOS&body=Bonjour%2C%0A%0AJe%20souhaite%20tester%20Intermitrack%20sur%20iPhone%20(TestFlight).%0A%0AMon%20e-mail%20Apple%20ID%20%C3%A0%20ajouter%20comme%20testeur%20%3A%0A%0A%0A--%20via%20intermitrack.fr">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 1.5c0 1.2-.5 2.3-1.3 3.1-.9.9-2 1.5-3.1 1.4-.1-1.1.5-2.3 1.3-3 .8-.8 2.1-1.4 3.1-1.5zM20.5 17c-.5 1.2-.8 1.7-1.5 2.7-.9 1.4-2.3 3.1-3.9 3.1-1.5 0-1.9-1-3.9-1-2 0-2.4 1-3.9 1-1.6 0-2.9-1.6-3.8-2.9-2.5-3.7-2.8-8.1-1.2-10.4 1.1-1.7 2.8-2.6 4.5-2.6 1.7 0 2.7 1 4.1 1 1.3 0 2.1-1 4.1-1 1.5 0 3.1.8 4.2 2.2-3.7 2-3.1 7.3.9 8.9z"/></svg>
+                <span>App Store</span>
+              </a>
+              <a class="fly-badge" href="mailto:intermitrack@gmail.com?subject=Acc%C3%A8s%20b%C3%AAta%20Intermitrack%20-%20Android&body=Bonjour%2C%0A%0AJe%20souhaite%20tester%20Intermitrack%20sur%20Android%20(Google%20Play%2C%20test%20ferm%C3%A9).%0A%0AMon%20e-mail%20(compte%20Google)%20%C3%A0%20ajouter%20comme%20testeur%20%3A%0A%0A%0A--%20via%20intermitrack.fr">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l16 9-16 9V3z"/></svg>
+                <span>Google Play</span>
+              </a>
+            </div>
+            <p class="fly-beta">App en test bêta — clique sur un store pour demander ton accès, on t'ajoute en 10 min à 24 h max.</p>
+          </div>
+          <a class="fly-scroll" href="#fly-discover">⌄ Découvrir le site</a>
+        </div>
+      </section>
+      <span id="fly-discover" style="display:block;height:1px;"></span>
+
       <!-- HERO -->
       <div class="lp-hero">
         <span class="lp-aurora a1"></span><span class="lp-aurora a2"></span><span class="lp-aurora a3"></span><span class="lp-aurora a4"></span>
@@ -372,10 +408,6 @@ z-index: 500 !important;
 
       <!-- FEATURES -->
       <div class="lp-features">
-        <video class="lp-sec-video" autoplay muted loop playsinline poster="fond-login-poster.jpg?v=1">
-          <source src="fond-login.webm?v=1" type="video/webm">
-          <source src="fond-login.mp4?v=1" type="video/mp4">
-        </video>
         <div class="lp-sec-overlay"></div>
         <div class="lp-fi">
           <div class="lp-slabel">Ce qu'on propose</div>
@@ -437,10 +469,8 @@ z-index: 500 !important;
 
       <!-- MODALE LOGIN -->
       <div class="lp-modal-overlay" id="loginModal">
-        <video class="login-bg-video" autoplay muted loop playsinline poster="fond-login-poster.jpg?v=1">
-          <source src="fond-login.webm?v=1" type="video/webm">
-          <source src="fond-login.mp4?v=1" type="video/mp4">
-        </video>
+        <img class="login-bg-video" src="hero-bg.jpg" alt="">
+
         <div class="login-bg-overlay"></div>
         <div class="lp-modal-box">
           <button class="lp-modal-close" onclick="closeLoginModal()">✕</button>
