@@ -1324,7 +1324,7 @@ z-index: 500 !important;
   </main>
 
   <script src="document-parser.js?v=5"></script>
-  <script src="app.js?v=8"></script>
+  <script src="app.js?v=9"></script>
 
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>
@@ -1332,6 +1332,38 @@ z-index: 500 !important;
     <a href="cgu.html" target="_blank">CGU</a>
     <a href="securite.html" target="_blank">Sécurité</a>
   </footer>
+
+  <!-- Pop-up "Quoi de neuf" — affiché 1 seule fois (mémorisé en localStorage) -->
+  <style>
+    .wn-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:99999;padding:20px;}
+    .wn-overlay.hidden{display:none;}
+    .wn-card{background:var(--card);color:var(--text);border-radius:24px;padding:26px;width:100%;max-width:440px;max-height:88vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.4);border:1px solid var(--line);}
+    .wn-badge{display:inline-block;background:var(--soft);color:var(--petrol);font-size:12px;font-weight:800;padding:5px 12px;border-radius:99px;margin-bottom:12px;}
+    .wn-title{font-size:25px;font-weight:900;color:var(--petrol);margin:0 0 4px;letter-spacing:-.02em;}
+    .wn-sub{font-size:14px;color:var(--muted);margin:0 0 18px;}
+    .wn-list{display:flex;flex-direction:column;gap:14px;margin-bottom:22px;}
+    .wn-item{display:flex;gap:12px;align-items:flex-start;}
+    .wn-ic{width:40px;height:40px;border-radius:12px;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+    .wn-item strong{display:block;font-size:14.5px;color:var(--text);margin-bottom:2px;}
+    .wn-item span{font-size:13px;color:var(--muted);line-height:1.45;}
+    .wn-btn{width:100%;padding:15px;border:none;border-radius:14px;background:var(--petrol);color:#fff;font-size:15px;font-weight:800;cursor:pointer;}
+    .wn-btn:hover{filter:brightness(1.05);}
+  </style>
+  <div class="wn-overlay hidden" id="whatsNewOverlay">
+    <div class="wn-card">
+      <span class="wn-badge">✨ Nouveautés</span>
+      <h2 class="wn-title">Quoi de neuf ?</h2>
+      <p class="wn-sub">Un résumé rapide des dernières améliorations.</p>
+      <div class="wn-list">
+        <div class="wn-item"><div class="wn-ic">🔒</div><div><strong>Sécurité renforcée</strong><span>Audit complet : HTTPS forcé, en-têtes de sécurité (score A) et page « Note de sécurité » publique.</span></div></div>
+        <div class="wn-item"><div class="wn-ic">🎵</div><div><strong>Métiers de la musique</strong><span>Nouveaux types de mission : concert, répétition, session studio, tournée, captation…</span></div></div>
+        <div class="wn-item"><div class="wn-ic">🏷️</div><div><strong>« Vacations / cachets »</strong><span>1 vacation = 1 jour (technicien) · 1 cachet (artiste / musicien).</span></div></div>
+        <div class="wn-item"><div class="wn-ic">⭐</div><div><strong>Badge Pionnier</strong><span>« Pionnier — gratuit à vie » pour les premiers inscrits.</span></div></div>
+        <div class="wn-item"><div class="wn-ic">🎨</div><div><strong>Nouvel accueil & calendrier</strong><span>Écran d'accueil repensé, calendrier amélioré et navigation plus fluide.</span></div></div>
+      </div>
+      <button class="wn-btn" id="whatsNewBtn">C'est parti !</button>
+    </div>
+  </div>
 
   <div class="modal-overlay hidden" id="modalVacations">
     <div class="modal-vacation">

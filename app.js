@@ -2902,9 +2902,23 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => { navigator.serviceWorker.register("service-worker.js"); });
 }
  
+// Pop-up "Quoi de neuf" : affiché UNE SEULE FOIS par navigateur (localStorage).
+// Ne réapparaît pas après déconnexion/reconnexion (le flag n'est jamais effacé).
+function maybeShowWhatsNew() {
+  try {
+    if (localStorage.getItem('it_whatsnew_v2')) return;
+    const ov = $('whatsNewOverlay');
+    if (!ov) return;
+    ov.classList.remove('hidden');
+    const close = () => { localStorage.setItem('it_whatsnew_v2', '1'); ov.classList.add('hidden'); };
+    const btn = $('whatsNewBtn'); if (btn) btn.onclick = close;
+    ov.onclick = (e) => { if (e.target === ov) close(); };
+  } catch (e) {}
+}
+
 sb.auth.onAuthStateChange((_event, session) => {
   currentUser = session?.user || null;
-  if (currentUser) { showApp(); loadMissions(); loadDocuments(); }
+  if (currentUser) { showApp(); loadMissions(); loadDocuments(); maybeShowWhatsNew(); }
   else showAuth();
 });
  
