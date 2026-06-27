@@ -2684,12 +2684,14 @@ function setupEvents() {
   if ($("kmDistance")) $("kmDistance").addEventListener("input", updateKmPreview);
   if ($("kmRate")) $("kmRate").addEventListener("input", () => { if ($("kmRate").value && $("kmCv")) $("kmCv").value = ""; updateKmPreview(); });
   if ($("saveAreAdmissionDateBtn")) {
-    $("saveAreAdmissionDateBtn").addEventListener("click", () => {
+    $("saveAreAdmissionDateBtn").addEventListener("click", async () => {
       const value = $("areAdmissionDate").value;
       localStorage.setItem(storageKey("areAdmissionDate"), value);
       areAdmissionDate = value;
       render();
       toast("Date d'admission ARE enregistrée.");
+      // Synchro multi-appareils : on enregistre aussi dans Supabase.
+      if (currentUser) { try { await sb.from('profiles').upsert({ id: currentUser.id, are_date: value || null }, { onConflict:'id' }); } catch(e){} }
     });
   }
  
@@ -2937,8 +2939,18 @@ var POSTES_MUSIQUE = ['Concert','Répétition','Session studio','Atelier / Péda
 async function loadProfil(){
   if(!currentUser) return;
   try{
-    const { data } = await sb.from('profiles').select('annexe,postes,droits_ouverts,taux_journalier,taux_impot').eq('id', currentUser.id).maybeSingle();
+    const { data } = await sb.from('profiles').select('annexe,postes,droits_ouverts,taux_journalier,taux_impot,are_date').eq('id', currentUser.id).maybeSingle();
     _profil = data || null;
+    // Date ARE : la base de données fait foi (synchro multi-appareils).
+    // Sinon, on migre la valeur locale (ancienne) vers la base.
+    if (data && data.are_date) {
+      areAdmissionDate = data.are_date;
+      localStorage.setItem(storageKey("areAdmissionDate"), data.are_date);
+      if ($("areAdmissionDate")) $("areAdmissionDate").value = data.are_date;
+      if (typeof render === "function") render();
+    } else if (areAdmissionDate) {
+      try { await sb.from('profiles').upsert({ id: currentUser.id, are_date: areAdmissionDate }, { onConflict:'id' }); } catch(e){}
+    }
   }catch(e){ _profil = null; }
 }
 
