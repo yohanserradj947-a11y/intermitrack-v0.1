@@ -1,5 +1,5 @@
 import { showAlert } from "../../lib/dialog";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert, Linking, Platform, KeyboardAvoidingView } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,8 +8,9 @@ import { supabase } from '../../lib/supabase';
 import { useTrackView } from '../../lib/analytics';
 import NumInput from '../../components/NumInput';
 import { GradientButton } from '../../components/GradientButton';
+import { useTheme } from '../../lib/theme';
 
-const C = { petrol:'#1F4E5F', sage:'#7A9E7E', bg:'#F5F7F6', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1', orange:'#F97316' };
+// const C (palette) vient maintenant du thème via useTheme().
 const TYPES = ['AEM','Fiche de paie','Congés Spectacles','Contrat','Autre'];
 const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
@@ -19,6 +20,8 @@ function safeFileName(name:string){
 
 export default function Documents(){
   useTrackView('documents');
+  const C=useTheme();
+  const s=useMemo(()=>makeS(C),[C]);
   const insets=useSafeAreaInsets();
   const [docs,setDocs]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
@@ -215,10 +218,10 @@ export default function Documents(){
   );
 }
 
-const s=StyleSheet.create({
+const makeS=(C:any)=>StyleSheet.create({
   container:{flex:1,backgroundColor:C.bg},
   center:{flex:1,justifyContent:'center',alignItems:'center',backgroundColor:C.bg},
-  header:{backgroundColor:'white',padding:18,paddingTop:52,borderBottomWidth:1,borderBottomColor:C.line},
+  header:{backgroundColor:C.card,padding:18,paddingTop:52,borderBottomWidth:1,borderBottomColor:C.line},
   title:{fontSize:24,fontWeight:'900',color:C.petrol,letterSpacing:-0.5},
   sub:{fontSize:13,color:C.muted,marginTop:4},
   addBtn:{backgroundColor:C.petrol,borderRadius:15,paddingVertical:14,alignItems:'center',margin:16,marginBottom:0},
@@ -243,13 +246,13 @@ const s=StyleSheet.create({
   docActions:{gap:6},
   openBtn:{backgroundColor:C.soft,borderRadius:9,paddingVertical:7,paddingHorizontal:12,alignItems:'center'},
   openBtnTxt:{fontSize:12,fontWeight:'800',color:C.petrol},
-  delBtn:{backgroundColor:'#FFF5F5',borderRadius:9,paddingVertical:7,paddingHorizontal:12,alignItems:'center'},
-  delBtnTxt:{fontSize:12,fontWeight:'800',color:'#E53E3E'},
+  delBtn:{backgroundColor:C.warnBg,borderRadius:9,paddingVertical:7,paddingHorizontal:12,alignItems:'center'},
+  delBtnTxt:{fontSize:12,fontWeight:'800',color:C.danger},
   overlay:{flex:1,backgroundColor:'rgba(0,0,0,.5)',justifyContent:'flex-end'},
   modalCard:{backgroundColor:C.bg,borderTopLeftRadius:24,borderTopRightRadius:24,padding:22,maxHeight:'90%'},
   modalTitle:{fontSize:20,fontWeight:'900',color:C.petrol,marginBottom:16,textAlign:'center'},
   label:{fontSize:13,fontWeight:'700',color:C.text,marginTop:12,marginBottom:6},
-  input:{borderWidth:1,borderColor:C.line,borderRadius:14,paddingVertical:13,paddingHorizontal:14,fontSize:15,color:C.text,backgroundColor:'white'},
+  input:{borderWidth:1,borderColor:C.line,borderRadius:14,paddingVertical:13,paddingHorizontal:14,fontSize:15,color:C.text,backgroundColor:C.card},
   chipWrap:{flexDirection:'row',flexWrap:'wrap',gap:8},
   chip:{paddingVertical:9,paddingHorizontal:14,borderRadius:99,backgroundColor:C.soft},
   chipOn:{backgroundColor:C.petrol},
@@ -257,7 +260,7 @@ const s=StyleSheet.create({
   chipTxtOn:{fontSize:13,fontWeight:'700',color:'white'},
   monthGrid:{flexDirection:'row',flexWrap:'wrap',gap:6},
   monthChip:{width:'15%',paddingVertical:8,borderRadius:9,backgroundColor:C.soft,alignItems:'center'},
-  fileBtn:{borderWidth:1,borderColor:C.petrol,borderStyle:'dashed',borderRadius:14,paddingVertical:16,alignItems:'center',backgroundColor:'white'},
+  fileBtn:{borderWidth:1,borderColor:C.petrol,borderStyle:'dashed',borderRadius:14,paddingVertical:16,alignItems:'center',backgroundColor:C.card},
   fileBtnTxt:{fontSize:14,fontWeight:'700',color:C.petrol},
   saveBtn:{backgroundColor:C.petrol,borderRadius:15,paddingVertical:15,alignItems:'center',marginTop:20},
   saveBtnTxt:{color:'white',fontWeight:'800',fontSize:15},

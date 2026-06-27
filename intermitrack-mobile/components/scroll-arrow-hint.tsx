@@ -3,12 +3,12 @@ import { usePathname } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-const PETROL = '#1F4E5F';
+import { useTheme } from '../lib/theme';
 
 // Une flèche "soignée" : double chevron avec une vague d'opacité qui s'écoule
 // vers le bord, + léger scale/nudge en easing doux, dans une pastille glassy.
 function FlowArrow({ dir, style }: { dir: 'left' | 'right'; style: ViewStyle }) {
+  const C = useTheme();
   const t = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -33,12 +33,12 @@ function FlowArrow({ dir, style }: { dir: 'left' | 'right'; style: ViewStyle }) 
   const nudge = t.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, dir === 'right' ? 3 : -3, 0] });
 
   return (
-    <Animated.View pointerEvents="none" style={[styles.bubble, style, { transform: [{ scale }, { translateX: nudge }] }]}>
+    <Animated.View pointerEvents="none" style={[styles.bubble, { backgroundColor: C.card, borderColor: C.line }, style, { transform: [{ scale }, { translateX: nudge }] }]}>
       <Animated.View style={{ opacity: firstOp, marginRight: -9 }}>
-        <Ionicons name={name} size={17} color={PETROL} />
+        <Ionicons name={name} size={17} color={C.petrol} />
       </Animated.View>
       <Animated.View style={{ opacity: secondOp }}>
-        <Ionicons name={name} size={17} color={PETROL} />
+        <Ionicons name={name} size={17} color={C.petrol} />
       </Animated.View>
     </Animated.View>
   );

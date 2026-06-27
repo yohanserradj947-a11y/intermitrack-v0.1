@@ -1,12 +1,15 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../lib/theme';
 
-const C = { petrol: '#1F4E5F', line: '#E2E8F0', soft: '#EEF4F1', muted: '#718096', sage: '#12754A' };
+// (palette C fournie par useTheme — clair/sombre)
 
 // Champ d'adresse avec suggestions en direct (API Adresse, France).
 // Affiche le département, et renvoie les coordonnées exactes de la suggestion choisie via onCoords.
 export default function AddressInput({ value, onChangeText, onCoords, style, placeholder }: any) {
+  const C = useTheme();
+  const a = useMemo(() => makeA(C), [C]);
   const [sugs, setSugs] = useState<any[]>([]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -52,9 +55,9 @@ export default function AddressInput({ value, onChangeText, onCoords, style, pla
   );
 }
 
-const a = StyleSheet.create({
-  box: { backgroundColor: 'white', borderWidth: 1, borderColor: C.line, borderRadius: 14, marginTop: 6, overflow: 'hidden' },
+const makeA = (C: any) => StyleSheet.create({
+  box: { backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: 14, marginTop: 6, overflow: 'hidden' },
   item: { paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: C.soft },
   txt: { fontSize: 14, fontWeight: '700', color: C.petrol },
-  sub: { fontSize: 12, fontWeight: '600', color: C.sage, marginTop: 2 },
+  sub: { fontSize: 12, fontWeight: '600', color: C.green, marginTop: 2 },
 });

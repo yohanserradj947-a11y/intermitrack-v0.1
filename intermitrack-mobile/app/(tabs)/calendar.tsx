@@ -1,5 +1,6 @@
 import { showAlert } from "../../lib/dialog";
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useTheme, useThemeControls } from '../../lib/theme';
 import { useFocusEffect } from 'expo-router';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Modal, ActivityIndicator, Platform, Alert, KeyboardAvoidingView, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,9 +32,10 @@ function kmCoef(cvKey: string, tranche: string) { const b = BAREME.find((x) => x
 function trancheLabel(tranche: string) { return tranche === '2' ? '5 001–20 000 km/an' : tranche === '3' ? '> 20 000 km/an' : '≤ 5 000 km/an'; }
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) { const R = 6371, tr = (d: number) => d * Math.PI / 180; const dLat = tr(lat2 - lat1), dLon = tr(lon2 - lon1); const x = Math.sin(dLat / 2) ** 2 + Math.cos(tr(lat1)) * Math.cos(tr(lat2)) * Math.sin(dLon / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); }
 
-const C = { petrol:'#1F4E5F', sage:'#7A9E7E', sageSoft:'#E6F0E8', bg:'#EEF2F1', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1', orange:'#F97316', orangeSoft:'#FFF1E6' };
+// La palette vient du thème (lib/theme) → const C = useTheme() dans le composant.
 const POSTES_TECH = ['Montage','Tournage','Démontage','Régie','Son','Lumière','Image / Vidéo','Machiniste','Électricien','Poursuiteur','Plateau','Décor','HMC'];
 const POSTES_ARTISTE = ['Comédien','Chanteur','Musicien','Danseur','Choriste'];
+const POSTES_MUSIQUE = ['Concert','Répétition','Session studio','Atelier / Pédagogique','Tournée','Captation'];
 const POSTES_AUTRE = ['Autres'];
 const GRAD_PAST: readonly [string, string] = ['#1F4E5F', '#2F8F6B'];   // pétrole → vert (dates passées)
 const GRAD_FUTURE: readonly [string, string] = ['#F97316', '#FDBA74']; // orange (dates à venir)
@@ -50,6 +52,9 @@ function isNextDay(aStr:string,bStr:string){const a=new Date(aStr+'T00:00:00');a
 
 export default function Calendar(){
   useTrackView('calendar');
+  const C = useTheme();
+  const { scheme } = useThemeControls();
+  const s = useMemo(() => makeS(C), [C]);
   const insets=useSafeAreaInsets();
   const [missions,setMissions]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
@@ -414,7 +419,7 @@ export default function Calendar(){
               </TouchableOpacity>
               {showTypePicker && (
                 <View style={s.typePickerInline}>
-                  {([['Technique',POSTES_TECH],['Artiste',POSTES_ARTISTE],['Autre',POSTES_AUTRE]] as [string,string[]][]).map(([grp,list])=>(
+                  {([['Technique',POSTES_TECH],['Artiste',POSTES_ARTISTE],['Musique / scène',POSTES_MUSIQUE],['Autre',POSTES_AUTRE]] as [string,string[]][]).map(([grp,list])=>(
                     <View key={grp}>
                       <Text style={s.typeGroupLbl}>{grp}</Text>
                       <View style={s.typeWrap}>
@@ -444,11 +449,11 @@ export default function Calendar(){
                 </View>
               </View>
               {showStartPicker&&(
-                <DateTimePicker value={fStart} mode="date" themeVariant="light" display={Platform.OS==='ios'?'spinner':'default'}
+                <DateTimePicker value={fStart} mode="date" themeVariant={scheme} display={Platform.OS==='ios'?'spinner':'default'}
                   onChange={(_e,date)=>{setShowStartPicker(false);if(date){setFStart(date);if(date>fEnd)setFEnd(date);}}}/>
               )}
               {showEndPicker&&(
-                <DateTimePicker value={fEnd} mode="date" themeVariant="light" display={Platform.OS==='ios'?'spinner':'default'}
+                <DateTimePicker value={fEnd} mode="date" themeVariant={scheme} display={Platform.OS==='ios'?'spinner':'default'}
                   onChange={(_e,date)=>{setShowEndPicker(false);if(date){setFEnd(date);if(!editId&&daysInclusive(fStart,date)>=2)openDayPicker(fStart,date);}}}/>
               )}
 
@@ -467,9 +472,9 @@ export default function Calendar(){
                 </TouchableOpacity>
               ) : null}
 
-              <Text style={s.label}>Nombre de vacations</Text>
+              <Text style={s.label}>Nombre de vacations / cachets</Text>
               <NumInput style={s.input} value={fVacations} onChangeText={setFVacations} placeholder="Ex : 1" placeholderTextColor={C.muted}/>
-              <Text style={s.miniHint}>Nombre de jours travaillés. Se remplit tout seul depuis le sélecteur de jours.</Text>
+              <Text style={s.miniHint}>Nombre de jours / cachets. Se remplit tout seul depuis le sélecteur de jours. 1 vacation = 1 jour (technicien) · 1 cachet (artiste / musicien).</Text>
 
               <Text style={s.label}>Montant brut (€)</Text>
               <NumInput style={s.input} value={fGross} onChangeText={setFGross} placeholder="0" placeholderTextColor={C.muted}/>
@@ -537,7 +542,7 @@ export default function Calendar(){
               <GradientButton onPress={handleSave} disabled={saving} style={s.saveBtn} textStyle={s.saveBtnTxt} label={saving?'Enregistrement…':(editId?'Mettre à jour':'Enregistrer la mission')} />
               {editId&&(
                 <TouchableOpacity style={s.deleteBtn} onPress={deleteMission}>
-                  <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6}}><Ionicons name="trash-outline" size={15} color="#E53E3E"/><Text style={s.deleteBtnTxt}>Supprimer cette mission</Text></View>
+                  <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6}}><Ionicons name="trash-outline" size={15} color={C.danger}/><Text style={s.deleteBtnTxt}>Supprimer cette mission</Text></View>
                 </TouchableOpacity>
               )}
               <TouchableOpacity style={s.cancelBtn} onPress={()=>{setShowForm(false);setEditId(null);}}>
@@ -621,7 +626,7 @@ export default function Calendar(){
   );
 }
 
-const s=StyleSheet.create({
+const makeS=(C:any)=>StyleSheet.create({
   container:{flex:1,backgroundColor:C.bg},
   center:{flex:1,justifyContent:'center',alignItems:'center',backgroundColor:C.bg},
   headerBar:{paddingHorizontal:18,paddingTop:54,paddingBottom:4},
@@ -661,9 +666,9 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   modalTitle:{fontSize:20,fontWeight:'900',color:C.petrol,marginBottom:12,textAlign:'center'},
   miniHint:{fontSize:12,color:C.muted,marginBottom:8,lineHeight:17},
   label:{fontSize:13,fontWeight:'700',color:C.text,marginTop:12,marginBottom:6},
-  input:{borderWidth:1,borderColor:C.line,borderRadius:14,paddingVertical:13,paddingHorizontal:14,fontSize:15,color:C.text,backgroundColor:'white'},
+  input:{borderWidth:1,borderColor:C.line,borderRadius:14,paddingVertical:13,paddingHorizontal:14,fontSize:15,color:C.text,backgroundColor:C.card},
   inputTxt:{fontSize:15,color:C.text},
-  suggestBox:{backgroundColor:'white',borderWidth:1,borderColor:C.line,borderRadius:14,marginTop:6,overflow:'hidden'},
+  suggestBox:{backgroundColor:C.card,borderWidth:1,borderColor:C.line,borderRadius:14,marginTop:6,overflow:'hidden'},
   suggestItem:{paddingVertical:12,paddingHorizontal:14,borderBottomWidth:1,borderBottomColor:C.soft},
   suggestTxt:{fontSize:15,fontWeight:'700',color:C.petrol},
   row:{flexDirection:'row',gap:10},
@@ -672,18 +677,18 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   kmChevron:{fontSize:12,color:C.petrol,fontWeight:'800'},
   kmBody:{marginTop:6,paddingTop:4},
   kmCheck:{flexDirection:'row',alignItems:'center',gap:8,marginTop:12},
-  kmBox:{width:24,height:24,borderRadius:7,borderWidth:1,borderColor:C.line,backgroundColor:'white',alignItems:'center',justifyContent:'center'},
+  kmBox:{width:24,height:24,borderRadius:7,borderWidth:1,borderColor:C.line,backgroundColor:C.card,alignItems:'center',justifyContent:'center'},
   kmBoxOn:{backgroundColor:C.petrol,borderColor:C.petrol},
   kmBoxTxt:{color:'white',fontWeight:'900',fontSize:13},
   kmCheckTxt:{fontSize:14,fontWeight:'600',color:C.text},
   kmCalcBtn:{backgroundColor:C.soft,borderRadius:12,paddingVertical:12,alignItems:'center',marginTop:12},
   kmCalcTxt:{color:C.petrol,fontWeight:'800',fontSize:14},
   cvWrap:{flexDirection:'row',flexWrap:'wrap',gap:8,marginTop:10},
-  cvChip:{paddingVertical:8,paddingHorizontal:12,borderRadius:99,backgroundColor:'white',borderWidth:1,borderColor:C.line},
+  cvChip:{paddingVertical:8,paddingHorizontal:12,borderRadius:99,backgroundColor:C.card,borderWidth:1,borderColor:C.line},
   cvChipOn:{backgroundColor:C.petrol,borderColor:C.petrol},
   cvChipTxt:{fontSize:12,fontWeight:'700',color:C.petrol},
   cvChipTxtOn:{fontSize:12,fontWeight:'700',color:'white'},
-  kmResult:{marginTop:12,padding:12,borderRadius:12,backgroundColor:'rgba(31,78,95,0.06)'},
+  kmResult:{marginTop:12,padding:12,borderRadius:12,backgroundColor:C.soft},
   kmResultLine:{fontSize:13,color:C.text,fontWeight:'600'},
   kmResultFrais:{fontSize:16,fontWeight:'900',color:C.petrol,marginTop:4},
   typeWrap:{flexDirection:'row',flexWrap:'wrap',gap:8},
@@ -705,8 +710,8 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   dayMenuAddTxt:{fontSize:14,fontWeight:'800',color:C.petrol},
   saveBtn:{backgroundColor:C.petrol,borderRadius:15,paddingVertical:15,alignItems:'center',marginTop:20},
   saveBtnTxt:{color:'white',fontWeight:'800',fontSize:15},
-  deleteBtn:{backgroundColor:'#FFF5F5',borderRadius:15,paddingVertical:14,alignItems:'center',marginTop:10},
-  deleteBtnTxt:{color:'#E53E3E',fontWeight:'800',fontSize:14},
+  deleteBtn:{backgroundColor:C.warnBg,borderRadius:15,paddingVertical:14,alignItems:'center',marginTop:10},
+  deleteBtnTxt:{color:C.danger,fontWeight:'800',fontSize:14},
   cancelBtn:{paddingVertical:14,alignItems:'center',marginTop:4},
   cancelBtnTxt:{color:C.muted,fontWeight:'700',fontSize:14},
   mdpTools:{flexDirection:'row',gap:8,marginBottom:10},
@@ -714,13 +719,13 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   mdpToolTxt:{fontSize:12,fontWeight:'800',color:C.petrol},
   mdpFill:{flexDirection:'row',alignItems:'center',gap:8,backgroundColor:C.soft,borderRadius:11,padding:10,marginBottom:14},
   mdpFillLbl:{fontSize:13,fontWeight:'700',color:C.petrol},
-  mdpFillInput:{width:60,backgroundColor:'white',borderWidth:1,borderColor:C.line,borderRadius:9,paddingVertical:6,paddingHorizontal:8,textAlign:'center',fontSize:14},
-  mdpDay:{flexDirection:'row',alignItems:'center',gap:11,padding:10,borderWidth:1,borderColor:C.line,borderRadius:12,marginBottom:7,backgroundColor:'white'},
+  mdpFillInput:{width:60,backgroundColor:C.card,borderWidth:1,borderColor:C.line,borderRadius:9,paddingVertical:6,paddingHorizontal:8,textAlign:'center',fontSize:14},
+  mdpDay:{flexDirection:'row',alignItems:'center',gap:11,padding:10,borderWidth:1,borderColor:C.line,borderRadius:12,marginBottom:7,backgroundColor:C.card},
   checkbox:{width:24,height:24,borderRadius:7,borderWidth:2,borderColor:C.petrol,justifyContent:'center',alignItems:'center'},
   checkboxOn:{backgroundColor:C.petrol},
   checkmark:{color:'white',fontWeight:'900',fontSize:14},
   mdpDayLabel:{flex:1,fontSize:13,fontWeight:'700',color:C.text,textTransform:'capitalize'},
-  mdpHours:{width:60,backgroundColor:'white',borderWidth:1,borderColor:C.line,borderRadius:9,paddingVertical:7,paddingHorizontal:8,textAlign:'center',fontSize:14},
+  mdpHours:{width:60,backgroundColor:C.card,borderWidth:1,borderColor:C.line,borderRadius:9,paddingVertical:7,paddingHorizontal:8,textAlign:'center',fontSize:14},
   mdpHoursU:{fontSize:12,color:C.muted},
   mdpTotal:{backgroundColor:C.soft,borderRadius:11,padding:12,marginTop:6,marginBottom:8},
   mdpTotalTxt:{fontSize:13,fontWeight:'800',color:C.petrol},

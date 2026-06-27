@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useTheme } from './theme';
 
 // Dialogue maison réutilisable — remplace Alert.alert (même signature) pour un
 // rendu cohérent avec la charte (plus de pop-up natif gris).
@@ -14,10 +15,12 @@ export function showAlert(title: string, message?: string, buttons?: Btn[]) {
   if (_setState) _setState({ title, message, buttons: b });
 }
 
-const C = { petrol: '#1F4E5F', text: '#2D3748', muted: '#718096', line: '#E2E8F0', card: '#FFFFFF', soft: '#EEF4F1', danger: '#DC2626' };
+// Couleurs fournies par le thème (clair/sombre) — voir makeSt(C) plus bas.
 
 // À monter UNE seule fois, à la racine de l'app (par-dessus tout).
 export function DialogHost() {
+  const C = useTheme();
+  const st = useMemo(() => makeSt(C), [C]);
   const [state, setState] = useState<State>(null);
   _setState = setState;
   const close = () => setState(null);
@@ -53,7 +56,7 @@ export function DialogHost() {
   );
 }
 
-const st = StyleSheet.create({
+const makeSt = (C: any) => StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,.5)', justifyContent: 'center', alignItems: 'center', padding: 28 },
   card: { backgroundColor: C.card, borderRadius: 20, padding: 22, width: '100%', maxWidth: 380, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 12 },
   title: { fontSize: 17, fontWeight: '900', color: C.petrol, textAlign: 'center', marginBottom: 6 },

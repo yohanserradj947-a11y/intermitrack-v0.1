@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Print from 'expo-print';
 import { useFocusEffect } from 'expo-router';
 import * as Sharing from 'expo-sharing';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,8 +15,9 @@ import NumInput from '../../components/NumInput';
 import { useTrackView } from '../../lib/analytics';
 import { useSession } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
+import { useTheme, useThemeControls } from '../../lib/theme';
 
-const C = { petrol: '#1F4E5F', sage: '#12754A', bg: '#F5F7F6', card: '#FFFFFF', text: '#2D3748', muted: '#718096', line: '#E2E8F0', soft: '#EEF4F1', orange: '#9A6A00', greenBg: '#E3F6E9', orangeBg: '#FDF1DC' };
+// const C = palette du thème (voir lib/theme.tsx). sage → C.green, orange → C.orange.
 const AE_PLAFOND = 77700;
 const AE_TAUX_DEFAUT = 24.6;
 const PRESTA_OPTIONS = ['Régie générale', 'Son / mix', 'Lumière', 'Vidéo / captation', 'Montage / post-prod', 'Montage-démontage', 'Création / conception', 'Photographie', 'Formation', 'Communication', 'Location de matériel', 'Frais de déplacement'];
@@ -32,6 +33,9 @@ function iso(d: Date) { return d.getFullYear() + '-' + String(d.getMonth() + 1).
 type Ligne = { designation: string; quantite: number; unite: string; prixUnitaire: number };
 
 export default function AutoEntrepreneur() {
+  const C = useTheme();
+  const { scheme } = useThemeControls();
+  const s = useMemo(() => makeS(C), [C]);
   useTrackView('autoentrepreneur');
   const insets = useSafeAreaInsets();
   const { session } = useSession();
@@ -281,7 +285,7 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
             <View style={s.facTop}>
               <Text style={s.facClient} numberOfLines={1}>{f.client}</Text>
               <View style={[s.statusPill, { backgroundColor: f.status === 'payee' ? C.greenBg : C.orangeBg }]}>
-                <Text style={[s.statusTxt, { color: f.status === 'payee' ? C.sage : C.orange }]}>{f.status === 'payee' ? 'Payée' : 'À encaisser'}</Text>
+                <Text style={[s.statusTxt, { color: f.status === 'payee' ? C.green : C.orange }]}>{f.status === 'payee' ? 'Payée' : 'À encaisser'}</Text>
               </View>
             </View>
             <Text style={s.facMeta} numberOfLines={1}>{f.prestation}</Text>
@@ -304,13 +308,13 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
           <Text style={s.monthLbl}>{new Date(month + '-01T00:00:00').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</Text>
           <TouchableOpacity onPress={() => shiftMonth(1)} style={s.monthBtn}><Text style={s.monthBtnTxt}>›</Text></TouchableOpacity>
         </View>
-        <Row label="CA encaissé (mois)" value={money2(ms.paid)} hl />
-        <Row label="En attente (mois)" value={money2(ms.pending)} />
-        <Row label="Cotisations URSSAF (mois)" value={money2(ms.paid * tauxNum)} />
+        <Row s={s} label="CA encaissé (mois)" value={money2(ms.paid)} hl />
+        <Row s={s} label="En attente (mois)" value={money2(ms.pending)} />
+        <Row s={s} label="Cotisations URSSAF (mois)" value={money2(ms.paid * tauxNum)} />
         <View style={s.sep} />
-        <Row label={`CA encaissé (année ${year})`} value={money2(ys.paid)} hl />
-        <Row label="En attente (année)" value={money2(ys.pending)} />
-        <Row label="Cotisations URSSAF (année)" value={money2(ys.paid * tauxNum)} />
+        <Row s={s} label={`CA encaissé (année ${year})`} value={money2(ys.paid)} hl />
+        <Row s={s} label="En attente (année)" value={money2(ys.pending)} />
+        <Row s={s} label="Cotisations URSSAF (année)" value={money2(ys.paid * tauxNum)} />
         <View style={s.plafondBox}>
           <Text style={s.plafondTxt}>Plafond micro : {money0(AE_PLAFOND)}</Text>
           <Text style={s.plafondTxt}>CA {year} : {money2(ys.total)} ({pct} %)</Text>
@@ -354,8 +358,8 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
                     <TouchableOpacity style={s.input} onPress={() => setShowEnd(true)}><Text style={s.inputTxt}>{facEnd ? facEnd.toLocaleDateString('fr-FR') : '—'}</Text></TouchableOpacity>
                   </View>
                 </View>
-                {showStart && <DateTimePicker value={facStart} mode="date" themeVariant="light" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(_e, d) => { setShowStart(false); if (d) setFacStart(d); }} />}
-                {showEnd && <DateTimePicker value={facEnd || facStart} mode="date" themeVariant="light" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(_e, d) => { setShowEnd(false); if (d) setFacEnd(d); }} />}
+                {showStart && <DateTimePicker value={facStart} mode="date" themeVariant={scheme} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(_e, d) => { setShowStart(false); if (d) setFacStart(d); }} />}
+                {showEnd && <DateTimePicker value={facEnd || facStart} mode="date" themeVariant={scheme} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(_e, d) => { setShowEnd(false); if (d) setFacEnd(d); }} />}
 
                 <Text style={s.label}>Prestations (touche pour ajouter)</Text>
                 <View style={s.prestaWrap}>
@@ -393,7 +397,7 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
                 </View>
 
                 <GradientButton label={saving ? 'Enregistrement…' : 'Enregistrer la facture'} onPress={saveFacture} disabled={saving} style={s.saveBtn} textStyle={s.saveBtnTxt} />
-                {facEditId && <TouchableOpacity style={s.deleteBtn} onPress={deleteFacture}><View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6}}><Ionicons name="trash-outline" size={15} color="#E53E3E"/><Text style={s.deleteBtnTxt}>Supprimer</Text></View></TouchableOpacity>}
+                {facEditId && <TouchableOpacity style={s.deleteBtn} onPress={deleteFacture}><View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6}}><Ionicons name="trash-outline" size={15} color={C.danger}/><Text style={s.deleteBtnTxt}>Supprimer</Text></View></TouchableOpacity>}
                 <TouchableOpacity style={s.cancelBtn} onPress={() => setShowFac(false)}><Text style={s.cancelBtnTxt}>Annuler</Text></TouchableOpacity>
                 <Text style={s.disclaimer}>ℹ️ Intermitrack est un outil d&apos;aide à la gestion : tu restes seul responsable de l&apos;exactitude et de la conformité légale de tes factures (numérotation, SIRET, « TVA non applicable, art. 293 B du CGI »). À noter : la facturation électronique B2B deviendra obligatoire (réforme 2026-2027). En cas de doute, rapproche-toi d&apos;un expert-comptable.</Text>
               </ScrollView>
@@ -452,7 +456,7 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
                 <Text style={s.label}>SIRET (optionnel)</Text>
                 <TextInput style={s.input} value={socSiret} onChangeText={setSocSiret} placeholder="SIRET" placeholderTextColor={C.muted} />
                 <GradientButton label="Enregistrer la société" onPress={saveSociete} style={s.saveBtn} textStyle={s.saveBtnTxt} />
-                {socEditId && <TouchableOpacity style={s.deleteBtn} onPress={deleteSociete}><View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6}}><Ionicons name="trash-outline" size={15} color="#E53E3E"/><Text style={s.deleteBtnTxt}>Supprimer</Text></View></TouchableOpacity>}
+                {socEditId && <TouchableOpacity style={s.deleteBtn} onPress={deleteSociete}><View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6}}><Ionicons name="trash-outline" size={15} color={C.danger}/><Text style={s.deleteBtnTxt}>Supprimer</Text></View></TouchableOpacity>}
                 <TouchableOpacity style={s.cancelBtn} onPress={() => setShowSoc(false)}><Text style={s.cancelBtnTxt}>Annuler</Text></TouchableOpacity>
               </ScrollView>
             </View>
@@ -465,7 +469,7 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
 
 function esc(v: string) { return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
-function Row({ label, value, hl }: { label: string; value: string; hl?: boolean }) {
+function Row({ s, label, value, hl }: { s: any; label: string; value: string; hl?: boolean }) {
   return (
     <View style={[s.resultRow, hl && s.resultHL]}>
       <Text style={s.resultLbl}>{label}</Text>
@@ -474,10 +478,10 @@ function Row({ label, value, hl }: { label: string; value: string; hl?: boolean 
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (C: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  pageHeader: { backgroundColor: 'white', padding: 18, paddingTop: 52, borderBottomWidth: 1, borderBottomColor: C.line },
+  pageHeader: { backgroundColor: C.card, padding: 18, paddingTop: 52, borderBottomWidth: 1, borderBottomColor: C.line },
   pageTitle: { fontSize: 22, fontWeight: '900', color: C.petrol, letterSpacing: -0.5 },
   pageSub: { fontSize: 13, color: C.muted, marginTop: 4 },
   card: { backgroundColor: C.card, margin: 16, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: C.line },
@@ -485,7 +489,7 @@ const s = StyleSheet.create({
   monthBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: C.soft, alignItems: 'center', justifyContent: 'center' },
   monthBtnTxt: { fontSize: 22, color: C.petrol, fontWeight: '800' },
   monthLbl: { fontSize: 15, fontWeight: '800', color: C.petrol, textTransform: 'capitalize' },
-  resultRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 9, paddingHorizontal: 12, borderRadius: 11, backgroundColor: '#F7F9FB', borderWidth: 1, borderColor: C.line, marginBottom: 6, gap: 10 },
+  resultRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 9, paddingHorizontal: 12, borderRadius: 11, backgroundColor: C.soft, borderWidth: 1, borderColor: C.line, marginBottom: 6, gap: 10 },
   resultHL: { backgroundColor: 'rgba(31,78,95,0.06)', borderColor: 'rgba(31,78,95,0.14)' },
   resultLbl: { fontSize: 13, fontWeight: '700', color: C.petrol, flex: 1 },
   resultVal: { fontSize: 14, fontWeight: '800', color: C.petrol },
@@ -494,9 +498,9 @@ const s = StyleSheet.create({
   plafondTxt: { fontSize: 12, fontWeight: '700', color: C.petrol },
   label: { fontSize: 13, fontWeight: '700', color: C.text, marginTop: 12, marginBottom: 6 },
   hint: { fontSize: 11, color: C.muted, marginTop: 6, lineHeight: 16 },
-  input: { borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 14, fontSize: 15, color: C.text, backgroundColor: 'white' },
+  input: { borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 14, fontSize: 15, color: C.text, backgroundColor: C.card },
   inputTxt: { fontSize: 15, color: C.text },
-  infoBtn: { marginHorizontal: 16, marginTop: 6, backgroundColor: 'white', borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  infoBtn: { marginHorizontal: 16, marginTop: 6, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   infoBtnTxt: { fontSize: 13, fontWeight: '700', color: C.petrol, flex: 1 },
   infoBtnArrow: { fontSize: 13, fontWeight: '800', color: C.petrol },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginTop: 18, marginBottom: 10 },
@@ -544,17 +548,17 @@ const s = StyleSheet.create({
   chip: { backgroundColor: C.soft, borderRadius: 99, paddingHorizontal: 12, paddingVertical: 8, marginRight: 8 },
   chipTxt: { fontSize: 13, fontWeight: '700', color: C.petrol },
   prestaWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  prestaChip: { backgroundColor: 'white', borderWidth: 1, borderColor: C.line, borderRadius: 99, paddingHorizontal: 12, paddingVertical: 8 },
+  prestaChip: { backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: 99, paddingHorizontal: 12, paddingVertical: 8 },
   prestaChipTxt: { fontSize: 12, fontWeight: '700', color: C.petrol },
-  ligneCard: { backgroundColor: 'white', borderWidth: 1, borderColor: C.line, borderRadius: 14, padding: 10, marginTop: 10 },
+  ligneCard: { backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: 14, padding: 10, marginTop: 10 },
   uniteWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, flex: 1 },
   uniteChip: { paddingVertical: 9, paddingHorizontal: 12, borderRadius: 99, backgroundColor: C.soft },
   uniteOn: { backgroundColor: C.petrol },
   uniteTxt: { fontSize: 12, fontWeight: '700', color: C.petrol },
   uniteTxtOn: { fontSize: 12, fontWeight: '700', color: 'white' },
   ligneTot: { fontSize: 14, fontWeight: '800', color: C.petrol, minWidth: 70, textAlign: 'right' },
-  ligneDel: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#FFF5F5', alignItems: 'center', justifyContent: 'center' },
-  ligneDelTxt: { color: '#E53E3E', fontWeight: '800', fontSize: 15 },
+  ligneDel: { width: 36, height: 36, borderRadius: 10, backgroundColor: C.warnBg, alignItems: 'center', justifyContent: 'center' },
+  ligneDelTxt: { color: C.danger, fontWeight: '800', fontSize: 15 },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, padding: 12, borderRadius: 12, backgroundColor: 'rgba(31,78,95,0.06)' },
   totalLbl: { fontSize: 14, fontWeight: '800', color: C.petrol },
   totalVal: { fontSize: 18, fontWeight: '900', color: C.petrol },
@@ -562,9 +566,9 @@ const s = StyleSheet.create({
   statusChipOn: { backgroundColor: C.petrol },
   saveBtn: { backgroundColor: C.petrol, borderRadius: 15, paddingVertical: 15, alignItems: 'center', marginTop: 20 },
   saveBtnTxt: { color: 'white', fontWeight: '800', fontSize: 15 },
-  deleteBtn: { backgroundColor: '#FFF5F5', borderRadius: 15, paddingVertical: 14, alignItems: 'center', marginTop: 10 },
-  deleteBtnTxt: { color: '#E53E3E', fontWeight: '800', fontSize: 14 },
+  deleteBtn: { backgroundColor: C.warnBg, borderRadius: 15, paddingVertical: 14, alignItems: 'center', marginTop: 10 },
+  deleteBtnTxt: { color: C.danger, fontWeight: '800', fontSize: 14 },
   cancelBtn: { paddingVertical: 14, alignItems: 'center', marginTop: 4 },
   cancelBtnTxt: { color: C.muted, fontWeight: '700', fontSize: 14 },
-  disclaimer: { fontSize: 11, color: '#94A3B8', lineHeight: 16, marginTop: 14, paddingHorizontal: 4 },
+  disclaimer: { fontSize: 11, color: C.muted, lineHeight: 16, marginTop: 14, paddingHorizontal: 4 },
 });

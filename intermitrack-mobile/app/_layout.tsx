@@ -4,6 +4,7 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SessionProvider, useSession } from '../lib/auth';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DialogHost } from '../lib/dialog';
+import { ThemeProvider } from '../lib/theme';
 
 function RootNavigator() {
   const { session, loading } = useSession();
@@ -31,10 +32,12 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <KeyboardProvider>
-        <SessionProvider>
-          <RootNavigator />
-          <DialogHost />
-        </SessionProvider>
+        <ThemeProvider>
+          <SessionProvider>
+            <RootNavigator />
+            <DialogHost />
+          </SessionProvider>
+        </ThemeProvider>
       </KeyboardProvider>
     </SafeAreaProvider>
   );

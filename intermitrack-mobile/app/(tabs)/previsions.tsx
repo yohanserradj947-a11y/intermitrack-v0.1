@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -7,14 +7,17 @@ import { useTrackView } from '../../lib/analytics';
 import { ajBrute, ajNet, carence, congesSpectacles, etalementCarence, netAPayer, CHARGE_DEFAUT, CONFIG } from '../../lib/calcul';
 import NumInput from '../../components/NumInput';
 import { GradientButton } from '../../components/GradientButton';
+import { useTheme } from '../../lib/theme';
 
-const C = { petrol:'#1F4E5F', sage:'#7A9E7E', bg:'#F5F7F6', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1', orange:'#F97316' };
+// const C = thème dynamique (useTheme) — voir lib/theme.tsx
 
 function eur(n:number){return(n??0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
 function num(v:string){if(!v)return NaN;return parseFloat(String(v).replace(/\s/g,'').replace(',','.'));}
 
 export default function Previsions(){
   useTrackView('previsions');
+  const C = useTheme();
+  const s = useMemo(()=>makeS(C),[C]);
   const [missions,setMissions]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
 
@@ -263,17 +266,17 @@ export default function Previsions(){
   );
 }
 
-const s=StyleSheet.create({
+const makeS=(C:any)=>StyleSheet.create({
   container:{flex:1,backgroundColor:C.bg},
   center:{flex:1,justifyContent:'center',alignItems:'center',backgroundColor:C.bg},
-  header:{backgroundColor:'white',padding:18,paddingTop:52,borderBottomWidth:1,borderBottomColor:C.line},
+  header:{backgroundColor:C.card,padding:18,paddingTop:52,borderBottomWidth:1,borderBottomColor:C.line},
   title:{fontSize:24,fontWeight:'900',color:C.petrol,letterSpacing:-0.5},
   sub:{fontSize:13,color:C.muted,marginTop:4},
   card:{backgroundColor:C.card,borderRadius:18,padding:16,margin:16,marginBottom:0,borderWidth:1,borderColor:C.line},
   cardTitle:{fontSize:16,fontWeight:'900',color:C.petrol},
   cardSub:{fontSize:12,color:C.muted,marginTop:2,marginBottom:12},
   label:{fontSize:13,fontWeight:'700',color:C.text,marginTop:10,marginBottom:6},
-  input:{borderWidth:1,borderColor:C.line,borderRadius:12,paddingVertical:12,paddingHorizontal:14,fontSize:15,color:C.text,backgroundColor:'#F8FAF9'},
+  input:{borderWidth:1,borderColor:C.line,borderRadius:12,paddingVertical:12,paddingHorizontal:14,fontSize:15,color:C.text,backgroundColor:C.bg},
   toggleRow:{flexDirection:'row',gap:8,marginTop:8,flexWrap:'wrap'},
   toggle:{flex:1,minWidth:80,paddingVertical:10,borderRadius:12,backgroundColor:C.soft,alignItems:'center'},
   toggleOn:{backgroundColor:C.petrol},

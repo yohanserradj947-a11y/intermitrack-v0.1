@@ -2,7 +2,7 @@ import { showAlert } from "../../lib/dialog";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,8 +12,9 @@ import { useTrackView } from '../../lib/analytics';
 import { useSession } from '../../lib/auth';
 import { fiscalite, PROFILS_FISCAUX, type ProfilFiscal } from '../../lib/calcul';
 import { supabase } from '../../lib/supabase';
+import { useTheme, useThemeControls } from '../../lib/theme';
 
-const C = { petrol: '#1F4E5F', sage: '#12754A', bg: '#F5F7F6', card: '#FFFFFF', text: '#2D3748', muted: '#718096', line: '#E2E8F0', soft: '#EEF4F1', warnBg: '#FFF7ED', warnBd: '#FDBA74', warnTx: '#9A3412' };
+// La palette vient maintenant du thème (lib/theme) → const C = useTheme() dans le composant.
 const PROFILS: { key: ProfilFiscal; label: string }[] = [{ key: 'technicien', label: 'Technicien' }, { key: 'musicien', label: 'Musicien' }, { key: 'artiste', label: 'Artiste' }];
 const CATS = ['Matériel / Achat', 'Repas', 'Transport', 'Hébergement', 'Formation', 'Vêtements pro', 'Téléphone / Internet', 'Cotisations pro', 'Documentation', 'Autres'];
 const num = (v: string) => { const n = Number(String(v).replace(',', '.')); return isFinite(n) ? n : 0; };
@@ -24,6 +25,15 @@ const iso = (d: Date) => d.getFullYear() + '-' + String(d.getMonth() + 1).padSta
 
 export default function Fiscalite() {
   useTrackView('fiscalite');
+  const C = useTheme();
+  const { scheme } = useThemeControls();
+  const s = useMemo(() => makeS(C), [C]);
+  const Row = ({ label, value, hl }: { label: string; value: string; hl?: boolean }) => (
+    <View style={[s.resultRow, hl && s.resultHL]}>
+      <Text style={s.resultLbl}>{label}</Text>
+      <Text style={s.resultVal}>{value}</Text>
+    </View>
+  );
   const insets = useSafeAreaInsets();
   const { session } = useSession();
   const uid = session?.user?.id;
@@ -205,7 +215,7 @@ export default function Fiscalite() {
                 <Text style={s.modalTitle}>Ajouter une dépense</Text>
                 <Text style={s.label}>Date</Text>
                 <TouchableOpacity style={s.input} onPress={() => setShowDate(true)}><Text style={s.inputTxt}>{fDate.toLocaleDateString('fr-FR')}</Text></TouchableOpacity>
-                {showDate && <DateTimePicker value={fDate} mode="date" themeVariant="light" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(_e, d) => { setShowDate(false); if (d) setFDate(d); }} />}
+                {showDate && <DateTimePicker value={fDate} mode="date" themeVariant={scheme} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(_e, d) => { setShowDate(false); if (d) setFDate(d); }} />}
                 <Text style={s.label}>Catégorie</Text>
                 <View style={s.chips}>
                   {CATS.map((c) => (
@@ -227,19 +237,10 @@ export default function Fiscalite() {
   );
 }
 
-function Row({ label, value, hl }: { label: string; value: string; hl?: boolean }) {
-  return (
-    <View style={[s.resultRow, hl && s.resultHL]}>
-      <Text style={s.resultLbl}>{label}</Text>
-      <Text style={s.resultVal}>{value}</Text>
-    </View>
-  );
-}
-
-const s = StyleSheet.create({
+const makeS = (C: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { backgroundColor: 'white', padding: 18, paddingTop: 52, borderBottomWidth: 1, borderBottomColor: C.line },
+  header: { backgroundColor: C.card, padding: 18, paddingTop: 52, borderBottomWidth: 1, borderBottomColor: C.line },
   title: { fontSize: 22, fontWeight: '900', color: C.petrol, letterSpacing: -0.5 },
   sub: { fontSize: 13, color: C.muted, marginTop: 4 },
   warn: { backgroundColor: C.warnBg, borderWidth: 1, borderColor: C.warnBd, borderRadius: 12, margin: 16, marginBottom: 0, padding: 12 },
@@ -250,7 +251,7 @@ const s = StyleSheet.create({
   cardSub: { fontSize: 12, color: C.muted, marginTop: 2, marginBottom: 4 },
   label: { fontSize: 13, fontWeight: '700', color: C.text, marginTop: 12, marginBottom: 6 },
   hint: { fontSize: 11, color: C.muted, marginTop: 6, lineHeight: 16 },
-  input: { borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 14, fontSize: 15, color: C.text, backgroundColor: 'white' },
+  input: { borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 14, fontSize: 15, color: C.text, backgroundColor: C.card },
   inputTxt: { fontSize: 15, color: C.text },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingVertical: 9, paddingHorizontal: 14, borderRadius: 99, backgroundColor: C.soft },
@@ -259,7 +260,7 @@ const s = StyleSheet.create({
   chipTxtOn: { fontSize: 13, fontWeight: '700', color: 'white' },
   autoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, padding: 12, borderRadius: 12, backgroundColor: C.soft },
   autoLbl: { fontSize: 13, fontWeight: '700', color: C.petrol, flex: 1 },
-  autoTag: { fontSize: 10, fontWeight: '800', color: C.sage },
+  autoTag: { fontSize: 10, fontWeight: '800', color: C.green },
   autoVal: { fontSize: 15, fontWeight: '900', color: C.petrol },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginTop: 18 },
   sectionTitle: { fontSize: 17, fontWeight: '900', color: C.petrol },
@@ -269,9 +270,9 @@ const s = StyleSheet.create({
   fraisCat: { fontSize: 13, fontWeight: '700', color: C.text },
   fraisDate: { fontSize: 11, color: C.muted, marginTop: 1 },
   fraisAmount: { fontSize: 14, fontWeight: '800', color: C.petrol },
-  fraisDel: { width: 32, height: 32, borderRadius: 9, backgroundColor: '#FFF5F5', alignItems: 'center', justifyContent: 'center' },
-  fraisDelTxt: { color: '#E53E3E', fontWeight: '800' },
-  resultRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 9, paddingHorizontal: 12, borderRadius: 11, backgroundColor: '#F7F9FB', borderWidth: 1, borderColor: C.line, marginBottom: 6, gap: 10 },
+  fraisDel: { width: 32, height: 32, borderRadius: 9, backgroundColor: C.warnBg, alignItems: 'center', justifyContent: 'center' },
+  fraisDelTxt: { color: C.danger, fontWeight: '800' },
+  resultRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 9, paddingHorizontal: 12, borderRadius: 11, backgroundColor: C.bg, borderWidth: 1, borderColor: C.line, marginBottom: 6, gap: 10 },
   resultHL: { backgroundColor: 'rgba(31,78,95,0.06)', borderColor: 'rgba(31,78,95,0.14)' },
   resultLbl: { fontSize: 13, fontWeight: '700', color: C.petrol, flex: 1 },
   resultVal: { fontSize: 14, fontWeight: '800', color: C.petrol },
@@ -281,7 +282,7 @@ const s = StyleSheet.create({
   bigVal: { fontSize: 18, fontWeight: '900', color: 'white' },
   compareRow: { flexDirection: 'row', gap: 10, marginVertical: 8 },
   compareCard: { flex: 1, borderRadius: 13, padding: 12, borderWidth: 2, borderColor: C.line, alignItems: 'center' },
-  compareWin: { borderColor: C.sage, backgroundColor: 'rgba(18,117,74,0.05)' },
+  compareWin: { borderColor: C.green, backgroundColor: C.greenBg },
   compareTitle: { fontSize: 12, fontWeight: '700', color: C.petrol },
   compareAmount: { fontSize: 18, fontWeight: '900', color: C.petrol, marginVertical: 4 },
   compareTag: { fontSize: 10, fontWeight: '700', color: C.muted },

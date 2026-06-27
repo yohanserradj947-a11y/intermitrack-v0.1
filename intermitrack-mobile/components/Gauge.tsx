@@ -1,7 +1,9 @@
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { useMemo } from 'react';
+import { useTheme } from '../lib/theme';
 
-const C = { petrol: '#1F4E5F', orange: '#F97316', track: '#E2E8F0', muted: '#718096', text: '#2D3748' };
+// La palette vient du thème (lib/theme) → const C = useTheme() dans le composant.
 
 function polar(cx: number, cy: number, r: number, deg: number) {
   const rad = (deg * Math.PI) / 180;
@@ -16,6 +18,8 @@ function arc(cx: number, cy: number, r: number, startFrac: number, endFrac: numb
 }
 
 export default function Gauge({ done, planned, total }: { done: number; planned: number; total: number }) {
+  const C = useTheme();
+  const g = useMemo(() => makeG(C), [C]);
   const doneP = Math.max(0, Math.min(done / total, 1));
   const planP = Math.max(0, Math.min(planned / total, 1 - doneP));
   const totalPct = Math.round((doneP + planP) * 100);
@@ -50,7 +54,7 @@ export default function Gauge({ done, planned, total }: { done: number; planned:
   );
 }
 
-const g = StyleSheet.create({
+const makeG = (C:any) => StyleSheet.create({
   wrap: { padding: 12 },
   center: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 14 },
   pct: { fontSize: 48, fontWeight: '900', color: C.petrol, letterSpacing: -2 },

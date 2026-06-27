@@ -7,8 +7,9 @@ import * as Sharing from 'expo-sharing';
 import { supabase } from '../../lib/supabase';
 import { useTrackView } from '../../lib/analytics';
 import { GradientButton } from '../../components/GradientButton';
+import { useTheme } from '../../lib/theme';
 
-const C = { petrol:'#1F4E5F', sage:'#7A9E7E', bg:'#F5F7F6', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1', orange:'#F97316' };
+// Palette fournie par le thème clair/sombre (voir lib/theme.tsx).
 
 function money(n:number){return(n??0).toLocaleString('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0});}
 function fmtDate(d:string){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});}
@@ -16,6 +17,8 @@ function monthLabel(d:Date){const l=d.toLocaleDateString('fr-FR',{month:'long',y
 
 export default function Actualisation(){
   useTrackView('actualisation');
+  const C=useTheme();
+  const s=useMemo(()=>makeS(C),[C]);
   const [missions,setMissions]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
   const [current,setCurrent]=useState(new Date());
@@ -143,10 +146,10 @@ export default function Actualisation(){
   );
 }
 
-const s=StyleSheet.create({
+const makeS=(C:any)=>StyleSheet.create({
   container:{flex:1,backgroundColor:C.bg},
   center:{flex:1,justifyContent:'center',alignItems:'center',backgroundColor:C.bg},
-  header:{backgroundColor:'white',padding:18,paddingTop:52,borderBottomWidth:1,borderBottomColor:C.line},
+  header:{backgroundColor:C.card,padding:18,paddingTop:52,borderBottomWidth:1,borderBottomColor:C.line},
   title:{fontSize:24,fontWeight:'900',color:C.petrol,letterSpacing:-0.5},
   sub:{fontSize:13,color:C.muted,marginTop:4},
   monthNav:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:10,margin:16},

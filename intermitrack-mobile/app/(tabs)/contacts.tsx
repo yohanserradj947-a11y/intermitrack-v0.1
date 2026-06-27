@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useMemo } from 'react';
 import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTrackView } from '../../lib/analytics';
+import { useTheme } from '../../lib/theme';
 
-const C = { petrol: '#1F4E5F', sage: '#12754A', bg: '#F5F7F6', card: '#FFFFFF', text: '#2D3748', muted: '#718096', line: '#E2E8F0' };
+// Couleurs fournies par le thème (clair/sombre) via useTheme().
 
 // type : 'tel' | 'mail' | 'url' | 'text'
 type Line = { type: 'tel' | 'mail' | 'url' | 'text'; label: string; value?: string };
@@ -62,6 +64,8 @@ const LINE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = { tel: 'call-o
 
 export default function Contacts() {
   useTrackView('contacts');
+  const C = useTheme();
+  const s = useMemo(() => makeS(C), [C]);
   return (
     <ScrollView style={s.container} contentContainerStyle={{ paddingBottom: 40 }}>
       <View style={s.pageHeader}>
@@ -75,7 +79,7 @@ export default function Contacts() {
         {CONTACTS.map((ct) => (
           <View key={ct.name} style={s.card}>
             <View style={s.head}>
-              <LinearGradient colors={[C.petrol, C.sage]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.ic}>
+              <LinearGradient colors={[C.petrol, C.green]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.ic}>
                 <Ionicons name={ct.ic} size={22} color="#fff" />
               </LinearGradient>
               <View style={{ flex: 1 }}>
@@ -103,9 +107,9 @@ export default function Contacts() {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (C: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
-  pageHeader: { backgroundColor: 'white', padding: 18, paddingTop: 52, borderBottomWidth: 1, borderBottomColor: C.line },
+  pageHeader: { backgroundColor: C.card, padding: 18, paddingTop: 52, borderBottomWidth: 1, borderBottomColor: C.line },
   pageTitle: { fontSize: 22, fontWeight: '900', color: C.petrol, letterSpacing: -0.5 },
   pageSub: { fontSize: 13, color: C.muted, marginTop: 4 },
   intro: { fontSize: 12.5, color: C.muted, lineHeight: 18, padding: 14, paddingBottom: 4 },

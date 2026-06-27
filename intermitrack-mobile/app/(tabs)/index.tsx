@@ -14,10 +14,12 @@ import TxtInput from '../../components/TxtInput';
 import { GradientButton } from '../../components/GradientButton';
 import { openMesInfos } from '../../components/AccountMenu';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme, useThemeControls } from '../../lib/theme';
 
-const C = { petrol:'#1F4E5F', sage:'#7A9E7E', bg:'#F5F7F6', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1', orange:'#F97316' };
+// La palette vient maintenant du thème (lib/theme) → const C = useTheme() dans le composant.
 const POSTES_TECH = ['Montage','Tournage','Démontage','Régie','Son','Lumière','Image / Vidéo','Machiniste','Électricien','Poursuiteur','Plateau','Décor','HMC'];
 const POSTES_ARTISTE = ['Comédien','Chanteur','Musicien','Danseur','Choriste'];
+const POSTES_MUSIQUE = ['Concert','Répétition','Session studio','Atelier / Pédagogique','Tournée','Captation'];
 const POSTES_AUTRE = ['Autres'];
 
 function fmtDate(d:string){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});}
@@ -30,6 +32,10 @@ function iso(d:Date){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(
 export default function HomeScreen(){
   useTrackView('dashboard');
   const insets=useSafeAreaInsets();
+  const C=useTheme();
+  const { scheme }=useThemeControls();
+  const s=useMemo(()=>makeS(C),[C]);
+  const mp=useMemo(()=>makeMp(C),[C]);
   const [loading,setLoading]=useState(true);
   const [missions,setMissions]=useState<any[]>([]);
   const [current,setCurrent]=useState(new Date());
@@ -73,7 +79,14 @@ export default function HomeScreen(){
     const pas=await AsyncStorage.getItem('intermitrack_pas_rate');
     setPasRate(pas!==null?Number(pas):0);
     const { data:{ user } }=await supabase.auth.getUser();
-    if(user){ const { data:prof }=await supabase.from('profiles').select('annexe,droits_ouverts,taux_journalier,taux_impot').eq('id',user.id).maybeSingle(); setProfil(prof||null); }
+    if(user){
+      const { data:prof }=await supabase.from('profiles').select('annexe,droits_ouverts,taux_journalier,taux_impot,are_date').eq('id',user.id).maybeSingle();
+      setProfil(prof||null);
+      // Date ARE : la base de données fait foi (persiste sur tous les appareils).
+      // Sinon, on migre une éventuelle valeur locale (ancienne) vers la base.
+      if(prof?.are_date){ setAreDate(prof.are_date); await AsyncStorage.setItem('intermitrack_are_date',prof.are_date); }
+      else if(saved){ await supabase.from('profiles').upsert({id:user.id,are_date:saved},{onConflict:'id'}); }
+    }
     if(!silent)setLoading(false);
   }
 
@@ -174,9 +187,17 @@ export default function HomeScreen(){
 
   if(loading)return<View style={s.center}><ActivityIndicator size="large" color={C.petrol}/></View>;
 
+  async function saveAreDate(d:Date){
+    const isoStr=d.toISOString().slice(0,10);
+    setAreDate(isoStr);
+    await AsyncStorage.setItem('intermitrack_are_date',isoStr);
+    const { data:{ user } }=await supabase.auth.getUser();
+    if(user) await supabase.from('profiles').upsert({id:user.id,are_date:isoStr},{onConflict:'id'});
+  }
+
   return(
     <ScrollView style={s.container} contentContainerStyle={{paddingBottom:40}}>
-      <StatusBar barStyle="dark-content" backgroundColor="white"/>
+      <StatusBar barStyle={scheme==='dark'?'light-content':'dark-content'} backgroundColor={C.card}/>
 
       <View style={s.header}>
         <View style={s.headerBrand}>
@@ -216,20 +237,28 @@ export default function HomeScreen(){
           :<Text style={s.areInfo}>Renseignez votre date pour un calcul précis</Text>
         }
         {showDatePicker&&(
+          <>
           <DateTimePicker
             value={areDate?new Date(areDate):new Date()}
             mode="date"
-            themeVariant="light"
+            themeVariant={scheme}
             display={Platform.OS==='ios'?'spinner':'default'}
-            onChange={async(_e:any,date?:Date)=>{
-              setShowDatePicker(false);
-              if(date){
-                const isoStr=date.toISOString().slice(0,10);
-                await AsyncStorage.setItem('intermitrack_are_date',isoStr);
-                setAreDate(isoStr);
+            onChange={(e:any,date?:Date)=>{
+              if(Platform.OS==='android'){
+                setShowDatePicker(false);
+                if(e.type==='set'&&date) saveAreDate(date);
+              } else if(date){
+                // iOS : on met juste à jour l'aperçu ; la sauvegarde se fait au bouton "Valider".
+                setAreDate(date.toISOString().slice(0,10));
               }
             }}
           />
+          {Platform.OS==='ios'&&(
+            <TouchableOpacity style={s.areValidateBtn} onPress={()=>{ setShowDatePicker(false); saveAreDate(areDate?new Date(areDate):new Date()); }}>
+              <Text style={s.areValidateTxt}>Valider la date</Text>
+            </TouchableOpacity>
+          )}
+          </>
         )}
       </View>
 
@@ -343,7 +372,7 @@ export default function HomeScreen(){
               </TouchableOpacity>
               {showTypePicker && (
                 <View style={s.typePickerInline}>
-                  {([['Technique',POSTES_TECH],['Artiste',POSTES_ARTISTE],['Autre',POSTES_AUTRE]] as [string,string[]][]).map(([grp,list])=>(
+                  {([['Technique',POSTES_TECH],['Artiste',POSTES_ARTISTE],['Musique / scène',POSTES_MUSIQUE],['Autre',POSTES_AUTRE]] as [string,string[]][]).map(([grp,list])=>(
                     <View key={grp}>
                       <Text style={s.typeGroupLbl}>{grp}</Text>
                       <View style={s.typeWrap}>
@@ -384,8 +413,9 @@ export default function HomeScreen(){
               <Text style={s.label}>Heures cumulées</Text>
               <NumInput style={s.input} value={fHours} onChangeText={setFHours}/>
 
-              <Text style={s.label}>Nombre de vacations</Text>
+              <Text style={s.label}>Nombre de vacations / cachets</Text>
               <NumInput style={s.input} value={fVacations} onChangeText={setFVacations} placeholder="Ex : 1" placeholderTextColor={C.muted}/>
+              <Text style={{fontSize:11,color:C.muted,marginTop:4}}>1 vacation = 1 jour (technicien) · 1 cachet (artiste / musicien).</Text>
 
               <Text style={s.label}>Montant brut (€)</Text>
               <NumInput style={s.input} value={fGross} onChangeText={setFGross}/>
@@ -439,29 +469,29 @@ export default function HomeScreen(){
   );
 }
 
-const mp=StyleSheet.create({
+const makeMp=(C:any)=>StyleSheet.create({
   overlay:{position:'absolute',top:0,left:0,right:0,bottom:0,backgroundColor:'rgba(0,0,0,.5)',justifyContent:'center',alignItems:'center',zIndex:999},
-  modal:{backgroundColor:'white',borderRadius:22,padding:22,width:'85%'},
-  title:{fontSize:17,fontWeight:'900',color:'#1F4E5F',textAlign:'center',marginBottom:16},
+  modal:{backgroundColor:C.card,borderRadius:22,padding:22,width:'85%'},
+  title:{fontSize:17,fontWeight:'900',color:C.petrol,textAlign:'center',marginBottom:16},
   yearRow:{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:20,marginBottom:16},
-  yearBtn:{width:36,height:36,borderRadius:18,backgroundColor:'#EEF4F1',justifyContent:'center',alignItems:'center'},
-  yearBtnTxt:{fontSize:18,fontWeight:'900',color:'#1F4E5F'},
-  yearLbl:{fontSize:20,fontWeight:'900',color:'#1F4E5F',minWidth:60,textAlign:'center'},
+  yearBtn:{width:36,height:36,borderRadius:18,backgroundColor:C.soft,justifyContent:'center',alignItems:'center'},
+  yearBtnTxt:{fontSize:18,fontWeight:'900',color:C.petrol},
+  yearLbl:{fontSize:20,fontWeight:'900',color:C.petrol,minWidth:60,textAlign:'center'},
   grid:{flexDirection:'row',flexWrap:'wrap',gap:8,marginBottom:16},
-  monthBtn:{width:'30%',paddingVertical:10,borderRadius:12,backgroundColor:'#F5F7F6',alignItems:'center'},
-  monthBtnActive:{backgroundColor:'#1F4E5F'},
-  monthTxt:{fontSize:13,fontWeight:'700',color:'#1F4E5F'},
-  monthTxtActive:{color:'white'},
-  closeBtn:{backgroundColor:'#EEF4F1',borderRadius:12,paddingVertical:12,alignItems:'center'},
-  closeBtnTxt:{fontSize:14,fontWeight:'800',color:'#1F4E5F'},
+  monthBtn:{width:'30%',paddingVertical:10,borderRadius:12,backgroundColor:C.soft,alignItems:'center'},
+  monthBtnActive:{backgroundColor:C.petrol},
+  monthTxt:{fontSize:13,fontWeight:'700',color:C.petrol},
+  monthTxtActive:{color:'#FFFFFF'},
+  closeBtn:{backgroundColor:C.soft,borderRadius:12,paddingVertical:12,alignItems:'center'},
+  closeBtnTxt:{fontSize:14,fontWeight:'800',color:C.petrol},
 });
 
-const s=StyleSheet.create({
+const makeS=(C:any)=>StyleSheet.create({
   container:{flex:1,backgroundColor:C.bg},
   center:{flex:1,justifyContent:'center',alignItems:'center',backgroundColor:C.bg},
   logoBox:{width:46,height:46,borderRadius:14,backgroundColor:C.petrol,justifyContent:'center',alignItems:'center'},
   logoTxt:{color:'white',fontWeight:'800',fontSize:22},
-  header:{backgroundColor:'white',flexDirection:'row',justifyContent:'space-between',alignItems:'center',paddingHorizontal:18,paddingTop:52,paddingBottom:14,borderBottomWidth:1,borderBottomColor:C.line},
+  header:{backgroundColor:C.card,flexDirection:'row',justifyContent:'space-between',alignItems:'center',paddingHorizontal:18,paddingTop:52,paddingBottom:14,borderBottomWidth:1,borderBottomColor:C.line},
   headerBrand:{flexDirection:'row',alignItems:'center',gap:12},
   brandName:{fontSize:20,fontWeight:'800',color:C.petrol,letterSpacing:-0.5},
   brandTag:{fontSize:12,color:C.muted,marginTop:1},
@@ -473,11 +503,13 @@ const s=StyleSheet.create({
   badgeLbl:{fontSize:11,color:C.muted,fontWeight:'700',marginTop:4},
   areBox:{marginHorizontal:16,backgroundColor:C.card,borderRadius:16,padding:14,borderWidth:1,borderColor:C.line},
   areLabel:{fontSize:11,fontWeight:'900',color:C.petrol,marginBottom:8,textTransform:'uppercase',letterSpacing:0.5},
-  arePickerBtn:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',borderWidth:1,borderColor:C.line,borderRadius:12,paddingVertical:12,paddingHorizontal:14,backgroundColor:'#F8FAF9'},
+  arePickerBtn:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',borderWidth:1,borderColor:C.line,borderRadius:12,paddingVertical:12,paddingHorizontal:14,backgroundColor:C.soft},
   arePickerTxt:{fontSize:15,fontWeight:'700',color:C.petrol},
   arePickerPlaceholder:{fontSize:15,color:C.muted},
   arePickerIcon:{fontSize:16},
   areInfo:{fontSize:11,color:C.muted,marginTop:6,fontStyle:'italic'},
+  areValidateBtn:{backgroundColor:C.petrol,borderRadius:12,paddingVertical:13,alignItems:'center',marginTop:10},
+  areValidateTxt:{color:'#FFFFFF',fontWeight:'800',fontSize:15},
   chartCard:{marginHorizontal:16,backgroundColor:C.card,borderRadius:22,padding:4,borderWidth:1,borderColor:C.line,marginTop:12,shadowColor:C.petrol,shadowOpacity:0.06,shadowRadius:16,elevation:3},
   section:{marginHorizontal:16,marginTop:16},
   sectionHead:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginBottom:12},
@@ -505,7 +537,7 @@ const s=StyleSheet.create({
   modalCard:{backgroundColor:C.bg,borderTopLeftRadius:24,borderTopRightRadius:24,padding:22,maxHeight:'90%'},
   modalTitle:{fontSize:20,fontWeight:'900',color:C.petrol,marginBottom:12,textAlign:'center'},
   label:{fontSize:13,fontWeight:'700',color:C.text,marginTop:12,marginBottom:6},
-  input:{borderWidth:1,borderColor:C.line,borderRadius:14,paddingVertical:13,paddingHorizontal:14,fontSize:15,color:C.text,backgroundColor:'white'},
+  input:{borderWidth:1,borderColor:C.line,borderRadius:14,paddingVertical:13,paddingHorizontal:14,fontSize:15,color:C.text,backgroundColor:C.card},
   inputTxt:{fontSize:15,color:C.text},
   row:{flexDirection:'row',gap:10},
   typeWrap:{flexDirection:'row',flexWrap:'wrap',gap:8},
@@ -525,7 +557,7 @@ const s=StyleSheet.create({
   cancelBtn:{paddingVertical:14,alignItems:'center',marginTop:4},
   cancelBtnTxt:{color:C.muted,fontWeight:'700',fontSize:14},
   accountOverlay:{flex:1,backgroundColor:'rgba(0,0,0,.5)',justifyContent:'center',alignItems:'center'},
-  accountCard:{backgroundColor:'white',borderRadius:22,padding:22,width:'85%'},
+  accountCard:{backgroundColor:C.card,borderRadius:22,padding:22,width:'85%'},
   accountTitle:{fontSize:18,fontWeight:'900',color:C.petrol,textAlign:'center'},
   accountEmail:{fontSize:13,color:C.muted,textAlign:'center',marginTop:4,marginBottom:18},
   accountBtn:{backgroundColor:C.petrol,borderRadius:14,paddingVertical:14,alignItems:'center'},

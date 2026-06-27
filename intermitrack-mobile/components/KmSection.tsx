@@ -1,11 +1,12 @@
 import { showAlert } from "../lib/dialog";
-import { forwardRef, useImperativeHandle, useState } from 'react';
+import { forwardRef, useImperativeHandle, useState, useMemo } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AddressInput from './AddressInput';
 import NumInput from './NumInput';
+import { useTheme } from '../lib/theme';
 
-const C = { petrol: '#1F4E5F', text: '#2D3748', muted: '#718096', line: '#E2E8F0', soft: '#EEF4F1', orange: '#F97316' };
+// La palette vient du thème (lib/theme) → const C = useTheme() dans le composant.
 
 // Barème kilométrique officiel (coefficient €/km par tranche de km annuels).
 const BAREME = [
@@ -30,6 +31,8 @@ export type KmHandle = { values: (nbDays: number) => KmValues };
 // Le parent récupère les valeurs via ref.current.values(nbDays).
 const KmSection = forwardRef<KmHandle, { nbDays: number; initialDistance?: number; initialRate?: number }>(
   ({ nbDays, initialDistance, initialRate }, ref) => {
+    const C = useTheme();
+    const s = useMemo(() => makeS(C), [C]);
     const [open, setOpen] = useState(!!(initialDistance));
     const [from, setFrom] = useState('');
     const [to, setTo] = useState('');
@@ -135,27 +138,27 @@ const KmSection = forwardRef<KmHandle, { nbDays: number; initialDistance?: numbe
 KmSection.displayName = 'KmSection';
 export default KmSection;
 
-const s = StyleSheet.create({
+const makeS = (C:any) => StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14, backgroundColor: C.soft },
   headTxt: { fontSize: 14, fontWeight: '800', color: C.petrol },
   chevron: { fontSize: 12, color: C.petrol, fontWeight: '800' },
   label: { fontSize: 13, fontWeight: '700', color: C.text, marginTop: 12, marginBottom: 6 },
-  input: { borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 14, fontSize: 15, color: C.text, backgroundColor: 'white' },
+  input: { borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 14, fontSize: 15, color: C.text, backgroundColor: C.card },
   row: { flexDirection: 'row', gap: 10 },
   check: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
-  box: { width: 24, height: 24, borderRadius: 7, borderWidth: 1, borderColor: C.line, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center' },
+  box: { width: 24, height: 24, borderRadius: 7, borderWidth: 1, borderColor: C.line, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
   boxOn: { backgroundColor: C.petrol, borderColor: C.petrol },
   boxTxt: { color: 'white', fontWeight: '900', fontSize: 13 },
   checkTxt: { fontSize: 14, fontWeight: '600', color: C.text },
   calcBtn: { backgroundColor: C.soft, borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 12 },
   calcTxt: { color: C.petrol, fontWeight: '800', fontSize: 14 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 99, backgroundColor: 'white', borderWidth: 1, borderColor: C.line },
+  chip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 99, backgroundColor: C.card, borderWidth: 1, borderColor: C.line },
   chipOn: { backgroundColor: C.petrol, borderColor: C.petrol },
   chipTxt: { fontSize: 12, fontWeight: '700', color: C.petrol },
   chipTxtOn: { fontSize: 12, fontWeight: '700', color: 'white' },
   hint: { fontSize: 12, color: C.muted, marginTop: 10, lineHeight: 17 },
-  result: { marginTop: 12, padding: 12, borderRadius: 12, backgroundColor: 'rgba(31,78,95,0.06)' },
+  result: { marginTop: 12, padding: 12, borderRadius: 12, backgroundColor: C.soft },
   resultLine: { fontSize: 13, color: C.text, fontWeight: '600' },
   resultFrais: { fontSize: 16, fontWeight: '900', color: C.petrol, marginTop: 4 },
 });

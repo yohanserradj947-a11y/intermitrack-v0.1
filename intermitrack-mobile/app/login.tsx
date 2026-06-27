@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { StyleSheet, View, Text, Image, TextInput, TouchableOpacity, StatusBar, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useSession } from '../lib/auth';
+import { useTheme } from '../lib/theme';
 import { GradientButton } from '../components/GradientButton';
 
-const C = { petrol:'#1F4E5F', bg:'#F5F7F6', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1' };
+// Palette désormais fournie par useTheme() (clair/sombre).
 
 function traduire(msg: string) {
   if (/Invalid login credentials/i.test(msg)) return 'Email ou mot de passe incorrect.';
@@ -20,6 +21,8 @@ function traduire(msg: string) {
 }
 
 export default function LoginScreen() {
+  const C = useTheme();
+  const s = useMemo(() => makeS(C), [C]);
   const insets = useSafeAreaInsets();
   const { signIn, signUp, sendResetCode, verifyResetCode } = useSession();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
@@ -80,7 +83,7 @@ export default function LoginScreen() {
     <View style={s.flex}>
       <LinearGradient colors={['#1F4E5F', '#155E54', '#12754A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       <Image source={require('../assets/images/icon.png')} style={s.watermark} resizeMode="contain" />
-      <StatusBar barStyle="light-content" backgroundColor={C.petrol} />
+      <StatusBar barStyle="light-content" backgroundColor={C.bg} />
       <KeyboardAwareScrollView
         style={s.scroll}
         contentContainerStyle={[s.page, { paddingTop: insets.top + 28, paddingBottom: insets.bottom + 28 }]}
@@ -198,7 +201,7 @@ export default function LoginScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (C:any) => StyleSheet.create({
   flex: { flex: 1, backgroundColor: C.petrol },
   scroll: { flex: 1, backgroundColor: 'transparent' },
   watermark: { position: 'absolute', width: 360, height: 360, top: -70, right: -90, opacity: 0.06 },
@@ -222,8 +225,8 @@ const s = StyleSheet.create({
   tabTxt: { fontSize: 13, fontWeight: '800', color: C.petrol },
   tabTxtActive: { fontSize: 13, fontWeight: '800', color: 'white' },
   label: { fontWeight: '700', fontSize: 13, color: C.text, marginTop: 12, marginBottom: 6 },
-  input: { borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 14, fontSize: 15, color: C.text, backgroundColor: 'white' },
-  passwordWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: C.line, borderRadius: 14, backgroundColor: 'white', paddingRight: 10 },
+  input: { borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 14, fontSize: 15, color: C.text, backgroundColor: C.card },
+  passwordWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: C.line, borderRadius: 14, backgroundColor: C.card, paddingRight: 10 },
   passwordInput: { flex: 1, paddingVertical: 13, paddingHorizontal: 14, fontSize: 15, color: C.text },
   eyeBtn: { padding: 6 },
   info: { fontSize: 13, color: C.petrol, marginTop: 12, fontWeight: '600', textAlign: 'center' },

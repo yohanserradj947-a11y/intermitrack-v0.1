@@ -1,14 +1,15 @@
 import { showAlert } from '../lib/dialog';
-import { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Modal, Platform, Linking, KeyboardAvoidingView, ScrollView } from 'react-native';
+import { useEffect, useState, useMemo } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, Modal, Platform, Linking, KeyboardAvoidingView, ScrollView, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { useSession } from '../lib/auth';
 import NumInput from './NumInput';
 import { GradientButton } from './GradientButton';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme, useThemeControls } from '../lib/theme';
 
-const C = { petrol:'#1F4E5F', sage:'#7A9E7E', bg:'#F5F7F6', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1', orange:'#F97316' };
+// palette via useTheme()
 
 // Ouvre directement la modale "Mes informations" depuis n'importe où (ex : le
 // bouton "Renseigner mes infos" du tableau de bord). Même principe que dialog.tsx.
@@ -18,6 +19,9 @@ export function openMesInfos(){ if(_openMesInfos)_openMesInfos(); }
 export function AccountMenu(){
   const insets=useSafeAreaInsets();
   const { session, signOut } = useSession();
+  const { scheme, toggle } = useThemeControls();
+  const C = useTheme();
+  const s = useMemo(() => makeS(C), [C]);
 
   const [showAccount,setShowAccount]=useState(false);
   const [profil,setProfil]=useState<any>(null);
@@ -102,6 +106,18 @@ export function AccountMenu(){
           <View style={s.accountCard}>
             <Text style={s.accountTitle}>Mon compte</Text>
             <Text style={s.accountEmail}>{session?.user.email}</Text>
+
+            <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:4,alignSelf:'center',marginTop:2,marginBottom:10,paddingVertical:5,paddingHorizontal:12,borderRadius:99,backgroundColor:'#FFF7E6',borderWidth:1,borderColor:'#F5C97A'}}>
+              <Text style={{fontSize:12.5,fontWeight:'800',color:'#B7791F'}}>⭐ Pionnier — gratuit à vie</Text>
+            </View>
+
+            <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:2,marginBottom:12,paddingHorizontal:4}}>
+              <View style={{flexDirection:'row',alignItems:'center',gap:7}}>
+                <Ionicons name="moon-outline" size={17} color={C.petrol} />
+                <Text style={{fontSize:14,fontWeight:'700',color:C.text}}>Mode sombre</Text>
+              </View>
+              <Switch value={scheme==='dark'} onValueChange={toggle} trackColor={{false:'#CBD5E0',true:C.petrol}} thumbColor="#FFFFFF" />
+            </View>
 
             <GradientButton onPress={()=>{setShowAccount(false);signOut();}} style={s.accountBtn} textStyle={s.accountBtnTxt} label="Se déconnecter" />
 
@@ -188,14 +204,14 @@ export function AccountMenu(){
   );
 }
 
-const s=StyleSheet.create({
+const makeS=(C:any)=>StyleSheet.create({
   avatarBtn:{position:'absolute',right:14,zIndex:50,elevation:50,width:40,height:40,borderRadius:20,backgroundColor:C.petrol,justifyContent:'center',alignItems:'center',shadowColor:'#000',shadowOpacity:0.15,shadowRadius:6,shadowOffset:{width:0,height:2}},
   avatarTxt:{color:'white',fontWeight:'900',fontSize:14},
   modalOverlay:{flex:1,backgroundColor:'rgba(0,0,0,.5)',justifyContent:'flex-end'},
   modalCard:{backgroundColor:C.bg,borderTopLeftRadius:24,borderTopRightRadius:24,padding:22,maxHeight:'90%'},
   modalTitle:{fontSize:20,fontWeight:'900',color:C.petrol,marginBottom:12,textAlign:'center'},
   label:{fontSize:13,fontWeight:'700',color:C.text,marginTop:12,marginBottom:6},
-  input:{borderWidth:1,borderColor:C.line,borderRadius:14,paddingVertical:13,paddingHorizontal:14,fontSize:15,color:C.text,backgroundColor:'white'},
+  input:{borderWidth:1,borderColor:C.line,borderRadius:14,paddingVertical:13,paddingHorizontal:14,fontSize:15,color:C.text,backgroundColor:C.card},
   typeWrap:{flexDirection:'row',flexWrap:'wrap',gap:8},
   typeChip:{paddingVertical:9,paddingHorizontal:14,borderRadius:99,backgroundColor:C.soft},
   typeChipActive:{backgroundColor:C.petrol},
@@ -206,15 +222,15 @@ const s=StyleSheet.create({
   cancelBtn:{paddingVertical:14,alignItems:'center',marginTop:4},
   cancelBtnTxt:{color:C.muted,fontWeight:'700',fontSize:14},
   accountOverlay:{flex:1,backgroundColor:'rgba(0,0,0,.5)',justifyContent:'center',alignItems:'center'},
-  accountCard:{backgroundColor:'white',borderRadius:22,padding:22,width:'85%'},
+  accountCard:{backgroundColor:C.card,borderRadius:22,padding:22,width:'85%'},
   accountTitle:{fontSize:18,fontWeight:'900',color:C.petrol,textAlign:'center'},
   accountEmail:{fontSize:13,color:C.muted,textAlign:'center',marginTop:4,marginBottom:18},
   accountBtn:{backgroundColor:C.petrol,borderRadius:14,paddingVertical:14,alignItems:'center'},
   accountBtnTxt:{color:'white',fontWeight:'800',fontSize:15},
   accountReportBtn:{backgroundColor:C.soft,borderRadius:14,paddingVertical:14,alignItems:'center',marginTop:10},
   accountReportTxt:{color:C.petrol,fontWeight:'800',fontSize:15},
-  accountDeleteBtn:{backgroundColor:'#FFF5F5',borderRadius:14,paddingVertical:14,alignItems:'center',marginTop:10},
-  accountDeleteTxt:{color:'#E53E3E',fontWeight:'800',fontSize:14},
+  accountDeleteBtn:{backgroundColor:C.warnBg,borderRadius:14,paddingVertical:14,alignItems:'center',marginTop:10},
+  accountDeleteTxt:{color:C.danger,fontWeight:'800',fontSize:14},
   accountCancel:{paddingVertical:14,alignItems:'center',marginTop:4},
   accountCancelTxt:{color:C.muted,fontWeight:'700',fontSize:14},
   legalRow:{flexDirection:'row',justifyContent:'center',alignItems:'center',flexWrap:'wrap',gap:6,marginTop:14},

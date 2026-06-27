@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
+import { useTheme } from '../lib/theme';
 
 type Slice = { name: string; value: number; color: string };
 
@@ -23,6 +25,8 @@ export default function DonutChart({
   centerTop: string;
   centerBottom: string;
 }) {
+  const C = useTheme();
+  const d = useMemo(() => makeD(C), [C]);
   const total = slices.reduce((a, s) => a + s.value, 0);
   const size = 200, cx = 100, cy = 100, r = 80, sw = 26;
 
@@ -43,7 +47,7 @@ export default function DonutChart({
     <View style={d.wrap}>
       <View style={{ width: size, height: size, alignSelf: 'center' }}>
         <Svg width={size} height={size}>
-          <Circle cx={cx} cy={cy} r={r} stroke="#E2E8F0" strokeWidth={sw} fill="none" />
+          <Circle cx={cx} cy={cy} r={r} stroke={C.track} strokeWidth={sw} fill="none" />
           {paths.map((p) => (
             <Path key={p.key} d={p.d} stroke={p.color} strokeWidth={sw} fill="none" strokeLinecap="butt" />
           ))}
@@ -57,9 +61,9 @@ export default function DonutChart({
   );
 }
 
-const d = StyleSheet.create({
+const makeD = (C: any) => StyleSheet.create({
   wrap: { alignItems: 'center' },
   center: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
-  top: { fontSize: 22, fontWeight: '900', color: '#1F4E5F', letterSpacing: -0.5 },
-  bottom: { fontSize: 12, color: '#718096', marginTop: 2 },
+  top: { fontSize: 22, fontWeight: '900', color: C.petrol, letterSpacing: -0.5 },
+  bottom: { fontSize: 12, color: C.muted, marginTop: 2 },
 });

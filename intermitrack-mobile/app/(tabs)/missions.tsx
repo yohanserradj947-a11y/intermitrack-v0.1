@@ -1,5 +1,5 @@
 import { showAlert } from "../../lib/dialog";
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert, Platform, KeyboardAvoidingView } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
@@ -12,11 +12,13 @@ import NumInput from '../../components/NumInput';
 import KmSection, { KmHandle } from '../../components/KmSection';
 import { GradientButton } from '../../components/GradientButton';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme, useThemeControls } from '../../lib/theme';
 
-const C = { petrol:'#1F4E5F', sage:'#7A9E7E', bg:'#F5F7F6', card:'#FFFFFF', text:'#2D3748', muted:'#718096', line:'#E2E8F0', soft:'#EEF4F1', orange:'#F97316' };
+// Palette du thème fournie par useTheme() (voir lib/theme.tsx).
 const COLORS = ['#1F4E5F','#2A6174','#3A7A8F','#7A9E7E','#8AB08E','#9AC09E','#F97316','#FDBA74','#4A8FA5','#5A9FB5'];
 const POSTES_TECH = ['Montage','Tournage','Démontage','Régie','Son','Lumière','Image / Vidéo','Machiniste','Électricien','Poursuiteur','Plateau','Décor','HMC'];
 const POSTES_ARTISTE = ['Comédien','Chanteur','Musicien','Danseur','Choriste'];
+const POSTES_MUSIQUE = ['Concert','Répétition','Session studio','Atelier / Pédagogique','Tournée','Captation'];
 const POSTES_AUTRE = ['Autres'];
 
 function money(n:number){return(n??0).toLocaleString('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0});}
@@ -26,6 +28,9 @@ function iso(d:Date){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(
 
 export default function Missions(){
   useTrackView('missions');
+  const C = useTheme();
+  const s = useMemo(() => makeS(C), [C]);
+  const { scheme } = useThemeControls();
   const insets=useSafeAreaInsets();
   const [missions,setMissions]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
@@ -216,7 +221,7 @@ export default function Missions(){
                 </TouchableOpacity>
                 {showTypePicker && (
                   <View style={s.typePickerInline}>
-                    {([['Technique',POSTES_TECH],['Artiste',POSTES_ARTISTE],['Autre',POSTES_AUTRE]] as [string,string[]][]).map(([grp,list])=>(
+                    {([['Technique',POSTES_TECH],['Artiste',POSTES_ARTISTE],['Musique / scène',POSTES_MUSIQUE],['Autre',POSTES_AUTRE]] as [string,string[]][]).map(([grp,list])=>(
                       <View key={grp}>
                         <Text style={s.typeGroupLbl}>{grp}</Text>
                         <View style={s.typeWrap}>
@@ -246,19 +251,20 @@ export default function Missions(){
                   </View>
                 </View>
                 {showStartPicker&&(
-                  <DateTimePicker value={fStart} mode="date" themeVariant="light" display={Platform.OS==='ios'?'spinner':'default'}
+                  <DateTimePicker value={fStart} mode="date" themeVariant={scheme} display={Platform.OS==='ios'?'spinner':'default'}
                     onChange={(_e,date)=>{setShowStartPicker(false);if(date){setFStart(date);if(date>fEnd)setFEnd(date);}}}/>
                 )}
                 {showEndPicker&&(
-                  <DateTimePicker value={fEnd} mode="date" themeVariant="light" display={Platform.OS==='ios'?'spinner':'default'}
+                  <DateTimePicker value={fEnd} mode="date" themeVariant={scheme} display={Platform.OS==='ios'?'spinner':'default'}
                     onChange={(_e,date)=>{setShowEndPicker(false);if(date)setFEnd(date);}}/>
                 )}
 
                 <Text style={s.label}>Heures cumulées</Text>
                 <NumInput style={s.input} value={fHours} onChangeText={setFHours}/>
 
-                <Text style={s.label}>Nombre de vacations</Text>
+                <Text style={s.label}>Nombre de vacations / cachets</Text>
                 <NumInput style={s.input} value={fVacations} onChangeText={setFVacations} placeholder="Ex : 1" placeholderTextColor={C.muted}/>
+                <Text style={{fontSize:11,color:C.muted,marginTop:4}}>1 vacation = 1 jour (technicien) · 1 cachet (artiste / musicien).</Text>
 
                 <Text style={s.label}>Montant brut (€)</Text>
                 <NumInput style={s.input} value={fGross} onChangeText={setFGross}/>
@@ -267,7 +273,7 @@ export default function Missions(){
 
                 <GradientButton onPress={saveEdit} disabled={saving} style={s.saveBtn} textStyle={s.saveBtnTxt} label={saving?'Enregistrement…':'Mettre à jour'} />
                 <TouchableOpacity style={s.deleteBtn} onPress={deleteEdit}>
-                  <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6}}><Ionicons name="trash-outline" size={15} color="#E53E3E"/><Text style={s.deleteBtnTxt}>Supprimer cette mission</Text></View>
+                  <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6}}><Ionicons name="trash-outline" size={15} color={C.danger}/><Text style={s.deleteBtnTxt}>Supprimer cette mission</Text></View>
                 </TouchableOpacity>
                 <TouchableOpacity style={s.cancelBtn} onPress={()=>setEditId(null)}>
                   <Text style={s.cancelBtnTxt}>Annuler</Text>
@@ -348,10 +354,10 @@ export default function Missions(){
   );
 }
 
-const s=StyleSheet.create({
+const makeS=(C:any)=>StyleSheet.create({
   container:{flex:1,backgroundColor:C.bg},
   center:{flex:1,justifyContent:'center',alignItems:'center'},
-  pageHeader:{backgroundColor:'white',padding:18,paddingTop:52,borderBottomWidth:1,borderBottomColor:C.line},
+  pageHeader:{backgroundColor:C.card,padding:18,paddingTop:52,borderBottomWidth:1,borderBottomColor:C.line},
   pageTitle:{fontSize:22,fontWeight:'900',color:C.petrol,letterSpacing:-0.5},
   pageSub:{fontSize:13,color:C.muted,marginTop:4},
   periodBar:{flexDirection:'row',gap:8,paddingHorizontal:16,paddingTop:16},
@@ -374,12 +380,12 @@ const s=StyleSheet.create({
   legendDetail:{fontSize:11,color:C.muted,marginTop:2},
   legendPct:{fontSize:12,fontWeight:'700',color:C.muted,minWidth:32,textAlign:'right'},
   legendAmount:{fontSize:14,fontWeight:'900',color:C.petrol,minWidth:60,textAlign:'right'},
-  detailHeader:{flexDirection:'row',alignItems:'center',gap:12,padding:16,paddingTop:52,backgroundColor:'white',borderBottomWidth:1,borderBottomColor:C.line},
+  detailHeader:{flexDirection:'row',alignItems:'center',gap:12,padding:16,paddingTop:52,backgroundColor:C.card,borderBottomWidth:1,borderBottomColor:C.line},
   backBtn:{backgroundColor:C.soft,borderRadius:12,paddingVertical:8,paddingHorizontal:14},
   backBtnTxt:{fontSize:13,fontWeight:'800',color:C.petrol},
   detailTitle:{fontSize:18,fontWeight:'900',color:C.petrol},
   detailSub:{fontSize:12,color:C.muted,marginTop:2},
-  missionCard:{backgroundColor:C.card,borderRadius:16,padding:14,borderWidth:1,borderColor:'rgba(31,78,95,0.12)',borderLeftWidth:4,borderLeftColor:C.petrol},
+  missionCard:{backgroundColor:C.card,borderRadius:16,padding:14,borderWidth:1,borderColor:C.line,borderLeftWidth:4,borderLeftColor:C.petrol},
   missionHead:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:8},
   missionProd:{fontSize:14,fontWeight:'900',color:C.petrol,flex:1,textTransform:'uppercase'},
   pill:{backgroundColor:C.soft,borderRadius:99,paddingHorizontal:9,paddingVertical:4},
@@ -390,9 +396,9 @@ const s=StyleSheet.create({
   modalCard:{backgroundColor:C.bg,borderTopLeftRadius:24,borderTopRightRadius:24,padding:22,maxHeight:'90%'},
   modalTitle:{fontSize:20,fontWeight:'900',color:C.petrol,marginBottom:12,textAlign:'center'},
   label:{fontSize:13,fontWeight:'700',color:C.text,marginTop:12,marginBottom:6},
-  input:{borderWidth:1,borderColor:C.line,borderRadius:14,paddingVertical:13,paddingHorizontal:14,fontSize:15,color:C.text,backgroundColor:'white'},
+  input:{borderWidth:1,borderColor:C.line,borderRadius:14,paddingVertical:13,paddingHorizontal:14,fontSize:15,color:C.text,backgroundColor:C.card},
   inputTxt:{fontSize:15,color:C.text},
-  suggestBox:{backgroundColor:'white',borderWidth:1,borderColor:C.line,borderRadius:14,marginTop:6,overflow:'hidden'},
+  suggestBox:{backgroundColor:C.card,borderWidth:1,borderColor:C.line,borderRadius:14,marginTop:6,overflow:'hidden'},
   suggestItem:{paddingVertical:12,paddingHorizontal:14,borderBottomWidth:1,borderBottomColor:C.soft},
   suggestTxt:{fontSize:15,fontWeight:'700',color:C.petrol},
   row:{flexDirection:'row',gap:10},
@@ -408,8 +414,8 @@ const s=StyleSheet.create({
   typePickerInline:{marginTop:8,padding:12,borderRadius:12,backgroundColor:C.soft,borderWidth:1,borderColor:C.line},
   saveBtn:{backgroundColor:C.petrol,borderRadius:15,paddingVertical:15,alignItems:'center',marginTop:20},
   saveBtnTxt:{color:'white',fontWeight:'800',fontSize:15},
-  deleteBtn:{backgroundColor:'#FFF5F5',borderRadius:15,paddingVertical:14,alignItems:'center',marginTop:10},
-  deleteBtnTxt:{color:'#E53E3E',fontWeight:'800',fontSize:14},
+  deleteBtn:{backgroundColor:C.card,borderRadius:15,paddingVertical:14,alignItems:'center',marginTop:10},
+  deleteBtnTxt:{color:C.danger,fontWeight:'800',fontSize:14},
   cancelBtn:{paddingVertical:14,alignItems:'center',marginTop:4},
   cancelBtnTxt:{color:C.muted,fontWeight:'700',fontSize:14},
   empty:{textAlign:'center',color:C.muted,padding:20},

@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScrollArrowHint } from '@/components/scroll-arrow-hint';
 import { SwipeHint } from '@/components/swipe-hint';
 import { AccountMenu } from '@/components/AccountMenu';
+import WhatsNewModal from '@/components/WhatsNewModal';
+import { useTheme } from '@/lib/theme';
 
 // Onglets "material top tabs" → permettent le swipe gauche/droite,
 // mais positionnés en bas (tabBarPosition="bottom") pour garder le look actuel.
@@ -16,29 +18,30 @@ const ICON = 22;
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const C = useTheme();
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
     <MaterialTopTabs
       tabBarPosition="bottom"
       screenOptions={{
         swipeEnabled: true,
         lazy: true,
         tabBarScrollEnabled: true,
-        tabBarActiveTintColor: '#1F4E5F',
-        tabBarInactiveTintColor: '#94A3B8',
+        tabBarActiveTintColor: C.petrol,
+        tabBarInactiveTintColor: C.muted,
         tabBarShowIcon: true,
         tabBarShowLabel: true,
         tabBarLabelStyle: { fontSize: 10, fontWeight: '700', textTransform: 'none', marginTop: 2 },
         tabBarItemStyle: { width: 86, paddingVertical: 6, paddingHorizontal: 0 },
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#E2E8F0',
+          backgroundColor: C.card,
+          borderTopColor: C.line,
           borderTopWidth: 1,
           paddingBottom: insets.bottom > 0 ? insets.bottom : 6,
           elevation: 0,
           shadowOpacity: 0,
         },
-        tabBarIndicatorStyle: { backgroundColor: '#1F4E5F', height: 3, top: 0 },
+        tabBarIndicatorStyle: { backgroundColor: C.petrol, height: 3, top: 0 },
       }}
     >
       <MaterialTopTabs.Screen
@@ -81,6 +84,7 @@ export default function TabLayout() {
     <ScrollArrowHint tabs={['index', 'calendar', 'missions', 'actualisation', 'previsions', 'documents', 'autoentrepreneur', 'fiscalite', 'contacts']} />
     <SwipeHint />
     <AccountMenu />
+    <WhatsNewModal />
     </View>
   );
 }
