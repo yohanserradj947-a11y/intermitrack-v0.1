@@ -1,5 +1,8 @@
 // ─── FIX : version incrémentée pour forcer la mise à jour du cache
-const CACHE_NAME = "intermitrack-v" + Date.now();
+// ⚠️ BUMP CE NUMÉRO à chaque modif de app.js/style.css/index.html pour que
+// le navigateur détecte un changement de Service Worker et serve les fichiers frais.
+const SW_VERSION = 32;
+const CACHE_NAME = "intermitrack-v" + SW_VERSION;
 
 const FILES_TO_CACHE = [
   "./",

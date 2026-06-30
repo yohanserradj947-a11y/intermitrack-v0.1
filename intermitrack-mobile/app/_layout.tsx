@@ -5,6 +5,9 @@ import { SessionProvider, useSession } from '../lib/auth';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DialogHost } from '../lib/dialog';
 import { ThemeProvider } from '../lib/theme';
+import { ProdColorsProvider } from '../lib/prodColors';
+import { NotesProvider } from '../lib/notes';
+import { PostesProvider } from '../lib/postes';
 
 function RootNavigator() {
   const { session, loading } = useSession();
@@ -34,8 +37,14 @@ export default function RootLayout() {
       <KeyboardProvider>
         <ThemeProvider>
           <SessionProvider>
-            <RootNavigator />
-            <DialogHost />
+            <ProdColorsProvider>
+              <NotesProvider>
+                <PostesProvider>
+                  <RootNavigator />
+                  <DialogHost />
+                </PostesProvider>
+              </NotesProvider>
+            </ProdColorsProvider>
           </SessionProvider>
         </ThemeProvider>
       </KeyboardProvider>

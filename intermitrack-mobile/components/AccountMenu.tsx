@@ -1,6 +1,6 @@
 import { showAlert } from '../lib/dialog';
 import { useEffect, useState, useMemo } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Modal, Platform, Linking, KeyboardAvoidingView, ScrollView, Switch } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, Modal, Platform, Linking, KeyboardAvoidingView, ScrollView, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { useSession } from '../lib/auth';
@@ -8,6 +8,7 @@ import NumInput from './NumInput';
 import { GradientButton } from './GradientButton';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemeControls } from '../lib/theme';
+import { usePostes } from '../lib/postes';
 
 // palette via useTheme()
 
@@ -27,6 +28,8 @@ export function AccountMenu(){
   const [profil,setProfil]=useState<any>(null);
 
   const [showMesInfos,setShowMesInfos]=useState(false);
+  const { postes, addPoste, removePoste } = usePostes();
+  const [miNewPoste,setMiNewPoste]=useState('');
   const [miAnnexe,setMiAnnexe]=useState<'technicien'|'artiste'|'les_deux'|''>('');
   const [miDroits,setMiDroits]=useState<boolean|null>(null);
   const [miAj,setMiAj]=useState('');
@@ -168,6 +171,22 @@ export function AccountMenu(){
                     <Text style={miAnnexe===val?s.typeChipTxtActive:s.typeChipTxt}>{lbl}</Text>
                   </TouchableOpacity>
                 ))}
+              </View>
+
+              <Text style={s.label}>Tes postes <Text style={{fontWeight:'400',color:C.muted,fontSize:12}}>— ils apparaissent dans tes missions</Text></Text>
+              {postes.length===0 ? <Text style={{fontSize:12,color:C.muted,marginBottom:4}}>Aucun poste — ajoute le tien ci-dessous.</Text> : (
+                <View style={s.typeWrap}>
+                  {postes.map(p=>(
+                    <View key={p} style={[s.typeChip,s.typeChipActive,{flexDirection:'row',alignItems:'center',gap:6}]}>
+                      <Text style={s.typeChipTxtActive}>{p}</Text>
+                      <TouchableOpacity onPress={()=>removePoste(p)} hitSlop={8}><Text style={{color:'#fff',fontWeight:'900',fontSize:13}}>×</Text></TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+              <View style={{flexDirection:'row',gap:8,marginTop:8}}>
+                <TextInput style={[s.input,{flex:1}]} value={miNewPoste} onChangeText={setMiNewPoste} placeholder="Ex : Clown, Cascadeur…" placeholderTextColor={C.muted}/>
+                <TouchableOpacity style={{backgroundColor:C.petrol,borderRadius:12,paddingHorizontal:16,justifyContent:'center',alignItems:'center'}} onPress={()=>{const v=miNewPoste.trim();if(v){addPoste(v);setMiNewPoste('');}}}><Text style={{color:'#fff',fontWeight:'800',fontSize:13}}>Ajouter</Text></TouchableOpacity>
               </View>
 
               <Text style={s.label}>As-tu déjà ouvert tes droits ?</Text>

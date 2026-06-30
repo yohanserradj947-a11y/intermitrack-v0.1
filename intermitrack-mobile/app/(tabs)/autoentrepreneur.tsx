@@ -58,6 +58,29 @@ export default function AutoEntrepreneur() {
   const [facStart, setFacStart] = useState(new Date());
   const [facEnd, setFacEnd] = useState<Date | null>(null);
   const [facStatus, setFacStatus] = useState<'impayee' | 'payee'>('impayee');
+  const [customPresta, setCustomPresta] = useState<string[]>([]);
+  const [showPresta, setShowPresta] = useState(false);
+  const [prestaSel, setPrestaSel] = useState<string[]>([]);
+  const [prestaCustom, setPrestaCustom] = useState('');
+  useEffect(() => { (async () => {
+    if (!uid) { setCustomPresta([]); return; }
+    const k = `intermitrack_ae_custom_presta_${uid}`;
+    const fk = `intermitrack_ae_presta_synced_${uid}`;
+    try {
+      const { data } = await supabase.from('profiles').select('ae_custom_presta').eq('id', uid).maybeSingle();
+      const db = (data && Array.isArray(data.ae_custom_presta)) ? data.ae_custom_presta : [];
+      const flag = await AsyncStorage.getItem(fk);
+      let arr: string[] = [];
+      if (db.length) { arr = db; }
+      else if (!flag) { const l = await AsyncStorage.getItem(k); const local = l ? JSON.parse(l) : []; if (local.length) { arr = local; try { await supabase.from('profiles').upsert({ id: uid, ae_custom_presta: local }, { onConflict: 'id' }); } catch (e) {} } }
+      setCustomPresta(arr);
+      AsyncStorage.setItem(k, JSON.stringify(arr));
+      AsyncStorage.setItem(fk, '1');
+    } catch (e) { try { const l = await AsyncStorage.getItem(k); setCustomPresta(l ? JSON.parse(l) : []); } catch (_) {} }
+  })(); }, [uid]);
+  function persistPresta(next: string[]) { if (uid) { AsyncStorage.setItem(`intermitrack_ae_custom_presta_${uid}`, JSON.stringify(next)); supabase.from('profiles').upsert({ id: uid, ae_custom_presta: next }, { onConflict: 'id' }).then(() => {}, () => {}); } }
+  function addCustomPresta(name: string) { const v = (name || '').trim(); if (!v) return; setCustomPresta(prev => { if (prev.map(x => x.toLowerCase()).includes(v.toLowerCase()) || PRESTA_OPTIONS.map(x => x.toLowerCase()).includes(v.toLowerCase())) return prev; const next = [...prev, v]; persistPresta(next); return next; }); }
+  function removeCustomPresta(name: string) { setCustomPresta(prev => { const next = prev.filter(x => x.toLowerCase() !== name.toLowerCase()); persistPresta(next); return next; }); }
   const [lignes, setLignes] = useState<Ligne[]>([]);
   const [showStart, setShowStart] = useState(false);
   const [showEnd, setShowEnd] = useState(false);
@@ -65,6 +88,7 @@ export default function AutoEntrepreneur() {
 
   // Modale profil (infos sur les factures)
   const [showProfile, setShowProfile] = useState(false);
+  const [carnetOpen, setCarnetOpen] = useState(false);
 
   // Modale société
   const [showSoc, setShowSoc] = useState(false);
@@ -239,32 +263,42 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
         <Text style={s.infoBtnArrow}>Modifier ›</Text>
       </TouchableOpacity>
 
-      {/* Carnet */}
-      <View style={s.sectionHead}>
-        <Text style={s.sectionTitle}>Mon carnet de sociétés</Text>
-        <GradientButton label="+ Société" onPress={openNewSoc} style={s.addBtn} textStyle={s.addBtnTxt} />
-      </View>
-      {societes.length === 0 ? (
-        <Text style={[s.empty, { paddingHorizontal: 16 }]}>Carnet vide. Touche « + Société » pour ajouter un contact.</Text>
-      ) : (
-        <>
-          <View style={s.socGrid}>
-            {socPageItems.map((soc) => (
-              <TouchableOpacity key={soc.id} style={s.socChip} onPress={() => openEditSoc(soc)}>
-                <LinearGradient colors={['#1F4E5F', '#12754A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.socAv}><Text style={s.socAvTxt}>{(soc.nom || '?').slice(0, 2).toUpperCase()}</Text></LinearGradient>
-                <Text style={s.socChipName} numberOfLines={1}>{soc.nom}</Text>
-                <Text style={s.socChipType} numberOfLines={1}>{soc.type}</Text>
-              </TouchableOpacity>
-            ))}
+      {/* Carnet (dépliable) */}
+      <TouchableOpacity style={s.infoBtn} activeOpacity={0.7} onPress={() => setCarnetOpen(o => !o)}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+          <Ionicons name="people-outline" size={14} color={C.petrol} />
+          <Text style={s.infoBtnTxt}>Mon carnet de sociétés</Text>
+        </View>
+        <Ionicons name={carnetOpen ? 'chevron-up' : 'chevron-down'} size={16} color={C.petrol} />
+      </TouchableOpacity>
+      {carnetOpen && (
+        <View style={{ marginTop: 6 }}>
+          <View style={{ paddingHorizontal: 16, marginBottom: 10 }}>
+            <GradientButton label="+ Société" onPress={openNewSoc} style={s.addBtn} textStyle={s.addBtnTxt} />
           </View>
-          {socPages > 1 && (
-            <View style={s.pagination}>
-              <TouchableOpacity disabled={sp === 1} style={[s.pageBtn, sp === 1 && s.pageBtnOff]} onPress={() => setSocPage(sp - 1)}><Text style={s.pageBtnTxt}>‹</Text></TouchableOpacity>
-              <Text style={s.pageInd}>{sp} / {socPages}</Text>
-              <TouchableOpacity disabled={sp === socPages} style={[s.pageBtn, sp === socPages && s.pageBtnOff]} onPress={() => setSocPage(sp + 1)}><Text style={s.pageBtnTxt}>›</Text></TouchableOpacity>
-            </View>
+          {societes.length === 0 ? (
+            <Text style={[s.empty, { paddingHorizontal: 16 }]}>Carnet vide. Touche « + Société » pour ajouter un contact.</Text>
+          ) : (
+            <>
+              <View style={s.socGrid}>
+                {socPageItems.map((soc) => (
+                  <TouchableOpacity key={soc.id} style={s.socChip} onPress={() => openEditSoc(soc)}>
+                    <LinearGradient colors={['#1F4E5F', '#12754A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.socAv}><Text style={s.socAvTxt}>{(soc.nom || '?').slice(0, 2).toUpperCase()}</Text></LinearGradient>
+                    <Text style={s.socChipName} numberOfLines={1}>{soc.nom}</Text>
+                    <Text style={s.socChipType} numberOfLines={1}>{soc.type}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {socPages > 1 && (
+                <View style={s.pagination}>
+                  <TouchableOpacity disabled={sp === 1} style={[s.pageBtn, sp === 1 && s.pageBtnOff]} onPress={() => setSocPage(sp - 1)}><Text style={s.pageBtnTxt}>‹</Text></TouchableOpacity>
+                  <Text style={s.pageInd}>{sp} / {socPages}</Text>
+                  <TouchableOpacity disabled={sp === socPages} style={[s.pageBtn, sp === socPages && s.pageBtnOff]} onPress={() => setSocPage(sp + 1)}><Text style={s.pageBtnTxt}>›</Text></TouchableOpacity>
+                </View>
+              )}
+            </>
           )}
-        </>
+        </View>
       )}
 
       {/* Factures */}
@@ -325,7 +359,7 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
       </View>
 
       {/* ===== Modale Facture ===== */}
-      <Modal visible={showFac} animationType="slide" transparent onRequestClose={() => setShowFac(false)}>
+      <Modal visible={showFac && !showPresta} animationType="slide" transparent onRequestClose={() => setShowFac(false)}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={s.overlay}>
             <View style={[s.modalCard, { paddingBottom: 22 + insets.bottom }]}>
@@ -361,13 +395,8 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
                 {showStart && <DateTimePicker value={facStart} mode="date" themeVariant={scheme} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(_e, d) => { setShowStart(false); if (d) setFacStart(d); }} />}
                 {showEnd && <DateTimePicker value={facEnd || facStart} mode="date" themeVariant={scheme} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(_e, d) => { setShowEnd(false); if (d) setFacEnd(d); }} />}
 
-                <Text style={s.label}>Prestations (touche pour ajouter)</Text>
-                <View style={s.prestaWrap}>
-                  {PRESTA_OPTIONS.map((p) => (
-                    <TouchableOpacity key={p} style={s.prestaChip} onPress={() => addLigne(p)}><Text style={s.prestaChipTxt}>+ {p}</Text></TouchableOpacity>
-                  ))}
-                  <TouchableOpacity style={[s.prestaChip, { backgroundColor: C.soft }]} onPress={() => addLigne('')}><Text style={s.prestaChipTxt}>+ Autre</Text></TouchableOpacity>
-                </View>
+                <Text style={s.label}>Prestations</Text>
+                <TouchableOpacity style={s.addPrestaBtn} onPress={() => { setPrestaSel([]); setShowPresta(true); }}><Text style={s.addPrestaTxt}>+ Ajouter une prestation</Text></TouchableOpacity>
 
                 {lignes.map((l, i) => (
                   <View key={i} style={s.ligneCard}>
@@ -401,6 +430,37 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
                 <TouchableOpacity style={s.cancelBtn} onPress={() => setShowFac(false)}><Text style={s.cancelBtnTxt}>Annuler</Text></TouchableOpacity>
                 <Text style={s.disclaimer}>ℹ️ Intermitrack est un outil d&apos;aide à la gestion : tu restes seul responsable de l&apos;exactitude et de la conformité légale de tes factures (numérotation, SIRET, « TVA non applicable, art. 293 B du CGI »). À noter : la facturation électronique B2B deviendra obligatoire (réforme 2026-2027). En cas de doute, rapproche-toi d&apos;un expert-comptable.</Text>
               </ScrollView>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ===== Modale Prestations ===== */}
+      <Modal visible={showPresta} animationType="slide" transparent onRequestClose={() => setShowPresta(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={s.overlay}>
+            <View style={[s.modalCard, { paddingBottom: 22 + insets.bottom }]}>
+              <Text style={s.modalTitle}>Ajouter des prestations</Text>
+              <Text style={[s.hint, { textAlign: 'center' }]}>Coche celles à ajouter à la facture.</Text>
+              <ScrollView style={{ maxHeight: 340 }} showsVerticalScrollIndicator={false}>
+                {PRESTA_OPTIONS.concat(customPresta).map((p) => {
+                  const on = prestaSel.includes(p);
+                  const isCustom = customPresta.includes(p);
+                  return (
+                    <TouchableOpacity key={p} style={[s.prestaRow, on && s.prestaRowOn]} onPress={() => setPrestaSel(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p])}>
+                      <View style={[s.prestaCheck, on && s.prestaCheckOn]}>{on && <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }}>✓</Text>}</View>
+                      <Text style={s.prestaRowTxt}>{p}</Text>
+                      {isCustom && <TouchableOpacity onPress={() => removeCustomPresta(p)} hitSlop={8}><Ionicons name="trash-outline" size={16} color={C.muted} /></TouchableOpacity>}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+              <View style={[s.row, { marginTop: 10 }]}>
+                <TextInput style={[s.input, { flex: 1 }]} value={prestaCustom} onChangeText={setPrestaCustom} placeholder="Prestation personnalisée…" placeholderTextColor={C.muted} />
+                <TouchableOpacity style={s.prestaAddBtn} onPress={() => { const v = prestaCustom.trim(); if (v) { addCustomPresta(v); setPrestaCustom(''); } }}><Text style={s.prestaAddTxt}>Ajouter</Text></TouchableOpacity>
+              </View>
+              <GradientButton label="Ajouter la sélection" onPress={() => { prestaSel.forEach(p => addLigne(p)); setPrestaSel([]); setShowPresta(false); }} style={s.saveBtn} textStyle={s.saveBtnTxt} />
+              <TouchableOpacity style={s.cancelBtn} onPress={() => { setPrestaSel([]); setShowPresta(false); }}><Text style={s.cancelBtnTxt}>Annuler</Text></TouchableOpacity>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -550,6 +610,15 @@ const makeS = (C: any) => StyleSheet.create({
   prestaWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   prestaChip: { backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: 99, paddingHorizontal: 12, paddingVertical: 8 },
   prestaChipTxt: { fontSize: 12, fontWeight: '700', color: C.petrol },
+  addPrestaBtn: { borderWidth: 1, borderStyle: 'dashed', borderColor: C.petrol, borderRadius: 12, paddingVertical: 13, alignItems: 'center', backgroundColor: C.soft, marginTop: 4 },
+  addPrestaTxt: { color: C.petrol, fontWeight: '800', fontSize: 14 },
+  prestaRow: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 11, paddingHorizontal: 12, borderWidth: 1, borderColor: C.line, borderRadius: 12, marginBottom: 8 },
+  prestaRowOn: { borderColor: C.petrol, backgroundColor: C.soft },
+  prestaCheck: { width: 20, height: 20, borderRadius: 6, borderWidth: 2, borderColor: C.line, alignItems: 'center', justifyContent: 'center' },
+  prestaCheckOn: { backgroundColor: C.petrol, borderColor: C.petrol },
+  prestaRowTxt: { flex: 1, fontSize: 13.5, fontWeight: '700', color: C.text },
+  prestaAddBtn: { backgroundColor: C.soft, borderRadius: 12, paddingHorizontal: 14, justifyContent: 'center', alignItems: 'center' },
+  prestaAddTxt: { color: C.petrol, fontWeight: '800', fontSize: 13 },
   ligneCard: { backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: 14, padding: 10, marginTop: 10 },
   uniteWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, flex: 1 },
   uniteChip: { paddingVertical: 9, paddingHorizontal: 12, borderRadius: 99, backgroundColor: C.soft },

@@ -3,32 +3,39 @@ import { Modal, View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'rea
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../lib/theme';
+import { supabase } from '../lib/supabase';
+import { useSession } from '../lib/auth';
 
 // Clé versionnée : pour réafficher le pop-up lors d'une PROCHAINE mise à jour,
 // il suffira de changer cette clé (ex: _v1_0_3) et de mettre à jour ITEMS.
-const SEEN_KEY = 'intermitrack_whatsnew_v1_0_2';
+const SEEN_KEY = 'intermitrack_whatsnew_v1_1_0';
 
 const ITEMS: { icon: any; title: string; text: string }[] = [
-  { icon: 'shield-checkmark-outline', title: 'Sécurité renforcée', text: 'Audit complet : HTTPS forcé, en-têtes de sécurité (score A) et données mieux protégées.' },
-  { icon: 'cash-outline', title: 'Estimation France Travail', text: "Une estimation de tes allocations (ARE), calculée à partir de tes missions et de ta date d'admission." },
-  { icon: 'car-outline', title: 'Frais kilométriques', text: 'Calcul automatique de la distance et application du barème officiel.' },
-  { icon: 'stats-chart-outline', title: 'Calculs & prévisions', text: 'Heures, net estimé, fiscalité et moyenne €/h mis à jour automatiquement.' },
-  { icon: 'moon-outline', title: 'Mode sombre', text: 'Active-le depuis ton menu compte (icône en haut à droite).' },
-  { icon: 'calendar-outline', title: 'Date ARE & session', text: "Ta date ARE reste enregistrée, et tu n'es plus déconnecté(e) tout(e) seul(e)." },
-  { icon: 'musical-notes-outline', title: 'Musique, cachets & Pionnier', text: 'Nouveaux types de mission musique, libellé « vacations / cachets » et badge « Pionnier — gratuit à vie ».' },
+  { icon: 'color-palette-outline', title: 'Couleurs par production', text: "Donne une couleur à chaque prod : elle s'applique au calendrier, à tes missions et au graphique. Palette + roue de couleurs perso." },
+  { icon: 'create-outline', title: 'Notes perso', text: 'Ajoute des notes sur ton calendrier (RDV, congés, repos…) avec une couleur, sans les mélanger à tes missions.' },
+  { icon: 'location-outline', title: 'Lieu des missions', text: 'Un champ « Lieu » sur tes missions, avec suggestions de tes lieux déjà saisis.' },
+  { icon: 'briefcase-outline', title: 'Tes postes', text: 'Ajoute tes propres postes (ex : Clown, Cascadeur) — ils reviennent automatiquement sur tes prochaines missions.' },
+  { icon: 'receipt-outline', title: 'Factures plus rapides', text: 'Auto-entrepreneur : ajoute tes prestations via une liste à cocher, avec tes prestations perso mémorisées.' },
+  { icon: 'sparkles-outline', title: 'Plus lisible', text: 'Icônes premium sur les cartes, contours plus nets et finitions un peu partout.' },
 ];
 
 export default function WhatsNewModal() {
   const C = useTheme();
   const s = useMemo(() => makeS(C), [C]);
+  const { session } = useSession();
+  const uid = session?.user?.id;
   const [visible, setVisible] = useState(false);
 
+  // Le « Quoi de neuf » est pour les utilisateurs existants (avec missions).
+  // Les nouveaux (sans mission) voient le tuto d'onboarding à la place.
   useEffect(() => {
     (async () => {
+      if (!uid) return;
       const seen = await AsyncStorage.getItem(SEEN_KEY);
-      if (!seen) setVisible(true);
+      if (seen) return;
+      try { const { count } = await supabase.from('missions').select('id', { count: 'exact', head: true }); if ((count || 0) > 0) { await AsyncStorage.setItem(SEEN_KEY, '1'); setVisible(true); } } catch (e) {}
     })();
-  }, []);
+  }, [uid]);
 
   async function close() {
     await AsyncStorage.setItem(SEEN_KEY, '1');

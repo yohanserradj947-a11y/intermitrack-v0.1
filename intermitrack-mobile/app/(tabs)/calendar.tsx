@@ -13,6 +13,14 @@ import TxtInput from '../../components/TxtInput';
 import AddressInput from '../../components/AddressInput';
 import { GradientButton } from '../../components/GradientButton';
 import { Ionicons } from '@expo/vector-icons';
+import { useProdColors, PROD_PRESETS, prodGradient, textOn } from '../../lib/prodColors';
+import ColorPickerModal from '../../components/ColorPickerModal';
+import ProdColorManager from '../../components/ProdColorManager';
+import NoteFormModal from '../../components/NoteFormModal';
+import NoteDetailModal from '../../components/NoteDetailModal';
+import { useNotes, noteAbbr, Note } from '../../lib/notes';
+import { usePostes } from '../../lib/postes';
+import Svg, { Line } from 'react-native-svg';
 
 // Barème kilométrique officiel : coefficient par tranche de km annuels.
 // t1/t2 = seuils des tranches ; c1 (≤t1) · c2·km + add2 (t1→t2) · c3 (>t2).
@@ -33,10 +41,6 @@ function trancheLabel(tranche: string) { return tranche === '2' ? '5 001–20 00
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) { const R = 6371, tr = (d: number) => d * Math.PI / 180; const dLat = tr(lat2 - lat1), dLon = tr(lon2 - lon1); const x = Math.sin(dLat / 2) ** 2 + Math.cos(tr(lat1)) * Math.cos(tr(lat2)) * Math.sin(dLon / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); }
 
 // La palette vient du thème (lib/theme) → const C = useTheme() dans le composant.
-const POSTES_TECH = ['Montage','Tournage','Démontage','Régie','Son','Lumière','Image / Vidéo','Machiniste','Électricien','Poursuiteur','Plateau','Décor','HMC'];
-const POSTES_ARTISTE = ['Comédien','Chanteur','Musicien','Danseur','Choriste'];
-const POSTES_MUSIQUE = ['Concert','Répétition','Session studio','Atelier / Pédagogique','Tournée','Captation'];
-const POSTES_AUTRE = ['Autres'];
 const GRAD_PAST: readonly [string, string] = ['#1F4E5F', '#2F8F6B'];   // pétrole → vert (dates passées)
 const GRAD_FUTURE: readonly [string, string] = ['#F97316', '#FDBA74']; // orange (dates à venir)
 const GRAD_TODAY: readonly [string, string] = ['#2F8F6B', '#1F4E5F'];      // dégradé des dates passées, INVERSÉ (vert → pétrole)
@@ -55,6 +59,19 @@ export default function Calendar(){
   const C = useTheme();
   const { scheme } = useThemeControls();
   const s = useMemo(() => makeS(C), [C]);
+  const { getColor, setColor, custom, addCustom, reset } = useProdColors();
+  const [colorPickerOpen,setColorPickerOpen]=useState(false);
+  const [managerOpen,setManagerOpen]=useState(false);
+  const { notes, notesForDate } = useNotes();
+  const [noteFormOpen,setNoteFormOpen]=useState(false);
+  const [noteFormEdit,setNoteFormEdit]=useState<Note|null>(null);
+  const [noteFormDate,setNoteFormDate]=useState('');
+  const [noteDetail,setNoteDetail]=useState<Note|null>(null);
+  const [calTab,setCalTab]=useState<'missions'|'notes'>('missions');
+  const { postes, addPoste, removePoste } = usePostes();
+  const [fLieu,setFLieu]=useState('');
+  const [showLieuSuggest,setShowLieuSuggest]=useState(false);
+  const [newPoste,setNewPoste]=useState('');
   const insets=useSafeAreaInsets();
   const [missions,setMissions]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
@@ -112,7 +129,7 @@ export default function Calendar(){
 
   function openCreate(day:Date){
     setEditId(null);
-    setFProduction(''); setFEmission(''); setFType('Montage'); setFStart(day); setFEnd(day);
+    setFProduction(''); setFEmission(''); setFLieu(''); setShowLieuSuggest(false); setNewPoste(''); setFType('Montage'); setFStart(day); setFEnd(day);
     setFHours(''); setFGross(''); setFVacations(''); setMdpDays([]);
     setKmOpen(false); setKmFrom(''); setKmTo(''); setKmFromCoords(null); setKmToCoords(null); setKmRT(false); setKmEveryDay(false); setKmJustify(false); setKmCv(''); setKmTranche('1'); setKmDistance(''); setKmRate('');
     setShowSuggest(false); setShowEmSuggest(false);
@@ -120,7 +137,7 @@ export default function Calendar(){
   }
   function openEdit(m:any){
     setEditId(m.id);
-    setFProduction(m.production||''); setFEmission(m.emission||''); setFType(m.mission_type||'Montage');
+    setFProduction(m.production||''); setFEmission(m.emission||''); setFLieu(m.lieu||''); setShowLieuSuggest(false); setNewPoste(''); setFType(m.mission_type||'Montage');
     setFStart(new Date((m.mission_date)+'T00:00:00'));
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
     setFHours(String(m.hours||'')); setFGross(String(m.gross_amount||'')); setFVacations(String(m.vacations||''));
@@ -159,7 +176,7 @@ export default function Calendar(){
     if(!user){ showAlert('Erreur','Tu n\'es plus connecté.'); setSaving(false); return; }
     const startISO=iso(fStart), endISO=iso(fEnd);
     const payload={
-      user_id:user.id, production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, mission_type:fType,
+      user_id:user.id, production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, lieu:fLieu.trim()||null, mission_type:fType,
       mission_date:startISO, end_date:endISO!==startISO?endISO:null,
       hours:Number(fHours)||0, vacations:Number(fVacations)||Math.round((Number(fHours)||0)/8),
       gross_amount:Number(fGross)||0, status:'effectue',
@@ -236,7 +253,7 @@ export default function Calendar(){
     const payloads=runs.map((r)=>{
       const runHours=r.hours*r.days;
       const gross=sumHours>0?Math.round(totalGross*(runHours/sumHours)):Math.round(totalGross/runs.length);
-      return { user_id:user.id, production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, mission_type:fType,
+      return { user_id:user.id, production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, lieu:fLieu.trim()||null, mission_type:fType,
         mission_date:r.start, end_date:r.end!==r.start?r.end:null,
         hours:runHours, vacations:r.days, gross_amount:gross, status:'effectue',
         km_distance:0, km_rate:0, km_amount:0 };
@@ -272,13 +289,14 @@ export default function Calendar(){
   const perPage=4;
   const totalPages=Math.max(1,Math.ceil(monthMissions.length/perPage));
   const visible=monthMissions.slice(page*perPage,(page+1)*perPage);
+  const monthNotes=notes.filter((n)=>{const d=new Date(n.date+'T00:00:00');return d.getMonth()===month&&d.getFullYear()===year;}).sort((a,b)=>a.date<b.date?-1:1);
+
+  const allProds=Array.from(new Set(missions.map((m:any)=>(m.production||'').toUpperCase().trim()).filter(Boolean))).sort();
 
   function moveMonth(n:number){const d=new Date(current);d.setMonth(d.getMonth()+n);d.setDate(1);setCurrent(d);setPage(0);}
 
   function onCellPress(d:Date){
-    const ms=missionsOn(d);
-    if(ms.length===0){ openCreate(d); return; }
-    setDayMenu({date:d,missions:ms});
+    setDayMenu({date:d,missions:missionsOn(d)});
   }
   // Suggestions de production : on prend les productions déjà saisies (dans `missions`),
   // sans doublons, insensible à la casse, et on garde celles qui contiennent le texte tapé.
@@ -296,6 +314,9 @@ export default function Calendar(){
     ? emUnique([...emForProd,...emAll]).filter(e=>e.toLowerCase().includes(emQuery)&&e.toLowerCase()!==emQuery)
     : emUnique(emForProd)
   ).slice(0,5);
+  const lieuQuery=fLieu.trim().toLowerCase();
+  const knownLieux=Array.from(new Set(missions.map((m:any)=>(m.lieu||'').trim()).filter(Boolean)));
+  const lieuSuggestions=(lieuQuery?knownLieux.filter(l=>l.toLowerCase().includes(lieuQuery)&&l.toLowerCase()!==lieuQuery):knownLieux).slice(0,5);
 
   if(loading)return<View style={s.center}><ActivityIndicator size="large" color={C.petrol}/></View>;
 
@@ -307,6 +328,22 @@ export default function Calendar(){
         <TouchableOpacity style={s.navBtn} onPress={()=>moveMonth(-1)}><Text style={s.navTxt}>‹</Text></TouchableOpacity>
         <Text style={s.navLabel}>{monthLabel(current)}</Text>
         <TouchableOpacity style={s.navBtn} onPress={()=>moveMonth(1)}><Text style={s.navTxt}>›</Text></TouchableOpacity>
+      </View>
+
+      <View style={s.colorTools}>
+        <TouchableOpacity style={s.colorToolBtn} onPress={()=>setManagerOpen(true)}>
+          <Ionicons name="brush-outline" size={15} color={C.petrol}/>
+          <Text style={s.colorToolTxt}>Personnaliser les couleurs</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={s.colorToolBtn} onPress={()=>{
+          showAlert('Réinitialiser les couleurs ?','Toutes les productions reviennent aux couleurs par défaut. Aucune mission n\'est supprimée.',[
+            {text:'Annuler',style:'cancel'},
+            {text:'Réinitialiser',style:'destructive',onPress:()=>reset()},
+          ]);
+        }}>
+          <Ionicons name="refresh-outline" size={15} color={C.petrol}/>
+          <Text style={s.colorToolTxt}>Réinitialiser</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={s.weekRow}>
@@ -321,15 +358,25 @@ export default function Calendar(){
           const has=ms.length>0;
           const isToday=dayISO===todayISO;
           const isPast=dayISO<todayISO;
-          const grad=(!isToday&&has)?(isPast?GRAD_PAST:GRAD_FUTURE):null;
-          const filled=grad!=null;
           const first=ms[0];
-          const txtColor=isToday?C.petrol:(filled?'#fff':C.text);
-          const subColor=isToday?C.muted:(filled?'rgba(255,255,255,.85)':C.muted);
+          const dayNotes=notesForDate(dayISO);
+          const noteOnly=!has&&dayNotes.length>0;
+          const note0=dayNotes[0];
+          const noteMark=has&&dayNotes.length>0;
+          const customCol=has?(first?getColor(first.production):null):(noteOnly?(note0.color||'#1E6FE0'):null);
+          const fillable=has||noteOnly;
+          const grad=(!isToday&&fillable)?(customCol?prodGradient(customCol):(isPast?GRAD_PAST:GRAD_FUTURE)):null;
+          const filled=grad!=null;
+          const hach=filled&&(noteOnly||(isPast&&!!customCol)); // notes hachurées ; missions passées perso hachurées
+          const baseTxt=customCol?textOn(customCol):'#fff';
+          const txtColor=isToday?C.petrol:(filled?baseTxt:C.text);
+          const subColor=isToday?C.muted:(filled?(customCol?baseTxt:'rgba(255,255,255,.85)'):C.muted);
           return(
             <TouchableOpacity key={i} style={[s.cell,isToday?s.cellToday:(filled?s.cellFilled:s.cellEmpty)]} activeOpacity={0.85} onPress={()=>onCellPress(d)}>
               {grad&&<LinearGradient colors={grad} start={{x:0,y:0}} end={{x:1,y:1}} style={StyleSheet.absoluteFill}/>}
+              {hach&&<Svg width={84} height={80} style={{position:'absolute',top:0,left:0}}>{Array.from({length:22},(_,k)=>{const o=-84+k*9;return <Line key={k} x1={o} y1={0} x2={o+84} y2={84} stroke="rgba(255,255,255,0.30)" strokeWidth={2.5}/>;})}</Svg>}
               {isToday&&<Animated.View pointerEvents="none" style={[s.todayFrame,{opacity:pulse.interpolate({inputRange:[0,1],outputRange:[0.35,1]})}]}/>}
+              {noteMark&&<View pointerEvents="none" style={{position:'absolute',top:4,right:4,width:8,height:8,borderRadius:3,backgroundColor:(note0&&note0.color)||'#1E6FE0',zIndex:3}}/>}
               <Text style={[s.cellDay,{color:txtColor},isToday&&s.cellDayToday]}>{d.getDate()}</Text>
               {first&&(
                 <>
@@ -341,6 +388,9 @@ export default function Calendar(){
                   </Text>
                 </>
               )}
+              {noteOnly&&(
+                <Text style={[s.cellProd,{color:txtColor}]} numberOfLines={1}>{noteAbbr(note0.title)}</Text>
+              )}
             </TouchableOpacity>
           );
         })}
@@ -348,24 +398,31 @@ export default function Calendar(){
 
       <Text style={s.hint}>Touche un jour pour ajouter une mission, ou une mission existante pour la modifier</Text>
 
-      <View style={s.listHead}>
-        <Text style={s.listTitle}>MISSIONS DU MOIS</Text>
-        {totalPages>1&&<Text style={s.listPage}>{page+1} / {totalPages}</Text>}
+      <View style={s.calTabs}>
+        <TouchableOpacity style={[s.calTab,calTab==='missions'&&s.calTabOn]} onPress={()=>setCalTab('missions')}>
+          <Text style={calTab==='missions'?s.calTabTxtOn:s.calTabTxt}>Mes missions du mois</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[s.calTab,calTab==='notes'&&s.calTabOn]} onPress={()=>setCalTab('notes')}>
+          <Text style={calTab==='notes'?s.calTabTxtOn:s.calTabTxt}>Notes perso</Text>
+        </TouchableOpacity>
       </View>
+
+      {calTab==='missions' ? (
       <View style={{paddingHorizontal:16,gap:10}}>
         {monthMissions.length===0
           ?<Text style={s.empty}>Aucune mission ce mois-ci.</Text>
           :visible.map((m:any)=>{
-            const past=(m.end_date||m.mission_date)<todayISO;
+            const col=getColor(m.production)||C.petrol;
             return(
-              <TouchableOpacity key={m.id} style={[s.missionCard,{borderLeftColor:past?C.petrol:C.orange}]} onPress={()=>openEdit(m)}>
-                <View style={{flex:1}}>
-                  <Text style={s.mProd}>{m.production}</Text>
-                  {m.emission?<Text style={s.mEmission}>{m.emission}</Text>:null}
-                  <Text style={s.mDate}>{fmtDate(m.mission_date)}</Text>
+              <TouchableOpacity key={m.id} style={[s.missionCard,{borderLeftColor:col}]} onPress={()=>openEdit(m)}>
+                <View style={{flex:1,gap:3}}>
+                  <View style={s.mRow}><Ionicons name="document-text-outline" size={13} color={col}/><Text style={[s.mProd,{color:col}]} numberOfLines={1}>{m.production}</Text></View>
+                  {m.emission?<View style={s.mRow}><Ionicons name="videocam-outline" size={12} color={C.muted}/><Text style={s.mEmission} numberOfLines={1}>{m.emission}</Text></View>:null}
+                  {m.lieu?<View style={s.mRow}><Ionicons name="location-outline" size={12} color={C.muted}/><Text style={s.mDate} numberOfLines={1}>{m.lieu}</Text></View>:null}
+                  <View style={s.mRow}><Ionicons name="calendar-outline" size={12} color={C.muted}/><Text style={s.mDate}>{fmtDate(m.mission_date)}</Text></View>
                 </View>
                 <View style={{alignItems:'flex-end',gap:6}}>
-                  <Text style={s.mHours}>{m.hours}h</Text>
+                  <View style={{flexDirection:'row',alignItems:'center',gap:4}}><Ionicons name="time-outline" size={14} color={col}/><Text style={[s.mHours,{color:col}]}>{m.hours}h</Text></View>
                   <View style={s.mPill}><Text style={s.mPillTxt}>{m.mission_type}</Text></View>
                 </View>
               </TouchableOpacity>
@@ -380,6 +437,23 @@ export default function Calendar(){
           </View>
         )}
       </View>
+      ) : (
+      <View style={{paddingHorizontal:16,gap:10}}>
+        {monthNotes.length===0
+          ?<Text style={s.empty}>Aucune note ce mois-ci.</Text>
+          :monthNotes.map((n)=>(
+            <TouchableOpacity key={n.id} style={[s.missionCard,{borderLeftColor:n.color||'#1E6FE0'}]} onPress={()=>setNoteDetail(n)}>
+              <View style={{flex:1}}>
+                <Text style={[s.mProd,{color:n.color||C.petrol}]}>{n.title||'Note'}</Text>
+                {n.text?<Text style={s.mEmission} numberOfLines={1}>{n.text}</Text>:null}
+                <Text style={s.mDate}>{fmtDate(n.date)}{n.endDate&&n.endDate!==n.date?` → ${fmtDate(n.endDate)}`:''}</Text>
+              </View>
+              <Text style={s.dayMenuChevron}>›</Text>
+            </TouchableOpacity>
+          ))
+        }
+      </View>
+      )}
 
       <Modal visible={showForm} animationType="slide" transparent onRequestClose={()=>setShowForm(false)}>
         <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
@@ -400,6 +474,24 @@ export default function Calendar(){
                 </View>
               )}
 
+              {fProduction.trim().length>0 && (
+                <>
+                  <Text style={s.label}>Couleur de la production</Text>
+                  <View style={s.colorRow}>
+                    <TouchableOpacity style={[s.colorSw,getColor(fProduction)===null&&s.colorSwOn]} onPress={()=>setColor(fProduction,null)}>
+                      <LinearGradient colors={['#1F4E5F','#1F4E5F','#F97316','#F97316']} locations={[0,0.5,0.5,1]} start={{x:0,y:0}} end={{x:1,y:1}} style={StyleSheet.absoluteFill}/>
+                      <Text style={{fontSize:8,fontWeight:'900',color:'#fff'}}>auto</Text>
+                    </TouchableOpacity>
+                    {PROD_PRESETS.concat(custom).map(hex=>(
+                      <TouchableOpacity key={hex} style={[s.colorSw,{backgroundColor:hex},(getColor(fProduction)||'').toLowerCase()===hex.toLowerCase()&&s.colorSwOn]} onPress={()=>setColor(fProduction,hex)} />
+                    ))}
+                    <TouchableOpacity style={s.colorAdd} onPress={()=>setColorPickerOpen(true)}><Text style={s.colorAddTxt}>+</Text></TouchableOpacity>
+                  </View>
+                  {!!getColor(fProduction)&&<Text style={[s.miniHint,{marginTop:6}]}>Mémorisée et appliquée partout (calendrier, missions, graphique).</Text>}
+                  <ColorPickerModal visible={colorPickerOpen} initial={getColor(fProduction)||'#1E6FE0'} onClose={()=>setColorPickerOpen(false)} onPick={(hex)=>{ addCustom(hex); setColor(fProduction,hex); setColorPickerOpen(false); }} />
+                </>
+              )}
+
               <Text style={s.label}>Nom de l'émission (facultatif)</Text>
               <TxtInput style={s.input} value={fEmission} onChangeText={(t:string)=>{setFEmission(t);setShowEmSuggest(true);}} onFocus={()=>setShowEmSuggest(true)} placeholder="Ex : Koh-Lanta" placeholderTextColor={C.muted}/>
               {showEmSuggest&&emSuggestions.length>0&&(
@@ -412,6 +504,18 @@ export default function Calendar(){
                 </View>
               )}
 
+              <Text style={s.label}>Lieu (facultatif)</Text>
+              <TxtInput style={s.input} value={fLieu} onChangeText={(t:string)=>{setFLieu(t);setShowLieuSuggest(true);}} onFocus={()=>setShowLieuSuggest(true)} placeholder="Ex : Studio 130…" placeholderTextColor={C.muted}/>
+              {showLieuSuggest&&lieuSuggestions.length>0&&(
+                <View style={s.suggestBox}>
+                  {lieuSuggestions.map(l=>(
+                    <TouchableOpacity key={l} style={s.suggestItem} onPress={()=>{setFLieu(l);setShowLieuSuggest(false);}}>
+                      <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="location-outline" size={13} color={C.petrol} /><Text style={s.suggestTxt}>{l}</Text></View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
               <Text style={s.label}>Type de mission</Text>
               <TouchableOpacity style={s.typeBtn} onPress={()=>setShowTypePicker(v=>!v)}>
                 <Text style={s.typeBtnTxt}>{fType}</Text>
@@ -419,18 +523,31 @@ export default function Calendar(){
               </TouchableOpacity>
               {showTypePicker && (
                 <View style={s.typePickerInline}>
-                  {([['Technique',POSTES_TECH],['Artiste',POSTES_ARTISTE],['Musique / scène',POSTES_MUSIQUE],['Autre',POSTES_AUTRE]] as [string,string[]][]).map(([grp,list])=>(
-                    <View key={grp}>
-                      <Text style={s.typeGroupLbl}>{grp}</Text>
+                  <View style={s.typeWrap}>
+                    {['Montage','Tournage','Démontage'].map(p=>(
+                      <TouchableOpacity key={p} style={[s.typeChip,fType===p&&s.typeChipActive]} onPress={()=>{setFType(p);setShowTypePicker(false);}}>
+                        <Text style={fType===p?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  {postes.length>0 && (
+                    <View>
+                      <Text style={s.typeGroupLbl}>Mes postes</Text>
                       <View style={s.typeWrap}>
-                        {list.map(p=>(
-                          <TouchableOpacity key={p} style={[s.typeChip,fType===p&&s.typeChipActive]} onPress={()=>{setFType(p);setShowTypePicker(false);}}>
-                            <Text style={fType===p?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text>
-                          </TouchableOpacity>
+                        {postes.map(p=>(
+                          <View key={p} style={[s.typeChip,fType===p&&s.typeChipActive,{flexDirection:'row',alignItems:'center',gap:6}]}>
+                            <TouchableOpacity onPress={()=>{setFType(p);setShowTypePicker(false);}}><Text style={fType===p?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text></TouchableOpacity>
+                            <TouchableOpacity onPress={()=>removePoste(p)} hitSlop={8}><Text style={{color:fType===p?'#fff':C.muted,fontWeight:'900',fontSize:13}}>×</Text></TouchableOpacity>
+                          </View>
                         ))}
                       </View>
                     </View>
-                  ))}
+                  )}
+                  <Text style={s.typeGroupLbl}>Ajouter un poste</Text>
+                  <View style={{flexDirection:'row',gap:8}}>
+                    <TxtInput style={[s.input,{flex:1}]} value={newPoste} onChangeText={setNewPoste} placeholder="Ex : Clown, Cascadeur…" placeholderTextColor={C.muted}/>
+                    <TouchableOpacity style={s.addPosteBtn} onPress={()=>{const v=newPoste.trim();if(v){addPoste(v);setFType(v);setNewPoste('');setShowTypePicker(false);}}}><Text style={s.addPosteTxt}>Ajouter</Text></TouchableOpacity>
+                  </View>
                 </View>
               )}
 
@@ -460,7 +577,7 @@ export default function Calendar(){
               <Text style={s.label}>Heures cumulées</Text>
               <NumInput style={s.input} value={fHours} onChangeText={setFHours} placeholder="8" placeholderTextColor={C.muted}/>
               <View style={{flexDirection:'row',flexWrap:'wrap',gap:8,marginTop:8}}>
-                {[16,24,32,40,48,50].map(h=>(
+                {[4,8,12].map(h=>(
                   <TouchableOpacity key={h} style={s.mdpTool} onPress={()=>setFHours(String(h))}>
                     <Text style={s.mdpToolTxt}>{h}h</Text>
                   </TouchableOpacity>
@@ -612,9 +729,25 @@ export default function Calendar(){
                   </TouchableOpacity>
                 );
               })}
-              <TouchableOpacity style={s.dayMenuAdd} onPress={()=>{const dd=dayMenu?.date;setDayMenu(null);if(dd)openCreate(dd);}}>
-                <Text style={s.dayMenuAddTxt}>+ Ajouter une mission ce jour</Text>
-              </TouchableOpacity>
+              {dayMenu && notesForDate(iso(dayMenu.date)).map((n)=>(
+                <TouchableOpacity key={n.id} style={[s.dayMenuItem,{borderLeftWidth:4,borderLeftColor:n.color||'#1E6FE0'}]} onPress={()=>{setDayMenu(null);setNoteDetail(n);}}>
+                  <View style={{flex:1}}>
+                    <Text style={s.dayMenuItemProd} numberOfLines={1}>{n.title||'Note'}</Text>
+                    <Text style={s.dayMenuItemMeta} numberOfLines={1}>{n.text}</Text>
+                  </View>
+                  <Text style={s.dayMenuChevron}>›</Text>
+                </TouchableOpacity>
+              ))}
+              <View style={s.dmActs}>
+                <TouchableOpacity style={[s.dmAct,{borderColor:C.petrol}]} activeOpacity={0.8} onPress={()=>{const dd=dayMenu?.date;setDayMenu(null);if(dd)openCreate(dd);}}>
+                  <Ionicons name="briefcase-outline" size={24} color={C.petrol}/>
+                  <Text style={[s.dmActTxt,{color:C.petrol}]}>Ajouter une mission</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[s.dmAct,{borderColor:C.orange}]} activeOpacity={0.8} onPress={()=>{const dd=dayMenu?.date;setDayMenu(null);if(dd){setNoteFormEdit(null);setNoteFormDate(iso(dd));setNoteFormOpen(true);}}}>
+                  <Ionicons name="document-text-outline" size={24} color={C.orange}/>
+                  <Text style={[s.dmActTxt,{color:C.orange}]}>Note perso</Text>
+                </TouchableOpacity>
+              </View>
               <TouchableOpacity style={s.cancelBtn} onPress={()=>setDayMenu(null)}>
                 <Text style={s.cancelBtnTxt}>Annuler</Text>
               </TouchableOpacity>
@@ -622,6 +755,10 @@ export default function Calendar(){
           </View>
         </View>
       </Modal>
+
+      <ProdColorManager visible={managerOpen} productions={allProds} onClose={()=>setManagerOpen(false)} />
+      <NoteFormModal visible={noteFormOpen} editNote={noteFormEdit} defaultDate={noteFormDate} onClose={()=>{setNoteFormOpen(false);setNoteFormEdit(null);}} />
+      <NoteDetailModal note={noteDetail} onClose={()=>setNoteDetail(null)} onEdit={(n)=>{setNoteDetail(null);setNoteFormEdit(n);setNoteFormDate(n.date);setNoteFormOpen(true);}} />
     </ScrollView>
   );
 }
@@ -654,7 +791,9 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   empty:{textAlign:'center',color:C.muted,padding:20},
   missionCard:{backgroundColor:C.card,borderRadius:14,padding:14,flexDirection:'row',alignItems:'center',borderLeftWidth:4,shadowColor:'#000',shadowOpacity:0.05,shadowRadius:8,elevation:2},
   mProd:{fontSize:15,fontWeight:'900',color:C.petrol},
-  mEmission:{fontSize:12,color:C.text,marginTop:2,fontStyle:'italic'},
+  mEmission:{fontSize:12,color:C.text,fontStyle:'italic',flex:1},
+  mRow:{flexDirection:'row',alignItems:'center',gap:5},
+  mPerday:{fontSize:12,fontWeight:'800',color:C.petrol,marginTop:2},
   mDate:{fontSize:12,color:C.muted,marginTop:3},
   mHours:{fontSize:16,fontWeight:'900',color:C.orange},
   mPill:{backgroundColor:C.soft,borderRadius:8,paddingHorizontal:8,paddingVertical:3},
@@ -696,8 +835,10 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   typeChipActive:{backgroundColor:C.petrol},
   typeChipTxt:{fontSize:13,fontWeight:'700',color:C.petrol},
   typeChipTxtActive:{fontSize:13,fontWeight:'700',color:'white'},
-  typeBtn:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingVertical:12,paddingHorizontal:14,borderRadius:12,backgroundColor:C.card,borderWidth:1,borderColor:C.line},
-  typeBtnTxt:{fontSize:14,fontWeight:'700',color:C.text},
+  typeBtn:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingVertical:13,paddingHorizontal:14,borderRadius:14,backgroundColor:C.card,borderWidth:1,borderColor:C.line},
+  typeBtnTxt:{fontSize:15,fontWeight:'400',color:C.text},
+  addPosteBtn:{backgroundColor:C.petrol,borderRadius:12,paddingHorizontal:16,justifyContent:'center',alignItems:'center'},
+  addPosteTxt:{color:'#fff',fontWeight:'800',fontSize:13},
   typeBtnChevron:{fontSize:13,color:C.muted},
   typeGroupLbl:{fontSize:11.5,fontWeight:'800',color:C.muted,marginTop:14,marginBottom:8,textTransform:'uppercase',letterSpacing:0.5},
   typePickerInline:{marginTop:8,padding:12,borderRadius:12,backgroundColor:C.soft,borderWidth:1,borderColor:C.line},
@@ -729,4 +870,20 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   mdpHoursU:{fontSize:12,color:C.muted},
   mdpTotal:{backgroundColor:C.soft,borderRadius:11,padding:12,marginTop:6,marginBottom:8},
   mdpTotalTxt:{fontSize:13,fontWeight:'800',color:C.petrol},
+  colorRow:{flexDirection:'row',flexWrap:'wrap',gap:8,alignItems:'center',marginTop:2},
+  colorSw:{width:32,height:32,borderRadius:9,borderWidth:2,borderColor:'transparent',alignItems:'center',justifyContent:'center',overflow:'hidden'},
+  colorSwOn:{borderColor:C.text},
+  colorAdd:{width:32,height:32,borderRadius:9,borderWidth:1,borderStyle:'dashed',borderColor:C.muted,alignItems:'center',justifyContent:'center'},
+  colorAddTxt:{fontSize:18,fontWeight:'800',color:C.muted,lineHeight:20},
+  colorTools:{flexDirection:'row',gap:8,paddingHorizontal:16,marginTop:2,marginBottom:8},
+  colorToolBtn:{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6,paddingVertical:11,paddingHorizontal:8,borderRadius:12,backgroundColor:C.soft},
+  colorToolTxt:{fontSize:11.5,fontWeight:'800',color:C.petrol,textAlign:'center'},
+  calTabs:{flexDirection:'row',gap:8,marginHorizontal:16,marginTop:18,marginBottom:12,backgroundColor:C.soft,borderRadius:12,padding:5},
+  calTab:{flex:1,paddingVertical:9,borderRadius:9,alignItems:'center'},
+  calTabOn:{backgroundColor:C.card,shadowColor:'#000',shadowOpacity:0.08,shadowRadius:6,elevation:2},
+  calTabTxt:{fontSize:12.5,fontWeight:'800',color:C.muted},
+  calTabTxtOn:{fontSize:12.5,fontWeight:'800',color:C.petrol},
+  dmActs:{flexDirection:'row',gap:10,marginTop:10,marginBottom:4},
+  dmAct:{flex:1,alignItems:'center',justifyContent:'center',gap:8,paddingVertical:18,paddingHorizontal:8,borderRadius:14,borderWidth:1.5,backgroundColor:C.card},
+  dmActTxt:{fontSize:13,fontWeight:'800',textAlign:'center'},
 });

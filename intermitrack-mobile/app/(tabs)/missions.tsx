@@ -13,13 +13,12 @@ import KmSection, { KmHandle } from '../../components/KmSection';
 import { GradientButton } from '../../components/GradientButton';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemeControls } from '../../lib/theme';
+import { useProdColors, PROD_PRESETS } from '../../lib/prodColors';
+import { usePostes } from '../../lib/postes';
+import { LinearGradient } from 'expo-linear-gradient';
+import ColorPickerModal from '../../components/ColorPickerModal';
 
-// Palette du thème fournie par useTheme() (voir lib/theme.tsx).
-const COLORS = ['#1F4E5F','#2A6174','#3A7A8F','#7A9E7E','#8AB08E','#9AC09E','#F97316','#FDBA74','#4A8FA5','#5A9FB5'];
-const POSTES_TECH = ['Montage','Tournage','Démontage','Régie','Son','Lumière','Image / Vidéo','Machiniste','Électricien','Poursuiteur','Plateau','Décor','HMC'];
-const POSTES_ARTISTE = ['Comédien','Chanteur','Musicien','Danseur','Choriste'];
-const POSTES_MUSIQUE = ['Concert','Répétition','Session studio','Atelier / Pédagogique','Tournée','Captation'];
-const POSTES_AUTRE = ['Autres'];
+// Couleurs par production gérées via lib/prodColors (useProdColors).
 
 function money(n:number){return(n??0).toLocaleString('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0});}
 function fmtDate(d:string){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});}
@@ -31,6 +30,12 @@ export default function Missions(){
   const C = useTheme();
   const s = useMemo(() => makeS(C), [C]);
   const { scheme } = useThemeControls();
+  const { colorOrDefault, getColor, setColor, custom, addCustom } = useProdColors();
+  const [colorPickerOpen,setColorPickerOpen]=useState(false);
+  const { postes, addPoste, removePoste } = usePostes();
+  const [fLieu,setFLieu]=useState('');
+  const [showLieuSuggest,setShowLieuSuggest]=useState(false);
+  const [newPoste,setNewPoste]=useState('');
   const insets=useSafeAreaInsets();
   const [missions,setMissions]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
@@ -67,7 +72,7 @@ export default function Missions(){
 
   function openEdit(m:any){
     setEditId(m.id);
-    setFProduction(m.production||''); setFEmission(m.emission||''); setFType(m.mission_type||'Montage');
+    setFProduction(m.production||''); setFEmission(m.emission||''); setFLieu(m.lieu||''); setNewPoste(''); setShowLieuSuggest(false); setFType(m.mission_type||'Montage');
     setFStart(new Date(m.mission_date+'T00:00:00'));
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
     setFHours(String(m.hours||'')); setFGross(String(m.gross_amount||'')); setFVacations(String(m.vacations||''));
@@ -83,7 +88,7 @@ export default function Missions(){
     const nbDays=Math.max(1,Math.min(Math.round((fEnd.getTime()-fStart.getTime())/86400000)+1,Math.round((Number(fHours)||0)/8)));
     const km=kmRef.current?.values(nbDays)||{};
     const { error }=await supabase.from('missions').update({
-      production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, mission_type:fType,
+      production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, lieu:fLieu.trim()||null, mission_type:fType,
       mission_date:startISO, end_date:endISO!==startISO?endISO:null,
       hours:Number(fHours)||0, vacations:Number(fVacations)||Math.round((Number(fHours)||0)/8), gross_amount:Number(fGross)||0,
       ...km,
@@ -121,7 +126,7 @@ export default function Missions(){
     groups[k].push(m);
   });
   const sorted=Object.keys(groups).map((name,i)=>({
-    name, list:groups[name], color:COLORS[i%COLORS.length],
+    name, list:groups[name], color:colorOrDefault(name,i),
     gross:groups[name].reduce((a:number,m:any)=>a+Number(m.gross_amount||0),0),
     hours:Math.round(groups[name].reduce((a:number,m:any)=>a+Number(m.hours||0),0)*10)/10,
     vac:groups[name].reduce((a:number,m:any)=>a+Number(m.vacations||Math.round(Number(m.hours||0)/8)),0),
@@ -148,6 +153,9 @@ export default function Missions(){
     ? emUnique([...emForProd,...emAll]).filter(e=>e.toLowerCase().includes(emQuery)&&e.toLowerCase()!==emQuery)
     : emUnique(emForProd)
   ).slice(0,5);
+  const lieuQuery=fLieu.trim().toLowerCase();
+  const knownLieux=Array.from(new Set(missions.map((m:any)=>(m.lieu||'').trim()).filter(Boolean)));
+  const lieuSuggestions=(lieuQuery?knownLieux.filter(l=>l.toLowerCase().includes(lieuQuery)&&l.toLowerCase()!==lieuQuery):knownLieux).slice(0,5);
 
   if(loading)return<View style={s.center}><ActivityIndicator size="large" color={C.petrol}/></View>;
 
@@ -167,16 +175,17 @@ export default function Missions(){
         </View>
         <View style={{padding:16,gap:10}}>
           {prod.list.map((m:any)=>(
-            <TouchableOpacity key={m.id} style={s.missionCard} onPress={()=>openEdit(m)}>
+            <TouchableOpacity key={m.id} style={[s.missionCard,{borderLeftColor:prod.color}]} onPress={()=>openEdit(m)}>
               <View style={s.missionHead}>
-                <Text style={s.missionProd} numberOfLines={1}>{m.production}</Text>
+                <View style={{flexDirection:'row',alignItems:'center',gap:5,flex:1}}><Ionicons name="document-text-outline" size={13} color={C.petrol}/><Text style={s.missionProd} numberOfLines={1}>{m.production}</Text></View>
                 <View style={s.pill}><Text style={s.pillTxt}>{m.mission_type}</Text></View>
               </View>
               <View style={{gap:4,marginTop:8}}>
                 {m.emission?<View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="videocam-outline" size={13} color={C.muted} /><Text style={s.meta}>{m.emission}</Text></View>:null}
+                {m.lieu?<View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="location-outline" size={13} color={C.muted} /><Text style={s.meta}>{m.lieu}</Text></View>:null}
                 <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="calendar-outline" size={13} color={C.muted} /><Text style={s.meta}>{fmtPeriod(m.mission_date,m.end_date)}</Text></View>
                 <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="time-outline" size={13} color={C.muted} /><Text style={s.meta}>{m.hours}h · </Text><Ionicons name="briefcase-outline" size={13} color={C.muted} /><Text style={s.meta}> {m.vacations||Math.round(Number(m.hours||0)/8)} vacation(s)</Text></View>
-                <Text style={s.meta}>€ {money(m.gross_amount)}</Text>
+                <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="cash-outline" size={13} color={C.muted} /><Text style={s.meta}>{money(m.gross_amount)}</Text></View>
               </View>
               <Text style={s.tapHint}>Toucher pour modifier</Text>
             </TouchableOpacity>
@@ -202,6 +211,24 @@ export default function Missions(){
                   </View>
                 )}
 
+                {fProduction.trim().length>0 && (
+                  <>
+                    <Text style={s.label}>Couleur de la production</Text>
+                    <View style={s.colorRow}>
+                      <TouchableOpacity style={[s.colorSw,getColor(fProduction)===null&&s.colorSwOn]} onPress={()=>setColor(fProduction,null)}>
+                        <LinearGradient colors={['#1F4E5F','#1F4E5F','#F97316','#F97316']} locations={[0,0.5,0.5,1]} start={{x:0,y:0}} end={{x:1,y:1}} style={StyleSheet.absoluteFill}/>
+                        <Text style={{fontSize:8,fontWeight:'900',color:'#fff'}}>auto</Text>
+                      </TouchableOpacity>
+                      {PROD_PRESETS.concat(custom).map(hex=>(
+                        <TouchableOpacity key={hex} style={[s.colorSw,{backgroundColor:hex},(getColor(fProduction)||'').toLowerCase()===hex.toLowerCase()&&s.colorSwOn]} onPress={()=>setColor(fProduction,hex)} />
+                      ))}
+                      <TouchableOpacity style={s.colorAdd} onPress={()=>setColorPickerOpen(true)}><Text style={s.colorAddTxt}>+</Text></TouchableOpacity>
+                    </View>
+                    {!!getColor(fProduction)&&<Text style={{fontSize:11,color:C.muted,marginTop:6}}>Mémorisée et appliquée partout (calendrier, missions, graphique).</Text>}
+                    <ColorPickerModal visible={colorPickerOpen} initial={getColor(fProduction)||'#1E6FE0'} onClose={()=>setColorPickerOpen(false)} onPick={(hex)=>{ addCustom(hex); setColor(fProduction,hex); setColorPickerOpen(false); }} />
+                  </>
+                )}
+
                 <Text style={s.label}>Nom de l'émission (facultatif)</Text>
                 <TextInput style={s.input} value={fEmission} onChangeText={(t:string)=>{setFEmission(t);setShowEmSuggest(true);}} onFocus={()=>setShowEmSuggest(true)} placeholder="Ex : Koh-Lanta" placeholderTextColor={C.muted}/>
                 {showEmSuggest&&emSuggestions.length>0&&(
@@ -214,6 +241,18 @@ export default function Missions(){
                   </View>
                 )}
 
+                <Text style={s.label}>Lieu (facultatif)</Text>
+                <TextInput style={s.input} value={fLieu} onChangeText={(t:string)=>{setFLieu(t);setShowLieuSuggest(true);}} onFocus={()=>setShowLieuSuggest(true)} placeholder="Ex : Studio 130…" placeholderTextColor={C.muted}/>
+                {showLieuSuggest&&lieuSuggestions.length>0&&(
+                  <View style={s.suggestBox}>
+                    {lieuSuggestions.map(l=>(
+                      <TouchableOpacity key={l} style={s.suggestItem} onPress={()=>{setFLieu(l);setShowLieuSuggest(false);}}>
+                        <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="location-outline" size={13} color={C.petrol} /><Text style={s.suggestTxt}>{l}</Text></View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
                 <Text style={s.label}>Type de mission</Text>
                 <TouchableOpacity style={s.typeBtn} onPress={()=>setShowTypePicker(v=>!v)}>
                   <Text style={s.typeBtnTxt}>{fType}</Text>
@@ -221,18 +260,31 @@ export default function Missions(){
                 </TouchableOpacity>
                 {showTypePicker && (
                   <View style={s.typePickerInline}>
-                    {([['Technique',POSTES_TECH],['Artiste',POSTES_ARTISTE],['Musique / scène',POSTES_MUSIQUE],['Autre',POSTES_AUTRE]] as [string,string[]][]).map(([grp,list])=>(
-                      <View key={grp}>
-                        <Text style={s.typeGroupLbl}>{grp}</Text>
+                    <View style={s.typeWrap}>
+                      {['Montage','Tournage','Démontage'].map(p=>(
+                        <TouchableOpacity key={p} style={[s.typeChip,fType===p&&s.typeChipActive]} onPress={()=>{setFType(p);setShowTypePicker(false);}}>
+                          <Text style={fType===p?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    {postes.length>0 && (
+                      <View>
+                        <Text style={s.typeGroupLbl}>Mes postes</Text>
                         <View style={s.typeWrap}>
-                          {list.map(p=>(
-                            <TouchableOpacity key={p} style={[s.typeChip,fType===p&&s.typeChipActive]} onPress={()=>{setFType(p);setShowTypePicker(false);}}>
-                              <Text style={fType===p?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text>
-                            </TouchableOpacity>
+                          {postes.map(p=>(
+                            <View key={p} style={[s.typeChip,fType===p&&s.typeChipActive,{flexDirection:'row',alignItems:'center',gap:6}]}>
+                              <TouchableOpacity onPress={()=>{setFType(p);setShowTypePicker(false);}}><Text style={fType===p?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text></TouchableOpacity>
+                              <TouchableOpacity onPress={()=>removePoste(p)} hitSlop={8}><Text style={{color:fType===p?'#fff':C.muted,fontWeight:'900',fontSize:13}}>×</Text></TouchableOpacity>
+                            </View>
                           ))}
                         </View>
                       </View>
-                    ))}
+                    )}
+                    <Text style={s.typeGroupLbl}>Ajouter un poste</Text>
+                    <View style={{flexDirection:'row',gap:8}}>
+                      <TextInput style={[s.input,{flex:1}]} value={newPoste} onChangeText={setNewPoste} placeholder="Ex : Clown, Cascadeur…" placeholderTextColor={C.muted}/>
+                      <TouchableOpacity style={s.addPosteBtn} onPress={()=>{const v=newPoste.trim();if(v){addPoste(v);setFType(v);setNewPoste('');setShowTypePicker(false);}}}><Text style={s.addPosteTxt}>Ajouter</Text></TouchableOpacity>
+                    </View>
                   </View>
                 )}
 
@@ -407,8 +459,10 @@ const makeS=(C:any)=>StyleSheet.create({
   typeChipActive:{backgroundColor:C.petrol},
   typeChipTxt:{fontSize:13,fontWeight:'700',color:C.petrol},
   typeChipTxtActive:{fontSize:13,fontWeight:'700',color:'white'},
-  typeBtn:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingVertical:12,paddingHorizontal:14,borderRadius:12,backgroundColor:C.card,borderWidth:1,borderColor:C.line},
-  typeBtnTxt:{fontSize:14,fontWeight:'700',color:C.text},
+  typeBtn:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingVertical:13,paddingHorizontal:14,borderRadius:14,backgroundColor:C.card,borderWidth:1,borderColor:C.line},
+  typeBtnTxt:{fontSize:15,fontWeight:'400',color:C.text},
+  addPosteBtn:{backgroundColor:C.petrol,borderRadius:12,paddingHorizontal:16,justifyContent:'center',alignItems:'center'},
+  addPosteTxt:{color:'#fff',fontWeight:'800',fontSize:13},
   typeBtnChevron:{fontSize:13,color:C.muted},
   typeGroupLbl:{fontSize:11.5,fontWeight:'800',color:C.muted,marginTop:14,marginBottom:8,textTransform:'uppercase',letterSpacing:0.5},
   typePickerInline:{marginTop:8,padding:12,borderRadius:12,backgroundColor:C.soft,borderWidth:1,borderColor:C.line},
@@ -419,4 +473,9 @@ const makeS=(C:any)=>StyleSheet.create({
   cancelBtn:{paddingVertical:14,alignItems:'center',marginTop:4},
   cancelBtnTxt:{color:C.muted,fontWeight:'700',fontSize:14},
   empty:{textAlign:'center',color:C.muted,padding:20},
+  colorRow:{flexDirection:'row',flexWrap:'wrap',gap:8,alignItems:'center',marginTop:2},
+  colorSw:{width:32,height:32,borderRadius:9,borderWidth:2,borderColor:'transparent',alignItems:'center',justifyContent:'center',overflow:'hidden'},
+  colorSwOn:{borderColor:C.text},
+  colorAdd:{width:32,height:32,borderRadius:9,borderWidth:1,borderStyle:'dashed',borderColor:C.muted,alignItems:'center',justifyContent:'center'},
+  colorAddTxt:{fontSize:18,fontWeight:'800',color:C.muted,lineHeight:20},
 });

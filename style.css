@@ -14,9 +14,9 @@
   --card:     #FFFFFF;
   --text:     #0D1B2A;
   --muted:    #64748B;
-  --line:     rgba(13,27,42,.15);
-  --line-2:   rgba(13,27,42,.24);
-  --soft:     rgba(13,79,108,.06);
+  --line:     rgba(13,27,42,.22);
+  --line-2:   rgba(13,27,42,.32);
+  --soft:     rgba(13,79,108,.09);
   --danger:   #B91C1C;
   --orange:   #E8650A;
   --shadow-sm: 0 1px 3px rgba(13,27,42,.09), 0 1px 2px rgba(13,27,42,.06);
@@ -603,17 +603,21 @@ body.theme-dark .calendar-day-panel-head span, body.theme-dark .calendar-day-mis
 }
 .new-mission-card.planned { border-left-color: var(--orange); }
 .new-mission-body { flex: 1; min-width: 0; }
-.new-mission-prod { font-size: 13px; font-weight: 800; color: var(--petrol); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.new-mission-prod { font-size: 13px; font-weight: 800; color: var(--petrol); text-transform: uppercase; letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.new-mission-emission { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .new-mission-dates { font-size: 12px; color: var(--muted); margin-top: 3px; font-weight: 500; }
+.new-mission-lieu { font-size: 12px; color: var(--muted); margin-top: 3px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.new-mission-prod svg, .new-mission-emission svg, .new-mission-lieu svg, .new-mission-dates svg, .new-mission-hours svg { margin-right: 4px; }
+.new-mission-perday { font-size: 12px; font-weight: 800; color: var(--petrol); margin-top: 4px; white-space: nowrap; }
 .new-mission-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
 .new-mission-hours { font-size: 14px; font-weight: 800; color: var(--petrol); letter-spacing: -.03em; }
 .new-mission-type { font-size: 10px; padding: 3px 8px; border-radius: 6px; font-weight: 700; }
 .type-done { background: var(--soft); color: var(--petrol); }
 .type-planned { background: rgba(232,101,10,.10); color: #9A4600; }
 .new-mission-pagination { display: flex; justify-content: center; gap: 10px; margin-top: 8px; }
-.new-pag-btn { width: 38px; height: 38px; border-radius: 50%; background: var(--petrol); border: none; color: white; font-size: 16px; font-weight: 900; cursor: pointer; box-shadow: 0 3px 10px rgba(13,79,108,.22); transition: all .12s; }
-.new-pag-btn:hover { filter: brightness(1.1); transform: scale(1.05); }
-.new-pag-btn:disabled { background: #E8EDF2; color: var(--muted); box-shadow: none; transform: none; opacity: 0.5; cursor: not-allowed; }
+.new-pag-btn { width: 38px; height: 38px; border-radius: 50%; background: var(--soft); border: 1px solid var(--line); color: var(--petrol); font-size: 16px; font-weight: 900; cursor: pointer; transition: all .12s; }
+.new-pag-btn:hover { background: var(--line); transform: scale(1.05); }
+.new-pag-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 @media (max-width: 720px) {
   .new-cal-header { flex-direction: column; align-items: flex-start; gap: 10px; }
@@ -643,6 +647,54 @@ body.theme-dark .calendar-day-panel-head span, body.theme-dark .calendar-day-mis
 .missions-legend-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; background: #F7F9FB; border: 1px solid var(--line); cursor: pointer; transition: all .12s; }
 .missions-legend-row:hover { background: rgba(13,79,108,.06); border-color: rgba(13,79,108,.18); transform: translateX(2px); }
 .missions-legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+/* Sélecteur de couleur par production (formulaire mission) */
+.prod-color-row { margin: -2px 0 12px; }
+.prod-color-head { font-size: 11.5px; font-weight: 700; color: var(--muted); margin-bottom: 7px; }
+.prod-color-head span { font-weight: 500; opacity: .8; }
+.prod-color-swatches { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.prod-color-sw { width: 26px; height: 26px; border-radius: 8px; border: 2px solid transparent; cursor: pointer; padding: 0; outline: none; box-shadow: 0 0 0 1px var(--line); transition: transform .1s; }
+.prod-color-sw:hover { transform: scale(1.14); }
+.prod-color-sw.sel { border-color: var(--text); box-shadow: 0 0 0 2px rgba(13,27,42,.3); }
+.prod-color-custom { width: 26px; height: 26px; border-radius: 8px; border: 1px dashed var(--line-2); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; position: relative; color: var(--muted); font-weight: 800; font-size: 16px; overflow: hidden; }
+.prod-color-custom input[type=color] { position: absolute; inset: 0; opacity: 0; cursor: pointer; border: none; padding: 0; }
+.prod-color-preview { display: flex; align-items: center; gap: 8px; margin-top: 11px; }
+.prod-color-preview .pcp-lbl { font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.pcp-cell { width: 54px; height: 46px; border-radius: 9px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; color: #fff; background: linear-gradient(135deg,#1F4E5F,#2F8F6B); }
+.pcp-cell small { font-size: 8.5px; font-weight: 700; opacity: .92; margin-top: 1px; }
+/* Boutons couleurs au-dessus du calendrier */
+.new-cal-tools { display: flex; gap: 8px; background: var(--soft); border-radius: 12px; padding: 5px; margin: 2px 0 12px; }
+.cal-tool-btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-family: inherit; font-size: 12.5px; font-weight: 800; padding: 9px; border: none; border-radius: 9px; background: var(--card); color: var(--petrol); cursor: pointer; box-shadow: 0 2px 6px rgba(13,27,42,.08); transition: all .15s; }
+.cal-tool-btn:hover { background: var(--petrol); color: #fff; }
+/* Onglets Mission / Note + formulaire de note */
+.add-tabs { display: flex; gap: 8px; background: var(--soft); border-radius: 13px; padding: 5px; margin-bottom: 16px; }
+.add-tab { flex: 1; padding: 10px; border: none; background: none; border-radius: 9px; font-size: 13.5px; font-weight: 800; color: var(--muted); cursor: pointer; }
+.add-tab.on { background: var(--card); color: var(--petrol); box-shadow: 0 2px 6px rgba(13,27,42,.08); }
+.hour-quick { display: flex; gap: 8px; margin: 7px 0 4px; }
+.hour-chip { padding: 7px 15px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); color: var(--petrol); font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit; transition: all .15s; }
+.hour-chip:hover { background: var(--petrol); color: #fff; border-color: var(--petrol); }
+.note-color-row { display: flex; gap: 8px; margin: 6px 0 4px; flex-wrap: wrap; }
+.prod-name-dot { width: 13px; height: 13px; border-radius: 50%; display: inline-block; vertical-align: middle; margin-left: 6px; box-shadow: 0 0 0 1px rgba(0,0,0,.15); }
+.note-color { width: 28px; height: 28px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; box-shadow: 0 0 0 1px var(--line); }
+.note-color.sel { border-color: var(--text); }
+.note-cat-row { display: flex; gap: 8px; margin: 6px 0 4px; flex-wrap: wrap; }
+.note-cat { padding: 9px 14px; border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 99px; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.note-cat.sel { background: var(--petrol); color: #fff; border-color: var(--petrol); }
+.cal-note-mark { position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 3px; z-index: 3; box-shadow: 0 0 0 1px rgba(255,255,255,.6); }
+.cal-note-mid { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; pointer-events: none; }
+.cal-note-abbr { font-size: 10px; font-weight: 800; line-height: 1; text-shadow: 0 1px 2px rgba(0,0,0,.22); }
+.cal-note-svg { width: 15px; height: 15px; opacity: .95; filter: drop-shadow(0 1px 1px rgba(0,0,0,.22)); }
+.note-color-add { width: 28px; height: 28px; border-radius: 8px; border: 1px dashed var(--line-2); background: none; color: var(--muted); font-weight: 800; font-size: 16px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; line-height: 1; padding: 0; box-sizing: border-box; }
+.cal-sec-tabs { display: flex; gap: 8px; background: var(--soft); border-radius: 12px; padding: 5px; margin-bottom: 14px; }
+.cal-sec-tab { flex: 1; padding: 9px; border: none; background: none; border-radius: 9px; font-size: 12.5px; font-weight: 800; color: var(--muted); cursor: pointer; }
+.cal-sec-tab.on { background: var(--card); color: var(--petrol); box-shadow: 0 2px 6px rgba(13,27,42,.08); }
+/* Responsive : la rangée de couleurs reste dans l'écran sur mobile */
+.prod-color-row, .prod-color-swatches, .prod-color-preview { max-width: 100%; }
+.prod-color-swatches { overflow: visible; }
+@media (max-width: 560px) {
+  .prod-color-swatches { gap: 9px; }
+  .prod-color-sw, .prod-color-custom { width: 30px; height: 30px; }
+  .prod-color-preview { flex-wrap: wrap; }
+}
 .missions-legend-body { flex: 1; min-width: 0; }
 .missions-legend-name { font-size: 13px; font-weight: 800; color: var(--petrol); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .missions-legend-detail { font-size: 11px; color: var(--muted); margin-top: 2px; }
@@ -817,6 +869,21 @@ body.theme-dark .calendar-day-panel-head span, body.theme-dark .calendar-day-mis
 .fi-auto { display: inline-flex; padding: 2px 7px; border-radius: 7px; background: rgba(18,117,74,.12); color: #0A5C34; font-size: 10px; font-weight: 700; margin-left: 5px; }
 .fi-info-box { background: rgba(13,79,108,.05); border: 1px solid rgba(13,79,108,.10); border-radius: 11px; padding: 12px 14px; font-size: 12px; color: var(--petrol); line-height: 1.6; }
 .fi-info-box strong { display: block !important; font-size: 12px !important; margin-bottom: 4px !important; margin-top: 0 !important; color: var(--petrol) !important; }
+/* Accordéons Auto-entrepreneur (en-têtes premium, icônes SVG) */
+.ae-fold { border: 1px solid var(--line); border-radius: 14px; margin-bottom: 16px; background: var(--card); }
+.ae-fold.ae-fold-add { border-style: dashed; border-color: rgba(13,79,108,.30); }
+.ae-fold[open] { border-color: rgba(13,79,108,.22); }
+.ae-fold > summary { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 13px 15px; font-weight: 800; font-size: 14px; color: var(--petrol); list-style: none; user-select: none; }
+.ae-fold > summary::-webkit-details-marker { display: none; }
+.ae-fold-ic { width: 21px; height: 21px; flex-shrink: 0; }
+.ae-fold-sub { font-weight: 400; font-size: 11.5px; color: var(--muted); }
+.ae-fold-chev { margin-left: auto; flex-shrink: 0; opacity: .45; transition: transform .2s; }
+.ae-fold[open] > summary .ae-fold-chev { transform: rotate(180deg); }
+.ae-fold > div { padding: 0 15px 14px; }
+body.theme-dark .ae-fold > summary { color: #8FD3EA; }
+.ae-add-presta { width: 100%; padding: 13px; margin: 4px 0 6px; border: 1px dashed rgba(13,79,108,.35); border-radius: 12px; background: var(--soft); color: var(--petrol); font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; transition: all .15s; }
+.ae-add-presta:hover { border-style: solid; background: var(--petrol); color: #fff; }
+body.theme-dark .ae-add-presta { color: #8FD3EA; }
 .fi-comparaison { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
 .fi-comp-card { border-radius: 13px; padding: 14px; border: 2px solid var(--line); text-align: center; }
 .fi-comp-card.winner { border-color: var(--sage); background: rgba(18,117,74,.05); }
@@ -861,7 +928,7 @@ body.theme-dark .calendar-day-panel-head span, body.theme-dark .calendar-day-mis
 /* ── ITK Calculateurs ────────────────────────────────────────────── */
 .itk-calc {
   --p: var(--petrol); --s: var(--sage); --card: #FFFFFF; --text: #0D1B2A; --muted: #64748B;
-  --line: rgba(13,27,42,.09); --soft: rgba(13,79,108,.06); --danger: #B91C1C;
+  --line: rgba(13,27,42,.16); --soft: rgba(13,79,108,.09); --danger: #B91C1C;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--text); max-width: 1380px; margin: 0; padding: 0; box-sizing: border-box;
 }
@@ -1072,6 +1139,7 @@ body.theme-dark input,
 body.theme-dark select { background: #122030 !important; color: #DCF0FA !important; border-color: rgba(255,255,255,.10) !important; }
 
 body.theme-dark .ghost { background: rgba(255,255,255,.05) !important; color: #6EC6E0 !important; border-color: rgba(255,255,255,.08) !important; }
+body.theme-dark .delete { background: rgba(220,38,38,.16) !important; }
 
 body.theme-dark h1,
 body.theme-dark h2,
@@ -1095,8 +1163,16 @@ body.theme-dark .btn-act-ft { background: rgba(255,255,255,.03) !important; bord
 
 body.theme-dark .missions-legend-row { background: #122030 !important; border-color: rgba(255,255,255,.07) !important; }
 body.theme-dark .fi-info-box, body.theme-dark .fi-comparaison, body.theme-dark .fi-conseil-box { background: rgba(255,255,255,.03) !important; border-color: rgba(255,255,255,.07) !important; }
+body.theme-dark .fi-result-row { background: rgba(255,255,255,.04) !important; border-color: rgba(255,255,255,.08) !important; }
+body.theme-dark .fi-result-row.fi-highlight { background: rgba(110,198,224,.10) !important; border-color: rgba(110,198,224,.18) !important; }
+body.theme-dark .fi-result-row.fi-warning { background: rgba(253,230,138,.09) !important; border-color: rgba(253,230,138,.20) !important; }
+body.theme-dark .fi-label, body.theme-dark .fi-value { color: #8FD3EA !important; }
+body.theme-dark .fi-result-row.fi-big .fi-label, body.theme-dark .fi-result-row.fi-big .fi-value { color: #fff !important; }
 body.theme-dark .account-dropdown { background: #0D1B2A !important; border-color: rgba(255,255,255,.07) !important; }
 body.theme-dark .account-dd-email, body.theme-dark .account-dd-plan, body.theme-dark .account-dd-themes { border-color: rgba(255,255,255,.07) !important; }
+body.theme-dark .account-dd-email { background: rgba(255,255,255,.04) !important; }
+body.theme-dark .theme-btn { background: rgba(255,255,255,.06) !important; }
+body.theme-dark .theme-btn:hover, body.theme-dark .theme-btn.active { background: rgba(255,255,255,.13) !important; }
 
 /* Calendrier dark */
 body.theme-dark .new-cal-day { background: rgba(255,255,255,.03); border-color: rgba(255,255,255,.12); }
@@ -1205,6 +1281,8 @@ body.theme-dark .contact-body a { color: #6EC6E0 !important; }
 .fly-feats li::before { content: ''; position: absolute; left: 0; top: 6px; width: 8px; height: 8px; border-radius: 50%; background: #E8650A; }
 .fly-cta { display: block; width: 100%; padding: 15px; background: #E8650A; color: #fff; border: none; border-radius: 14px; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 12px 28px rgba(232,101,10,.42); transition: filter .15s, transform .15s; font-family: inherit; }
 .fly-cta:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.fly-login { display: block; width: 100%; margin-top: 11px; padding: 13px; background: rgba(255,255,255,.10); color: #fff; border: 1px solid rgba(255,255,255,.38); border-radius: 14px; font-size: 14.5px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background .15s; }
+.fly-login:hover { background: rgba(255,255,255,.18); }
 .fly-stores { display: flex; gap: 10px; margin-top: 14px; }
 .fly-badge { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 8px; background: #000; color: #fff; border-radius: 12px; text-decoration: none; font-size: 13px; font-weight: 700; border: 1px solid rgba(255,255,255,.20); transition: background .15s; }
 .fly-badge:hover { background: #1a1a1a; }

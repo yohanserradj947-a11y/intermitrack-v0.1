@@ -7,6 +7,7 @@ import { ScrollArrowHint } from '@/components/scroll-arrow-hint';
 import { SwipeHint } from '@/components/swipe-hint';
 import { AccountMenu } from '@/components/AccountMenu';
 import WhatsNewModal from '@/components/WhatsNewModal';
+import OnboardingTour from '@/components/OnboardingTour';
 import { useTheme } from '@/lib/theme';
 
 // Onglets "material top tabs" → permettent le swipe gauche/droite,
@@ -85,6 +86,7 @@ export default function TabLayout() {
     <SwipeHint />
     <AccountMenu />
     <WhatsNewModal />
+    <OnboardingTour />
     </View>
   );
 }

@@ -17,7 +17,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=5" />
+  <link rel="stylesheet" href="style.css?v=14" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js" integrity="sha384-wgi7s9Y2xefdDru3II6Xb11y/YNoKVbuydTikWejwId9z2xRd8SveCTrJjj/QAnH" crossorigin="anonymous"></script>
   <style>
     /* ===== LANDING PAGE FIXE PAR-DESSUS TOUT ===== */
@@ -251,7 +251,7 @@ z-index: 500 !important;
             </div>
 
             <!-- Mes informations -->
-            <button class="account-dd-logout" type="button" id="profileBtn" style="background:#EEF4F1;color:#1F4E5F;margin-bottom:8px;">
+            <button class="account-dd-logout" type="button" id="profileBtn" style="background:var(--soft);color:var(--petrol);margin-bottom:8px;">
               <span>📝</span> Mes informations
             </button>
 
@@ -313,6 +313,7 @@ z-index: 500 !important;
               <li>Tous tes documents classés par production</li>
             </ul>
             <button class="fly-cta" type="button" onclick="openLoginModal('signup')">Créer mon compte — gratuit →</button>
+            <button class="fly-login" type="button" onclick="openLoginModal('login')">J'ai déjà un compte · Se connecter</button>
             <div class="fly-stores">
               <a class="fly-badge" href="mailto:intermitrack@gmail.com?subject=Acc%C3%A8s%20b%C3%AAta%20Intermitrack%20-%20iOS&body=Bonjour%2C%0A%0AJe%20souhaite%20tester%20Intermitrack%20sur%20iPhone%20(TestFlight).%0A%0AMon%20e-mail%20Apple%20ID%20%C3%A0%20ajouter%20comme%20testeur%20%3A%0A%0A%0A--%20via%20intermitrack.fr">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 1.5c0 1.2-.5 2.3-1.3 3.1-.9.9-2 1.5-3.1 1.4-.1-1.1.5-2.3 1.3-3 .8-.8 2.1-1.4 3.1-1.5zM20.5 17c-.5 1.2-.8 1.7-1.5 2.7-.9 1.4-2.3 3.1-3.9 3.1-1.5 0-1.9-1-3.9-1-2 0-2.4 1-3.9 1-1.6 0-2.9-1.6-3.8-2.9-2.5-3.7-2.8-8.1-1.2-10.4 1.1-1.7 2.8-2.6 4.5-2.6 1.7 0 2.7 1 4.1 1 1.3 0 2.1-1 4.1-1 1.5 0 3.1.8 4.2 2.2-3.7 2-3.1 7.3.9 8.9z"/></svg>
@@ -622,19 +623,40 @@ z-index: 500 !important;
             <h2 id="addMissionTitle">Ajouter une mission</h2>
             <button class="ghost" type="button" id="addMissionBackBtn" style="display:flex;align-items:center;gap:6px;">‹ Retour</button>
           </div>
+          <div class="add-tabs">
+            <button type="button" class="add-tab on" data-addtab="mission">Mission</button>
+            <button type="button" class="add-tab" data-addtab="note">Note perso</button>
+          </div>
           <form id="missionForm">
-            <label for="production">Nom de la production</label>
+            <label for="production">Nom de la production <span id="prodNameDot" class="prod-name-dot" style="display:none;"></span></label>
             <input id="production" list="productionsList" autocomplete="off" placeholder="Ex : Production " required />
             <datalist id="productionsList"></datalist>
-            <label for="type">Type de mission</label>
+            <div id="prodColorRow" class="prod-color-row">
+              <div class="prod-color-head">Couleur de la production <span>· mémorisée, s'applique partout</span></div>
+              <div class="prod-color-swatches" id="prodColorSwatches"></div>
+              <div class="prod-color-preview">
+                <span class="pcp-lbl">Aperçu :</span>
+                <span class="pcp-cell" id="pcpPast">12<small>effectué</small></span>
+                <span class="pcp-cell" id="pcpFuture">20<small>à venir</small></span>
+              </div>
+            </div>
             <label for="emission">Émission</label>
             <input id="emission" list="emissionsList" autocomplete="off" placeholder="Ex :The voice..." />
             <datalist id="emissionsList"></datalist>
-            <select id="type" style="display:none;"><optgroup label="Technique"><option>Montage</option><option>Tournage</option><option>Démontage</option><option>Régie</option><option>Son</option><option>Lumière</option><option>Image / Vidéo</option><option>Machiniste</option><option>Électricien</option><option>Poursuiteur</option><option>Plateau</option><option>Décor</option><option>HMC</option></optgroup><optgroup label="Artiste"><option>Comédien</option><option>Chanteur</option><option>Musicien</option><option>Danseur</option><option>Choriste</option></optgroup><option>Autres</option></select><button type="button" id="typeBtn" style="display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--text);font-size:14px;font-family:inherit;cursor:pointer;"><span id="typeBtnLabel">Montage</span><span style="opacity:.45;">▾</span></button>
+            <label for="lieu">Lieu</label>
+            <input id="lieu" list="lieuxList" autocomplete="off" placeholder="Ex : Studio 130, La Plaine Saint-Denis…" />
+            <datalist id="lieuxList"></datalist>
+            <label for="type">Type de mission</label>
+            <select id="type" style="display:none;"><optgroup label="Technique"><option>Montage</option><option>Tournage</option><option>Démontage</option><option>Régie</option><option>Son</option><option>Lumière</option><option>Image / Vidéo</option><option>Machiniste</option><option>Électricien</option><option>Poursuiteur</option><option>Plateau</option><option>Décor</option><option>HMC</option></optgroup><optgroup label="Artiste"><option>Comédien</option><option>Chanteur</option><option>Musicien</option><option>Danseur</option><option>Choriste</option></optgroup><option>Autres</option></select><button type="button" id="typeBtn" style="display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--text);font-weight:400;font-size:14px;font-family:inherit;cursor:pointer;"><span id="typeBtnLabel">Montage</span><span style="opacity:.45;">▾</span></button>
             <label for="date">Date début</label><input id="date" type="date" required />
             <label for="endDate">Date fin</label><input id="endDate" type="date" required />
             <label for="hours">Nombre d'heures cumulées sur la période</label>
-            <input id="hours" type="number" min="0" step="0.5" placeholder="Ex : 40" required />
+            <input id="hours" type="number" min="0" step="0.5" placeholder="Ex : 8" required />
+            <div class="hour-quick">
+              <button type="button" class="hour-chip" data-h="4">4h</button>
+              <button type="button" class="hour-chip" data-h="8">8h</button>
+              <button type="button" class="hour-chip" data-h="12">12h</button>
+            </div>
             <label for="vacations">Nombre de vacations / cachets</label>
             <input id="vacations" type="number" min="0" step="1" placeholder="Ex : 1" />
             <small style="display:block;color:var(--muted);font-size:11.5px;margin:-4px 0 4px;line-height:1.4;">1 vacation = 1 journée de travail (technicien) · 1 cachet (artiste / musicien). Se remplit tout seul pour les missions sur plusieurs jours.</small>
@@ -695,6 +717,27 @@ z-index: 500 !important;
             </details>
             <p class="hint">Pour une mission sur plusieurs jours, indique la période complète et le total d'heures cumulées.</p>
             <button class="primary" type="submit">Enregistrer la mission</button>
+          </form>
+          <form id="noteForm" style="display:none;">
+            <label for="noteTitle">Titre de la note</label>
+            <input id="noteTitle" autocomplete="off" placeholder="Ex : RDV médecin, Congés posés…" />
+            <div class="note-cat-row" id="noteCatRow">
+              <button type="button" class="note-cat" data-title="Médical">Médical</button>
+              <button type="button" class="note-cat" data-title="Perso">Perso</button>
+              <button type="button" class="note-cat" data-title="Vacances">Vacances</button>
+              <button type="button" class="note-cat" data-title="Repos">Repos</button>
+              <button type="button" class="note-cat" data-title="Autres">Autres</button>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <div style="flex:1;min-width:140px;"><label for="noteDate">Date début</label><input id="noteDate" type="date" required style="width:100%;box-sizing:border-box;" /></div>
+              <div style="flex:1;min-width:140px;"><label for="noteEndDate">Date fin</label><input id="noteEndDate" type="date" required style="width:100%;box-sizing:border-box;" /></div>
+            </div>
+            <label for="noteText">Note (courte)</label>
+            <textarea id="noteText" rows="3" maxlength="200" placeholder="Ex : RDV dentiste 14h…" style="width:100%;box-sizing:border-box;font-family:inherit;font-size:14px;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--text);resize:none;"></textarea>
+            <div id="noteCount" style="text-align:right;font-size:11px;color:var(--muted);margin-top:4px;">0 / 200</div>
+            <label style="display:block;margin-top:10px;">Couleur (repère)</label>
+            <div class="note-color-row" id="noteColorRow"></div>
+            <button class="primary" type="submit" style="margin-top:16px;">Enregistrer la note</button>
           </form>
         </article>
       </section>
@@ -963,8 +1006,8 @@ z-index: 500 !important;
           <h2>Auto-entrepreneur</h2>
           <p class="sub">Gère tes prestations facturées en micro-entreprise, séparément de tes cachets d'intermittent. ⚠️ Ces revenus sont à déclarer à France Travail et n'entrent pas dans tes heures intermittent.</p>
 
-          <details id="aeProfileBlock" style="margin-bottom:16px;border:1px solid var(--border,#E5E8EB);border-radius:14px;padding:8px 14px;">
-            <summary style="cursor:pointer;font-weight:600;">Mes informations (figurent sur les factures PDF)</summary>
+          <details id="aeProfileBlock" class="ae-fold">
+            <summary><svg class="ae-fold-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M5.5 16a3 3 0 0 1 6 0"/><path d="M14 10h4M14 13h3"/></svg>Mes informations <span class="ae-fold-sub">(sur les factures PDF)</span><svg class="ae-fold-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
             <div style="margin-top:12px;">
               <label for="aeProfNom">Nom / raison sociale</label>
               <input id="aeProfNom" autocomplete="off" placeholder="Ex : Jean Dupont" />
@@ -980,11 +1023,11 @@ z-index: 500 !important;
             </div>
           </details>
 
-          <details id="aeSocietesBlock" style="margin-bottom:16px;border:1px solid var(--border,#E5E8EB);border-radius:14px;padding:8px 14px;">
-            <summary style="cursor:pointer;font-weight:600;">📒 Mon carnet de sociétés <span style="color:#9AA5B1;font-weight:400;">(clients, productions, employeurs)</span></summary>
+          <details id="aeSocietesBlock" class="ae-fold">
+            <summary><svg class="ae-fold-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h11a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H6z"/><path d="M6 4H4m2 4H4m2 4H4m2 4H4"/><circle cx="11.5" cy="10.5" r="1.9"/><path d="M8.6 15.5a2.9 2.9 0 0 1 5.8 0"/></svg>Mon carnet de sociétés <span class="ae-fold-sub">(clients, productions…)</span><svg class="ae-fold-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
             <div style="margin-top:12px;">
-              <details id="societeAddBlock" style="border:1px dashed rgba(13,79,108,.35);border-radius:12px;padding:8px 14px;margin-bottom:16px;">
-                <summary style="cursor:pointer;font-weight:700;color:var(--petrol);">➕ Ajouter une société</summary>
+              <details id="societeAddBlock" class="ae-fold ae-fold-add">
+                <summary><svg class="ae-fold-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h10V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1z"/><path d="M6.5 8h.01M9.5 8h.01M6.5 11h.01M9.5 11h.01M6.5 14h.01"/><path d="M18 13.5v6M15 16.5h6"/></svg>Ajouter une société<svg class="ae-fold-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
                 <div style="margin-top:12px;">
                   <form id="societeForm">
                     <label for="societeNom">Nom de la société</label>
@@ -1068,10 +1111,9 @@ z-index: 500 !important;
                 <input id="aeClient" autocomplete="off" placeholder="Ex : Société de production" required />
                 <label for="aeClientAddress">Adresse du client <span style="color:#9AA5B1;font-weight:400;">(optionnel)</span></label>
                 <div><input id="aeClientAddress" autocomplete="off" placeholder="Commence à taper, choisis dans la liste" /></div>
-                <label>Prestations <span style="color:#9AA5B1;font-weight:400;">(clique pour ajouter une ligne, puis ajuste)</span></label>
-                <div id="prestaChips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>
+                <label>Prestations</label>
                 <div id="factureLignesList"></div>
-                <button class="ghost" type="button" id="addLigneLibre" style="margin-bottom:6px;">+ Autre (ligne personnalisée)</button>
+                <button type="button" id="openPrestaModal" class="ae-add-presta">+ Ajouter une prestation</button>
                 <label for="aeDate">Date (ou début de période)</label>
                 <input id="aeDate" type="date" required />
                 <label for="aeEndDate">Date de fin <span style="color:#9AA5B1;font-weight:400;">(optionnel)</span></label>
@@ -1324,7 +1366,7 @@ z-index: 500 !important;
   </main>
 
   <script src="document-parser.js?v=5"></script>
-  <script src="app.js?v=11"></script>
+  <script src="app.js?v=26"></script>
 
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>
@@ -1355,12 +1397,12 @@ z-index: 500 !important;
       <h2 class="wn-title">Quoi de neuf ?</h2>
       <p class="wn-sub">Un résumé rapide des dernières améliorations.</p>
       <div class="wn-list">
-        <div class="wn-item"><div class="wn-ic">🔒</div><div><strong>Sécurité renforcée</strong><span>Audit complet : HTTPS forcé, en-têtes de sécurité (score A) et page « Note de sécurité » publique.</span></div></div>
-        <div class="wn-item"><div class="wn-ic">💶</div><div><strong>Estimation France Travail</strong><span>Une estimation de tes allocations (ARE), calculée à partir de tes missions et de ta date d'admission.</span></div></div>
-        <div class="wn-item"><div class="wn-ic">🚗</div><div><strong>Frais kilométriques</strong><span>Calcul automatique de la distance et application du barème officiel.</span></div></div>
-        <div class="wn-item"><div class="wn-ic">📊</div><div><strong>Calculs & prévisions</strong><span>Heures, net estimé, fiscalité, franchises et moyenne €/h mis à jour automatiquement.</span></div></div>
-        <div class="wn-item"><div class="wn-ic">🎵</div><div><strong>Métiers de la musique</strong><span>Nouveaux types de mission : concert, répétition, session studio, tournée, captation…</span></div></div>
-        <div class="wn-item"><div class="wn-ic">🏷️</div><div><strong>Vacations / cachets & Pionnier</strong><span>Libellé clarifié (1 vacation = 1 jour · 1 cachet) + badge « Pionnier — gratuit à vie ».</span></div></div>
+        <div class="wn-item"><div class="wn-ic">🎨</div><div><strong>Couleurs par production</strong><span>Une couleur par prod, appliquée au calendrier, à tes missions et au graphique. Palette + couleurs perso.</span></div></div>
+        <div class="wn-item"><div class="wn-ic">📝</div><div><strong>Notes perso</strong><span>Ajoute des notes sur ton calendrier (RDV, congés, repos…), séparées de tes missions.</span></div></div>
+        <div class="wn-item"><div class="wn-ic">📍</div><div><strong>Lieu des missions</strong><span>Un champ « Lieu » avec suggestions de tes lieux déjà saisis.</span></div></div>
+        <div class="wn-item"><div class="wn-ic">💼</div><div><strong>Tes postes</strong><span>Ajoute tes propres postes (Clown, Cascadeur…) — ils reviennent automatiquement sur tes missions.</span></div></div>
+        <div class="wn-item"><div class="wn-ic">🧾</div><div><strong>Factures plus rapides</strong><span>Auto-entrepreneur : prestations via liste à cocher + tes prestations perso mémorisées.</span></div></div>
+        <div class="wn-item"><div class="wn-ic">✨</div><div><strong>Plus lisible</strong><span>Icônes sur les cartes, contours plus nets et finitions un peu partout.</span></div></div>
       </div>
       <button class="wn-btn" id="whatsNewBtn">C'est parti !</button>
     </div>
