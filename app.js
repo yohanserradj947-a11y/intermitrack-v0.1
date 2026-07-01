@@ -207,33 +207,102 @@ document.addEventListener('input', function(e){
 document.addEventListener('click', function(e){ var hc = e.target.closest && e.target.closest('.hour-chip'); if (hc && document.getElementById('hours')) { document.getElementById('hours').value = hc.dataset.h; } });
 _renderProdSwatches();
 
-// === Fenêtre de couleur MAISON (centrée, mobile-safe, curseurs R/V/B + palette) ===
+// === Fenêtre de couleur MAISON (roue multicolore — même principe que l'app) ===
 let _ccOnPick = null;
+let _ccHex = '#1E6FE0';
+let _ccDrag = false;
+const CC_WHEEL = 208, CC_R = 104, CC_SEG = 72;
+// HSV → HEX (teinte 0-360, saturation 0-1, valeur 0-1)
+function _ccHsvHex(h, s, v){
+  h = ((h % 360) + 360) % 360;
+  const c = v * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = v - c;
+  let r = 0, g = 0, b = 0;
+  if (h < 60){ r = c; g = x; } else if (h < 120){ r = x; g = c; }
+  else if (h < 180){ g = c; b = x; } else if (h < 240){ g = x; b = c; }
+  else if (h < 300){ r = x; b = c; } else { r = c; b = x; }
+  const to = n => Math.round((n + m) * 255).toString(16).padStart(2, '0');
+  return '#' + to(r) + to(g) + to(b);
+}
+// HEX → [teinte, saturation, valeur]
+function _ccHexHsv(hex){
+  const a = _hexRgb(hex), r = a[0] / 255, g = a[1] / 255, b = a[2] / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0;
+  if (d){ if (mx === r) h = ((g - b) / d) % 6; else if (mx === g) h = (b - r) / d + 2; else h = (r - g) / d + 4; h *= 60; if (h < 0) h += 360; }
+  return [h, mx ? d / mx : 0, mx];
+}
+// Génère la roue SVG (72 quartiers de teinte + voile blanc radial pour la saturation + point sélecteur)
+function _ccWheelSVG(){
+  let p = '';
+  for (let i = 0; i < CC_SEG; i++){
+    const a0 = (i / CC_SEG) * 2 * Math.PI - Math.PI / 2, a1 = ((i + 1) / CC_SEG) * 2 * Math.PI - Math.PI / 2;
+    const x0 = (CC_R + CC_R * Math.cos(a0)).toFixed(2), y0 = (CC_R + CC_R * Math.sin(a0)).toFixed(2);
+    const x1 = (CC_R + CC_R * Math.cos(a1)).toFixed(2), y1 = (CC_R + CC_R * Math.sin(a1)).toFixed(2);
+    const col = _ccHsvHex((i / CC_SEG) * 360, 1, 1);
+    p += '<path d="M' + CC_R + ' ' + CC_R + ' L' + x0 + ' ' + y0 + ' A' + CC_R + ' ' + CC_R + ' 0 0 1 ' + x1 + ' ' + y1 + ' Z" fill="' + col + '" stroke="' + col + '" stroke-width="0.6"/>';
+  }
+  return '<svg id="ccWheel" width="' + CC_WHEEL + '" height="' + CC_WHEEL + '" viewBox="0 0 ' + CC_WHEEL + ' ' + CC_WHEEL + '" style="touch-action:none;cursor:crosshair;display:block;margin:0 auto;border-radius:50%;box-shadow:0 2px 10px rgba(0,0,0,.15);">'
+    + p
+    + '<defs><radialGradient id="ccSat" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fff" stop-opacity="1"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>'
+    + '<circle cx="' + CC_R + '" cy="' + CC_R + '" r="' + CC_R + '" fill="url(#ccSat)" style="pointer-events:none;"/>'
+    + '<circle id="ccDot" cx="' + CC_R + '" cy="' + CC_R + '" r="10" fill="#1E6FE0" stroke="#fff" stroke-width="3" style="pointer-events:none;filter:drop-shadow(0 1px 3px rgba(0,0,0,.45));"/></svg>';
+}
+// Rafraîchit l'aperçu (cases effectué/à venir), le code HEX et la position du point sur la roue
+function _ccUpd(){
+  const b = _prodCellBgs(_ccHex);
+  const past = document.querySelector('#ccPast'), fut = document.querySelector('#ccFut');
+  if (past){ past.style.background = b.past; past.style.color = b.tc; }
+  if (fut){ fut.style.background = b.fut; fut.style.color = b.tc; }
+  const hx = document.querySelector('#ccHex'); if (hx) hx.textContent = _ccHex.toUpperCase();
+  const dot = document.getElementById('ccDot');
+  if (dot){
+    const hsv = _ccHexHsv(_ccHex);
+    const ang = (hsv[0] / 360) * 2 * Math.PI - Math.PI / 2;
+    const rr = Math.min(1, hsv[1]) * CC_R;
+    dot.setAttribute('cx', (CC_R + rr * Math.cos(ang)).toFixed(1));
+    dot.setAttribute('cy', (CC_R + rr * Math.sin(ang)).toFixed(1));
+    dot.setAttribute('fill', _ccHex);
+  }
+}
+// Calcule la couleur depuis un point cliqué/touché sur la roue
+function _ccPickAt(clientX, clientY){
+  const svg = document.getElementById('ccWheel'); if (!svg) return;
+  const rect = svg.getBoundingClientRect();
+  const x = (clientX - rect.left) / rect.width * CC_WHEEL - CC_R;
+  const y = (clientY - rect.top) / rect.height * CC_WHEEL - CC_R;
+  let ang = Math.atan2(y, x) + Math.PI / 2; if (ang < 0) ang += 2 * Math.PI;
+  const hue = (ang / (2 * Math.PI)) * 360;
+  const sat = Math.max(0, Math.min(1, Math.sqrt(x * x + y * y) / CC_R));
+  _ccHex = _ccHsvHex(hue, sat, 1);
+  _ccUpd();
+}
 function _ensureCustomColorModal(){
   if (document.getElementById('customColorOverlay')) return;
   const st = document.createElement('style');
-  st.textContent = "#customColorOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:100060;padding:18px;}#customColorOverlay.open{display:flex;}.cc-box{background:var(--card);color:var(--text);border-radius:20px;width:100%;max-width:330px;box-sizing:border-box;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,.3);}.cc-title{font-size:16px;font-weight:900;color:var(--petrol);margin-bottom:14px;}.cc-preview{display:flex;gap:10px;margin-bottom:8px;}.cc-cellwrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}.cc-cell{width:100%;height:56px;border-radius:12px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;}.cc-cellwrap small{font-size:10px;font-weight:700;color:var(--muted);}.cc-hex{text-align:center;font-weight:800;font-size:14px;color:var(--muted);margin-bottom:14px;letter-spacing:.05em;}.cc-sliders{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;}.cc-sliders label{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:800;color:var(--muted);}.cc-sliders input[type=range]{flex:1;min-width:0;}.cc-presets{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px;}.cc-preset{width:28px;height:28px;border-radius:7px;cursor:pointer;box-shadow:0 0 0 1px var(--line);}.cc-actions{display:flex;gap:10px;}.cc-cancel{flex:1;padding:12px;border:1px solid var(--line);background:var(--soft);color:var(--muted);border-radius:12px;font-weight:700;cursor:pointer;}.cc-ok{flex:1;padding:12px;border:none;background:var(--petrol);color:#fff;border-radius:12px;font-weight:800;cursor:pointer;}";
+  st.textContent = "#customColorOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:100060;padding:18px;}#customColorOverlay.open{display:flex;}.cc-box{background:var(--card);color:var(--text);border-radius:20px;width:100%;max-width:300px;box-sizing:border-box;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,.3);}.cc-title{font-size:16px;font-weight:900;color:var(--petrol);margin-bottom:12px;text-align:center;}.cc-wheel{margin:2px auto 14px;width:" + CC_WHEEL + "px;max-width:100%;}.cc-preview{display:flex;gap:10px;margin-bottom:8px;}.cc-cellwrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}.cc-cell{width:100%;height:46px;border-radius:12px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;}.cc-cellwrap small{font-size:10px;font-weight:700;color:var(--muted);}.cc-hex{text-align:center;font-weight:800;font-size:13px;color:var(--muted);margin-bottom:14px;letter-spacing:.05em;}.cc-presets{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px;justify-content:center;}.cc-preset{width:28px;height:28px;border-radius:7px;cursor:pointer;box-shadow:0 0 0 1px var(--line);}.cc-actions{display:flex;gap:10px;}.cc-cancel{flex:1;padding:12px;border:1px solid var(--line);background:var(--soft);color:var(--muted);border-radius:12px;font-weight:700;cursor:pointer;}.cc-ok{flex:1;padding:12px;border:none;background:var(--petrol);color:#fff;border-radius:12px;font-weight:800;cursor:pointer;}";
   document.head.appendChild(st);
   const ov = document.createElement('div');
   ov.id = 'customColorOverlay';
   const presets = ['#1E6FE0','#16B1C9','#15B86B','#7BC62D','#F2B705','#FB8C00','#F0552B','#E0306E','#B5179E','#7C3AED','#5C6BC0','#2DBFA8','#D85045','#0E7E8F','#5A6B7A','#0D1B2A'];
-  ov.innerHTML = "<div class=\"cc-box\"><div class=\"cc-title\">Choisir une couleur</div><div class=\"cc-preview\"><div class=\"cc-cellwrap\"><span class=\"cc-cell\" id=\"ccPast\">12</span><small>effectué</small></div><div class=\"cc-cellwrap\"><span class=\"cc-cell\" id=\"ccFut\">20</span><small>à venir</small></div></div><div class=\"cc-hex\" id=\"ccHex\">#1E6FE0</div><div class=\"cc-sliders\"><label>R<input type=\"range\" id=\"ccR\" min=\"0\" max=\"255\"></label><label>V<input type=\"range\" id=\"ccG\" min=\"0\" max=\"255\"></label><label>B<input type=\"range\" id=\"ccB\" min=\"0\" max=\"255\"></label></div><div class=\"cc-presets\">" + presets.map(function(c){return "<span class=\"cc-preset\" data-c=\""+c+"\" style=\"background:"+c+"\"></span>";}).join("") + "</div><div class=\"cc-actions\"><button class=\"cc-cancel\" id=\"ccCancel\" type=\"button\">Annuler</button><button class=\"cc-ok\" id=\"ccOk\" type=\"button\">Valider</button></div></div>";
+  ov.innerHTML = "<div class=\"cc-box\"><div class=\"cc-title\">Choisir une couleur</div><div class=\"cc-wheel\">" + _ccWheelSVG() + "</div><div class=\"cc-preview\"><div class=\"cc-cellwrap\"><span class=\"cc-cell\" id=\"ccPast\">12</span><small>effectué</small></div><div class=\"cc-cellwrap\"><span class=\"cc-cell\" id=\"ccFut\">20</span><small>à venir</small></div></div><div class=\"cc-hex\" id=\"ccHex\">#1E6FE0</div><div class=\"cc-presets\">" + presets.map(function(c){return "<span class=\"cc-preset\" data-c=\""+c+"\" style=\"background:"+c+"\"></span>";}).join("") + "</div><div class=\"cc-actions\"><button class=\"cc-cancel\" id=\"ccCancel\" type=\"button\">Annuler</button><button class=\"cc-ok\" id=\"ccOk\" type=\"button\">Valider</button></div></div>";
   document.body.appendChild(ov);
-  function upd(){ const hex=_rgbHex(+ov.querySelector('#ccR').value,+ov.querySelector('#ccG').value,+ov.querySelector('#ccB').value); const b=_prodCellBgs(hex); const past=ov.querySelector('#ccPast'),fut=ov.querySelector('#ccFut'); past.style.background=b.past; past.style.color=b.tc; fut.style.background=b.fut; fut.style.color=b.tc; ov.querySelector('#ccHex').textContent=hex.toUpperCase(); }
-  ov.addEventListener('input', function(e){ if(e.target && e.target.type==='range') upd(); });
+  // Roue : clic + glisser (souris ET tactile via Pointer Events)
+  const wheel = ov.querySelector('#ccWheel');
+  wheel.addEventListener('pointerdown', function(e){ _ccDrag = true; _ccPickAt(e.clientX, e.clientY); e.preventDefault(); });
+  window.addEventListener('pointermove', function(e){ if (_ccDrag) { _ccPickAt(e.clientX, e.clientY); e.preventDefault(); } });
+  window.addEventListener('pointerup', function(){ _ccDrag = false; });
   ov.addEventListener('click', function(e){
     const pre = e.target.closest && e.target.closest('.cc-preset');
-    if (pre){ const a=_hexRgb(pre.dataset.c); ov.querySelector('#ccR').value=a[0]; ov.querySelector('#ccG').value=a[1]; ov.querySelector('#ccB').value=a[2]; upd(); return; }
+    if (pre){ _ccHex = pre.dataset.c; _ccUpd(); return; }
     if (e.target===ov || (e.target.closest && e.target.closest('#ccCancel'))){ ov.classList.remove('open'); _ccOnPick=null; return; }
-    if (e.target.closest && e.target.closest('#ccOk')){ const hex=ov.querySelector('#ccHex').textContent.toLowerCase(); ov.classList.remove('open'); if(_ccOnPick){ const cb=_ccOnPick; _ccOnPick=null; cb(hex); } }
+    if (e.target.closest && e.target.closest('#ccOk')){ const hex=_ccHex.toLowerCase(); ov.classList.remove('open'); if(_ccOnPick){ const cb=_ccOnPick; _ccOnPick=null; cb(hex); } }
   });
 }
 function openCustomColorPicker(initialHex, onPick){
   _ensureCustomColorModal();
   const ov = document.getElementById('customColorOverlay');
-  const a = _hexRgb(initialHex || '#1E6FE0');
-  ov.querySelector('#ccR').value=a[0]; ov.querySelector('#ccG').value=a[1]; ov.querySelector('#ccB').value=a[2];
-  const hex=_rgbHex(a[0],a[1],a[2]); const b=_prodCellBgs(hex); const past=ov.querySelector('#ccPast'),fut=ov.querySelector('#ccFut'); past.style.background=b.past; past.style.color=b.tc; fut.style.background=b.fut; fut.style.color=b.tc; ov.querySelector('#ccHex').textContent=hex.toUpperCase();
+  _ccHex = initialHex || '#1E6FE0';
+  _ccUpd();
   _ccOnPick = onPick;
   ov.classList.add('open');
 }
