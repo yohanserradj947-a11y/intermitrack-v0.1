@@ -1,6 +1,6 @@
 import { showAlert } from '../lib/dialog';
 import { useEffect, useState, useMemo } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, Modal, Platform, Linking, KeyboardAvoidingView, ScrollView, Switch } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, Modal, Platform, Linking, KeyboardAvoidingView, ScrollView, Switch, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { useSession } from '../lib/auth';
@@ -17,6 +17,30 @@ import { usePostes } from '../lib/postes';
 let _openMesInfos:(()=>void)|null=null;
 export function openMesInfos(){ if(_openMesInfos)_openMesInfos(); }
 
+// Compte admin (toi) : seul à voir l'écran Analytics.
+const ADMIN_EMAIL = 'yohanserradj947@gmail.com';
+
+// Petite tuile de statistique (écran admin).
+function StatBox({ label, value, C }: { label: string; value: any; C: any }) {
+  return (
+    <View style={{ flex: 1, backgroundColor: C.soft, borderRadius: 14, padding: 12 }}>
+      <Text style={{ fontSize: 22, fontWeight: '800', color: C.petrol }}>{value ?? '—'}</Text>
+      <Text style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{label}</Text>
+    </View>
+  );
+}
+
+// Ligne comparative App vs Site (écran admin).
+function CompareRow({ label, app, web, C }: { label: string; app: any; web: any; C: any }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: C.line }}>
+      <Text style={{ flex: 1, fontSize: 13.5, color: C.text, fontWeight: '600' }}>{label}</Text>
+      <Text style={{ width: 58, textAlign: 'right', fontSize: 14, fontWeight: '800', color: C.petrol }}>{app ?? 0}</Text>
+      <Text style={{ width: 58, textAlign: 'right', fontSize: 14, fontWeight: '800', color: C.muted }}>{web ?? 0}</Text>
+    </View>
+  );
+}
+
 export function AccountMenu(){
   const insets=useSafeAreaInsets();
   const { session, signOut } = useSession();
@@ -26,6 +50,10 @@ export function AccountMenu(){
 
   const [showAccount,setShowAccount]=useState(false);
   const [profil,setProfil]=useState<any>(null);
+  const [showStats,setShowStats]=useState(false);
+  const [stats,setStats]=useState<any>(null);
+  const [statsLoading,setStatsLoading]=useState(false);
+  const isAdmin=(session?.user?.email||'').toLowerCase()===ADMIN_EMAIL;
 
   const [showMesInfos,setShowMesInfos]=useState(false);
   const { postes, addPoste, removePoste } = usePostes();
@@ -96,6 +124,14 @@ export function AccountMenu(){
     Linking.openURL(url).catch(()=>showAlert('Impossible d\'ouvrir le mail','Écris-nous directement à Intermitrack@gmail.com'));
   }
 
+  async function openStats(){
+    setShowAccount(false); setShowStats(true); setStatsLoading(true); setStats(null);
+    const { data, error }=await supabase.rpc('get_admin_analytics');
+    setStatsLoading(false);
+    if(error){ setStats({ error:error.message }); return; }
+    setStats(data);
+  }
+
   const initials=(session?.user.email||'??').slice(0,2).toUpperCase();
 
   return(
@@ -128,6 +164,12 @@ export function AccountMenu(){
               <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="create-outline" size={13} color={C.petrol} /><Text style={s.accountReportTxt}>Mes informations</Text></View>
             </TouchableOpacity>
 
+            {isAdmin && (
+              <TouchableOpacity style={s.accountReportBtn} onPress={openStats}>
+                <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="stats-chart-outline" size={13} color={C.petrol} /><Text style={s.accountReportTxt}>Analytics (admin)</Text></View>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity style={s.accountReportBtn} onPress={reportBug}>
               <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="bug-outline" size={13} color={C.petrol} /><Text style={s.accountReportTxt}>Signaler un bug</Text></View>
             </TouchableOpacity>
@@ -155,6 +197,48 @@ export function AccountMenu(){
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
+      </Modal>
+
+      <Modal visible={showStats} animationType="slide" transparent onRequestClose={()=>setShowStats(false)}>
+        <View style={s.modalOverlay}>
+          <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={s.modalTitle}>📊 Analytics</Text>
+              {statsLoading ? (
+                <ActivityIndicator color={C.petrol} size="large" style={{marginVertical:34}} />
+              ) : stats?.error ? (
+                <Text style={{color:C.danger,textAlign:'center',marginVertical:20}}>{stats.error}</Text>
+              ) : stats ? (
+                <>
+                  <View style={{flexDirection:'row',gap:10,marginBottom:14}}>
+                    <StatBox label="Inscrits (total)" value={stats.total_users} C={C} />
+                    <StatBox label="Missions créées" value={stats.total_missions} C={C} />
+                  </View>
+
+                  <Text style={s.label}>Répartition App / Site</Text>
+                  <View style={{flexDirection:'row',alignItems:'center',marginBottom:2,marginTop:2}}>
+                    <Text style={{flex:1}} />
+                    <Text style={{width:58,textAlign:'right',fontSize:11,fontWeight:'800',color:C.petrol}}>📱 App</Text>
+                    <Text style={{width:58,textAlign:'right',fontSize:11,fontWeight:'800',color:C.muted}}>🌐 Site</Text>
+                  </View>
+                  <CompareRow label="Actifs (7 j)" app={stats.active_7d_mobile} web={stats.active_7d_web} C={C} />
+                  <CompareRow label="Actifs (30 j)" app={stats.active_30d_mobile} web={stats.active_30d_web} C={C} />
+                  <CompareRow label="Ont déjà utilisé" app={stats.users_mobile} web={stats.users_web} C={C} />
+                  <CompareRow label="Événements" app={stats.events_mobile} web={stats.events_web} C={C} />
+
+                  <Text style={[s.label,{marginTop:16}]}>Écrans les plus vus</Text>
+                  {(stats.top_views||[]).map((v:any)=>(
+                    <View key={v.screen} style={{flexDirection:'row',justifyContent:'space-between',paddingVertical:8,borderBottomWidth:1,borderBottomColor:C.line}}>
+                      <Text style={{color:C.text,fontWeight:'600',fontSize:14}}>{v.screen}</Text>
+                      <Text style={{color:C.petrol,fontWeight:'800',fontSize:14}}>{v.n}</Text>
+                    </View>
+                  ))}
+                </>
+              ) : null}
+              <TouchableOpacity style={s.cancelBtn} onPress={()=>setShowStats(false)}><Text style={s.cancelBtnTxt}>Fermer</Text></TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
 
       <Modal visible={showMesInfos} animationType="slide" transparent onRequestClose={()=>setShowMesInfos(false)}>

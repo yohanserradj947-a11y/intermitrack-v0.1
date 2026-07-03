@@ -1,13 +1,19 @@
 {
   "expo": {
-    "name": "intermitrack-mobile",
+    "name": "Intermitrack",
     "slug": "intermitrack-mobile",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "intermitrackmobile",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/6affbaa2-75e9-46bd-88e8-1b73f675cc70"
+    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "fr.intermitrack.app",
@@ -44,7 +50,13 @@
           }
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Intermitrack accède à ton calendrier pour importer tes missions et te faire gagner du temps."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

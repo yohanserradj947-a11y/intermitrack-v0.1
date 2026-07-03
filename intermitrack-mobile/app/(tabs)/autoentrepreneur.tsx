@@ -19,6 +19,7 @@ import { useTheme, useThemeControls } from '../../lib/theme';
 
 // const C = palette du thème (voir lib/theme.tsx). sage → C.green, orange → C.orange.
 const AE_PLAFOND = 77700;
+const AE_TVA_SEUIL = 39100; // seuil de franchise en base majoré (prestations de services) — paramétrable/à fiabiliser
 const AE_TAUX_DEFAUT = 24.6;
 const PRESTA_OPTIONS = ['Régie générale', 'Son / mix', 'Lumière', 'Vidéo / captation', 'Montage / post-prod', 'Montage-démontage', 'Création / conception', 'Photographie', 'Formation', 'Communication', 'Location de matériel', 'Frais de déplacement'];
 const UNITES = ['jour', 'heure', 'forfait', 'unité'];
@@ -52,6 +53,8 @@ export default function AutoEntrepreneur() {
 
   // Modale facture
   const [showFac, setShowFac] = useState(false);
+  const [docType, setDocType] = useState<'facture' | 'devis'>('facture');
+  const [facBonCmd, setFacBonCmd] = useState('');
   const [facEditId, setFacEditId] = useState<string | null>(null);
   const [facClient, setFacClient] = useState('');
   const [facAddr, setFacAddr] = useState('');
@@ -89,6 +92,7 @@ export default function AutoEntrepreneur() {
   // Modale profil (infos sur les factures)
   const [showProfile, setShowProfile] = useState(false);
   const [carnetOpen, setCarnetOpen] = useState(false);
+  const [showClients, setShowClients] = useState(false);
 
   // Modale société
   const [showSoc, setShowSoc] = useState(false);
@@ -150,13 +154,22 @@ export default function AutoEntrepreneur() {
   function updLigne(i: number, patch: Partial<Ligne>) { setLignes((p) => p.map((l, idx) => idx === i ? { ...l, ...patch } : l)); }
   function delLigne(i: number) { setLignes((p) => p.filter((_, idx) => idx !== i)); }
 
-  function openNewFacture() {
-    setFacEditId(null); setFacClient(''); setFacAddr(''); setFacStart(new Date()); setFacEnd(null); setFacStatus('impayee'); setLignes([]); setShowFac(true);
+  function openNewFacture(type: 'facture' | 'devis' = 'facture') {
+    setDocType(type); setFacEditId(null); setFacClient(''); setFacAddr(''); setFacStart(new Date()); setFacEnd(null); setFacStatus('impayee'); setFacBonCmd(''); setLignes([]); setShowFac(true);
   }
   function openEditFacture(f: any) {
     setFacEditId(f.id); setFacClient(f.client || ''); setFacAddr(f.client_address || '');
     setFacStart(new Date((f.facture_date) + 'T00:00:00')); setFacEnd(f.facture_end_date ? new Date(f.facture_end_date + 'T00:00:00') : null);
-    setFacStatus(f.status === 'payee' ? 'payee' : 'impayee');
+    setFacStatus(f.status === 'payee' ? 'payee' : 'impayee'); setDocType(f.type === 'devis' ? 'devis' : 'facture'); setFacBonCmd(f.bon_commande || '');
+    setLignes(Array.isArray(f.lignes) && f.lignes.length ? f.lignes.map((l: any) => ({ designation: l.designation || '', quantite: Number(l.quantite) || 1, unite: l.unite || 'forfait', prixUnitaire: Number(l.prixUnitaire) || 0 })) : [{ designation: f.prestation || '', quantite: 1, unite: 'forfait', prixUnitaire: Number(f.amount) || 0 }]);
+    setShowFac(true);
+  }
+  // Transforme un devis en NOUVELLE facture (le devis est conservé). Le n° de bon de commande peut être ajouté dans le formulaire.
+  function convertToFacture(f: any) {
+    setDocType('facture'); setFacEditId(null);
+    setFacClient(f.client || ''); setFacAddr(f.client_address || '');
+    setFacStart(new Date((f.facture_date) + 'T00:00:00')); setFacEnd(f.facture_end_date ? new Date(f.facture_end_date + 'T00:00:00') : null);
+    setFacStatus('impayee'); setFacBonCmd(f.bon_commande || '');
     setLignes(Array.isArray(f.lignes) && f.lignes.length ? f.lignes.map((l: any) => ({ designation: l.designation || '', quantite: Number(l.quantite) || 1, unite: l.unite || 'forfait', prixUnitaire: Number(l.prixUnitaire) || 0 })) : [{ designation: f.prestation || '', quantite: 1, unite: 'forfait', prixUnitaire: Number(f.amount) || 0 }]);
     setShowFac(true);
   }
@@ -175,12 +188,17 @@ export default function AutoEntrepreneur() {
       user_id: uid, client: facClient.trim(), client_address: facAddr.trim() || null,
       prestation: valid.map((l) => l.designation).join(', '), lignes: valid,
       facture_date: startISO, facture_end_date: endISO && endISO !== startISO ? endISO : null,
-      amount: total, status: facStatus,
+      amount: total, status: facStatus, type: docType, bon_commande: facBonCmd.trim() || null,
     };
     if (!facEditId) {
       const yr = startISO.slice(0, 4);
-      const nums = factures.filter((f) => (f.numero || '').startsWith(yr + '-')).map((f) => Number((f.numero || '').split('-')[1]) || 0);
-      payload.numero = `${yr}-${String((nums.length ? Math.max(...nums) : 0) + 1).padStart(3, '0')}`;
+      if (docType === 'devis') {
+        const dnums = factures.filter((f) => (f.numero || '').startsWith('D-' + yr + '-')).map((f) => Number((f.numero || '').split('-')[2]) || 0);
+        payload.numero = `D-${yr}-${String((dnums.length ? Math.max(...dnums) : 0) + 1).padStart(3, '0')}`;
+      } else {
+        const nums = factures.filter((f) => (f.numero || '').startsWith(yr + '-') && f.type !== 'devis').map((f) => Number((f.numero || '').split('-')[1]) || 0);
+        payload.numero = `${yr}-${String((nums.length ? Math.max(...nums) : 0) + 1).padStart(3, '0')}`;
+      }
     }
     const res = facEditId ? await supabase.from('factures').update(payload).eq('id', facEditId) : await supabase.from('factures').insert(payload);
     setSaving(false);
@@ -216,14 +234,14 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
 .tot{text-align:right;font-size:20px;font-weight:800;color:#0D4F6C;margin-top:6px;}
 .ment{margin-top:36px;font-size:11px;color:#64748B;line-height:1.6;border-top:1px solid #E5E8EB;padding-top:14px;}
 .foot{margin-top:22px;text-align:center;font-size:11px;color:#94A3B8;border-top:1px solid #E5E8EB;padding-top:14px;}</style></head><body>
-<div class="top"><div><h1>FACTURE</h1><div class="meta">N° ${esc(f.numero || '—')}<br>Date : ${fmtDate(f.facture_date)}</div></div>
+<div class="top"><div><h1>${f.type === 'devis' ? 'DEVIS' : 'FACTURE'}</h1><div class="meta">N° ${esc(f.numero || '—')}<br>Date : ${fmtDate(f.facture_date)}${f.bon_commande ? `<br>Bon de commande : ${esc(f.bon_commande)}` : ''}</div></div>
 <div class="seller"><div class="n">${esc(profile.nom)}</div><div style="font-size:11px;opacity:.9;">Entrepreneur individuel (EI)</div>${esc(profile.adresse).replace(/\n/g, '<br>')}<br>SIRET : ${esc(profile.siret)}<br>${esc(profile.contact)}</div></div>
 <div class="c"><div class="lbl">Facturé à</div><div class="cli">${esc(f.client)}</div>${esc(f.client_address || '').replace(/\n/g, '<br>')}
 <div style="color:#64748B;font-size:12px;margin-top:8px;">Période : ${esc(fmtPeriod(f.facture_date, f.facture_end_date))}</div>
 <table><thead><tr><th>Désignation</th><th>Qté</th><th class="r">PU HT</th><th class="r">Total</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="tot">Total : ${money2(Number(f.amount))}</div>
-<div class="ment">${esc(profile.tva)}<br>En cas de retard de paiement : indemnité forfaitaire pour frais de recouvrement de 40 € (art. L441-10 et D441-5 du Code de commerce).<br><span style="font-size:10px;color:#94A3B8;">Document généré à titre d'aide à la gestion via Intermitrack. L'émetteur reste seul responsable de l'exactitude et de la conformité légale de cette facture.</span></div>
-<div class="foot">Facture générée avec <b>Intermitrack</b> · intermitrack.fr</div></div></body></html>`;
+<div class="ment">${esc(profile.tva)}<br>${f.type === 'devis' ? 'Devis valable 30 jours. Bon pour accord (date + signature) :' : 'En cas de retard de paiement : indemnité forfaitaire pour frais de recouvrement de 40 € (art. L441-10 et D441-5 du Code de commerce).'}<br><span style="font-size:10px;color:#94A3B8;">Document généré à titre d'aide à la gestion via Intermitrack. L'émetteur reste seul responsable de l'exactitude et de la conformité légale de ce document.</span></div>
+<div class="foot">${f.type === 'devis' ? 'Devis généré' : 'Facture générée'} avec <b>Intermitrack</b> · intermitrack.fr</div></div></body></html>`;
     try {
       const { uri } = await Print.printToFileAsync({ html });
       if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' });
@@ -258,53 +276,87 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
         <Text style={s.pageSub}>Factures, chiffre d&apos;affaires et carnet de sociétés</Text>
       </View>
 
+      {/* ===== Tableau de bord ===== */}
+      <View style={{ paddingHorizontal: 16, gap: 11, marginBottom: 8 }}>
+        {/* CA + plafond */}
+        <View style={{ backgroundColor: C.card, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: C.line }}>
+          <Text style={{ fontSize: 10.5, fontWeight: '700', letterSpacing: 1, color: C.muted, textTransform: 'uppercase' }}>Chiffre d&apos;affaires {year}</Text>
+          <Text style={{ fontSize: 30, fontWeight: '800', color: C.petrol, marginTop: 2 }}>{money0(ys.total)}</Text>
+          <View style={{ height: 8, borderRadius: 6, backgroundColor: C.line, marginTop: 12, overflow: 'hidden' }}>
+            <View style={{ height: '100%', borderRadius: 6, backgroundColor: C.green, width: (pct + '%') as any }} />
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
+            <Text style={{ fontSize: 11, color: C.muted }}>{pct} % du plafond</Text>
+            <Text style={{ fontSize: 11, color: C.muted }}>Plafond {money0(AE_PLAFOND)}</Text>
+          </View>
+        </View>
+
+        {/* URSSAF à provisionner + net estimé */}
+        <View style={{ flexDirection: 'row', gap: 11 }}>
+          <View style={{ flex: 1, backgroundColor: C.card, borderRadius: 14, padding: 13, borderWidth: 1, borderColor: C.line }}>
+            <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 0.6, color: C.muted, textTransform: 'uppercase' }}>À provisionner URSSAF</Text>
+            <Text style={{ fontSize: 19, fontWeight: '800', color: C.orange, marginTop: 4 }}>≈ {money0(ys.paid * tauxNum)}</Text>
+            <Text style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>{taux} % du CA encaissé</Text>
+          </View>
+          <View style={{ flex: 1, backgroundColor: C.card, borderRadius: 14, padding: 13, borderWidth: 1, borderColor: C.line }}>
+            <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 0.6, color: C.muted, textTransform: 'uppercase' }}>Net estimé</Text>
+            <Text style={{ fontSize: 19, fontWeight: '800', color: C.text, marginTop: 4 }}>≈ {money0(ys.paid * (1 - tauxNum))}</Text>
+            <Text style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>après cotisations</Text>
+          </View>
+        </View>
+
+        {/* Factures encaissé / en attente */}
+        <View style={{ backgroundColor: C.card, borderRadius: 14, padding: 13, borderWidth: 1, borderColor: C.line }}>
+          <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 0.6, color: C.muted, textTransform: 'uppercase', marginBottom: 8 }}>Factures {year}</Text>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View style={{ flex: 1, backgroundColor: C.greenBg, borderRadius: 12, padding: 10, alignItems: 'center' }}>
+              <Text style={{ fontSize: 16, fontWeight: '800', color: C.green }}>{money0(ys.paid)}</Text>
+              <Text style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>Encaissé</Text>
+            </View>
+            <View style={{ flex: 1, backgroundColor: C.orangeBg, borderRadius: 12, padding: 10, alignItems: 'center' }}>
+              <Text style={{ fontSize: 16, fontWeight: '800', color: C.orange }}>{money0(ys.pending)}</Text>
+              <Text style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>En attente</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Jauge TVA */}
+        <View style={{ backgroundColor: C.card, borderRadius: 14, padding: 13, borderWidth: 1, borderColor: C.line }}>
+          <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 0.6, color: C.muted, textTransform: 'uppercase' }}>Franchise de TVA</Text>
+          <View style={{ height: 9, borderRadius: 6, backgroundColor: C.line, marginTop: 9, overflow: 'hidden' }}>
+            <View style={{ height: '100%', borderRadius: 6, backgroundColor: C.orange, width: (Math.min(100, Math.round((ys.total / AE_TVA_SEUIL) * 100)) + '%') as any }} />
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
+            <Text style={{ fontSize: 11, color: C.muted }}>{money0(ys.total)}</Text>
+            <Text style={{ fontSize: 11, color: C.muted }}>Seuil {money0(AE_TVA_SEUIL)}</Text>
+          </View>
+          <Text style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>
+            {ys.total < AE_TVA_SEUIL ? `Il te reste ${money0(AE_TVA_SEUIL - ys.total)} avant de devoir facturer la TVA.` : 'Seuil de franchise dépassé — TVA applicable.'}
+          </Text>
+        </View>
+
+        {/* Actions rapides */}
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity onPress={() => openNewFacture('devis')} activeOpacity={0.85} style={{ flex: 1, flexDirection: 'row', gap: 5, borderRadius: 13, paddingVertical: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: C.card, borderWidth: 1.5, borderColor: C.line }}>
+            <Ionicons name="add" size={16} color={C.petrol} /><Text style={{ color: C.petrol, fontWeight: '800', fontSize: 12.5 }}>Devis</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => openNewFacture('facture')} activeOpacity={0.85} style={{ flex: 1, flexDirection: 'row', gap: 5, borderRadius: 13, paddingVertical: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: C.card, borderWidth: 1.5, borderColor: C.line }}>
+            <Ionicons name="add" size={16} color={C.petrol} /><Text style={{ color: C.petrol, fontWeight: '800', fontSize: 12.5 }}>Facture</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowClients(true)} activeOpacity={0.85} style={{ flex: 1, flexDirection: 'row', gap: 5, borderRadius: 13, paddingVertical: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: C.card, borderWidth: 1.5, borderColor: C.line }}>
+            <Ionicons name="people-outline" size={16} color={C.petrol} /><Text style={{ color: C.petrol, fontWeight: '800', fontSize: 12.5 }}>Clients</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <TouchableOpacity style={s.infoBtn} onPress={() => setShowProfile(true)}>
         <View style={{flexDirection:'row',alignItems:'center',gap:5,flex:1}}><Ionicons name="receipt-outline" size={13} color={C.petrol} /><Text style={s.infoBtnTxt}>Mes informations (pour les factures)</Text></View>
         <Text style={s.infoBtnArrow}>Modifier ›</Text>
       </TouchableOpacity>
 
-      {/* Carnet (dépliable) */}
-      <TouchableOpacity style={s.infoBtn} activeOpacity={0.7} onPress={() => setCarnetOpen(o => !o)}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
-          <Ionicons name="people-outline" size={14} color={C.petrol} />
-          <Text style={s.infoBtnTxt}>Mon carnet de sociétés</Text>
-        </View>
-        <Ionicons name={carnetOpen ? 'chevron-up' : 'chevron-down'} size={16} color={C.petrol} />
-      </TouchableOpacity>
-      {carnetOpen && (
-        <View style={{ marginTop: 6 }}>
-          <View style={{ paddingHorizontal: 16, marginBottom: 10 }}>
-            <GradientButton label="+ Société" onPress={openNewSoc} style={s.addBtn} textStyle={s.addBtnTxt} />
-          </View>
-          {societes.length === 0 ? (
-            <Text style={[s.empty, { paddingHorizontal: 16 }]}>Carnet vide. Touche « + Société » pour ajouter un contact.</Text>
-          ) : (
-            <>
-              <View style={s.socGrid}>
-                {socPageItems.map((soc) => (
-                  <TouchableOpacity key={soc.id} style={s.socChip} onPress={() => openEditSoc(soc)}>
-                    <LinearGradient colors={['#1F4E5F', '#12754A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.socAv}><Text style={s.socAvTxt}>{(soc.nom || '?').slice(0, 2).toUpperCase()}</Text></LinearGradient>
-                    <Text style={s.socChipName} numberOfLines={1}>{soc.nom}</Text>
-                    <Text style={s.socChipType} numberOfLines={1}>{soc.type}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              {socPages > 1 && (
-                <View style={s.pagination}>
-                  <TouchableOpacity disabled={sp === 1} style={[s.pageBtn, sp === 1 && s.pageBtnOff]} onPress={() => setSocPage(sp - 1)}><Text style={s.pageBtnTxt}>‹</Text></TouchableOpacity>
-                  <Text style={s.pageInd}>{sp} / {socPages}</Text>
-                  <TouchableOpacity disabled={sp === socPages} style={[s.pageBtn, sp === socPages && s.pageBtnOff]} onPress={() => setSocPage(sp + 1)}><Text style={s.pageBtnTxt}>›</Text></TouchableOpacity>
-                </View>
-              )}
-            </>
-          )}
-        </View>
-      )}
-
       {/* Factures */}
       <View style={s.sectionHead}>
         <Text style={s.sectionTitle}>Mes factures</Text>
-        <GradientButton label="+ Facture" onPress={openNewFacture} style={s.addBtn} textStyle={s.addBtnTxt} />
       </View>
       <View style={s.filterBar}>
         {([['all', 'Tout'], ['payee', 'Payées'], ['impayee', 'À encaisser']] as const).map(([k, lbl]) => (
@@ -318,15 +370,20 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
           <View key={f.id} style={s.facCard}>
             <View style={s.facTop}>
               <Text style={s.facClient} numberOfLines={1}>{f.client}</Text>
-              <View style={[s.statusPill, { backgroundColor: f.status === 'payee' ? C.greenBg : C.orangeBg }]}>
-                <Text style={[s.statusTxt, { color: f.status === 'payee' ? C.green : C.orange }]}>{f.status === 'payee' ? 'Payée' : 'À encaisser'}</Text>
-              </View>
+              {f.type === 'devis' ? (
+                <View style={[s.statusPill, { backgroundColor: C.orangeBg }]}><Text style={[s.statusTxt, { color: C.orange }]}>Devis</Text></View>
+              ) : (
+                <View style={[s.statusPill, { backgroundColor: f.status === 'payee' ? C.greenBg : C.orangeBg }]}>
+                  <Text style={[s.statusTxt, { color: f.status === 'payee' ? C.green : C.orange }]}>{f.status === 'payee' ? 'Payée' : 'À encaisser'}</Text>
+                </View>
+              )}
             </View>
             <Text style={s.facMeta} numberOfLines={1}>{f.prestation}</Text>
             <Text style={s.facMeta}>{f.numero ? 'N° ' + f.numero + ' · ' : ''}{fmtPeriod(f.facture_date, f.facture_end_date)}</Text>
             <View style={s.facBottom}>
               <Text style={s.facAmount}>{money2(Number(f.amount))}</Text>
               <View style={s.facActions}>
+                {f.type === 'devis' && <TouchableOpacity style={s.ghostBtn} onPress={() => convertToFacture(f)}><Text style={[s.ghostBtnTxt, { color: C.green }]}>→ Facture</Text></TouchableOpacity>}
                 <GradientButton label="PDF" onPress={() => generatePdf(f)} style={s.pdfBtn} textStyle={s.pdfBtnTxt} />
                 <TouchableOpacity style={s.ghostBtn} onPress={() => openEditFacture(f)}><Text style={s.ghostBtnTxt}>Modifier</Text></TouchableOpacity>
               </View>
@@ -364,7 +421,7 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
           <View style={s.overlay}>
             <View style={[s.modalCard, { paddingBottom: 22 + insets.bottom }]}>
               <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                <Text style={s.modalTitle}>{facEditId ? 'Modifier la facture' : 'Nouvelle facture'}</Text>
+                <Text style={s.modalTitle}>{facEditId ? (docType === 'devis' ? 'Modifier le devis' : 'Modifier la facture') : (docType === 'devis' ? 'Nouveau devis' : 'Nouvelle facture')}</Text>
 
                 {societes.length > 0 && (
                   <>
@@ -381,6 +438,12 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
                 <TextInput style={s.input} value={facClient} onChangeText={setFacClient} placeholder="Nom du client" placeholderTextColor={C.muted} />
                 <Text style={s.label}>Adresse du client (optionnel)</Text>
                 <AddressInput style={s.input} value={facAddr} onChangeText={setFacAddr} placeholder="Commence à taper, choisis dans la liste" />
+                {docType === 'facture' && (
+                  <>
+                    <Text style={s.label}>N° de bon de commande (optionnel)</Text>
+                    <TextInput style={s.input} value={facBonCmd} onChangeText={setFacBonCmd} placeholder="Ex : 26-2038" placeholderTextColor={C.muted} />
+                  </>
+                )}
 
                 <View style={s.row}>
                   <View style={{ flex: 1 }}>
@@ -490,6 +553,36 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
             </View>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ===== Pop-up Clients (liste + ajout) ===== */}
+      <Modal visible={showClients && !showSoc} animationType="slide" transparent onRequestClose={() => setShowClients(false)}>
+        <View style={s.overlay}>
+          <View style={[s.modalCard, { paddingBottom: 22 + insets.bottom }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <Text style={s.modalTitle}>Mes clients</Text>
+              <TouchableOpacity onPress={() => setShowClients(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}><Ionicons name="close" size={22} color={C.muted} /></TouchableOpacity>
+            </View>
+            <GradientButton label="+ Ajouter un client" onPress={openNewSoc} style={s.addBtn} textStyle={s.addBtnTxt} />
+            {societes.length === 0 ? (
+              <Text style={[s.empty, { marginTop: 16 }]}>Aucun client pour l&apos;instant. Touche « + Ajouter un client ».</Text>
+            ) : (
+              <ScrollView style={{ marginTop: 12, maxHeight: 400 }} showsVerticalScrollIndicator={false}>
+                {societes.map((soc) => (
+                  <TouchableOpacity key={soc.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: C.line }} onPress={() => openEditSoc(soc)}>
+                    <LinearGradient colors={['#1F4E5F', '#12754A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>{(soc.nom || '?').slice(0, 2).toUpperCase()}</Text></LinearGradient>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={{ fontSize: 14.5, fontWeight: '700', color: C.text }} numberOfLines={1}>{soc.nom}</Text>
+                      <Text style={{ fontSize: 12, color: C.muted }} numberOfLines={1}>{soc.type}{soc.email ? ' · ' + soc.email : ''}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={17} color={C.muted} />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+            <TouchableOpacity style={[s.cancelBtn, { marginTop: 16 }]} onPress={() => setShowClients(false)}><Text style={s.cancelBtnTxt}>Fermer</Text></TouchableOpacity>
+          </View>
+        </View>
       </Modal>
 
       {/* ===== Modale Société ===== */}

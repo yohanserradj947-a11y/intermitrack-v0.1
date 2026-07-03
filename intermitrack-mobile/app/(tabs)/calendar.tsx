@@ -18,6 +18,7 @@ import ColorPickerModal from '../../components/ColorPickerModal';
 import ProdColorManager from '../../components/ProdColorManager';
 import NoteFormModal from '../../components/NoteFormModal';
 import NoteDetailModal from '../../components/NoteDetailModal';
+import CalendarImportModal from '../../components/CalendarImportModal';
 import { useNotes, noteAbbr, Note } from '../../lib/notes';
 import { usePostes } from '../../lib/postes';
 import Svg, { Line } from 'react-native-svg';
@@ -62,6 +63,7 @@ export default function Calendar(){
   const { getColor, setColor, custom, addCustom, reset } = useProdColors();
   const [colorPickerOpen,setColorPickerOpen]=useState(false);
   const [managerOpen,setManagerOpen]=useState(false);
+  const [showImport,setShowImport]=useState(false);
   const { notes, notesForDate } = useNotes();
   const [noteFormOpen,setNoteFormOpen]=useState(false);
   const [noteFormEdit,setNoteFormEdit]=useState<Note|null>(null);
@@ -329,6 +331,16 @@ export default function Calendar(){
         <Text style={s.navLabel}>{monthLabel(current)}</Text>
         <TouchableOpacity style={s.navBtn} onPress={()=>moveMonth(1)}><Text style={s.navTxt}>›</Text></TouchableOpacity>
       </View>
+
+      <TouchableOpacity
+        onPress={()=>setShowImport(true)}
+        activeOpacity={0.85}
+        style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8,marginHorizontal:14,marginBottom:10,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
+        <Ionicons name="calendar-outline" size={18} color={C.petrol}/>
+        <Text style={{color:C.petrol,fontWeight:'800',fontSize:13.5}}>Importer depuis mon calendrier</Text>
+      </TouchableOpacity>
+
+      <CalendarImportModal visible={showImport} onClose={()=>setShowImport(false)} onImported={()=>loadMissions()}/>
 
       <View style={s.colorTools}>
         <TouchableOpacity style={s.colorToolBtn} onPress={()=>setManagerOpen(true)}>
