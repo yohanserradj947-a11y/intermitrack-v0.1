@@ -19,6 +19,7 @@ import ProdColorManager from '../../components/ProdColorManager';
 import NoteFormModal from '../../components/NoteFormModal';
 import NoteDetailModal from '../../components/NoteDetailModal';
 import CalendarImportModal from '../../components/CalendarImportModal';
+import { syncWidgets } from '../../lib/widgetSync';
 import { useNotes, noteAbbr, Note } from '../../lib/notes';
 import { usePostes } from '../../lib/postes';
 import Svg, { Line } from 'react-native-svg';
@@ -64,6 +65,7 @@ export default function Calendar(){
   const [colorPickerOpen,setColorPickerOpen]=useState(false);
   const [managerOpen,setManagerOpen]=useState(false);
   const [showImport,setShowImport]=useState(false);
+  const [importMode,setImportMode]=useState<'calendar'|'excel'>('calendar');
   const { notes, notesForDate } = useNotes();
   const [noteFormOpen,setNoteFormOpen]=useState(false);
   const [noteFormEdit,setNoteFormEdit]=useState<Note|null>(null);
@@ -125,7 +127,7 @@ export default function Calendar(){
   },[pulse]));
   async function loadMissions(silent=false){
     const{data}=await supabase.from('missions').select('*').order('mission_date',{ascending:true});
-    if(data)setMissions(data);
+    if(data){ setMissions(data); syncWidgets(data, getColor); }
     if(!silent)setLoading(false);
   }
 
@@ -332,15 +334,19 @@ export default function Calendar(){
         <TouchableOpacity style={s.navBtn} onPress={()=>moveMonth(1)}><Text style={s.navTxt}>›</Text></TouchableOpacity>
       </View>
 
-      <TouchableOpacity
-        onPress={()=>setShowImport(true)}
-        activeOpacity={0.85}
-        style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8,marginHorizontal:14,marginBottom:10,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
-        <Ionicons name="calendar-outline" size={18} color={C.petrol}/>
-        <Text style={{color:C.petrol,fontWeight:'800',fontSize:13.5}}>Importer depuis mon calendrier</Text>
-      </TouchableOpacity>
+      <Text style={{marginHorizontal:16,marginTop:2,marginBottom:6,fontSize:12.5,fontWeight:'700',color:C.muted}}>Importer mes missions</Text>
+      <View style={{flexDirection:'row',gap:8,marginHorizontal:14,marginBottom:10}}>
+        <TouchableOpacity onPress={()=>{setImportMode('calendar');setShowImport(true);}} activeOpacity={0.85} style={{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
+          <Ionicons name="calendar-outline" size={17} color={C.petrol}/>
+          <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}}>Calendrier</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={()=>{setImportMode('excel');setShowImport(true);}} activeOpacity={0.85} style={{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
+          <Ionicons name="document-text-outline" size={17} color={C.petrol}/>
+          <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}}>Excel / CSV</Text>
+        </TouchableOpacity>
+      </View>
 
-      <CalendarImportModal visible={showImport} onClose={()=>setShowImport(false)} onImported={()=>loadMissions()}/>
+      <CalendarImportModal visible={showImport} mode={importMode} onClose={()=>setShowImport(false)} onImported={()=>loadMissions()}/>
 
       <View style={s.colorTools}>
         <TouchableOpacity style={s.colorToolBtn} onPress={()=>setManagerOpen(true)}>

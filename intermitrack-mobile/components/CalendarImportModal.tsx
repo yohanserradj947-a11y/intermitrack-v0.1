@@ -7,8 +7,10 @@ import { useTheme } from '../lib/theme';
 import { supabase } from '../lib/supabase';
 import { GradientButton } from './GradientButton';
 import { scanCalendar, MissionDraft } from '../lib/calendarImport';
+import { pickAndParseExcel } from '../lib/excelImport';
 
 type Phase = 'intro' | 'loading' | 'preview' | 'importing' | 'done' | 'denied' | 'empty';
+type Mode = 'calendar' | 'excel';
 
 function fmtShort(iso: string) {
   const [y, m, d] = iso.split('-');
@@ -16,8 +18,8 @@ function fmtShort(iso: string) {
 }
 
 export default function CalendarImportModal({
-  visible, onClose, onImported,
-}: { visible: boolean; onClose: () => void; onImported?: () => void }) {
+  visible, onClose, onImported, mode = 'calendar',
+}: { visible: boolean; onClose: () => void; onImported?: () => void; mode?: Mode }) {
   const C = useTheme();
   const [phase, setPhase] = useState<Phase>('intro');
   const [drafts, setDrafts] = useState<MissionDraft[]>([]);
@@ -33,8 +35,11 @@ export default function CalendarImportModal({
   async function analyze() {
     setError(''); setPhase('loading');
     try {
-      const { status, drafts: found } = await scanCalendar();
-      if (status !== 'granted') { setPhase('denied'); return; }
+      const { status, drafts: found } = mode === 'excel' ? await pickAndParseExcel() : await scanCalendar();
+      if (mode === 'excel') {
+        if (status === 'canceled') { setPhase('intro'); return; }
+        if (status !== 'ok') { setError('Fichier vide ou colonnes non reconnues (attendu : Date, Production, Heures, Tarif).'); setPhase('intro'); return; }
+      } else if (status !== 'granted') { setPhase('denied'); return; }
       // On évite les doublons : on retire ce qui existe déjà (même date + même prod).
       const existing = new Set<string>();
       try {
@@ -148,7 +153,7 @@ export default function CalendarImportModal({
       <View style={s.overlay}>
         <View style={s.card}>
           <View style={s.head}>
-            <Text style={s.title}>Importer depuis mon calendrier</Text>
+            <Text style={s.title}>{mode === 'excel' ? 'Importer depuis un Excel' : 'Importer depuis mon calendrier'}</Text>
             <TouchableOpacity onPress={close} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Text style={s.close}>✕</Text>
             </TouchableOpacity>
@@ -157,15 +162,17 @@ export default function CalendarImportModal({
           {phase === 'intro' && (
             <View style={s.pad}>
               <Text style={s.body}>
-                Intermitrack va lire ton calendrier (iPhone/Samsung) et créer tes missions
-                automatiquement — plus besoin de tout saisir à la main.
+                {mode === 'excel'
+                  ? 'Choisis ton fichier Excel ou CSV : Intermitrack lit les colonnes (Date, Production, Heures, Tarif…) et crée tes missions.'
+                  : 'Intermitrack va lire ton calendrier (iPhone/Samsung) et créer tes missions automatiquement — plus besoin de tout saisir à la main.'}
               </Text>
               <Text style={s.bodyMuted}>
-                On récupère la prod, les dates, les heures, le lieu, et le prix s'il est écrit.
-                Tu pourras tout vérifier avant d'importer.
+                {mode === 'excel'
+                  ? "On récupère la prod, les dates, les heures, le prix et le lieu. Tu pourras tout vérifier avant d'importer."
+                  : "On récupère la prod, les dates, les heures, le lieu, et le prix s'il est écrit. Tu pourras tout vérifier avant d'importer."}
               </Text>
               {!!error && <Text style={s.err}>{error}</Text>}
-              <GradientButton onPress={analyze} label="Analyser mon calendrier" style={s.cta} textStyle={s.ctaTxt} />
+              <GradientButton onPress={analyze} label={mode === 'excel' ? 'Choisir mon fichier' : 'Analyser mon calendrier'} style={s.cta} textStyle={s.ctaTxt} />
             </View>
           )}
 

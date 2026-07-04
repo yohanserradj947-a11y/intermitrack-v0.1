@@ -1,0 +1,193 @@
+import WidgetKit
+import SwiftUI
+
+let APP_GROUP = "group.fr.intermitrack.app"
+let ORANGE = Color(red: 0.976, green: 0.451, blue: 0.086) // #F97316
+
+// MARK: - Données partagées (JSON écrit par l'app RN via ExtensionStorage)
+struct HoursData: Codable { var done: Double; var target: Double }
+struct NextData: Codable { var when: String; var date: String; var prod: String; var lieu: String; var hours: Double; var price: Double }
+struct CalDay: Codable { var d: Int; var ab: String; var color: String; var past: Bool }
+struct CalData: Codable { var title: String; var firstWeekday: Int; var daysInMonth: Int; var today: Int; var days: [CalDay] }
+
+func loadJSON<T: Decodable>(_ key: String) -> T? {
+  guard let defs = UserDefaults(suiteName: APP_GROUP),
+        let str = defs.string(forKey: key),
+        let data = str.data(using: .utf8) else { return nil }
+  return try? JSONDecoder().decode(T.self, from: data)
+}
+
+extension Color {
+  init(hexString: String) {
+    let h = hexString.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+    var v: UInt64 = 0
+    Scanner(string: h).scanHexInt64(&v)
+    if h.count == 6 {
+      self.init(red: Double((v >> 16) & 0xFF) / 255, green: Double((v >> 8) & 0xFF) / 255, blue: Double(v & 0xFF) / 255)
+    } else {
+      self.init(red: 0.122, green: 0.306, blue: 0.373)
+    }
+  }
+}
+
+extension View {
+  @ViewBuilder func widgetBg() -> some View {
+    if #available(iOS 17.0, *) { self.containerBackground(for: .widget) { Color(.systemBackground) } }
+    else { self.padding(14).background(Color(.systemBackground)) }
+  }
+}
+
+// MARK: - HEURES / 507 h
+struct HoursEntry: TimelineEntry { let date: Date; let data: HoursData }
+struct HoursProvider: TimelineProvider {
+  func placeholder(in c: Context) -> HoursEntry { HoursEntry(date: Date(), data: HoursData(done: 342, target: 507)) }
+  func getSnapshot(in c: Context, completion: @escaping (HoursEntry) -> Void) {
+    completion(HoursEntry(date: Date(), data: loadJSON("widget_hours") ?? HoursData(done: 0, target: 507)))
+  }
+  func getTimeline(in c: Context, completion: @escaping (Timeline<HoursEntry>) -> Void) {
+    let e = HoursEntry(date: Date(), data: loadJSON("widget_hours") ?? HoursData(done: 0, target: 507))
+    completion(Timeline(entries: [e], policy: .after(Date().addingTimeInterval(3600))))
+  }
+}
+struct HoursView: View {
+  var data: HoursData
+  var pct: Double { data.target > 0 ? min(1, max(0, data.done / data.target)) : 0 }
+  var body: some View {
+    VStack(alignment: .leading, spacing: 4) {
+      Text("HEURES / DROITS").font(.system(size: 10, weight: .bold)).foregroundColor(.secondary)
+      Spacer(minLength: 2)
+      ZStack {
+        Circle().stroke(Color.secondary.opacity(0.2), lineWidth: 9)
+        Circle().trim(from: 0, to: pct).stroke(ORANGE, style: StrokeStyle(lineWidth: 9, lineCap: .round)).rotationEffect(.degrees(-90))
+        VStack(spacing: 0) {
+          Text("\(Int(data.done))").font(.system(size: 21, weight: .heavy)).foregroundColor(.primary)
+          Text("/ \(Int(data.target)) h").font(.system(size: 10)).foregroundColor(.secondary)
+        }
+      }.frame(maxWidth: .infinity)
+      Spacer(minLength: 2)
+      Text("\(max(0, Int(data.target - data.done))) h restantes").font(.system(size: 11, weight: .semibold)).foregroundColor(.secondary)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    .widgetBg()
+  }
+}
+struct HoursWidget: Widget {
+  var body: some WidgetConfiguration {
+    StaticConfiguration(kind: "IntermitrackHours", provider: HoursProvider()) { e in HoursView(data: e.data) }
+      .configurationDisplayName("Heures / droits (507 h)")
+      .description("Ta progression vers les droits France Travail.")
+      .supportedFamilies([.systemSmall])
+  }
+}
+
+// MARK: - PROCHAINE MISSION
+struct NextEntry: TimelineEntry { let date: Date; let data: NextData? }
+struct NextProvider: TimelineProvider {
+  func placeholder(in c: Context) -> NextEntry { NextEntry(date: Date(), data: NextData(when: "Demain", date: "ven. 4 juil.", prod: "AIRPROD", lieu: "Studio 4", hours: 8, price: 230)) }
+  func getSnapshot(in c: Context, completion: @escaping (NextEntry) -> Void) { completion(NextEntry(date: Date(), data: loadJSON("widget_next"))) }
+  func getTimeline(in c: Context, completion: @escaping (Timeline<NextEntry>) -> Void) {
+    completion(Timeline(entries: [NextEntry(date: Date(), data: loadJSON("widget_next"))], policy: .after(Date().addingTimeInterval(3600))))
+  }
+}
+struct NextView: View {
+  var data: NextData?
+  func fmtH(_ h: Double) -> String { h == h.rounded() ? "\(Int(h))" : String(format: "%.1f", h) }
+  var body: some View {
+    VStack(alignment: .leading, spacing: 3) {
+      Text("PROCHAINE MISSION").font(.system(size: 10, weight: .bold)).foregroundColor(.secondary)
+      if let d = data {
+        Text(d.when.uppercased()).font(.system(size: 11, weight: .heavy)).foregroundColor(ORANGE)
+        Text(d.prod).font(.system(size: 18, weight: .heavy)).foregroundColor(.primary).lineLimit(1)
+        Spacer(minLength: 2)
+        Text("\(d.date) · \(fmtH(d.hours)) h").font(.system(size: 12, weight: .semibold)).foregroundColor(.primary).lineLimit(1)
+        if d.price > 0 || !d.lieu.isEmpty {
+          Text([d.price > 0 ? "\(Int(d.price)) €" : "", d.lieu].filter { !$0.isEmpty }.joined(separator: " · "))
+            .font(.system(size: 12)).foregroundColor(.secondary).lineLimit(1)
+        }
+      } else {
+        Spacer(minLength: 2)
+        Text("Aucune mission à venir").font(.system(size: 13)).foregroundColor(.secondary)
+      }
+      Spacer(minLength: 0)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    .widgetBg()
+  }
+}
+struct NextWidget: Widget {
+  var body: some WidgetConfiguration {
+    StaticConfiguration(kind: "IntermitrackNext", provider: NextProvider()) { e in NextView(data: e.data) }
+      .configurationDisplayName("Prochaine mission")
+      .description("Ta prochaine mission d'un coup d'œil.")
+      .supportedFamilies([.systemSmall])
+  }
+}
+
+// MARK: - CALENDRIER DU MOIS
+struct CalEntry: TimelineEntry { let date: Date; let data: CalData? }
+struct CalProvider: TimelineProvider {
+  func placeholder(in c: Context) -> CalEntry { CalEntry(date: Date(), data: nil) }
+  func getSnapshot(in c: Context, completion: @escaping (CalEntry) -> Void) { completion(CalEntry(date: Date(), data: loadJSON("widget_calendar"))) }
+  func getTimeline(in c: Context, completion: @escaping (Timeline<CalEntry>) -> Void) {
+    completion(Timeline(entries: [CalEntry(date: Date(), data: loadJSON("widget_calendar"))], policy: .after(Date().addingTimeInterval(3600))))
+  }
+}
+struct CalCell: View {
+  let day: Int; let info: CalDay?; let today: Int
+  var body: some View {
+    ZStack {
+      if day == today {
+        RoundedRectangle(cornerRadius: 5).strokeBorder(Color.primary, lineWidth: 1.5)
+        Text("\(day)").font(.system(size: 9, weight: .bold)).foregroundColor(.primary)
+      } else if let i = info {
+        RoundedRectangle(cornerRadius: 5).fill(Color(hexString: i.color)).opacity(i.past ? 0.5 : 1)
+        Text(i.ab).font(.system(size: 8, weight: .heavy)).foregroundColor(.white)
+      } else {
+        Text("\(day)").font(.system(size: 9)).foregroundColor(.secondary)
+      }
+    }.frame(height: 21)
+  }
+}
+struct CalView: View {
+  var data: CalData?
+  let cols = Array(repeating: GridItem(.flexible(), spacing: 3), count: 7)
+  var body: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      if let cal = data {
+        Text(cal.title).font(.system(size: 14, weight: .heavy)).foregroundColor(.primary)
+        let byDay = Dictionary(cal.days.map { ($0.d, $0) }, uniquingKeysWith: { a, _ in a })
+        LazyVGrid(columns: cols, spacing: 3) {
+          ForEach(Array(["L","M","M","J","V","S","D"].enumerated()), id: \.offset) { _, w in
+            Text(w).font(.system(size: 8, weight: .bold)).foregroundColor(.secondary)
+          }
+          ForEach(0..<max(0, cal.firstWeekday - 1), id: \.self) { _ in Color.clear.frame(height: 21) }
+          ForEach(1...max(1, cal.daysInMonth), id: \.self) { day in
+            CalCell(day: day, info: byDay[day], today: cal.today)
+          }
+        }
+      } else {
+        Text("Ouvre Intermitrack pour afficher ton mois.").font(.system(size: 12)).foregroundColor(.secondary)
+      }
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    .widgetBg()
+  }
+}
+struct CalWidget: Widget {
+  var body: some WidgetConfiguration {
+    StaticConfiguration(kind: "IntermitrackCalendar", provider: CalProvider()) { e in CalView(data: e.data) }
+      .configurationDisplayName("Calendrier du mois")
+      .description("Tes missions du mois, colorées par prod.")
+      .supportedFamilies([.systemMedium, .systemLarge])
+  }
+}
+
+// MARK: - Bundle
+@main
+struct IntermitrackWidgets: WidgetBundle {
+  var body: some Widget {
+    CalWidget()
+    HoursWidget()
+    NextWidget()
+  }
+}
