@@ -61,6 +61,9 @@ export default function Calendar(){
   const C = useTheme();
   const { scheme } = useThemeControls();
   const s = useMemo(() => makeS(C), [C]);
+  // Dégradés par défaut des jours SANS couleur perso — suivent le thème (or en Noir & Or, etc.).
+  const GRAD_PAST_T: [string, string] = [C.petrol, C.green];
+  const GRAD_FUTURE_T = prodGradient(C.orange);
   const { getColor, setColor, custom, addCustom, reset } = useProdColors();
   const [colorPickerOpen,setColorPickerOpen]=useState(false);
   const [managerOpen,setManagerOpen]=useState(false);
@@ -383,7 +386,7 @@ export default function Calendar(){
           const noteMark=has&&dayNotes.length>0;
           const customCol=has?(first?getColor(first.production):null):(noteOnly?(note0.color||'#1E6FE0'):null);
           const fillable=has||noteOnly;
-          const grad=(!isToday&&fillable)?(customCol?prodGradient(customCol):(isPast?GRAD_PAST:GRAD_FUTURE)):null;
+          const grad=(!isToday&&fillable)?(customCol?prodGradient(customCol):(isPast?GRAD_PAST_T:GRAD_FUTURE_T)):null;
           const filled=grad!=null;
           const hach=filled&&(noteOnly||(isPast&&!!customCol)); // notes hachurées ; missions passées perso hachurées
           const baseTxt=customCol?textOn(customCol):'#fff';
@@ -782,7 +785,7 @@ export default function Calendar(){
 }
 
 const makeS=(C:any)=>StyleSheet.create({
-  container:{flex:1,backgroundColor:C.bg},
+  container:{flex:1,backgroundColor:'transparent'},
   center:{flex:1,justifyContent:'center',alignItems:'center',backgroundColor:C.bg},
   headerBar:{paddingHorizontal:18,paddingTop:54,paddingBottom:4},
   headerTitle:{fontSize:26,fontWeight:'900',color:C.petrol,letterSpacing:-0.5,borderLeftWidth:5,borderLeftColor:C.petrol,paddingLeft:12},

@@ -267,7 +267,7 @@ export default function Previsions(){
 }
 
 const makeS=(C:any)=>StyleSheet.create({
-  container:{flex:1,backgroundColor:C.bg},
+  container:{flex:1,backgroundColor:'transparent'},
   center:{flex:1,justifyContent:'center',alignItems:'center',backgroundColor:C.bg},
   header:{backgroundColor:C.card,padding:18,paddingTop:52,borderBottomWidth:1,borderBottomColor:C.line},
   title:{fontSize:24,fontWeight:'900',color:C.petrol,letterSpacing:-0.5},

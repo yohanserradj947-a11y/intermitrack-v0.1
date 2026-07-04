@@ -108,7 +108,7 @@ export default function Contacts() {
 }
 
 const makeS = (C: any) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg },
+  container: { flex: 1, backgroundColor: 'transparent' },
   pageHeader: { backgroundColor: C.card, padding: 18, paddingTop: 52, borderBottomWidth: 1, borderBottomColor: C.line },
   pageTitle: { fontSize: 22, fontWeight: '900', color: C.petrol, letterSpacing: -0.5 },
   pageSub: { fontSize: 13, color: C.muted, marginTop: 4 },

@@ -8,6 +8,7 @@ import { SwipeHint } from '@/components/swipe-hint';
 import { AccountMenu } from '@/components/AccountMenu';
 import WhatsNewModal from '@/components/WhatsNewModal';
 import OnboardingTour from '@/components/OnboardingTour';
+import ThemeBackdrop from '@/components/ThemeBackdrop';
 import { useTheme } from '@/lib/theme';
 
 // Onglets "material top tabs" → permettent le swipe gauche/droite,
@@ -22,9 +23,11 @@ export default function TabLayout() {
   const C = useTheme();
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
+    <ThemeBackdrop />
     <MaterialTopTabs
       tabBarPosition="bottom"
       screenOptions={{
+        sceneStyle: { backgroundColor: 'transparent' },
         swipeEnabled: true,
         lazy: true,
         tabBarScrollEnabled: true,

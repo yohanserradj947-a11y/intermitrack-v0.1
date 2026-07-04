@@ -44,8 +44,8 @@ export default function Gauge({ done, planned, total }: { done: number; planned:
           )}
         </Svg>
         <View style={g.center}>
-          <Text style={[g.pct, reached && { color: C.green }]}>{totalPct}%</Text>
-          <Text style={[g.sub, reached && { color: C.green, fontWeight: '800' }]}>{reached ? '507 h atteint' : 'potentiel total'}</Text>
+          <Text style={[g.pct, reached && { color: C.petrol }]}>{totalPct}%</Text>
+          <Text style={[g.sub, reached && { color: C.petrol, fontWeight: '800' }]}>{reached ? '507 h atteint' : 'potentiel total'}</Text>
         </View>
       </View>
       <View style={g.legends}>

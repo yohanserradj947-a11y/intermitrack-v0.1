@@ -7,8 +7,9 @@ import { useSession } from '../lib/auth';
 import NumInput from './NumInput';
 import { GradientButton } from './GradientButton';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, useThemeControls } from '../lib/theme';
+import { useTheme, useThemeControls, THEME_META } from '../lib/theme';
 import { usePostes } from '../lib/postes';
+import ThemeModal from './ThemeModal';
 
 // palette via useTheme()
 
@@ -44,11 +45,13 @@ function CompareRow({ label, app, web, C }: { label: string; app: any; web: any;
 export function AccountMenu(){
   const insets=useSafeAreaInsets();
   const { session, signOut } = useSession();
-  const { scheme, toggle } = useThemeControls();
+  const { themeId } = useThemeControls();
   const C = useTheme();
   const s = useMemo(() => makeS(C), [C]);
 
   const [showAccount,setShowAccount]=useState(false);
+  const [showTheme,setShowTheme]=useState(false);
+  const themeLabel = THEME_META.find(t=>t.id===themeId)?.label ?? 'Sur mesure';
   const [profil,setProfil]=useState<any>(null);
   const [showStats,setShowStats]=useState(false);
   const [stats,setStats]=useState<any>(null);
@@ -150,13 +153,9 @@ export function AccountMenu(){
               <Text style={{fontSize:12.5,fontWeight:'800',color:'#B7791F'}}>⭐ Pionnier — gratuit à vie</Text>
             </View>
 
-            <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:2,marginBottom:12,paddingHorizontal:4}}>
-              <View style={{flexDirection:'row',alignItems:'center',gap:7}}>
-                <Ionicons name="moon-outline" size={17} color={C.petrol} />
-                <Text style={{fontSize:14,fontWeight:'700',color:C.text}}>Mode sombre</Text>
-              </View>
-              <Switch value={scheme==='dark'} onValueChange={toggle} trackColor={{false:'#CBD5E0',true:C.petrol}} thumbColor="#FFFFFF" />
-            </View>
+            <TouchableOpacity style={s.accountReportBtn} onPress={()=>{setShowAccount(false);setShowTheme(true);}} activeOpacity={0.85}>
+              <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="color-palette-outline" size={13} color={C.petrol} /><Text style={s.accountReportTxt}>Thème — {themeLabel}</Text></View>
+            </TouchableOpacity>
 
             <GradientButton onPress={()=>{setShowAccount(false);signOut();}} style={s.accountBtn} textStyle={s.accountBtnTxt} label="Se déconnecter" />
 
@@ -198,6 +197,8 @@ export function AccountMenu(){
           </View>
         </TouchableOpacity>
       </Modal>
+
+      <ThemeModal visible={showTheme} onClose={()=>setShowTheme(false)} />
 
       <Modal visible={showStats} animationType="slide" transparent onRequestClose={()=>setShowStats(false)}>
         <View style={s.modalOverlay}>

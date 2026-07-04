@@ -509,7 +509,7 @@ const makeMp=(C:any)=>StyleSheet.create({
 });
 
 const makeS=(C:any)=>StyleSheet.create({
-  container:{flex:1,backgroundColor:C.bg},
+  container:{flex:1,backgroundColor:'transparent'},
   center:{flex:1,justifyContent:'center',alignItems:'center',backgroundColor:C.bg},
   logoBox:{width:46,height:46,borderRadius:14,backgroundColor:C.petrol,justifyContent:'center',alignItems:'center'},
   logoTxt:{color:'white',fontWeight:'800',fontSize:22},
