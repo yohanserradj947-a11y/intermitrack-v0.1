@@ -1,7 +1,7 @@
 /** @type {import('@bacons/apple-targets/app.plugin').ConfigFunction} */
 module.exports = (config) => ({
   type: "widget",
-  name: "Intermitrack",
+  name: "widget",
   colors: {
     $accent: "#1F4E5F",
     $widgetBackground: "#FFFFFF",
