@@ -165,26 +165,25 @@ struct CalProvider: TimelineProvider {
 }
 struct CalCell: View {
   let day: Int; let info: CalDay?; let today: Int; let h: CGFloat; let big: Bool
+  var isToday: Bool { day == today }
+  var mission: CalDay? { if let i = info, !i.g.isEmpty { return i }; return nil }
   var body: some View {
-    let isToday = day == today
+    if big { bigCell } else { compactCell }
+  }
+  // GRAND widget : numéro en haut (aujourd'hui = pastille) + bande d'initiales de la mission dessous
+  var bigCell: some View {
     VStack(spacing: 1.5) {
-      // Numéro du jour — toujours visible en haut (style iPhone : aujourd'hui = pastille pleine)
       ZStack {
         if isToday { Circle().fill(ORANGE).frame(width: h * 0.44, height: h * 0.44) }
-        Text("\(day)")
-          .font(.system(size: h * 0.28, weight: isToday ? .bold : .medium))
-          .foregroundColor(isToday ? .white : .primary)
+        Text("\(day)").font(.system(size: h * 0.28, weight: isToday ? .bold : .medium)).foregroundColor(isToday ? .white : .primary)
       }
       .frame(height: h * 0.44)
-      // Bande mission / note (initiales), sous le numéro
-      if let i = info, !i.g.isEmpty {
+      if let i = mission {
         ZStack {
           RoundedRectangle(cornerRadius: 3).fill(LinearGradient(colors: i.g.map { Color(hexString: $0) }, startPoint: .leading, endPoint: .trailing))
           if i.hach { HachureOverlay().clipShape(RoundedRectangle(cornerRadius: 3)) }
           Text(i.ab).font(.system(size: h * 0.24, weight: .heavy)).foregroundColor(Color(hexString: i.txt)).lineLimit(1).minimumScaleFactor(0.5).padding(.horizontal, 1)
-          if !i.note.isEmpty {
-            VStack { HStack { Spacer(); Circle().fill(Color(hexString: i.note)).frame(width: 5, height: 5).overlay(Circle().stroke(Color.white, lineWidth: 0.5)) }; Spacer() }.padding(1)
-          }
+          noteDot(5)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
       } else {
@@ -192,6 +191,27 @@ struct CalCell: View {
       }
     }
     .frame(height: h)
+  }
+  // MOYEN widget (court) : lisibilité max — fond coloré par prod + gros numéro centré (style iPhone)
+  var compactCell: some View {
+    ZStack {
+      if let i = mission {
+        RoundedRectangle(cornerRadius: 4).fill(LinearGradient(colors: i.g.map { Color(hexString: $0) }, startPoint: .topLeading, endPoint: .bottomTrailing))
+        if i.hach { HachureOverlay().clipShape(RoundedRectangle(cornerRadius: 4)) }
+      }
+      if isToday { Circle().fill(ORANGE).frame(width: h * 0.80, height: h * 0.80) }
+      Text("\(day)")
+        .font(.system(size: h * 0.46, weight: (isToday || mission != nil) ? .heavy : .medium))
+        .foregroundColor(isToday ? .white : (mission.map { Color(hexString: $0.txt) } ?? .primary))
+        .minimumScaleFactor(0.6)
+      if !isToday { noteDot(6) }
+    }
+    .frame(height: h)
+  }
+  @ViewBuilder func noteDot(_ size: CGFloat) -> some View {
+    if let i = info, !i.note.isEmpty {
+      VStack { HStack { Spacer(); Circle().fill(Color(hexString: i.note)).frame(width: size, height: size).overlay(Circle().stroke(Color.white, lineWidth: 0.5)) }; Spacer() }.padding(1.5)
+    }
   }
 }
 struct UpcomingRow: View {
