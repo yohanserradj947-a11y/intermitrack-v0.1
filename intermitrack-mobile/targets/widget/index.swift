@@ -139,8 +139,8 @@ struct CalCell: View {
   var body: some View {
     ZStack {
       if day == today {
-        RoundedRectangle(cornerRadius: 5).strokeBorder(Color.primary, lineWidth: 1.5)
-        Text("\(day)").font(.system(size: h * 0.42, weight: .bold)).foregroundColor(.primary)
+        RoundedRectangle(cornerRadius: 5).fill(ORANGE)
+        Text("\(day)").font(.system(size: h * 0.46, weight: .heavy)).foregroundColor(.white)
       } else if let i = info {
         RoundedRectangle(cornerRadius: 5).fill(Color(hexString: i.color)).opacity(i.past ? 0.5 : 1)
         Text(i.ab).font(.system(size: h * 0.36, weight: .heavy)).foregroundColor(.white).minimumScaleFactor(0.6).lineLimit(1).padding(.horizontal, 1)
