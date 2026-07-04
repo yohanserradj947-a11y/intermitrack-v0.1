@@ -22,7 +22,7 @@
     "production": {
       "android": {
         "serviceAccountKeyPath": "./google-play-key.json",
-        "track": "alpha"
+        "track": "production"
       },
       "ios": {
         "appleId": "serrftv@gmail.com",
