@@ -227,56 +227,101 @@ struct UpcomingRow: View {
     }
   }
 }
+// Mini-case du calendrier (colonne de gauche du widget moyen)
+struct MiniCell: View {
+  let day: Int; let info: CalDay?; let today: Int
+  var isToday: Bool { day == today }
+  var mission: CalDay? { if let i = info, !i.g.isEmpty { return i }; return nil }
+  var body: some View {
+    ZStack {
+      if let m = mission { RoundedRectangle(cornerRadius: 2.5).fill(LinearGradient(colors: m.g.map { Color(hexString: $0) }, startPoint: .topLeading, endPoint: .bottomTrailing)) }
+      if isToday { Circle().fill(ORANGE).frame(width: 15, height: 15) }
+      Text("\(day)").font(.system(size: 8, weight: (isToday || mission != nil) ? .heavy : .medium)).foregroundColor(isToday ? .white : (mission.map { Color(hexString: $0.txt) } ?? .primary)).minimumScaleFactor(0.7)
+    }.frame(height: 15)
+  }
+}
 struct CalView: View {
   var data: CalData?
   @Environment(\.widgetFamily) var family
   let cols = Array(repeating: GridItem(.flexible(), spacing: 3), count: 7)
   var body: some View {
-    let big = family == .systemLarge
     if let cal = data {
-      let leading = max(0, cal.firstWeekday - 1)
-      let numRows = max(1, Int(ceil(Double(leading + max(1, cal.daysInMonth)) / 7.0)))
-      let byDay = Dictionary(cal.days.map { ($0.d, $0) }, uniquingKeysWith: { a, _ in a })
-      VStack(alignment: .leading, spacing: big ? 6 : 4) {
-        Text(cal.title).font(.system(size: big ? 16 : 13, weight: .heavy)).foregroundColor(.primary)
-        HStack(spacing: 3) {
-          ForEach(Array(["L","M","M","J","V","S","D"].enumerated()), id: \.offset) { _, w in
-            Text(w).font(.system(size: big ? 10 : 8, weight: .bold)).foregroundColor(.secondary).frame(maxWidth: .infinity)
-          }
-        }
-        if big {
-          // Grand widget : cases confortables + prochaines missions dessous
-          calGrid(cal: cal, byDay: byDay, leading: leading, ch: 34, big: true)
-          if let up = cal.upcoming, !up.isEmpty {
-            Divider().padding(.vertical, 1)
-            ForEach(Array(up.enumerated()), id: \.offset) { _, m in UpcomingRow(m: m) }
-          }
-          Spacer(minLength: 0)
-        } else {
-          // Widget moyen : la grille remplit la place → tout le mois rentre toujours
-          GeometryReader { geo in
-            let ch = max(14, (geo.size.height - CGFloat(numRows - 1) * 3) / CGFloat(numRows))
-            calGrid(cal: cal, byDay: byDay, leading: leading, ch: ch, big: false)
-          }
-        }
-      }
-      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-      .widgetBg()
+      if family == .systemLarge { monthView(cal) } else { agendaView(cal) }
     } else {
-      Text("Ouvre Intermitrack pour afficher ton mois.")
+      Text("Ouvre Intermitrack pour afficher tes missions.")
         .font(.system(size: 12)).foregroundColor(.secondary)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .widgetBg()
     }
   }
-  @ViewBuilder
-  func calGrid(cal: CalData, byDay: [Int: CalDay], leading: Int, ch: CGFloat, big: Bool) -> some View {
-    LazyVGrid(columns: cols, spacing: 3) {
-      ForEach(0..<leading, id: \.self) { _ in Color.clear.frame(height: ch) }
-      ForEach(1...max(1, cal.daysInMonth), id: \.self) { day in
-        CalCell(day: day, info: byDay[day], today: cal.today, h: ch, big: big)
+  // GRAND : mois complet + prochaines missions (le format qui plaît)
+  func monthView(_ cal: CalData) -> some View {
+    let leading = max(0, cal.firstWeekday - 1)
+    let byDay = Dictionary(cal.days.map { ($0.d, $0) }, uniquingKeysWith: { a, _ in a })
+    return VStack(alignment: .leading, spacing: 6) {
+      Text(cal.title).font(.system(size: 16, weight: .heavy)).foregroundColor(.primary)
+      HStack(spacing: 3) {
+        ForEach(Array(["L","M","M","J","V","S","D"].enumerated()), id: \.offset) { _, w in
+          Text(w).font(.system(size: 10, weight: .bold)).foregroundColor(.secondary).frame(maxWidth: .infinity)
+        }
+      }
+      LazyVGrid(columns: cols, spacing: 3) {
+        ForEach(0..<leading, id: \.self) { _ in Color.clear.frame(height: 34) }
+        ForEach(1...max(1, cal.daysInMonth), id: \.self) { day in
+          CalCell(day: day, info: byDay[day], today: cal.today, h: 34, big: true)
+        }
+      }
+      if let up = cal.upcoming, !up.isEmpty {
+        Divider().padding(.vertical, 1)
+        ForEach(Array(up.enumerated()), id: \.offset) { _, m in UpcomingRow(m: m) }
+      }
+      Spacer(minLength: 0)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    .widgetBg()
+  }
+  // MOYEN : mini-calendrier du mois (gauche) + prochaines missions (droite), façon Calendrier iPhone
+  func agendaView(_ cal: CalData) -> some View {
+    let leading = max(0, cal.firstWeekday - 1)
+    let byDay = Dictionary(cal.days.map { ($0.d, $0) }, uniquingKeysWith: { a, _ in a })
+    let miniCols = Array(repeating: GridItem(.flexible(), spacing: 2), count: 7)
+    return HStack(alignment: .top, spacing: 12) {
+      // GAUCHE : mini-calendrier des jours
+      VStack(alignment: .leading, spacing: 3) {
+        Text(cal.title).font(.system(size: 11, weight: .heavy)).foregroundColor(.primary).lineLimit(1)
+        LazyVGrid(columns: miniCols, spacing: 2) {
+          ForEach(Array(["L","M","M","J","V","S","D"].enumerated()), id: \.offset) { _, w in
+            Text(w).font(.system(size: 6.5, weight: .bold)).foregroundColor(.secondary).frame(maxWidth: .infinity)
+          }
+          ForEach(0..<leading, id: \.self) { _ in Color.clear.frame(height: 15) }
+          ForEach(1...max(1, cal.daysInMonth), id: \.self) { day in
+            MiniCell(day: day, info: byDay[day], today: cal.today)
+          }
+        }
+      }
+      .frame(width: 152)
+      // DROITE : prochaines missions
+      VStack(alignment: .leading, spacing: 7) {
+        Text("À VENIR").font(.system(size: 9.5, weight: .heavy)).foregroundColor(ORANGE)
+        if let up = cal.upcoming, !up.isEmpty {
+          ForEach(Array(up.prefix(3).enumerated()), id: \.offset) { _, m in
+            HStack(spacing: 7) {
+              RoundedRectangle(cornerRadius: 2).fill(Color(hexString: m.color)).frame(width: 4, height: 26)
+              VStack(alignment: .leading, spacing: 1) {
+                Text(m.prod).font(.system(size: 13, weight: .heavy)).foregroundColor(.primary).lineLimit(1)
+                Text("\(m.date) · \(fmtHours(m.hours)) h").font(.system(size: 10, weight: .medium)).foregroundColor(.secondary).lineLimit(1)
+              }
+              Spacer(minLength: 0)
+            }
+          }
+        } else {
+          Text("Aucune mission à venir").font(.system(size: 12)).foregroundColor(.secondary)
+        }
+        Spacer(minLength: 0)
       }
     }
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    .widgetBg()
   }
 }
 struct CalWidget: Widget {
