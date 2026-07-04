@@ -8,15 +8,14 @@ import { useSession } from '../lib/auth';
 
 // Clé versionnée : pour réafficher le pop-up lors d'une PROCHAINE mise à jour,
 // il suffira de changer cette clé (ex: _v1_0_3) et de mettre à jour ITEMS.
-const SEEN_KEY = 'intermitrack_whatsnew_v1_1_0';
+const SEEN_KEY = 'intermitrack_whatsnew_v1_1_1';
 
 const ITEMS: { icon: any; title: string; text: string }[] = [
-  { icon: 'color-palette-outline', title: 'Couleurs par production', text: "Donne une couleur à chaque prod : elle s'applique au calendrier, à tes missions et au graphique. Palette + roue de couleurs perso." },
-  { icon: 'create-outline', title: 'Notes perso', text: 'Ajoute des notes sur ton calendrier (RDV, congés, repos…) avec une couleur, sans les mélanger à tes missions.' },
-  { icon: 'location-outline', title: 'Lieu des missions', text: 'Un champ « Lieu » sur tes missions, avec suggestions de tes lieux déjà saisis.' },
-  { icon: 'briefcase-outline', title: 'Tes postes', text: 'Ajoute tes propres postes (ex : Clown, Cascadeur) — ils reviennent automatiquement sur tes prochaines missions.' },
-  { icon: 'receipt-outline', title: 'Factures plus rapides', text: 'Auto-entrepreneur : ajoute tes prestations via une liste à cocher, avec tes prestations perso mémorisées.' },
-  { icon: 'sparkles-outline', title: 'Plus lisible', text: 'Icônes premium sur les cartes, contours plus nets et finitions un peu partout.' },
+  { icon: 'apps-outline', title: "Widgets écran d'accueil (iPhone)", text: "Ajoute le calendrier de tes missions, ta prochaine mission et ton compteur d'heures 507 h directement sur l'écran d'accueil." },
+  { icon: 'cloud-download-outline', title: 'Importe tes missions', text: "Récupère tes missions en 1 clic depuis le calendrier de ton téléphone ou un fichier Excel / CSV." },
+  { icon: 'trending-up-outline', title: "Compteur d'heures sans plafond", text: 'La jauge des 507 h affiche ta vraie progression, même au-delà de 100 % (118 %, 150 %…).' },
+  { icon: 'calculator-outline', title: 'Estimation France Travail affinée', text: 'Le calcul intègre le plafond de cumul (salaire + allocation) pour coller au plus près du réel. Reste indicatif.' },
+  { icon: 'document-text-outline', title: 'Auto-entrepreneur : devis + tableau de bord', text: "Crée tes devis, transforme-les en factures, et suis ton CA, ton URSSAF et ta TVA d'un coup d'œil." },
 ];
 
 export default function WhatsNewModal() {
