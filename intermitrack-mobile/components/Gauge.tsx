@@ -20,11 +20,14 @@ function arc(cx: number, cy: number, r: number, startFrac: number, endFrac: numb
 export default function Gauge({ done, planned, total }: { done: number; planned: number; total: number }) {
   const C = useTheme();
   const g = useMemo(() => makeG(C), [C]);
+  // Fractions pour le TRACÉ de l'arc (plafonnées à un demi-cercle plein)
   const doneP = Math.max(0, Math.min(done / total, 1));
   const planP = Math.max(0, Math.min(planned / total, 1 - doneP));
-  const totalPct = Math.round((doneP + planP) * 100);
-  const donePct = Math.round(doneP * 100);
-  const planPct = Math.round(planP * 100);
+  // Pourcentages AFFICHÉS : non plafonnés (peuvent dépasser 100 %)
+  const donePct = Math.round((Math.max(0, done) / total) * 100);
+  const planPct = Math.round((Math.max(0, planned) / total) * 100);
+  const totalPct = Math.round(((Math.max(0, done) + Math.max(0, planned)) / total) * 100);
+  const reached = totalPct >= 100;
 
   const W = 260, H = 150, cx = 130, cy = 138, r = 108, sw = 22;
 
@@ -41,8 +44,8 @@ export default function Gauge({ done, planned, total }: { done: number; planned:
           )}
         </Svg>
         <View style={g.center}>
-          <Text style={g.pct}>{totalPct}%</Text>
-          <Text style={g.sub}>potentiel total</Text>
+          <Text style={[g.pct, reached && { color: C.green }]}>{totalPct}%</Text>
+          <Text style={[g.sub, reached && { color: C.green, fontWeight: '800' }]}>{reached ? '507 h atteint' : 'potentiel total'}</Text>
         </View>
       </View>
       <View style={g.legends}>
