@@ -7,7 +7,7 @@ let ORANGE = Color(red: 0.976, green: 0.451, blue: 0.086) // #F97316
 // MARK: - Données partagées (JSON écrit par l'app RN via ExtensionStorage)
 struct HoursData: Codable { var done: Double; var planned: Double?; var target: Double }
 struct NextData: Codable { var when: String; var date: String; var prod: String; var lieu: String; var hours: Double; var price: Double }
-struct CalDay: Codable { var d: Int; var ab: String; var color: String; var past: Bool }
+struct CalDay: Codable { var d: Int; var ab: String; var g: [String]; var txt: String; var hours: Double; var more: Int; var hach: Bool; var note: String }
 struct UpNext: Codable { var date: String; var prod: String; var color: String; var hours: Double; var price: Double }
 struct CalData: Codable { var title: String; var firstWeekday: Int; var daysInMonth: Int; var today: Int; var days: [CalDay]; var upcoming: [UpNext]? }
 
@@ -35,6 +35,21 @@ extension View {
   @ViewBuilder func widgetBg() -> some View {
     if #available(iOS 17.0, *) { self.containerBackground(for: .widget) { Color(.systemBackground) } }
     else { self.padding(14).background(Color(.systemBackground)) }
+  }
+}
+
+func fmtHours(_ h: Double) -> String { h == h.rounded() ? "\(Int(h))" : String(format: "%.1f", h) }
+
+// Hachures diagonales (jours en note seule / missions passées perso), comme l'app.
+struct HachureOverlay: View {
+  var body: some View {
+    GeometryReader { geo in
+      Path { p in
+        let w = geo.size.width, hh = geo.size.height
+        var x: CGFloat = -hh
+        while x < w { p.move(to: CGPoint(x: x, y: 0)); p.addLine(to: CGPoint(x: x + hh, y: hh)); x += 6 }
+      }.stroke(Color.white.opacity(0.32), lineWidth: 1.5)
+    }
   }
 }
 
@@ -135,15 +150,34 @@ struct CalProvider: TimelineProvider {
   }
 }
 struct CalCell: View {
-  let day: Int; let info: CalDay?; let today: Int; let h: CGFloat
+  let day: Int; let info: CalDay?; let today: Int; let h: CGFloat; let big: Bool
   var body: some View {
     ZStack {
       if day == today {
-        RoundedRectangle(cornerRadius: 5).fill(ORANGE)
-        Text("\(day)").font(.system(size: h * 0.46, weight: .heavy)).foregroundColor(.white)
-      } else if let i = info {
-        RoundedRectangle(cornerRadius: 5).fill(Color(hexString: i.color)).opacity(i.past ? 0.5 : 1)
-        Text(i.ab).font(.system(size: h * 0.36, weight: .heavy)).foregroundColor(.white).minimumScaleFactor(0.6).lineLimit(1).padding(.horizontal, 1)
+        // Aujourd'hui : encadré accent bien visible (comme le repère du jour dans l'app)
+        RoundedRectangle(cornerRadius: 5).fill(ORANGE.opacity(0.16))
+        RoundedRectangle(cornerRadius: 5).strokeBorder(ORANGE, lineWidth: 2)
+        if let i = info, !i.ab.isEmpty {
+          VStack(spacing: 0) {
+            Text("\(day)").font(.system(size: h * 0.34, weight: .heavy)).foregroundColor(ORANGE)
+            Text(i.ab).font(.system(size: h * 0.26, weight: .bold)).foregroundColor(ORANGE).lineLimit(1).minimumScaleFactor(0.6).padding(.horizontal, 1)
+          }
+        } else {
+          Text("\(day)").font(.system(size: h * 0.46, weight: .heavy)).foregroundColor(ORANGE)
+        }
+      } else if let i = info, !i.g.isEmpty {
+        // Jour mission/note : dégradé couleur prod (ou auto passé/futur), hachures si besoin
+        RoundedRectangle(cornerRadius: 5).fill(LinearGradient(colors: i.g.map { Color(hexString: $0) }, startPoint: .topLeading, endPoint: .bottomTrailing))
+        if i.hach { HachureOverlay().clipShape(RoundedRectangle(cornerRadius: 5)) }
+        VStack(spacing: 0) {
+          Text(i.ab).font(.system(size: h * (big ? 0.30 : 0.36), weight: .heavy)).foregroundColor(Color(hexString: i.txt)).lineLimit(1).minimumScaleFactor(0.6).padding(.horizontal, 1)
+          if big && i.hours > 0 {
+            Text("\(fmtHours(i.hours))h\(i.more > 0 ? " ·+\(i.more)" : "")").font(.system(size: h * 0.21, weight: .semibold)).foregroundColor(Color(hexString: i.txt)).opacity(0.9).lineLimit(1).minimumScaleFactor(0.6)
+          }
+        }
+        if !i.note.isEmpty {
+          VStack { HStack { Spacer(); Circle().fill(Color(hexString: i.note)).frame(width: big ? 8 : 6, height: big ? 8 : 6).overlay(Circle().stroke(Color.white, lineWidth: 1)) }; Spacer() }.padding(2)
+        }
       } else {
         Text("\(day)").font(.system(size: h * 0.42)).foregroundColor(.secondary)
       }
@@ -180,7 +214,7 @@ struct CalView: View {
           }
           ForEach(0..<max(0, cal.firstWeekday - 1), id: \.self) { _ in Color.clear.frame(height: cellH) }
           ForEach(1...max(1, cal.daysInMonth), id: \.self) { day in
-            CalCell(day: day, info: byDay[day], today: cal.today, h: cellH)
+            CalCell(day: day, info: byDay[day], today: cal.today, h: cellH, big: big)
           }
         }
         if big, let up = cal.upcoming, !up.isEmpty {

@@ -127,7 +127,7 @@ export default function Calendar(){
   },[pulse]));
   async function loadMissions(silent=false){
     const{data}=await supabase.from('missions').select('*').order('mission_date',{ascending:true});
-    if(data){ setMissions(data); syncWidgets(data, getColor); }
+    if(data){ setMissions(data); syncWidgets(data, getColor, notes); }
     if(!silent)setLoading(false);
   }
 
