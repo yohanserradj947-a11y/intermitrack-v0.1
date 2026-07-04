@@ -19,6 +19,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="style.css?v=14" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js" integrity="sha384-wgi7s9Y2xefdDru3II6Xb11y/YNoKVbuydTikWejwId9z2xRd8SveCTrJjj/QAnH" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
   <style>
     /* ===== LANDING PAGE FIXE PAR-DESSUS TOUT ===== */
     #authBox {
@@ -593,7 +594,7 @@ z-index: 500 !important;
   <div class="stats">
             <div class="stat"><b id="monthHours">0h</b><span>Heures </span></div>
             <div class="stat"><b id="monthNet">0 EUR</b><span>Net à payer (est.)</span><small id="monthGross" style="display:block;font-size:11px;font-weight:600;color:#8a9a97;margin-top:2px;">Brut 0 €</small></div>
-            <div class="stat"><b id="missionCount">0</b><span>Jours</span></div>
+            <div class="stat"><b id="missionCount">0</b><span>Vacations</span></div>
             <div class="stat"><b id="monthRateNet">0 EUR</b><span>Moyenne €/h (net est.)</span><small id="monthRate" style="display:block;font-size:11px;font-weight:600;color:#8a9a97;margin-top:2px;">Brut 0 €/h</small></div>
           </div>
           <div id="poleEmploiBox" style="margin-top:14px;"></div>
@@ -743,10 +744,6 @@ z-index: 500 !important;
       </section>
 <section class="view" id="view-calendar">
         <article class="card"></article>
-        <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;font-size:13px;color:#9AA5B1;">
-          <span>📅 Synchroniser avec mon agenda</span>
-          <span style="background:#F0F2F1;color:#9AA5B1;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;">Bientôt</span>
-        </div>
       </section>
 
       <section class="view" id="view-actualisation">
@@ -762,6 +759,7 @@ z-index: 500 !important;
           <div class="act-stats-row" id="actualisationStats" style="display:none;">
             <div class="act-stat-box"><strong id="actualisationCount">0</strong><span>Missions</span></div>
             <div class="act-stat-box"><strong id="actualisationHours">0h</strong><span>Heures totales</span></div>
+            <div class="act-stat-box"><strong id="actualisationVac">0</strong><span>Vacations</span></div>
             <div class="act-stat-box highlight"><strong id="actualisationGross">0 €</strong><span>Brut total</span></div>
           </div>
           <div class="actualisation-table-wrap" id="actualisationTableWrap" style="display:none;">
@@ -1006,9 +1004,19 @@ z-index: 500 !important;
           <h2>Auto-entrepreneur</h2>
           <p class="sub">Gère tes prestations facturées en micro-entreprise, séparément de tes cachets d'intermittent. ⚠️ Ces revenus sont à déclarer à France Travail et n'entrent pas dans tes heures intermittent.</p>
 
-          <details id="aeProfileBlock" class="ae-fold">
-            <summary><svg class="ae-fold-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M5.5 16a3 3 0 0 1 6 0"/><path d="M14 10h4M14 13h3"/></svg>Mes informations <span class="ae-fold-sub">(sur les factures PDF)</span><svg class="ae-fold-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
-            <div style="margin-top:12px;">
+          <div id="aeDashboard" class="ae-dashboard"></div>
+
+          <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;">
+            <button type="button" class="cal-tool-btn" id="aeNewDevisBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Devis</button>
+            <button type="button" class="cal-tool-btn" id="aeNewFactureBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Facture</button>
+            <button type="button" class="cal-tool-btn" id="aeClientsBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 4.5a3 3 0 0 1 0 7.5"/></svg>Clients</button>
+            <button type="button" class="cal-tool-btn" id="aeInfosBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M5.5 16a3 3 0 0 1 6 0"/><path d="M14 10h4M14 13h3"/></svg>Mes infos</button>
+          </div>
+
+          <div class="ae-modal" id="aeProfileModal">
+            <div class="ae-modal-box">
+              <button type="button" class="ae-modal-close" data-aeclose aria-label="Fermer">✕</button>
+              <h3 style="margin:0 0 12px;color:var(--petrol);">Mes informations <span style="font-size:12px;font-weight:400;color:#9AA5B1;">(sur les factures PDF)</span></h3>
               <label for="aeProfNom">Nom / raison sociale</label>
               <input id="aeProfNom" autocomplete="off" placeholder="Ex : Jean Dupont" />
               <label for="aeProfSiret">SIRET</label>
@@ -1019,13 +1027,17 @@ z-index: 500 !important;
               <input id="aeProfContact" autocomplete="off" placeholder="Ex : jean@email.com · 06 12 34 56 78" />
               <label for="aeProfTva">Mention TVA</label>
               <input id="aeProfTva" autocomplete="off" value="TVA non applicable, art. 293 B du CGI" />
+              <label for="aeTaux" style="margin-top:14px;">Taux de cotisation URSSAF (%)</label>
+              <input id="aeTaux" type="number" min="0" step="0.1" placeholder="24,6" />
+              <p class="hint">Selon ton activité : ~21,2 % (BIC) ou ~24,6 % (BNC). À vérifier sur autoentrepreneur.urssaf.fr</p>
               <button class="ghost" type="button" id="aeProfSave" style="margin-top:10px;">Enregistrer mes informations</button>
             </div>
-          </details>
+          </div>
 
-          <details id="aeSocietesBlock" class="ae-fold">
-            <summary><svg class="ae-fold-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h11a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H6z"/><path d="M6 4H4m2 4H4m2 4H4m2 4H4"/><circle cx="11.5" cy="10.5" r="1.9"/><path d="M8.6 15.5a2.9 2.9 0 0 1 5.8 0"/></svg>Mon carnet de sociétés <span class="ae-fold-sub">(clients, productions…)</span><svg class="ae-fold-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
-            <div style="margin-top:12px;">
+          <div class="ae-modal" id="aeClientsModal">
+            <div class="ae-modal-box">
+              <button type="button" class="ae-modal-close" data-aeclose aria-label="Fermer">✕</button>
+              <h3 style="margin:0 0 12px;color:var(--petrol);">Mes clients</h3>
               <details id="societeAddBlock" class="ae-fold ae-fold-add">
                 <summary><svg class="ae-fold-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h10V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1z"/><path d="M6.5 8h.01M9.5 8h.01M6.5 11h.01M9.5 11h.01M6.5 14h.01"/><path d="M18 13.5v6M15 16.5h6"/></svg>Ajouter une société<svg class="ae-fold-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
                 <div style="margin-top:12px;">
@@ -1057,52 +1069,12 @@ z-index: 500 !important;
               </details>
               <div id="societesList"></div>
             </div>
-          </details>
+          </div>
 
-          <div class="fiscalite-grid">
-
-            <div class="fiscalite-card">
-              <span class="mini-label">Chiffre d'affaires</span>
-              <h3>Récapitulatif</h3>
-
-              <label for="aeMonth">Mois</label>
-              <input id="aeMonth" type="month" />
-              <div class="fi-result-row fi-highlight" style="margin-top:12px;">
-                <span class="fi-label">CA encaissé (mois)</span>
-                <span class="fi-value" id="aeMonthPaid">0 €</span>
-              </div>
-              <div class="fi-result-row" style="margin-top:8px;">
-                <span class="fi-label">En attente (mois)</span>
-                <span class="fi-value" id="aeMonthPending">0 €</span>
-              </div>
-              <div class="fi-result-row" style="margin-top:8px;">
-                <span class="fi-label">Cotisations URSSAF (mois)</span>
-                <span class="fi-value" id="aeMonthCotis">0 €</span>
-              </div>
-
-              <hr style="border:none;border-top:1px solid var(--border,#E5E8EB);margin:16px 0;" />
-
-              <div class="fi-result-row fi-highlight">
-                <span class="fi-label">CA encaissé (année <span id="aeYearLbl"></span>)</span>
-                <span class="fi-value" id="aeCaPaid">0 €</span>
-              </div>
-              <div class="fi-result-row" style="margin-top:8px;">
-                <span class="fi-label">En attente (année)</span>
-                <span class="fi-value" id="aeCaPending">0 €</span>
-              </div>
-              <div class="fi-result-row" style="margin-top:8px;">
-                <span class="fi-label">Cotisations URSSAF (année)</span>
-                <span class="fi-value" id="aeCotis">0 €</span>
-              </div>
-              <div id="aePlafondBox" class="fi-info-box" style="margin-top:12px;"></div>
-              <label for="aeTaux" style="margin-top:12px;">Taux de cotisation URSSAF (%)</label>
-              <input id="aeTaux" type="number" min="0" step="0.1" placeholder="24,6" />
-              <p class="hint">Selon ton activité : ~21,2 % (prestations BIC) ou ~24,6 % (libéral BNC). Ajuste-le selon ton cas, à vérifier sur autoentrepreneur.urssaf.fr</p>
-            </div>
-
-            <div class="fiscalite-card">
-              <span class="mini-label">Nouvelle facture</span>
-              <h3 id="aeFormTitle">Créer une facture</h3>
+            <div class="ae-modal" id="aeFactureModal">
+              <div class="ae-modal-box">
+              <button type="button" class="ae-modal-close" data-aeclose aria-label="Fermer">✕</button>
+              <h3 id="aeFormTitle">Nouvelle facture</h3>
               <form id="factureForm">
                 <label for="aeSocieteSelect">Société <span style="color:#9AA5B1;font-weight:400;">(carnet d'adresses)</span></label>
                 <select id="aeSocieteSelect"></select>
@@ -1111,6 +1083,10 @@ z-index: 500 !important;
                 <input id="aeClient" autocomplete="off" placeholder="Ex : Société de production" required />
                 <label for="aeClientAddress">Adresse du client <span style="color:#9AA5B1;font-weight:400;">(optionnel)</span></label>
                 <div><input id="aeClientAddress" autocomplete="off" placeholder="Commence à taper, choisis dans la liste" /></div>
+                <div id="aeBonCmdWrap">
+                  <label for="aeBonCmd">N° de bon de commande <span style="color:#9AA5B1;font-weight:400;">(optionnel)</span></label>
+                  <input id="aeBonCmd" autocomplete="off" placeholder="Ex : 26-2038" />
+                </div>
                 <label>Prestations</label>
                 <div id="factureLignesList"></div>
                 <button type="button" id="openPrestaModal" class="ae-add-presta">+ Ajouter une prestation</button>
@@ -1130,13 +1106,16 @@ z-index: 500 !important;
                   <option value="payee">Payée</option>
                 </select>
                 <input type="hidden" id="aeEditId" />
-                <button class="primary" type="submit">Enregistrer la facture</button>
+                <div style="display:flex;gap:8px;margin-top:4px;">
+                  <button class="ghost" type="button" id="aepreviewBtn" style="flex:1;">Visualiser</button>
+                  <button class="primary" type="submit" style="flex:1;">Enregistrer</button>
+                </div>
                 <button class="ghost" type="button" id="aeCancelEdit" style="display:none;margin-top:8px;">Annuler la modification</button>
                 <p class="hint" style="margin-top:12px;font-size:12px;color:#94A3B8;line-height:1.5;">ℹ️ Intermitrack est un <b>outil d'aide à la gestion</b> : tu restes seul responsable de l'exactitude et de la conformité légale de tes factures. Vérifie tes mentions obligatoires (numérotation, SIRET, « TVA non applicable, art. 293 B du CGI »). À noter : la <b>facturation électronique B2B</b> deviendra obligatoire (réforme 2026-2027) — en cas de doute, rapproche-toi d'un expert-comptable.</p>
               </form>
+              </div>
             </div>
 
-          </div>
           <div class="historyhead" style="margin-top:18px;"><div><h2>Mes factures</h2><p class="sub">Tes prestations facturées</p></div></div>
           <div id="facturesList"></div>
         </article>
@@ -1366,7 +1345,7 @@ z-index: 500 !important;
   </main>
 
   <script src="document-parser.js?v=5"></script>
-  <script src="app.js?v=27"></script>
+  <script src="app.js?v=28"></script>
 
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>

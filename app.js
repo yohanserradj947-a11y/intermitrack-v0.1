@@ -307,6 +307,71 @@ function openCustomColorPicker(initialHex, onPick){
   ov.classList.add('open');
 }
 
+// ===== Import Excel/CSV (site) — parité avec l'app mobile =====
+const XL_MONTHS = { janvier:1, 'février':2, fevrier:2, mars:3, avril:4, mai:5, juin:6, juillet:7, 'août':8, aout:8, septembre:9, octobre:10, novembre:11, 'décembre':12, decembre:12 };
+function _xlEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function _xlFmtD(iso){ const p=String(iso||'').split('-'); return p.length===3 ? p[2]+'/'+p[1] : iso; }
+function _xlParseFrDate(s){ const m=String(s).toLowerCase().match(/(\d{1,2})\s+([a-zûéèàôç]+)\s+(\d{4})/i); if(m&&XL_MONTHS[m[2]]) return m[3]+'-'+String(XL_MONTHS[m[2]]).padStart(2,'0')+'-'+String(Number(m[1])).padStart(2,'0'); return null; }
+function _xlYmd(v){ if(v==null||v==='')return null; if(v instanceof Date&&!isNaN(v.getTime())) return v.getFullYear()+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+String(v.getDate()).padStart(2,'0'); if(typeof v==='number'){ const d=new Date(Math.round((v-25569)*86400*1000)); if(!isNaN(d.getTime())) return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0'); return null; } const s=String(v).trim(); const fr=_xlParseFrDate(s); if(fr)return fr; const dm=s.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/); if(dm){ let y=dm[3]; if(y.length===2)y='20'+y; return y+'-'+dm[2].padStart(2,'0')+'-'+dm[1].padStart(2,'0'); } return null; }
+function _xlNum(v){ if(v==null||v==='')return 0; if(typeof v==='number')return v; const n=Number(String(v).replace(/[^\d,.-]/g,'').replace(/\s/g,'').replace(',','.')); return isFinite(n)?n:0; }
+function _xlDetectCols(header){ const H=header.map(function(h){return String(h||'').toLowerCase().trim();}); const find=function(rx){ return H.findIndex(function(h){return rx.test(h);}); }; return { date:find(/date|jour/), prod:find(/prod|production|soci[ée]t[ée]|client|[ée]mission|nom|projet/), hours:find(/heure|hours|dur[ée]e/), price:find(/prix|tarif|montant|brut|cachet|salaire|€|euro/), lieu:find(/lieu|adresse|ville|salle|site/) }; }
+function _xlParseWorkbook(wb){ const ws=wb.Sheets[wb.SheetNames[0]]; const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''}); if(!rows.length)return []; let hi=rows.findIndex(function(r){return (r||[]).some(function(c){return /date/i.test(String(c||''));});}); if(hi<0)hi=0; const cols=_xlDetectCols(rows[hi]||[]); const out=[]; for(let i=hi+1;i<rows.length;i++){ const row=rows[i]||[]; const date=cols.date>=0?_xlYmd(row[cols.date]):null; if(!date)continue; const prod=cols.prod>=0?String(row[cols.prod]||'').trim():''; const hours=cols.hours>=0?_xlNum(row[cols.hours]):0; const price=cols.price>=0?_xlNum(row[cols.price]):0; const lieu=cols.lieu>=0?String(row[cols.lieu]||'').trim():''; const missing=[]; if(!prod)missing.push('prod'); if(!(hours>0))missing.push('heures'); if(!(price>0))missing.push('prix'); out.push({ date:date, prod:prod.toUpperCase(), hours:hours>0?hours:8, price:price, lieu:lieu, missing:missing, selected:true }); } out.sort(function(a,b){return a.date.localeCompare(b.date);}); return out; }
+
+let _xlDrafts = [];
+function _xlEnsureModal(){
+  if(document.getElementById('xlOverlay'))return;
+  const st=document.createElement('style');
+  st.textContent="#xlOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:100060;padding:16px;}#xlOverlay.open{display:flex;}.xl-box{background:var(--card);color:var(--text);border-radius:20px;width:100%;max-width:520px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.3);}.xl-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 10px;}.xl-title{font-size:17px;font-weight:900;color:var(--petrol);}.xl-close{cursor:pointer;font-size:20px;color:var(--muted);border:none;background:none;}.xl-banner{margin:0 20px 8px;}.xl-banner div{padding:11px 13px;border-radius:12px;background:#FFF7ED;border:1px solid #FDBA74;font-size:12.5px;color:#9A3412;}.xl-list{overflow-y:auto;padding:0 12px;flex:1;}.xl-row{border-bottom:1px solid var(--line);padding:9px 8px;}.xl-row.warn{background:#FFF7ED;}.xl-r1{display:flex;align-items:flex-start;gap:10px;}.xl-chk{width:19px;height:19px;flex:0 0 auto;margin-top:2px;}.xl-prod{font-weight:800;font-size:14px;}.xl-meta{font-size:12px;color:var(--muted);margin-top:1px;}.xl-warnchip{font-size:11px;font-weight:700;color:#9A3412;margin-top:2px;}.xl-edit{display:flex;gap:7px;margin-top:7px;}.xl-edit input{flex:1;min-width:0;border:1px solid var(--line);border-radius:9px;padding:7px 9px;font-size:13px;background:var(--soft);color:var(--text);box-sizing:border-box;}.xl-foot{padding:14px 20px;border-top:1px solid var(--line);}.xl-import{width:100%;padding:13px;border:none;border-radius:12px;background:var(--petrol);color:#fff;font-weight:800;font-size:15px;cursor:pointer;}";
+  document.head.appendChild(st);
+  const ov=document.createElement('div'); ov.id='xlOverlay';
+  ov.innerHTML='<div class="xl-box"><div class="xl-head"><span class="xl-title">Importer un Excel/CSV</span><button class="xl-close" id="xlClose" type="button">✕</button></div><div id="xlBanner" class="xl-banner"></div><div class="xl-list" id="xlList"></div><div class="xl-foot"><button class="xl-import" id="xlImport" type="button">Importer</button></div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function(e){ if(e.target===ov || (e.target.closest&&e.target.closest('#xlClose'))){ ov.classList.remove('open'); } });
+  const list=ov.querySelector('#xlList');
+  list.addEventListener('change', function(e){ const cb=e.target.closest('.xl-chk'); if(cb){ _xlDrafts[+cb.dataset.i].selected=cb.checked; _xlUpdBtn(); } });
+  list.addEventListener('input', function(e){ const inp=e.target.closest('.xl-edit input'); if(!inp)return; const d=_xlDrafts[+inp.dataset.i]; const f=inp.dataset.e; if(f==='prod')d.prod=inp.value.toUpperCase(); if(f==='hours')d.hours=_xlNum(inp.value); if(f==='price')d.price=_xlNum(inp.value); d.missing=[]; if(!d.prod||!d.prod.trim())d.missing.push('prod'); if(!(d.hours>0))d.missing.push('heures'); if(!(d.price>0))d.missing.push('prix'); _xlUpdBtn(); });
+  ov.querySelector('#xlImport').addEventListener('click', _xlDoImport);
+}
+function _xlUpdBtn(){ const sel=_xlDrafts.filter(function(d){return d.selected;}); const n=sel.length; const inc=sel.filter(function(d){return d.missing.length;}).length; const bn=document.getElementById('xlBanner'); if(bn) bn.innerHTML = inc>0 ? '<div>⚠ '+inc+' mission'+(inc>1?'s':'')+' à compléter (prod ou prix manquant). Complète ci-dessous, ou importe et modifie plus tard.</div>' : ''; const b=document.getElementById('xlImport'); if(b){ b.textContent=n?('Importer '+n+' mission'+(n>1?'s':'')):'Sélectionne au moins une mission'; b.disabled=!n; b.style.opacity=n?'1':'.6'; } }
+function _xlRender(){
+  const list=document.getElementById('xlList');
+  list.innerHTML=_xlDrafts.map(function(d,i){
+    const warn=d.missing.length>0;
+    return '<div class="xl-row'+(warn?' warn':'')+'"><div class="xl-r1"><input type="checkbox" class="xl-chk" data-i="'+i+'" '+(d.selected?'checked':'')+'><div style="flex:1;min-width:0;"><div class="xl-prod">'+_xlEsc(d.prod||'(sans nom)')+'</div><div class="xl-meta">'+_xlFmtD(d.date)+(d.missing.indexOf('heures')<0?(' · '+d.hours+' h'):'')+(d.price?(' · '+d.price+' €'):'')+(d.lieu?(' · '+_xlEsc(d.lieu)):'')+'</div>'+(warn?('<div class="xl-warnchip">⚠ À compléter : '+d.missing.join(' · ')+'</div>'):'')+'</div></div><div class="xl-edit"><input placeholder="Prod" data-e="prod" data-i="'+i+'" value="'+_xlEsc(d.prod||'')+'"><input placeholder="Heures" data-e="hours" data-i="'+i+'" value="'+_xlEsc(d.hours||'')+'"><input placeholder="Prix €" data-e="price" data-i="'+i+'" value="'+_xlEsc(d.price||'')+'"></div></div>';
+  }).join('');
+  _xlUpdBtn();
+}
+async function _xlDoImport(){
+  const sel=_xlDrafts.filter(function(d){return d.selected;}); if(!sel.length)return;
+  if(!currentUser){ toast('Connecte-toi.'); return; }
+  const btn=document.getElementById('xlImport'); btn.disabled=true; btn.textContent='Import en cours…';
+  const payloads=sel.map(function(d){ return { user_id:currentUser.id, production:normalizeProductionName(d.prod), emission:'', lieu:d.lieu||'', mission_type:'Tournage', mission_date:d.date, end_date:d.date, hours:d.hours>0?d.hours:8, gross_amount:d.price||0, vacations:Math.max(1,Math.round((d.hours||8)/8)), km_distance:0, km_rate:0, km_amount:0 }; });
+  try{
+    for(let i=0;i<payloads.length;i+=100){ const r=await sb.from('missions').insert(payloads.slice(i,i+100)); if(r.error)throw r.error; }
+    document.getElementById('xlOverlay').classList.remove('open');
+    toast(sel.length+' mission'+(sel.length>1?'s':'')+' importée'+(sel.length>1?'s':'')+' !');
+    if(typeof _afterMissionSave==='function') await _afterMissionSave(payloads[0].mission_date);
+  }catch(e){ toast('Import échoué : '+(e.message||e)); btn.disabled=false; _xlUpdBtn(); }
+}
+async function _xlPickFile(){
+  if(typeof XLSX==='undefined'){ toast('Librairie Excel non chargée, recharge la page.'); return; }
+  if(!currentUser){ toast("Connecte-toi avant d'importer."); return; }
+  let inp=document.getElementById('xlFileInput');
+  if(!inp){ inp=document.createElement('input'); inp.type='file'; inp.id='xlFileInput'; inp.accept='.xlsx,.xls,.csv'; inp.style.display='none'; document.body.appendChild(inp);
+    inp.addEventListener('change', async function(){ const f=inp.files&&inp.files[0]; inp.value=''; if(!f)return;
+      try{
+        const buf=await f.arrayBuffer(); const wb=XLSX.read(new Uint8Array(buf),{type:'array',cellDates:true});
+        let drafts=_xlParseWorkbook(wb);
+        try{ const ex=await sb.from('missions').select('mission_date,production'); const seen=new Set((ex.data||[]).map(function(m){return m.mission_date+'|'+String(m.production||'').toUpperCase();})); drafts=drafts.filter(function(d){return !seen.has(d.date+'|'+d.prod);}); }catch(_){}
+        if(!drafts.length){ toast('Aucune nouvelle mission détectée (colonnes attendues : Date, Production, Heures, Tarif).'); return; }
+        _xlDrafts=drafts; _xlEnsureModal(); _xlRender(); document.getElementById('xlOverlay').classList.add('open');
+      }catch(e){ toast('Lecture du fichier impossible : '+(e.message||e)); }
+    });
+  }
+  inp.click();
+}
+document.addEventListener('click', function(e){ if(e.target.closest && e.target.closest('#importExcelBtn')) _xlPickFile(); });
+
 // --- Gestionnaire "Personnaliser les couleurs" (liste toutes les prods) + Réinitialiser ---
 function _ensureProdColorsModal(){
   if (document.getElementById('prodColorsOverlay')) return;
@@ -1415,7 +1480,8 @@ async function loadFactures() {
     clientAddress: x.client_address || "", numero: x.numero || "",
     date: x.facture_date, endDate: x.facture_end_date || "",
     lignes: Array.isArray(x.lignes) ? x.lignes : null,
-    amount: Number(x.amount || 0), status: x.status || "impayee"
+    amount: Number(x.amount || 0), status: x.status || "impayee",
+    type: x.type === "devis" ? "devis" : "facture", bon_commande: x.bon_commande || ""
   }));
   fillAeProfileForm();
   renderFactures();
@@ -1427,13 +1493,33 @@ function sumFactures(list) {
   return { paid, pending, total: paid + pending };
 }
 
+const AE_TVA_SEUIL = 39100; // seuil de franchise TVA (prestations de services) — indicatif, paramétrable
+function _aeDashCSS(){
+  if(document.getElementById('aeDashStyle'))return;
+  const st=document.createElement('style'); st.id='aeDashStyle';
+  st.textContent=".ae-dashboard{display:flex;flex-direction:column;gap:11px;margin:14px 0 20px;}.ae-dash-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px;}.ae-dash-lbl{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);}.ae-dash-big{font-size:30px;font-weight:800;margin-top:3px;line-height:1.05;color:var(--petrol);}.ae-dash-bar{height:8px;border-radius:6px;background:var(--line);margin-top:12px;overflow:hidden;}.ae-dash-bar>i{display:block;height:100%;border-radius:6px;background:#12754A;}.ae-dash-foot{display:flex;justify-content:space-between;font-size:11px;margin-top:6px;color:var(--muted);}.ae-dash-row{display:flex;gap:11px;}.ae-dash-row>.ae-dash-card{flex:1;min-width:0;}.ae-dash-num{font-size:19px;font-weight:800;margin-top:4px;color:var(--text);}.ae-dash-num.orange{color:#F97316;}.ae-dash-hint{font-size:10.5px;color:var(--muted);margin-top:2px;display:block;}.ae-dash-split{display:flex;gap:10px;margin-top:8px;}.ae-dash-split>div{flex:1;border-radius:12px;padding:10px;text-align:center;}.ae-split-g{background:#E3F6E9;}.ae-split-o{background:#FDF1DC;}.ae-dash-split .n{font-size:16px;font-weight:800;}.ae-split-g .n{color:#12754A;}.ae-split-o .n{color:#B5760A;}.ae-dash-split .t{font-size:10.5px;color:var(--muted);margin-top:1px;}.ae-dash-gauge{height:9px;border-radius:6px;background:var(--line);margin-top:9px;overflow:hidden;}.ae-dash-gauge>i{display:block;height:100%;border-radius:6px;background:#F97316;}.ae-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100060;display:none;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;}.ae-modal.open{display:flex;}.ae-modal-box{background:var(--card);color:var(--text);border-radius:20px;width:100%;max-width:560px;padding:22px 22px 26px;box-shadow:0 24px 60px rgba(0,0,0,.3);position:relative;margin:auto;}.ae-modal-close{position:absolute;top:12px;right:14px;border:none;background:none;font-size:22px;line-height:1;color:var(--muted);cursor:pointer;}";
+  document.head.appendChild(st);
+}
 function renderFactures() {
   // Mois sélectionné au format "YYYY-MM" (par défaut le mois courant)
   const monthSel = ($("aeMonth") && $("aeMonth").value) ? $("aeMonth").value : new Date().toISOString().slice(0, 7);
   const year = monthSel.slice(0, 4);
-  const ms = sumFactures(factures.filter((f) => (f.date || "").slice(0, 7) === monthSel));
-  const ys = sumFactures(factures.filter((f) => (f.date || "").slice(0, 4) === year));
+  const ms = sumFactures(factures.filter((f) => (f.date || "").slice(0, 7) === monthSel && f.type !== "devis"));
+  const ys = sumFactures(factures.filter((f) => (f.date || "").slice(0, 4) === year && f.type !== "devis"));
   const taux = getAeTaux() / 100;
+
+  // Tableau de bord (comme l'app) : CA/plafond, URSSAF, net, encaissé/en attente, jauge TVA
+  _aeDashCSS();
+  const _aed = $("aeDashboard");
+  if (_aed) {
+    const pct = Math.min(100, Math.round((ys.total / AE_PLAFOND_CA) * 100));
+    const tvaPct = Math.min(100, Math.round((ys.total / AE_TVA_SEUIL) * 100));
+    _aed.innerHTML =
+      '<div class="ae-dash-card"><span class="ae-dash-lbl">Chiffre d\'affaires ' + year + '</span><div class="ae-dash-big">' + money(ys.total) + '</div><div class="ae-dash-bar"><i style="width:' + pct + '%"></i></div><div class="ae-dash-foot"><span>' + pct + ' % du plafond</span><span>Plafond ' + money(AE_PLAFOND_CA) + '</span></div></div>' +
+      '<div class="ae-dash-row"><div class="ae-dash-card"><span class="ae-dash-lbl">À provisionner URSSAF</span><div class="ae-dash-num orange">≈ ' + money(ys.paid * taux) + '</div><span class="ae-dash-hint">' + getAeTaux() + ' % du CA encaissé</span></div><div class="ae-dash-card"><span class="ae-dash-lbl">Net estimé</span><div class="ae-dash-num">≈ ' + money(ys.paid * (1 - taux)) + '</div><span class="ae-dash-hint">après cotisations</span></div></div>' +
+      '<div class="ae-dash-card"><span class="ae-dash-lbl">Factures ' + year + '</span><div class="ae-dash-split"><div class="ae-split-g"><div class="n">' + money(ys.paid) + '</div><div class="t">Encaissé</div></div><div class="ae-split-o"><div class="n">' + money(ys.pending) + '</div><div class="t">En attente</div></div></div></div>' +
+      '<div class="ae-dash-card"><span class="ae-dash-lbl">Franchise de TVA</span><div class="ae-dash-gauge"><i style="width:' + tvaPct + '%"></i></div><div class="ae-dash-foot"><span>' + money(ys.total) + '</span><span>Seuil ' + money(AE_TVA_SEUIL) + '</span></div><div class="ae-dash-hint">' + (ys.total < AE_TVA_SEUIL ? ('Il te reste ' + money(AE_TVA_SEUIL - ys.total) + ' avant la TVA.') : 'Seuil dépassé — TVA applicable.') + '</div></div>';
+  }
 
   // Reflète le taux enregistré dans le champ (sauf si l'utilisateur est en train de le saisir)
   if ($("aeTaux") && document.activeElement !== $("aeTaux")) $("aeTaux").value = getAeTaux();
@@ -1602,6 +1688,32 @@ function renderLignes() {
   updateFactureTotal();
 }
 
+let _aeDocType = "facture"; // 'facture' | 'devis'
+function _aeSyncDocUI(){
+  const isDevis = _aeDocType === "devis";
+  const editing = $("aeEditId") && $("aeEditId").value;
+  const t = $("aeFormTitle"); if (t) t.textContent = editing ? (isDevis ? "Modifier le devis" : "Modifier la facture") : (isDevis ? "Nouveau devis" : "Nouvelle facture");
+  const sub = document.querySelector("#factureForm button[type='submit']"); if (sub) sub.textContent = editing ? (isDevis ? "Mettre à jour le devis" : "Mettre à jour la facture") : (isDevis ? "Enregistrer le devis" : "Enregistrer la facture");
+  const bc = $("aeBonCmdWrap"); if (bc) bc.style.display = isDevis ? "none" : "";
+}
+function _aeCloseModals(){ document.querySelectorAll(".ae-modal.open").forEach(function(m){ m.classList.remove("open"); }); }
+function openFactureForm(type){
+  _aeDocType = type || "facture";
+  resetFactureForm();
+  _aeDashCSS();
+  _aeCloseModals();
+  const m = $("aeFactureModal"); if (m) m.classList.add("open");
+}
+document.addEventListener("click", function(e){
+  if (!e.target.closest) return;
+  if (e.target.closest("#aeNewDevisBtn")) openFactureForm("devis");
+  else if (e.target.closest("#aeNewFactureBtn")) openFactureForm("facture");
+  else if (e.target.closest("#aeClientsBtn")) { _aeDashCSS(); _aeCloseModals(); const m = $("aeClientsModal"); if (m) m.classList.add("open"); }
+  else if (e.target.closest("#aeInfosBtn")) { _aeDashCSS(); _aeCloseModals(); const m = $("aeProfileModal"); if (m) m.classList.add("open"); }
+  else if (e.target.closest("#aepreviewBtn")) previewFacture();
+  else if (e.target.closest("[data-aeclose]") || (e.target.classList && e.target.classList.contains("ae-modal"))) _aeCloseModals();
+});
+
 async function saveFacture(e) {
   e.preventDefault();
   if (!currentUser) { toast("Connecte-toi pour enregistrer une facture."); return; }
@@ -1620,7 +1732,9 @@ async function saveFacture(e) {
     facture_date: $("aeDate").value,
     facture_end_date: $("aeEndDate").value || null,
     amount: total,
-    status: $("aeStatus").value
+    status: $("aeStatus").value,
+    type: _aeDocType,
+    bon_commande: ($("aeBonCmd") && $("aeBonCmd").value.trim()) || null
   };
   if (payload.facture_end_date && payload.facture_end_date < payload.facture_date) {
     toast("La date de fin doit être après la date de début."); return;
@@ -1628,30 +1742,33 @@ async function saveFacture(e) {
   // Numéro de facture chronologique (attribué une seule fois, à la création)
   if (!editId) {
     const yr = (payload.facture_date || "").slice(0, 4);
-    const nums = factures
-      .filter((f) => (f.numero || "").startsWith(yr + "-"))
-      .map((f) => Number((f.numero || "").split("-")[1]) || 0);
-    const next = (nums.length ? Math.max(...nums) : 0) + 1;
-    payload.numero = `${yr}-${String(next).padStart(3, "0")}`;
+    if (_aeDocType === "devis") {
+      const dn = factures.filter((f) => (f.numero || "").startsWith("D-" + yr + "-")).map((f) => Number((f.numero || "").split("-")[2]) || 0);
+      payload.numero = `D-${yr}-${String((dn.length ? Math.max(...dn) : 0) + 1).padStart(3, "0")}`;
+    } else {
+      const nums = factures.filter((f) => (f.numero || "").startsWith(yr + "-") && f.type !== "devis").map((f) => Number((f.numero || "").split("-")[1]) || 0);
+      payload.numero = `${yr}-${String((nums.length ? Math.max(...nums) : 0) + 1).padStart(3, "0")}`;
+    }
   }
   const result = editId
     ? await sb.from("factures").update(payload).eq("id", editId)
     : await sb.from("factures").insert(payload);
   if (result.error) { toast("Erreur sauvegarde : " + result.error.message); return; }
+  const savedType = _aeDocType;
   resetFactureForm();
+  _aeCloseModals();
   await loadFactures();
-  toast("Facture enregistrée ✓", "success");
+  toast(savedType === "devis" ? "Devis enregistré ✓" : "Facture enregistrée ✓", "success");
 }
 
 function resetFactureForm() {
   if ($("factureForm")) $("factureForm").reset();
   if ($("aeEditId")) $("aeEditId").value = "";
+  if ($("aeBonCmd")) $("aeBonCmd").value = "";
   factureLignes = [];
   renderLignes();
-  if ($("aeFormTitle")) $("aeFormTitle").textContent = "Créer une facture";
   if ($("aeCancelEdit")) $("aeCancelEdit").style.display = "none";
-  const submit = document.querySelector("#factureForm button[type='submit']");
-  if (submit) submit.textContent = "Enregistrer la facture";
+  _aeSyncDocUI();
 }
 
 function editFacture(id) {
@@ -1667,10 +1784,10 @@ function editFacture(id) {
   $("aeDate").value = f.date;
   $("aeEndDate").value = f.endDate || "";
   $("aeStatus").value = f.status;
-  if ($("aeFormTitle")) $("aeFormTitle").textContent = "Modifier la facture";
+  _aeDocType = f.type === "devis" ? "devis" : "facture";
+  if ($("aeBonCmd")) $("aeBonCmd").value = f.bon_commande || "";
   if ($("aeCancelEdit")) $("aeCancelEdit").style.display = "";
-  const submit = document.querySelector("#factureForm button[type='submit']");
-  if (submit) submit.textContent = "Mettre à jour la facture";
+  _aeSyncDocUI();
   activateView("autoentrepreneur");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -1714,11 +1831,19 @@ function saveAeProfile() {
 // ----- Génération de la facture PDF (via impression navigateur) -----
 function printFacture(id) {
   const f = factures.find((x) => String(x.id) === String(id));
-  if (!f) return;
+  if (f) _renderFacturePrint(f);
+}
+function previewFacture() {
+  const lignes = factureLignes.filter((l) => (l.designation || "").trim()).map((l) => ({ designation: l.designation.trim(), quantite: Number(l.quantite) || 0, unite: l.unite || "forfait", prixUnitaire: Number(l.prixUnitaire) || 0 }));
+  if (!lignes.length) { toast("Ajoute au moins une prestation."); return; }
+  const total = lignes.reduce((a, l) => a + l.quantite * l.prixUnitaire, 0);
+  _renderFacturePrint({ client: $("aeClient").value.trim(), clientAddress: $("aeClientAddress").value.trim(), prestation: lignes.map((l) => l.designation).join(", "), lignes: lignes, date: $("aeDate").value, endDate: $("aeEndDate").value || "", amount: total, status: $("aeStatus").value, type: _aeDocType, bon_commande: ($("aeBonCmd") && $("aeBonCmd").value.trim()) || "", numero: "aperçu" });
+}
+function _renderFacturePrint(f) {
   const p = aeProfile();
   if (!p.nom || !p.siret) {
     toast("Renseigne d'abord ton nom et ton SIRET dans « Mes informations ».");
-    if ($("aeProfileBlock")) $("aeProfileBlock").open = true;
+    { const _pm = $("aeProfileModal"); if (_pm) { _aeDashCSS(); _pm.classList.add("open"); } }
     return;
   }
   const nl2br = (s) => escapeHtml(s || "").replace(/\n/g, "<br>");
@@ -1730,7 +1855,7 @@ function printFacture(id) {
     `<tr><td>${escapeHtml(l.designation)}</td><td>${escapeHtml(l.qte === "" || l.qte == null ? "" : (l.qte + " " + l.unite).trim())}</td><td class="amount">${l.pu === "" || l.pu == null ? "" : money2(l.pu)}</td><td class="amount">${money2(l.total)}</td></tr>`
   ).join("");
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8">
-<title>Facture ${escapeHtml(f.numero || "")}</title>
+<title>${f.type === "devis" ? "Devis" : "Facture"} ${escapeHtml(f.numero || "")}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:#0D1B2A;font-size:13px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
@@ -1759,8 +1884,8 @@ tbody td.amount{text-align:right;font-weight:600;}
 </style></head><body>
 <div class="topbar">
   <div>
-    <h1>FACTURE</h1>
-    <div class="meta">N° ${escapeHtml(f.numero || "—")}<br>Date : ${formatDate(f.date)}</div>
+    <h1>${f.type === "devis" ? "DEVIS" : "FACTURE"}</h1>
+    <div class="meta">N° ${escapeHtml(f.numero || "—")}<br>Date : ${formatDate(f.date)}${f.bon_commande ? `<br>Bon de commande : ${escapeHtml(f.bon_commande)}` : ""}</div>
   </div>
   <div class="seller">
     <div class="name">${escapeHtml(p.nom)}</div>
@@ -1781,8 +1906,8 @@ tbody td.amount{text-align:right;font-weight:600;}
   </table>
   <div class="total-row"><span class="label">Total à régler</span><span class="val">${money2(f.amount)}</span></div>
   <div style="text-align:right;"><span class="status" style="background:${f.status === "payee" ? "#E3F6E9" : "#FDF1DC"};color:${f.status === "payee" ? "#12754A" : "#9A6A00"};">${f.status === "payee" ? "Payée" : "À régler"}</span></div>
-  <div class="mentions">${escapeHtml(p.tva)}<br>En cas de retard de paiement : indemnité forfaitaire pour frais de recouvrement de 40 € (art. L441-10 et D441-5 du Code de commerce). Pas d'escompte pour paiement anticipé.<br><span style="font-size:10px;color:#94A3B8;">Document généré à titre d'aide à la gestion via Intermitrack. L'émetteur reste seul responsable de l'exactitude et de la conformité légale de cette facture.</span></div>
-  <div class="footer">Facture générée avec <b>Intermitrack</b> · intermitrack.fr</div>
+  <div class="mentions">${escapeHtml(p.tva)}<br>${f.type === "devis" ? "Devis valable 30 jours. Bon pour accord (date + signature) :" : "En cas de retard de paiement : indemnité forfaitaire pour frais de recouvrement de 40 € (art. L441-10 et D441-5 du Code de commerce). Pas d'escompte pour paiement anticipé."}<br><span style="font-size:10px;color:#94A3B8;">Document généré à titre d'aide à la gestion via Intermitrack. L'émetteur reste seul responsable de l'exactitude et de la conformité légale de ce document.</span></div>
+  <div class="footer">${f.type === "devis" ? "Devis généré" : "Facture générée"} avec <b>Intermitrack</b> · intermitrack.fr</div>
 </div>
 <script>window.onload=function(){window.print();}<\/script>
 </body></html>`;
@@ -1968,7 +2093,7 @@ function editSociete(id) {
   if ($("societeCancelEdit")) $("societeCancelEdit").style.display = "";
   const submit = document.querySelector("#societeForm button[type='submit']");
   if (submit) submit.textContent = "Mettre à jour la société";
-  if ($("aeSocietesBlock")) $("aeSocietesBlock").open = true;
+  { const _cm = $("aeClientsModal"); if (_cm) { _aeDashCSS(); _cm.classList.add("open"); } }
   if ($("societeAddBlock")) $("societeAddBlock").open = true;
   $("societeNom").scrollIntoView({ behavior: "smooth", block: "center" });
 }
@@ -2569,8 +2694,8 @@ function renderHistory() {
   if ($("historyPagePrev")) $("historyPagePrev").addEventListener("click", () => { historyPage--; renderHistory(); });
   if ($("historyPageNext")) $("historyPageNext").addEventListener("click", () => { historyPage++; renderHistory(); });
 }
-let _missionsFrom = "";
-let _missionsTo = "";
+let _missionsPeriod = "all";              // 'all' | 'year' | 'custom'  (comme l'app mobile)
+let _missionsCustomYear = new Date().getFullYear();
 
 function _lastDayOfMonth(ym){
   const parts = ym.split("-"); const y = +parts[0], m = +parts[1];
@@ -2578,39 +2703,49 @@ function _lastDayOfMonth(ym){
   return ym + "-" + String(d).padStart(2, "0");
 }
 
+function _missionsYears(){
+  const set = {};
+  missions.forEach(function(m){ const y = new Date((m.date) + "T00:00:00").getFullYear(); if (!isNaN(y)) set[y] = 1; });
+  return Object.keys(set).map(Number).sort(function(a,b){ return b - a; });
+}
 function _missionsInPeriod(){
-  if (!_missionsFrom && !_missionsTo) return missions.slice();
-  const fromStart = _missionsFrom ? _missionsFrom + "-01" : "0000-01-01";
-  const toEnd = _missionsTo ? _lastDayOfMonth(_missionsTo) : "9999-12-31";
+  if (_missionsPeriod === "all") return missions.slice();
+  const target = _missionsPeriod === "year" ? new Date().getFullYear() : _missionsCustomYear;
   return missions.filter(function(m){
-    const s = m.date, e = m.endDate || m.date;
-    return s <= toEnd && e >= fromStart;
+    return new Date((m.date) + "T00:00:00").getFullYear() === target;
   });
 }
 
 function _missionsPeriodBar(){
-  const inp = 'padding:7px 10px;border:1px solid var(--line);border-radius:9px;font-family:inherit;font-size:13px;background:var(--card);color:var(--text);';
-  const btn = 'padding:7px 12px;border:1px solid var(--line);background:var(--card);color:var(--petrol);border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;';
-  const lbl = 'font-size:13px;color:var(--muted);font-weight:600;';
-  return '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:10px 14px;">' +
-    '<span style="font-size:12px;font-weight:800;color:var(--petrol);text-transform:uppercase;letter-spacing:.04em;">Période</span>' +
-    '<label style="' + lbl + '">Du</label>' +
-    '<input type="month" id="missionsFrom" value="' + _missionsFrom + '" style="' + inp + '"/>' +
-    '<label style="' + lbl + '">au</label>' +
-    '<input type="month" id="missionsTo" value="' + _missionsTo + '" style="' + inp + '"/>' +
-    '<button type="button" id="missionsThisYear" style="' + btn + '">Cette année</button>' +
-    '<button type="button" id="missionsAllPeriod" style="' + btn + '">Tout</button>' +
+  const chip = function(active){ return 'padding:8px 15px;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:inherit;' + (active ? 'background:var(--petrol);color:#fff;' : 'background:var(--soft);color:var(--petrol);'); };
+  let html = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">' +
+    '<button type="button" class="mperiod-chip" data-mp="all" style="' + chip(_missionsPeriod==='all') + '">Tout</button>' +
+    '<button type="button" class="mperiod-chip" data-mp="year" style="' + chip(_missionsPeriod==='year') + '">Cette année</button>' +
+    '<button type="button" class="mperiod-chip" data-mp="custom" style="' + chip(_missionsPeriod==='custom') + '">Par année</button>' +
     '</div>';
+  if (_missionsPeriod === 'custom') {
+    const years = _missionsYears();
+    const ychip = function(active){ return 'padding:6px 13px;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid var(--line);font-family:inherit;' + (active ? 'background:var(--petrol);color:#fff;border-color:var(--petrol);' : 'background:var(--card);color:var(--petrol);'); };
+    html += '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;">' +
+      (years.length ? years.map(function(y){ return '<button type="button" class="myear-chip" data-my="' + y + '" style="' + ychip(y===_missionsCustomYear) + '">' + y + '</button>'; }).join('') : '<span style="font-size:13px;color:var(--muted);">Aucune année</span>') +
+      '</div>';
+  }
+  return html;
 }
 
 function _bindMissionsPeriod(){
-  const f = $("missionsFrom"), t = $("missionsTo");
-  if (f) f.addEventListener("change", function(){ _missionsFrom = f.value; renderAllMissions(); });
-  if (t) t.addEventListener("change", function(){ _missionsTo = t.value; renderAllMissions(); });
-  const ty = $("missionsThisYear");
-  if (ty) ty.addEventListener("click", function(){ const y = new Date().getFullYear(); _missionsFrom = y + "-01"; _missionsTo = y + "-12"; renderAllMissions(); });
-  const ap = $("missionsAllPeriod");
-  if (ap) ap.addEventListener("click", function(){ _missionsFrom = ""; _missionsTo = ""; renderAllMissions(); });
+  const container = $("missionsGraphContainer");
+  if (!container) return;
+  container.querySelectorAll(".mperiod-chip").forEach(function(b){
+    b.addEventListener("click", function(){
+      _missionsPeriod = b.dataset.mp;
+      if (_missionsPeriod === 'custom') { const ys = _missionsYears(); if (ys.indexOf(_missionsCustomYear) < 0 && ys.length) _missionsCustomYear = ys[0]; }
+      renderAllMissions();
+    });
+  });
+  container.querySelectorAll(".myear-chip").forEach(function(b){
+    b.addEventListener("click", function(){ _missionsCustomYear = Number(b.dataset.my); renderAllMissions(); });
+  });
 }
 
 function renderAllMissions() {
@@ -2762,6 +2897,7 @@ function renderCalendar() {
     <div class="new-cal-tools">
       <button class="cal-tool-btn" type="button" id="prodColorsManageBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.37 2.63 14 7l-1.59-1.59a2 2 0 0 0-2.82 0L8 7l9 9 1.59-1.59a2 2 0 0 0 0-2.82L17 10l4.37-4.37a2.12 2.12 0 1 0-3-3Z"/><path d="M9 8c-2 3-4 3.5-7 4l8 10c2-1 6-5 6-7"/><path d="M14.5 17.5 4.5 15"/></svg>Personnaliser les couleurs</button>
       <button class="cal-tool-btn" type="button" id="prodColorsResetBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Réinitialiser les couleurs</button>
+      <button class="cal-tool-btn" type="button" id="importExcelBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8"/></svg>Importer un Excel/CSV</button>
     </div>
     <div class="new-cal-daynames"><div>L</div><div>M</div><div>M</div><div>J</div><div>V</div><div>S</div><div>D</div></div>
     <div class="new-cal-grid" id="calendar"></div>
@@ -3107,12 +3243,14 @@ function renderActualisation() {
     .sort((a, b) => new Date(a.date) - new Date(b.date));
   const totalHours = Math.round(sumDone(list) * 10) / 10;
   const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
+  const totalVac = list.reduce((a, x) => a + Number(x.vacations || Math.round(Number(x.hours || 0) / 8)), 0);
 
   $("actualisationMonthPicker").value = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}`;
   if ($("actualisationMonthTitle")) $("actualisationMonthTitle").textContent = current.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
   if ($("actualisationCount")) $("actualisationCount").textContent = list.length;
   if ($("actualisationHours")) $("actualisationHours").textContent = totalHours + "h";
   if ($("actualisationGross")) $("actualisationGross").textContent = money(totalGross);
+  if ($("actualisationVac")) $("actualisationVac").textContent = totalVac;
 
   const stats = $("actualisationStats");
   const tableWrap = $("actualisationTableWrap");
@@ -3290,7 +3428,7 @@ function setupEvents() {
   if ($("aeSocieteSelect")) $("aeSocieteSelect").addEventListener("change", onSocieteSelectChange);
   if ($("aeSocieteQuickAdd")) $("aeSocieteQuickAdd").addEventListener("click", (e) => {
     e.preventDefault();
-    if ($("aeSocietesBlock")) $("aeSocietesBlock").open = true;
+    { const _cm = $("aeClientsModal"); if (_cm) { _aeDashCSS(); _cm.classList.add("open"); } }
     if ($("societeNom")) $("societeNom").scrollIntoView({ behavior: "smooth", block: "center" });
   });
 
