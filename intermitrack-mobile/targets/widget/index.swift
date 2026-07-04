@@ -258,6 +258,9 @@ struct CalView: View {
   func monthView(_ cal: CalData) -> some View {
     let leading = max(0, cal.firstWeekday - 1)
     let byDay = Dictionary(cal.days.map { ($0.d, $0) }, uniquingKeysWith: { a, _ in a })
+    var monthCells: [Int] = Array(repeating: 0, count: leading)
+    for d in 1...max(1, cal.daysInMonth) { monthCells.append(d) }
+    while monthCells.count % 7 != 0 { monthCells.append(0) }
     return VStack(alignment: .leading, spacing: 6) {
       Text(cal.title).font(.system(size: 16, weight: .heavy)).foregroundColor(.primary)
       HStack(spacing: 3) {
@@ -266,9 +269,9 @@ struct CalView: View {
         }
       }
       LazyVGrid(columns: cols, spacing: 3) {
-        ForEach(0..<leading, id: \.self) { _ in Color.clear.frame(height: 34) }
-        ForEach(1...max(1, cal.daysInMonth), id: \.self) { day in
-          CalCell(day: day, info: byDay[day], today: cal.today, h: 34, big: true)
+        ForEach(Array(monthCells.enumerated()), id: \.offset) { _, day in
+          if day == 0 { Color.clear.frame(height: 34) }
+          else { CalCell(day: day, info: byDay[day], today: cal.today, h: 34, big: true) }
         }
       }
       if let up = cal.upcoming, !up.isEmpty {
@@ -285,17 +288,23 @@ struct CalView: View {
     let leading = max(0, cal.firstWeekday - 1)
     let byDay = Dictionary(cal.days.map { ($0.d, $0) }, uniquingKeysWith: { a, _ in a })
     let miniCols = Array(repeating: GridItem(.flexible(), spacing: 2), count: 7)
+    // Cases explicites : blancs de début (0) + jours + blancs de fin → aucune chance de décalage
+    var monthCells: [Int] = Array(repeating: 0, count: leading)
+    for d in 1...max(1, cal.daysInMonth) { monthCells.append(d) }
+    while monthCells.count % 7 != 0 { monthCells.append(0) }
     return HStack(alignment: .top, spacing: 12) {
-      // GAUCHE : mini-calendrier des jours
+      // GAUCHE : mini-calendrier des jours (structure identique au grand mois)
       VStack(alignment: .leading, spacing: 3) {
         Text(cal.title).font(.system(size: 11, weight: .heavy)).foregroundColor(.primary).lineLimit(1)
-        LazyVGrid(columns: miniCols, spacing: 2) {
+        HStack(spacing: 2) {
           ForEach(Array(["L","M","M","J","V","S","D"].enumerated()), id: \.offset) { _, w in
             Text(w).font(.system(size: 6.5, weight: .bold)).foregroundColor(.secondary).frame(maxWidth: .infinity)
           }
-          ForEach(0..<leading, id: \.self) { _ in Color.clear.frame(height: 15) }
-          ForEach(1...max(1, cal.daysInMonth), id: \.self) { day in
-            MiniCell(day: day, info: byDay[day], today: cal.today)
+        }
+        LazyVGrid(columns: miniCols, spacing: 2) {
+          ForEach(Array(monthCells.enumerated()), id: \.offset) { _, day in
+            if day == 0 { Color.clear.frame(height: 15) }
+            else { MiniCell(day: day, info: byDay[day], today: cal.today) }
           }
         }
       }
