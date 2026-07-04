@@ -2,7 +2,8 @@ import WidgetKit
 import SwiftUI
 
 let APP_GROUP = "group.fr.intermitrack.app"
-let ORANGE = Color(red: 0.976, green: 0.451, blue: 0.086) // #F97316
+let ORANGE = Color(red: 0.976, green: 0.451, blue: 0.086) // #F97316 (prévues / accent)
+let GREEN = Color(red: 0.071, green: 0.459, blue: 0.290) // #12754A (heures effectuées)
 
 // MARK: - Données partagées (JSON écrit par l'app RN via ExtensionStorage)
 struct HoursData: Codable { var done: Double; var planned: Double?; var target: Double }
@@ -67,22 +68,35 @@ struct HoursProvider: TimelineProvider {
 }
 struct HoursView: View {
   var data: HoursData
-  var planned: Double { data.planned ?? 0 }
-  var pct: Double { data.target > 0 ? min(1, max(0, data.done / data.target)) : 0 }
+  var planned: Double { max(0, data.planned ?? 0) }
+  var done: Double { max(0, data.done) }
+  var target: Double { data.target > 0 ? data.target : 507 }
+  var pct: Int { Int(((done + planned) / target * 100).rounded()) }
+  var doneFrac: CGFloat { CGFloat(min(1, done / target)) }
+  var planFrac: CGFloat { CGFloat(min(max(0, 1 - min(1, done / target)), planned / target)) }
+  var restantes: Int { max(0, Int((target - done - planned).rounded())) }
   var body: some View {
-    VStack(alignment: .leading, spacing: 4) {
+    VStack(alignment: .leading, spacing: 5) {
       Text("HEURES / DROITS").font(.system(size: 10, weight: .bold)).foregroundColor(.secondary)
-      Spacer(minLength: 2)
-      ZStack {
-        Circle().stroke(Color.secondary.opacity(0.2), lineWidth: 9)
-        Circle().trim(from: 0, to: pct).stroke(ORANGE, style: StrokeStyle(lineWidth: 9, lineCap: .round)).rotationEffect(.degrees(-90))
-        VStack(spacing: 0) {
-          Text("\(Int(data.done))").font(.system(size: 21, weight: .heavy)).foregroundColor(.primary)
-          Text("/ \(Int(data.target)) h").font(.system(size: 10)).foregroundColor(.secondary)
+      Spacer(minLength: 0)
+      Text("\(pct) %").font(.system(size: 30, weight: .heavy)).foregroundColor(pct >= 100 ? GREEN : .primary)
+      // Barre : effectuées (vert) + prévues (orange)
+      GeometryReader { geo in
+        let w = geo.size.width
+        ZStack(alignment: .leading) {
+          RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.18))
+          HStack(spacing: 0) {
+            Rectangle().fill(GREEN).frame(width: w * doneFrac)
+            Rectangle().fill(ORANGE).frame(width: w * planFrac)
+          }.clipShape(RoundedRectangle(cornerRadius: 6))
         }
-      }.frame(maxWidth: .infinity)
-      Spacer(minLength: 2)
-      Text("\(max(0, Int(data.target - data.done - planned))) h restantes").font(.system(size: 11, weight: .semibold)).foregroundColor(.secondary)
+      }.frame(height: 12)
+      HStack(spacing: 10) {
+        HStack(spacing: 4) { Circle().fill(GREEN).frame(width: 7, height: 7); Text("\(Int(done)) h faites").font(.system(size: 10.5, weight: .bold)).foregroundColor(.primary) }
+        HStack(spacing: 4) { Circle().fill(ORANGE).frame(width: 7, height: 7); Text("\(Int(planned)) h prév.").font(.system(size: 10.5, weight: .bold)).foregroundColor(.primary) }
+      }
+      Spacer(minLength: 0)
+      Text(restantes > 0 ? "sur 507 h · \(restantes) h restantes" : "507 h atteint !").font(.system(size: 9.5, weight: .semibold)).foregroundColor(pct >= 100 ? GREEN : .secondary).lineLimit(1).minimumScaleFactor(0.7)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     .widgetBg()
@@ -152,36 +166,32 @@ struct CalProvider: TimelineProvider {
 struct CalCell: View {
   let day: Int; let info: CalDay?; let today: Int; let h: CGFloat; let big: Bool
   var body: some View {
-    ZStack {
-      if day == today {
-        // Aujourd'hui : encadré accent bien visible (comme le repère du jour dans l'app)
-        RoundedRectangle(cornerRadius: 5).fill(ORANGE.opacity(0.16))
-        RoundedRectangle(cornerRadius: 5).strokeBorder(ORANGE, lineWidth: 2)
-        if let i = info, !i.ab.isEmpty {
-          VStack(spacing: 0) {
-            Text("\(day)").font(.system(size: h * 0.34, weight: .heavy)).foregroundColor(ORANGE)
-            Text(i.ab).font(.system(size: h * 0.26, weight: .bold)).foregroundColor(ORANGE).lineLimit(1).minimumScaleFactor(0.6).padding(.horizontal, 1)
-          }
-        } else {
-          Text("\(day)").font(.system(size: h * 0.46, weight: .heavy)).foregroundColor(ORANGE)
-        }
-      } else if let i = info, !i.g.isEmpty {
-        // Jour mission/note : dégradé couleur prod (ou auto passé/futur), hachures si besoin
-        RoundedRectangle(cornerRadius: 5).fill(LinearGradient(colors: i.g.map { Color(hexString: $0) }, startPoint: .topLeading, endPoint: .bottomTrailing))
-        if i.hach { HachureOverlay().clipShape(RoundedRectangle(cornerRadius: 5)) }
-        VStack(spacing: 0) {
-          Text(i.ab).font(.system(size: h * (big ? 0.30 : 0.36), weight: .heavy)).foregroundColor(Color(hexString: i.txt)).lineLimit(1).minimumScaleFactor(0.6).padding(.horizontal, 1)
-          if big && i.hours > 0 {
-            Text("\(fmtHours(i.hours))h\(i.more > 0 ? " ·+\(i.more)" : "")").font(.system(size: h * 0.21, weight: .semibold)).foregroundColor(Color(hexString: i.txt)).opacity(0.9).lineLimit(1).minimumScaleFactor(0.6)
-          }
-        }
-        if !i.note.isEmpty {
-          VStack { HStack { Spacer(); Circle().fill(Color(hexString: i.note)).frame(width: big ? 8 : 6, height: big ? 8 : 6).overlay(Circle().stroke(Color.white, lineWidth: 1)) }; Spacer() }.padding(2)
-        }
-      } else {
-        Text("\(day)").font(.system(size: h * 0.42)).foregroundColor(.secondary)
+    let isToday = day == today
+    VStack(spacing: 1.5) {
+      // Numéro du jour — toujours visible en haut (style iPhone : aujourd'hui = pastille pleine)
+      ZStack {
+        if isToday { Circle().fill(ORANGE).frame(width: h * 0.44, height: h * 0.44) }
+        Text("\(day)")
+          .font(.system(size: h * 0.28, weight: isToday ? .bold : .medium))
+          .foregroundColor(isToday ? .white : .primary)
       }
-    }.frame(height: h)
+      .frame(height: h * 0.44)
+      // Bande mission / note (initiales), sous le numéro
+      if let i = info, !i.g.isEmpty {
+        ZStack {
+          RoundedRectangle(cornerRadius: 3).fill(LinearGradient(colors: i.g.map { Color(hexString: $0) }, startPoint: .leading, endPoint: .trailing))
+          if i.hach { HachureOverlay().clipShape(RoundedRectangle(cornerRadius: 3)) }
+          Text(i.ab).font(.system(size: h * 0.24, weight: .heavy)).foregroundColor(Color(hexString: i.txt)).lineLimit(1).minimumScaleFactor(0.5).padding(.horizontal, 1)
+          if !i.note.isEmpty {
+            VStack { HStack { Spacer(); Circle().fill(Color(hexString: i.note)).frame(width: 5, height: 5).overlay(Circle().stroke(Color.white, lineWidth: 0.5)) }; Spacer() }.padding(1)
+          }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+      } else {
+        Spacer(minLength: 0)
+      }
+    }
+    .frame(height: h)
   }
 }
 struct UpcomingRow: View {
@@ -203,31 +213,50 @@ struct CalView: View {
   let cols = Array(repeating: GridItem(.flexible(), spacing: 3), count: 7)
   var body: some View {
     let big = family == .systemLarge
-    let cellH: CGFloat = big ? 34 : 20
-    VStack(alignment: .leading, spacing: big ? 7 : 6) {
-      if let cal = data {
-        Text(cal.title).font(.system(size: big ? 16 : 14, weight: .heavy)).foregroundColor(.primary)
-        let byDay = Dictionary(cal.days.map { ($0.d, $0) }, uniquingKeysWith: { a, _ in a })
-        LazyVGrid(columns: cols, spacing: 3) {
+    if let cal = data {
+      let leading = max(0, cal.firstWeekday - 1)
+      let numRows = max(1, Int(ceil(Double(leading + max(1, cal.daysInMonth)) / 7.0)))
+      let byDay = Dictionary(cal.days.map { ($0.d, $0) }, uniquingKeysWith: { a, _ in a })
+      VStack(alignment: .leading, spacing: big ? 6 : 4) {
+        Text(cal.title).font(.system(size: big ? 16 : 13, weight: .heavy)).foregroundColor(.primary)
+        HStack(spacing: 3) {
           ForEach(Array(["L","M","M","J","V","S","D"].enumerated()), id: \.offset) { _, w in
-            Text(w).font(.system(size: big ? 10 : 8, weight: .bold)).foregroundColor(.secondary)
-          }
-          ForEach(0..<max(0, cal.firstWeekday - 1), id: \.self) { _ in Color.clear.frame(height: cellH) }
-          ForEach(1...max(1, cal.daysInMonth), id: \.self) { day in
-            CalCell(day: day, info: byDay[day], today: cal.today, h: cellH, big: big)
+            Text(w).font(.system(size: big ? 10 : 8, weight: .bold)).foregroundColor(.secondary).frame(maxWidth: .infinity)
           }
         }
-        if big, let up = cal.upcoming, !up.isEmpty {
-          Divider().padding(.vertical, 2)
-          ForEach(Array(up.enumerated()), id: \.offset) { _, m in UpcomingRow(m: m) }
+        if big {
+          // Grand widget : cases confortables + prochaines missions dessous
+          calGrid(cal: cal, byDay: byDay, leading: leading, ch: 34, big: true)
+          if let up = cal.upcoming, !up.isEmpty {
+            Divider().padding(.vertical, 1)
+            ForEach(Array(up.enumerated()), id: \.offset) { _, m in UpcomingRow(m: m) }
+          }
+          Spacer(minLength: 0)
+        } else {
+          // Widget moyen : la grille remplit la place → tout le mois rentre toujours
+          GeometryReader { geo in
+            let ch = max(14, (geo.size.height - CGFloat(numRows - 1) * 3) / CGFloat(numRows))
+            calGrid(cal: cal, byDay: byDay, leading: leading, ch: ch, big: false)
+          }
         }
-        Spacer(minLength: 0)
-      } else {
-        Text("Ouvre Intermitrack pour afficher ton mois.").font(.system(size: 12)).foregroundColor(.secondary)
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+      .widgetBg()
+    } else {
+      Text("Ouvre Intermitrack pour afficher ton mois.")
+        .font(.system(size: 12)).foregroundColor(.secondary)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .widgetBg()
+    }
+  }
+  @ViewBuilder
+  func calGrid(cal: CalData, byDay: [Int: CalDay], leading: Int, ch: CGFloat, big: Bool) -> some View {
+    LazyVGrid(columns: cols, spacing: 3) {
+      ForEach(0..<leading, id: \.self) { _ in Color.clear.frame(height: ch) }
+      ForEach(1...max(1, cal.daysInMonth), id: \.self) { day in
+        CalCell(day: day, info: byDay[day], today: cal.today, h: ch, big: big)
       }
     }
-    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-    .widgetBg()
   }
 }
 struct CalWidget: Widget {
