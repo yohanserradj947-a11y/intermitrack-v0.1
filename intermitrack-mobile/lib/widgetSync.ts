@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const GROUP = 'group.fr.intermitrack.app';
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -6,7 +7,7 @@ const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.ge
 
 // Calcule et écrit les données des widgets iOS dans l'App Group partagé, puis recharge les widgets.
 // Ne fait rien hors iOS (ou si le module natif n'est pas présent, ex. Expo Go).
-export function syncWidgets(missions: any[], getColor: (name: string) => string | null) {
+export async function syncWidgets(missions: any[], getColor: (name: string) => string | null) {
   if (Platform.OS !== 'ios') return;
   let ExtensionStorage: any;
   try { ExtensionStorage = require('@bacons/apple-targets').ExtensionStorage; } catch (e) { return; }
@@ -16,15 +17,20 @@ export function syncWidgets(missions: any[], getColor: (name: string) => string 
     const storage = new ExtensionStorage(GROUP);
     const now = new Date();
     const todayISO = ymd(now);
+    const areDate = await AsyncStorage.getItem('intermitrack_are_date'); // 'YYYY-MM-DD' ou null
 
-    // --- Heures / 507h : cumul des heures sur les 12 derniers mois glissants ---
-    const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-    let done = 0;
+    // --- Heures / 507h : DEPUIS la date ARE (période de droits France Travail), comme l'app ---
+    let done = 0, planned = 0;
     missions.forEach((m) => {
-      const d = new Date((m.mission_date || '') + 'T00:00:00');
-      if (!isNaN(d.getTime()) && d >= yearAgo && d <= now) done += Number(m.hours || 0);
+      const ms = m.mission_date || '';
+      if (!ms) return;
+      if (areDate && ms < areDate) return; // avant la date ARE → hors période
+      const end = m.end_date || m.mission_date || '';
+      if (end < todayISO) done += Number(m.hours || 0);         // passée
+      else if (ms > todayISO) planned += Number(m.hours || 0);  // à venir
+      else done += Number(m.hours || 0);                        // en cours → comptée en fait
     });
-    storage.set('widget_hours', JSON.stringify({ done: Math.round(done), target: 507 }));
+    storage.set('widget_hours', JSON.stringify({ done: Math.round(done), planned: Math.round(planned), target: 507 }));
 
     // --- Prochaine mission ---
     const upcoming = missions
@@ -62,10 +68,24 @@ export function syncWidgets(missions: any[], getColor: (name: string) => string 
       const prod = (m.production || '').toUpperCase();
       return { d: day, ab: prod.slice(0, 3), color: getColor(prod) || '#1F4E5F', past: ymd(new Date(y, mo, day)) < todayISO };
     });
+    // Prochaines missions (pour le grand widget calendrier)
+    const up = missions
+      .filter((m) => (m.mission_date || '') >= todayISO)
+      .sort((a, b) => (a.mission_date || '').localeCompare(b.mission_date || ''))
+      .slice(0, 3)
+      .map((m) => {
+        const d = new Date(m.mission_date + 'T00:00:00');
+        const prod = (m.production || '').toUpperCase();
+        return {
+          date: d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit' }),
+          prod, color: getColor(prod) || '#1F4E5F',
+          hours: Number(m.hours || 0), price: Number(m.gross_amount || 0),
+        };
+      });
     const title = now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
     storage.set('widget_calendar', JSON.stringify({
       title: title.charAt(0).toUpperCase() + title.slice(1),
-      firstWeekday: fw, daysInMonth, today: now.getDate(), days,
+      firstWeekday: fw, daysInMonth, today: now.getDate(), days, upcoming: up,
     }));
 
     ExtensionStorage.reloadWidget();

@@ -5,10 +5,11 @@ let APP_GROUP = "group.fr.intermitrack.app"
 let ORANGE = Color(red: 0.976, green: 0.451, blue: 0.086) // #F97316
 
 // MARK: - Données partagées (JSON écrit par l'app RN via ExtensionStorage)
-struct HoursData: Codable { var done: Double; var target: Double }
+struct HoursData: Codable { var done: Double; var planned: Double?; var target: Double }
 struct NextData: Codable { var when: String; var date: String; var prod: String; var lieu: String; var hours: Double; var price: Double }
 struct CalDay: Codable { var d: Int; var ab: String; var color: String; var past: Bool }
-struct CalData: Codable { var title: String; var firstWeekday: Int; var daysInMonth: Int; var today: Int; var days: [CalDay] }
+struct UpNext: Codable { var date: String; var prod: String; var color: String; var hours: Double; var price: Double }
+struct CalData: Codable { var title: String; var firstWeekday: Int; var daysInMonth: Int; var today: Int; var days: [CalDay]; var upcoming: [UpNext]? }
 
 func loadJSON<T: Decodable>(_ key: String) -> T? {
   guard let defs = UserDefaults(suiteName: APP_GROUP),
@@ -40,17 +41,18 @@ extension View {
 // MARK: - HEURES / 507 h
 struct HoursEntry: TimelineEntry { let date: Date; let data: HoursData }
 struct HoursProvider: TimelineProvider {
-  func placeholder(in c: Context) -> HoursEntry { HoursEntry(date: Date(), data: HoursData(done: 342, target: 507)) }
+  func placeholder(in c: Context) -> HoursEntry { HoursEntry(date: Date(), data: HoursData(done: 342, planned: 40, target: 507)) }
   func getSnapshot(in c: Context, completion: @escaping (HoursEntry) -> Void) {
-    completion(HoursEntry(date: Date(), data: loadJSON("widget_hours") ?? HoursData(done: 0, target: 507)))
+    completion(HoursEntry(date: Date(), data: loadJSON("widget_hours") ?? HoursData(done: 0, planned: 0, target: 507)))
   }
   func getTimeline(in c: Context, completion: @escaping (Timeline<HoursEntry>) -> Void) {
-    let e = HoursEntry(date: Date(), data: loadJSON("widget_hours") ?? HoursData(done: 0, target: 507))
+    let e = HoursEntry(date: Date(), data: loadJSON("widget_hours") ?? HoursData(done: 0, planned: 0, target: 507))
     completion(Timeline(entries: [e], policy: .after(Date().addingTimeInterval(3600))))
   }
 }
 struct HoursView: View {
   var data: HoursData
+  var planned: Double { data.planned ?? 0 }
   var pct: Double { data.target > 0 ? min(1, max(0, data.done / data.target)) : 0 }
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
@@ -65,7 +67,7 @@ struct HoursView: View {
         }
       }.frame(maxWidth: .infinity)
       Spacer(minLength: 2)
-      Text("\(max(0, Int(data.target - data.done))) h restantes").font(.system(size: 11, weight: .semibold)).foregroundColor(.secondary)
+      Text("\(max(0, Int(data.target - data.done - planned))) h restantes").font(.system(size: 11, weight: .semibold)).foregroundColor(.secondary)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     .widgetBg()
@@ -133,38 +135,59 @@ struct CalProvider: TimelineProvider {
   }
 }
 struct CalCell: View {
-  let day: Int; let info: CalDay?; let today: Int
+  let day: Int; let info: CalDay?; let today: Int; let h: CGFloat
   var body: some View {
     ZStack {
       if day == today {
         RoundedRectangle(cornerRadius: 5).strokeBorder(Color.primary, lineWidth: 1.5)
-        Text("\(day)").font(.system(size: 9, weight: .bold)).foregroundColor(.primary)
+        Text("\(day)").font(.system(size: h * 0.42, weight: .bold)).foregroundColor(.primary)
       } else if let i = info {
         RoundedRectangle(cornerRadius: 5).fill(Color(hexString: i.color)).opacity(i.past ? 0.5 : 1)
-        Text(i.ab).font(.system(size: 8, weight: .heavy)).foregroundColor(.white)
+        Text(i.ab).font(.system(size: h * 0.36, weight: .heavy)).foregroundColor(.white).minimumScaleFactor(0.6).lineLimit(1).padding(.horizontal, 1)
       } else {
-        Text("\(day)").font(.system(size: 9)).foregroundColor(.secondary)
+        Text("\(day)").font(.system(size: h * 0.42)).foregroundColor(.secondary)
       }
-    }.frame(height: 21)
+    }.frame(height: h)
+  }
+}
+struct UpcomingRow: View {
+  let m: UpNext
+  func fmtH(_ h: Double) -> String { h == h.rounded() ? "\(Int(h))" : String(format: "%.1f", h) }
+  var body: some View {
+    HStack(spacing: 8) {
+      RoundedRectangle(cornerRadius: 2).fill(Color(hexString: m.color)).frame(width: 3, height: 24)
+      Text(m.date).font(.system(size: 12, weight: .bold)).foregroundColor(.primary).frame(width: 64, alignment: .leading)
+      Text(m.prod).font(.system(size: 12, weight: .semibold)).foregroundColor(.primary).lineLimit(1)
+      Spacer(minLength: 4)
+      Text("\(fmtH(m.hours)) h\(m.price > 0 ? " · \(Int(m.price)) €" : "")").font(.system(size: 11)).foregroundColor(.secondary).lineLimit(1)
+    }
   }
 }
 struct CalView: View {
   var data: CalData?
+  @Environment(\.widgetFamily) var family
   let cols = Array(repeating: GridItem(.flexible(), spacing: 3), count: 7)
   var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
+    let big = family == .systemLarge
+    let cellH: CGFloat = big ? 34 : 20
+    VStack(alignment: .leading, spacing: big ? 7 : 6) {
       if let cal = data {
-        Text(cal.title).font(.system(size: 14, weight: .heavy)).foregroundColor(.primary)
+        Text(cal.title).font(.system(size: big ? 16 : 14, weight: .heavy)).foregroundColor(.primary)
         let byDay = Dictionary(cal.days.map { ($0.d, $0) }, uniquingKeysWith: { a, _ in a })
         LazyVGrid(columns: cols, spacing: 3) {
           ForEach(Array(["L","M","M","J","V","S","D"].enumerated()), id: \.offset) { _, w in
-            Text(w).font(.system(size: 8, weight: .bold)).foregroundColor(.secondary)
+            Text(w).font(.system(size: big ? 10 : 8, weight: .bold)).foregroundColor(.secondary)
           }
-          ForEach(0..<max(0, cal.firstWeekday - 1), id: \.self) { _ in Color.clear.frame(height: 21) }
+          ForEach(0..<max(0, cal.firstWeekday - 1), id: \.self) { _ in Color.clear.frame(height: cellH) }
           ForEach(1...max(1, cal.daysInMonth), id: \.self) { day in
-            CalCell(day: day, info: byDay[day], today: cal.today)
+            CalCell(day: day, info: byDay[day], today: cal.today, h: cellH)
           }
         }
+        if big, let up = cal.upcoming, !up.isEmpty {
+          Divider().padding(.vertical, 2)
+          ForEach(Array(up.enumerated()), id: \.offset) { _, m in UpcomingRow(m: m) }
+        }
+        Spacer(minLength: 0)
       } else {
         Text("Ouvre Intermitrack pour afficher ton mois.").font(.system(size: 12)).foregroundColor(.secondary)
       }
