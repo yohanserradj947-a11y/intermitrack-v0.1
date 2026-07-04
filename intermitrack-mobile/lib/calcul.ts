@@ -1,6 +1,7 @@
 // Formules officielles reprises du site Intermitrack. À actualiser chaque année.
 export const CONFIG = {
   AJ_MIN: 31.96, NH: 507, SMIC_HORAIRE: 12.31, DIV_A: 5000, PLAFOND_AJ: 174.80,
+  PMSS: 4005, PLAFOND_CUMUL: 1.18, // plafond de cumul salaire + allocation = 118 % du PMSS (à actualiser chaque année)
   ARTISTE:    { aSeuil:13700, aHaut:0.36, aBas:0.05, bSeuil:690, bHaut:0.26, bBas:0.08, c:0.70, plancher:44, jourH:12 },
   TECHNICIEN: { aSeuil:14400, aHaut:0.42, aBas:0.05, bSeuil:720, bHaut:0.26, bBas:0.08, c:0.40, plancher:38, jourH:8 },
   TAUX_RETRAITE: 0.03, ABATTEMENT: 0.9825,

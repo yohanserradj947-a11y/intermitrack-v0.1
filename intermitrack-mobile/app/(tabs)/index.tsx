@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../lib/supabase';
 import { useTrackView } from '../../lib/analytics';
+import { CONFIG } from '../../lib/calcul';
 import Gauge from '../../components/Gauge';
 import NumInput from '../../components/NumInput';
 import KmSection, { KmHandle } from '../../components/KmSection';
@@ -174,14 +175,22 @@ export default function HomeScreen(){
     const artiste=profil.annexe==='artiste';
     const coef=artiste?1.3:1.4, divJ=artiste?10:8;
     const daysInMonth=new Date(current.getFullYear(),current.getMonth()+1,0).getDate();
-    const jniBase=monthH*coef/divJ;
     const clamp=(v:number)=>Math.max(0,Math.min(daysInMonth,v));
-    const indemHaut=clamp(daysInMonth-jniBase*1.05), indemBas=clamp(daysInMonth-jniBase*1.20);
+    // Jours non indemnisables (formule officielle France Travail) : heures × coef / diviseur.
+    // On garde une petite fourchette (±1 jour d'arrondi) pour rester une estimation honnête.
+    const jniRaw=monthH*coef/divJ;
+    const daysHaut=clamp(daysInMonth-Math.floor(jniRaw)); // moins de JNI → borne haute
+    const daysBas=clamp(daysInMonth-Math.ceil(jniRaw));   // plus de JNI → borne basse
+    // Plafond de cumul : salaire brut du mois + allocation ≤ 118 % du PMSS.
+    const plafond=CONFIG.PMSS*CONFIG.PLAFOND_CUMUL;
+    const daysPlafond=Math.max(0,Math.ceil((plafond-monthG)/aj));
+    const dHaut=Math.min(daysHaut,daysPlafond), dBas=Math.min(daysBas,daysPlafond);
+    const plafondActif=daysPlafond<daysHaut; // le plafond rabote l'allocation ce mois-ci
     const tax=(profil&&Number(profil.taux_impot))||0;
     const fNet=1-tax/100, showNet=tax>0;
-    const bas=Math.round(aj*indemBas*fNet), haut=Math.round(aj*indemHaut*fNet);
-    return { bas, haut, showNet, tax, totalBas:monthNet+bas, totalHaut:monthNet+haut };
-  },[profil,monthH,current,monthNet]);
+    const bas=Math.round(aj*dBas*fNet), haut=Math.round(aj*dHaut*fNet);
+    return { bas, haut, showNet, tax, plafondActif, coefTxt:artiste?'1,3':'1,4', divTxt:artiste?'10':'8', plafond:Math.round(plafond), totalBas:monthNet+bas, totalHaut:monthNet+haut };
+  },[profil,monthH,monthG,current,monthNet]);
   const totalPages=Math.ceil(upcoming.length/6);
   const visibleM=useMemo(()=>upcoming.slice(missionPage*6,(missionPage+1)*6),[upcoming,missionPage]);
 
@@ -303,17 +312,30 @@ export default function HomeScreen(){
             <View style={s.ftCard}>
               <View style={s.ftHead}>
                 <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="cash-outline" size={13} color={C.petrol} /><Text style={s.ftLabel}>Estimation France Travail (ce mois)</Text></View>
-                <Text style={s.ftVal}>≈ {ft.bas.toLocaleString('fr-FR')} – {money(ft.haut)}</Text>
+                <Text style={s.ftVal}>{ft.bas===ft.haut?`≈ ${money(ft.haut)}`:`≈ ${ft.bas.toLocaleString('fr-FR')} – ${money(ft.haut)}`}</Text>
               </View>
               <Text style={s.ftDetail}>{ft.showNet?`fourchette nette (après ${ft.tax} % d'impôt)`:'fourchette brute'} · sur {monthH} h</Text>
+              {ft.plafondActif&&(
+                <View style={{flexDirection:'row',alignItems:'flex-start',gap:5,marginTop:6}}>
+                  <Ionicons name="information-circle-outline" size={13} color={C.orange} style={{marginTop:1}} />
+                  <Text style={[s.ftDetail,{color:C.orange,flex:1}]}>Plafond de cumul atteint : salaire + allocation limités à 118 % du PMSS ({money(ft.plafond)}) → allocation réduite ce mois-ci.</Text>
+                </View>
+              )}
               <View style={s.ftTotal}>
                 <View style={s.ftTotalRow}>
                   <Text style={s.ftTotalLabel}>Revenu total estimé ce mois</Text>
-                  <Text style={s.ftTotalVal}>≈ {ft.totalBas.toLocaleString('fr-FR')} – {money(ft.totalHaut)}</Text>
+                  <Text style={s.ftTotalVal}>{ft.totalBas===ft.totalHaut?`≈ ${money(ft.totalHaut)}`:`≈ ${ft.totalBas.toLocaleString('fr-FR')} – ${money(ft.totalHaut)}`}</Text>
                 </View>
                 <Text style={s.ftTotalSub}>salaire net {money(monthNet)} + allocation France Travail</Text>
               </View>
-              <Text style={s.ftNote}>Estimation indicative — nous affinons en continu notre formule pour nous rapprocher du montant réel (calcul France Travail complexe : heures majorées, SJR, carences, plafonds). Ne tient pas compte des carences/franchises. Montant exact : ton espace France Travail.</Text>
+              <View style={s.ftFormula}>
+                <Text style={s.ftFormulaTitle}>Comment on calcule (annexe {ft.divTxt==='8'?'8 · technicien':'10 · artiste'})</Text>
+                <Text style={s.ftFormulaLine}>• Jours non indemnisables = heures × {ft.coefTxt} ÷ {ft.divTxt}</Text>
+                <Text style={s.ftFormulaLine}>• Jours indemnisés = jours du mois − jours non indemnisables</Text>
+                <Text style={s.ftFormulaLine}>• Allocation = AJ × jours indemnisés</Text>
+                <Text style={s.ftFormulaLine}>• Plafond : salaire + allocation ≤ 118 % du PMSS ({money(ft.plafond)})</Text>
+              </View>
+              <Text style={s.ftNote}>Fourchette estimative. Ne tient pas encore compte des carences / franchises de début de droits. Nos calculs sont en cours d'optimisation pour se rapprocher au plus près du montant réel. Montant exact : ton espace France Travail.</Text>
             </View>
           )
         }
@@ -581,6 +603,9 @@ const makeS=(C:any)=>StyleSheet.create({
   ftTotalLabel:{fontSize:12,fontWeight:'800',color:C.petrol},
   ftTotalVal:{fontSize:17,fontWeight:'900',color:C.petrol,flexShrink:1,flexWrap:'wrap'},
   ftTotalSub:{fontSize:11,color:C.muted,fontWeight:'600',marginTop:4},
+  ftFormula:{backgroundColor:C.soft,borderRadius:11,padding:11,marginTop:11,gap:3},
+  ftFormulaTitle:{fontSize:11,fontWeight:'900',color:C.petrol,textTransform:'uppercase',letterSpacing:0.3,marginBottom:2},
+  ftFormulaLine:{fontSize:11,color:C.text,fontWeight:'600',lineHeight:16},
   ftNote:{fontSize:10,color:C.muted,lineHeight:15,marginTop:11},
   ftBtn:{backgroundColor:C.petrol,borderRadius:12,paddingVertical:12,alignItems:'center',marginTop:12},
   ftBtnTxt:{color:'white',fontWeight:'800',fontSize:14},
