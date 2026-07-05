@@ -2617,11 +2617,13 @@ function renderChart(doneHours, plannedHours = 0) {
   const doneRaw = Math.max(0, Number(doneHours) || 0);
   const plannedRaw = Math.max(0, Number(plannedHours) || 0);
   // Même calcul que la jauge de l'appli : on borne, et on arrondit la SOMME (pas chaque part).
+  // Pourcentages AFFICHÉS : non plafonnés (peuvent dépasser 100%, comme l'appli).
+  const donePercent = Math.round((doneRaw / total) * 100);
+  const plannedPercent = Math.round((plannedRaw / total) * 100);
+  const totalPercent = Math.round(((doneRaw + plannedRaw) / total) * 100);
+  // Remplissage de l'arc : borné au demi-cercle (impossible de dessiner au-delà de 100%).
   const doneFrac = Math.min(doneRaw / total, 1);
   const plannedFrac = Math.min(plannedRaw / total, 1 - doneFrac);
-  const donePercent = Math.round(doneFrac * 100);
-  const plannedPercent = Math.round(plannedFrac * 100);
-  const totalPercent = Math.round((doneFrac + plannedFrac) * 100);
   const CIRC = 377;
   const doneDash = Math.min(doneFrac * CIRC, CIRC);
   const plannedDash = Math.min(plannedFrac * CIRC, CIRC - doneDash);
