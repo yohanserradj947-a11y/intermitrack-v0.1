@@ -72,44 +72,48 @@ export async function pickAndParseExcel(): Promise<{ status: string; drafts: Mis
 
   const buf = await (await fetch(res.assets[0].uri)).arrayBuffer();
   const wb = XLSX.read(new Uint8Array(buf), { type: 'array', cellDates: true });
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
-  if (!rows.length) return { status: 'empty', drafts: [] };
-
-  // Ligne d'en-tête = la première contenant "date" (sinon la 1re ligne).
-  let headerIdx = rows.findIndex((r) => (r || []).some((c) => /date/i.test(String(c || ''))));
-  if (headerIdx < 0) headerIdx = 0;
-  const cols = detectCols(rows[headerIdx] || []);
 
   const drafts: MissionDraft[] = [];
-  for (let i = headerIdx + 1; i < rows.length; i++) {
-    const row = rows[i] || [];
-    const dateISO = cols.date >= 0 ? ymdFromAny(row[cols.date]) : null;
-    if (!dateISO) continue; // lignes de mois (JANVIER…), lignes vides → ignorées
+  // Lit TOUS les onglets : un fichier peut avoir un onglet vide "Feuil1" + les vraies données sur un 2e onglet.
+  wb.SheetNames.forEach((name, si) => {
+    const ws = wb.Sheets[name];
+    const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+    if (!rows.length) return;
 
-    const prod = cols.prod >= 0 ? String(row[cols.prod] || '').trim() : '';
-    const hours = cols.hours >= 0 ? num(row[cols.hours]) : 0;
-    const price = cols.price >= 0 ? num(row[cols.price]) : 0;
-    const lieu = cols.lieu >= 0 ? String(row[cols.lieu] || '').trim() : '';
+    // Ligne d'en-tête = la première contenant "date" (sinon la 1re ligne).
+    let headerIdx = rows.findIndex((r) => (r || []).some((c) => /date/i.test(String(c || ''))));
+    if (headerIdx < 0) headerIdx = 0;
+    const cols = detectCols(rows[headerIdx] || []);
 
-    const missing: string[] = [];
-    if (!prod) missing.push('prod');
-    if (!(hours > 0)) missing.push('heures');
-    if (!(price > 0)) missing.push('prix');
+    for (let i = headerIdx + 1; i < rows.length; i++) {
+      const row = rows[i] || [];
+      const dateISO = cols.date >= 0 ? ymdFromAny(row[cols.date]) : null;
+      if (!dateISO) continue; // lignes de mois (JANVIER…), lignes vides → ignorées
 
-    drafts.push({
-      key: `xls-${i}-${dateISO}-${prod}`,
-      selected: true,
-      production: prod.toUpperCase(),
-      mission_date: dateISO,
-      end_date: null,
-      hours: hours > 0 ? hours : 8,
-      gross_amount: price,
-      lieu: lieu || null,
-      title: prod,
-      missing,
-    });
-  }
+      const prod = cols.prod >= 0 ? String(row[cols.prod] || '').trim() : '';
+      const hours = cols.hours >= 0 ? num(row[cols.hours]) : 0;
+      const price = cols.price >= 0 ? num(row[cols.price]) : 0;
+      const lieu = cols.lieu >= 0 ? String(row[cols.lieu] || '').trim() : '';
+
+      const missing: string[] = [];
+      if (!prod) missing.push('prod');
+      if (!(hours > 0)) missing.push('heures');
+      if (!(price > 0)) missing.push('prix');
+
+      drafts.push({
+        key: `xls-${si}-${i}-${dateISO}-${prod}`,
+        selected: true,
+        production: prod.toUpperCase(),
+        mission_date: dateISO,
+        end_date: null,
+        hours: hours > 0 ? hours : 8,
+        gross_amount: price,
+        lieu: lieu || null,
+        title: prod,
+        missing,
+      });
+    }
+  });
 
   if (!drafts.length) return { status: 'empty', drafts: [] };
   drafts.sort((a, b) => a.mission_date.localeCompare(b.mission_date));

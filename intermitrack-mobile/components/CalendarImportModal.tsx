@@ -38,7 +38,7 @@ export default function CalendarImportModal({
       const { status, drafts: found } = mode === 'excel' ? await pickAndParseExcel() : await scanCalendar();
       if (mode === 'excel') {
         if (status === 'canceled') { setPhase('intro'); return; }
-        if (status !== 'ok') { setError('Fichier vide ou colonnes non reconnues (attendu : Date, Production, Heures, Tarif).'); setPhase('intro'); return; }
+        if (status !== 'ok') { setError('Aucune date reconnue dans le fichier (colonnes attendues : Date, Production, Heures, Tarif).'); setPhase('intro'); return; }
       } else if (status !== 'granted') { setPhase('denied'); return; }
       // On évite les doublons : on retire ce qui existe déjà (même date + même prod).
       const existing = new Set<string>();
@@ -198,7 +198,9 @@ export default function CalendarImportModal({
             <View style={s.pad}>
               <Text style={s.body}>Aucune nouvelle mission à importer.</Text>
               <Text style={s.bodyMuted}>
-                Ton calendrier n'a pas d'événement récent, ou tout est déjà dans Intermitrack.
+                {mode === 'excel'
+                  ? 'Toutes les missions du fichier sont déjà dans ton compte — aucun doublon n’a été créé.'
+                  : "Ton calendrier n'a pas d'événement récent, ou tout est déjà dans Intermitrack."}
               </Text>
               <GradientButton onPress={close} label="Fermer" style={s.cta} textStyle={s.ctaTxt} />
             </View>
