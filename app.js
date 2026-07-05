@@ -142,6 +142,13 @@ function prodGradient(production, isFuture){
   const b = _prodCellBgs(hex);
   return isFuture ? b.fut : b.past;
 }
+// Couleur représentative d'une mission pour la case (couleur perso, sinon défaut : orange à venir / pétrole passé).
+function _missionRepColor(m){
+  const hex = getProductionColorHex(normalizeProductionName(m.production));
+  if (hex) return hex;
+  const fut = new Date(m.date + "T00:00:00") >= todayDateOnly();
+  return fut ? '#F97316' : '#1F4E5F';
+}
 function prodSolid(production, fallbackIdx){
   return getProductionColorHex(normalizeProductionName(production)) || PROD_FALLBACK_COLORS[fallbackIdx % PROD_FALLBACK_COLORS.length];
 }
@@ -2959,9 +2966,6 @@ function renderCalendar() {
       const isPast = missionsOfDay.some((m) => new Date((m.endDate || m.date) + "T00:00:00") < todayDateOnly());
       if (isPast) box.classList.add("has-done");
       if (isFuture) box.classList.add("has-planned");
-      const _phex = getProductionColorHex(normalizeProductionName(missionsOfDay[0].production));
-      const _pg = prodGradient(missionsOfDay[0].production, isFuture);
-      if (_pg) box.style.setProperty('background', _pg, 'important');
       let dayHours = 0, dayGross = 0;
       missionsOfDay.forEach((m) => {
         const nbDays = missionDayCount(m);
@@ -2970,9 +2974,28 @@ function renderCalendar() {
       });
       dayHours = Math.round(dayHours * 10) / 10;
       dayGross = Math.round(dayGross);
-      const label = missionsOfDay.length > 1 ? missionsOfDay.length + " miss." : getProductionInitials(missionsOfDay[0].production);
-      box.innerHTML = `<span class="new-cal-num">${d}</span><div class="new-cal-tag ${isFuture ? "tag-planned" : "tag-done"}"><span class="new-cal-tag-prod">${escapeHtml(label)}</span><span class="new-cal-tag-meta">${dayHours}h · ${money(dayGross)}</span></div>`;
-      if (_phex) { const _tc = prodTextColor(_phex); box.querySelectorAll('.new-cal-num,.new-cal-tag-prod,.new-cal-tag-meta').forEach(el => el.style.setProperty('color', _tc, 'important')); }
+      const _rep = missionsOfDay.map(_missionRepColor);
+      // 2 missions de couleurs différentes le même jour → case coupée en diagonale (moitié/moitié).
+      if (missionsOfDay.length === 2 && _rep[0] !== _rep[1]) {
+        const cA = _rep[0], cB = _rep[1];
+        box.style.setProperty('background', 'linear-gradient(135deg,' + cA + ' 0 50%,' + cB + ' 50% 100%)', 'important');
+        box.classList.add('cal-split');
+        const iA = getProductionInitials(missionsOfDay[0].production);
+        const iB = getProductionInitials(missionsOfDay[1].production);
+        box.innerHTML = '<span class="new-cal-num">' + d + '</span>'
+          + '<span class="cal-split-a">' + escapeHtml(iA) + '</span>'
+          + '<span class="cal-split-b">' + escapeHtml(iB) + '</span>';
+        box.querySelector('.new-cal-num').style.setProperty('color', prodTextColor(cA), 'important');
+        box.querySelector('.cal-split-a').style.setProperty('color', prodTextColor(cA), 'important');
+        box.querySelector('.cal-split-b').style.setProperty('color', prodTextColor(cB), 'important');
+      } else {
+        const _phex = getProductionColorHex(normalizeProductionName(missionsOfDay[0].production));
+        const _pg = prodGradient(missionsOfDay[0].production, isFuture);
+        if (_pg) box.style.setProperty('background', _pg, 'important');
+        const label = missionsOfDay.length > 1 ? missionsOfDay.length + " miss." : getProductionInitials(missionsOfDay[0].production);
+        box.innerHTML = `<span class="new-cal-num">${d}</span><div class="new-cal-tag ${isFuture ? "tag-planned" : "tag-done"}"><span class="new-cal-tag-prod">${escapeHtml(label)}</span><span class="new-cal-tag-meta">${dayHours}h · ${money(dayGross)}</span></div>`;
+        if (_phex) { const _tc = prodTextColor(_phex); box.querySelectorAll('.new-cal-num,.new-cal-tag-prod,.new-cal-tag-meta').forEach(el => el.style.setProperty('color', _tc, 'important')); }
+      }
     } else { box.innerHTML = `<span class="new-cal-num">${d}</span>`; }
     var _notes = (typeof notesForDate === 'function') ? notesForDate(dateStr) : [];
     if (_notes.length) {

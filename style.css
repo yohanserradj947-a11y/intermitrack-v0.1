@@ -578,6 +578,11 @@ body.theme-dark .calendar-day-panel-head span, body.theme-dark .calendar-day-mis
 .new-cal-tag.tag-done { color: var(--petrol); }
 .new-cal-tag.tag-planned { color: var(--orange); }
 
+/* ── Case scindée : 2 missions de couleurs différentes le même jour (moitié/moitié en diagonale) ── */
+.new-cal-day.cal-split { border-color: transparent !important; }
+.cal-split-a { position: absolute; left: 6px; top: 21px; font-size: 9px; font-weight: 800; letter-spacing: .02em; line-height: 1; max-width: 44%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 2; }
+.cal-split-b { position: absolute; right: 6px; bottom: 5px; font-size: 9px; font-weight: 800; letter-spacing: .02em; line-height: 1; max-width: 44%; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 2; }
+
 .mission-bar { position: absolute; bottom: 5px; left: 0; right: 0; height: 18px; display: flex; align-items: center; font-size: 9px; font-weight: 800; overflow: hidden; white-space: nowrap; z-index: 2; }
 .mission-bar.done { background: rgba(13,79,108,.13); color: var(--petrol); }
 .mission-bar.planned { background: rgba(232,101,10,.12); color: var(--orange); }
