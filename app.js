@@ -2975,10 +2975,10 @@ function renderCalendar() {
       dayHours = Math.round(dayHours * 10) / 10;
       dayGross = Math.round(dayGross);
       const _rep = missionsOfDay.map(_missionRepColor);
-      // 2 missions de couleurs différentes le même jour → case coupée en diagonale (moitié/moitié).
-      if (missionsOfDay.length === 2 && _rep[0] !== _rep[1]) {
+      // 2 missions le même jour → case TOUJOURS coupée en diagonale (moitié/moitié), avec un fin trait de séparation visible même si les 2 couleurs sont identiques.
+      if (missionsOfDay.length === 2) {
         const cA = _rep[0], cB = _rep[1];
-        box.style.setProperty('background', 'linear-gradient(135deg,' + cA + ' 0 50%,' + cB + ' 50% 100%)', 'important');
+        box.style.setProperty('background', 'linear-gradient(135deg,' + cA + ' 0 49%, rgba(255,255,255,.6) 49% 51%,' + cB + ' 51% 100%)', 'important');
         box.classList.add('cal-split');
         const iA = getProductionInitials(missionsOfDay[0].production);
         const iB = getProductionInitials(missionsOfDay[1].production);
