@@ -386,20 +386,31 @@ export default function Calendar(){
           const noteMark=has&&dayNotes.length>0;
           const customCol=has?(first?getColor(first.production):null):(noteOnly?(note0.color||'#1E6FE0'):null);
           const fillable=has||noteOnly;
-          const grad=(!isToday&&fillable)?(customCol?prodGradient(customCol):(isPast?GRAD_PAST_T:GRAD_FUTURE_T)):null;
-          const filled=grad!=null;
-          const hach=filled&&(noteOnly||(isPast&&!!customCol)); // notes hachurées ; missions passées perso hachurées
-          const baseTxt=customCol?textOn(customCol):'#fff';
+          // 2 missions le même jour → case coupée en diagonale (moitié/moitié), comme sur le site.
+          const isSplit=has&&ms.length===2&&!isToday;
+          const cA=isSplit?(getColor(ms[0].production)||(isPast?'#1F4E5F':'#F97316')):'';
+          const cB=isSplit?(getColor(ms[1].production)||(isPast?'#1F4E5F':'#F97316')):'';
+          const grad=(!isToday&&fillable&&!isSplit)?(customCol?prodGradient(customCol):(isPast?GRAD_PAST_T:GRAD_FUTURE_T)):null;
+          const filled=grad!=null||isSplit;
+          const hach=filled&&!isSplit&&(noteOnly||(isPast&&!!customCol)); // notes hachurées ; missions passées perso hachurées
+          const baseTxt=isSplit?textOn(cA):(customCol?textOn(customCol):'#fff');
           const txtColor=isToday?C.petrol:(filled?baseTxt:C.text);
           const subColor=isToday?C.muted:(filled?(customCol?baseTxt:'rgba(255,255,255,.85)'):C.muted);
           return(
             <TouchableOpacity key={i} style={[s.cell,isToday?s.cellToday:(filled?s.cellFilled:s.cellEmpty)]} activeOpacity={0.85} onPress={()=>onCellPress(d)}>
-              {grad&&<LinearGradient colors={grad} start={{x:0,y:0}} end={{x:1,y:1}} style={StyleSheet.absoluteFill}/>}
+              {isSplit
+                ? <LinearGradient colors={[cA,cA,'rgba(255,255,255,0.6)','rgba(255,255,255,0.6)',cB,cB]} locations={[0,0.49,0.49,0.51,0.51,1]} start={{x:0,y:0}} end={{x:1,y:1}} style={StyleSheet.absoluteFill}/>
+                : (grad&&<LinearGradient colors={grad} start={{x:0,y:0}} end={{x:1,y:1}} style={StyleSheet.absoluteFill}/>)}
               {hach&&<Svg width={84} height={80} style={{position:'absolute',top:0,left:0}}>{Array.from({length:22},(_,k)=>{const o=-84+k*9;return <Line key={k} x1={o} y1={0} x2={o+84} y2={84} stroke="rgba(255,255,255,0.30)" strokeWidth={2.5}/>;})}</Svg>}
               {isToday&&<Animated.View pointerEvents="none" style={[s.todayFrame,{opacity:pulse.interpolate({inputRange:[0,1],outputRange:[0.35,1]})}]}/>}
               {noteMark&&<View pointerEvents="none" style={{position:'absolute',top:4,right:4,width:8,height:8,borderRadius:3,backgroundColor:(note0&&note0.color)||'#1E6FE0',zIndex:3}}/>}
               <Text style={[s.cellDay,{color:txtColor},isToday&&s.cellDayToday]}>{d.getDate()}</Text>
-              {first&&(
+              {isSplit?(
+                <>
+                  <Text style={[s.cellProd,{color:txtColor}]} numberOfLines={1}>{(ms[0].production||'').slice(0,3).toUpperCase()}</Text>
+                  <Text style={[s.cellProd,{color:textOn(cB),position:'absolute',right:5,bottom:4,marginTop:0,textAlign:'right'}]} numberOfLines={1}>{(ms[1].production||'').slice(0,3).toUpperCase()}</Text>
+                </>
+              ):first&&(
                 <>
                   <Text style={[s.cellProd,{color:txtColor}]} numberOfLines={1}>
                     {(first.production||'').slice(0,3).toUpperCase()}
