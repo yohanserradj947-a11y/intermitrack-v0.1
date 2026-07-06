@@ -363,7 +363,7 @@ export default function Calendar(){
           ]);
         }}>
           <Ionicons name="refresh-outline" size={15} color={C.petrol}/>
-          <Text style={s.colorToolTxt}>Réinitialiser</Text>
+          <Text style={s.colorToolTxt}>Réinitialiser les couleurs</Text>
         </TouchableOpacity>
       </View>
 
