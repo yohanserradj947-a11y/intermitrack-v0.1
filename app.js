@@ -3791,6 +3791,7 @@ async function _profilSave(){
   _profil = p;
   ov.classList.remove('open');
   if(typeof toast==='function') toast('Infos enregistrées ✅');
+  if(typeof render==='function') render(); // re-render le dashboard → l'estimation France Travail s'adapte tout de suite (annexe artiste/technicien)
 }
 
 function _profilShowIntroIfNeeded(){

@@ -13,7 +13,7 @@ import NumInput from '../../components/NumInput';
 import KmSection, { KmHandle } from '../../components/KmSection';
 import TxtInput from '../../components/TxtInput';
 import { GradientButton } from '../../components/GradientButton';
-import { openMesInfos } from '../../components/AccountMenu';
+import { openMesInfos, onProfilChanged } from '../../components/AccountMenu';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemeControls } from '../../lib/theme';
 
@@ -69,6 +69,8 @@ export default function HomeScreen(){
 
   useEffect(()=>{loadData();},[]);
   useFocusEffect(useCallback(()=>{loadData(true);},[]));
+  // Rechargement immédiat quand on modifie « Mes informations » (annexe artiste/technicien, taux…) depuis la modale, qui ne change pas le focus de l'écran.
+  useEffect(()=>onProfilChanged(()=>loadData(true)),[]);
 
   async function loadData(silent=false){
     const{data}=await supabase.from('missions').select('*').order('mission_date',{ascending:true});

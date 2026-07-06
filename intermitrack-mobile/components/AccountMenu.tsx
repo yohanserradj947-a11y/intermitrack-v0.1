@@ -17,6 +17,10 @@ import ThemeModal from './ThemeModal';
 // bouton "Renseigner mes infos" du tableau de bord). Même principe que dialog.tsx.
 let _openMesInfos:(()=>void)|null=null;
 export function openMesInfos(){ if(_openMesInfos)_openMesInfos(); }
+// Notif "profil modifié" → le dashboard s'y abonne pour recharger tout de suite (annexe artiste/technicien, taux…).
+let _profilListeners:Array<()=>void>=[];
+export function onProfilChanged(fn:()=>void){ _profilListeners.push(fn); return ()=>{ _profilListeners=_profilListeners.filter(f=>f!==fn); }; }
+function _emitProfilChanged(){ _profilListeners.forEach(f=>{ try{ f(); }catch(e){} }); }
 
 // Compte admin (toi) : seul à voir l'écran Analytics.
 const ADMIN_EMAIL = 'yohanserradj947@gmail.com';
@@ -93,7 +97,7 @@ export function AccountMenu(){
     const droits=miDroits===true;
     const { error }=await supabase.from('profiles').upsert({ id:user.id, annexe:miAnnexe||null, droits_ouverts:miDroits, taux_journalier:droits?(Number(miAj)||null):null, taux_impot:droits?(Number(miImpot)||null):null },{onConflict:'id'});
     if(error){ showAlert('Erreur',error.message); return; }
-    setShowMesInfos(false); loadProfil();
+    setShowMesInfos(false); loadProfil(); _emitProfilChanged();
   }
 
   async function deleteAccount(){
