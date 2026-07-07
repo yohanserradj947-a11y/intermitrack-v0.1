@@ -901,6 +901,40 @@ function setAuthMode(mode) {
   authMode = mode;
   $("authButton").textContent = mode === "login" ? "Se connecter" : "Créer mon compte";
   $("authMsg").textContent = mode === "login" ? "Mode : connexion" : "Mode : création de compte";
+  if ($("forgotPwBtn")) $("forgotPwBtn").style.display = mode === "login" ? "" : "none";
+}
+
+// Envoie l'email de réinitialisation du mot de passe (site).
+async function handleForgotPassword() {
+  const email = ($("authEmail").value || "").trim();
+  if (!email) { $("authMsg").textContent = "Entre d'abord ton email ci-dessus, puis reclique sur « Mot de passe oublié ? »."; return; }
+  $("authMsg").textContent = "Envoi du lien de réinitialisation…";
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+  if (error) { $("authMsg").textContent = "Erreur : " + error.message; return; }
+  $("authMsg").textContent = "✅ Si un compte existe pour cet email, un lien vient d'être envoyé. Vérifie ta boîte mail (et tes spams).";
+}
+
+// Modale pour choisir un nouveau mot de passe après avoir cliqué le lien reçu par email.
+function showResetPasswordModal() {
+  let ov = document.getElementById("rpwOverlay");
+  if (!ov) {
+    const st = document.createElement("style");
+    st.textContent = "#rpwOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:100070;padding:16px}#rpwOverlay.open{display:flex}.rpw-box{background:#fff;border-radius:18px;max-width:400px;width:100%;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,.3);font-family:inherit}.rpw-box h3{margin:0 0 6px;color:#1F4E5F;font-size:18px}.rpw-box p{font-size:13px;color:#718096;margin:0 0 14px;line-height:1.4}.rpw-box input{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #E2E8F0;border-radius:10px;font-size:14px;margin-bottom:12px;font-family:inherit}.rpw-box button{width:100%;padding:12px;border:none;border-radius:11px;background:#1F4E5F;color:#fff;font-weight:800;cursor:pointer;font-family:inherit}.rpw-msg{font-size:13px;margin-top:10px;text-align:center}";
+    document.head.appendChild(st);
+    ov = document.createElement("div"); ov.id = "rpwOverlay";
+    ov.innerHTML = '<div class="rpw-box"><h3>Nouveau mot de passe</h3><p>Choisis ton nouveau mot de passe (6 caractères minimum). Tu seras connecté juste après.</p><input id="rpwInput" type="password" placeholder="Nouveau mot de passe" minlength="6" autocomplete="new-password"><button id="rpwSave" type="button">Enregistrer</button><div class="rpw-msg" id="rpwMsg"></div></div>';
+    document.body.appendChild(ov);
+    ov.querySelector("#rpwSave").addEventListener("click", async () => {
+      const p = ov.querySelector("#rpwInput").value; const msg = ov.querySelector("#rpwMsg");
+      if (p.length < 6) { msg.textContent = "Minimum 6 caractères."; msg.style.color = "#DC2626"; return; }
+      msg.textContent = "Enregistrement…"; msg.style.color = "#718096";
+      const { error } = await sb.auth.updateUser({ password: p });
+      if (error) { msg.textContent = "Erreur : " + error.message; msg.style.color = "#DC2626"; return; }
+      msg.textContent = "✅ Mot de passe mis à jour ! Connexion…"; msg.style.color = "#15803d";
+      setTimeout(() => { ov.classList.remove("open"); }, 1200);
+    });
+  }
+  ov.classList.add("open");
 }
 
 function showAuth() {
@@ -3351,6 +3385,7 @@ function applyTheme(theme) {
 function setupEvents() {
   $("loginModeBtn").addEventListener("click", () => setAuthMode("login"));
   $("signupModeBtn").addEventListener("click", () => setAuthMode("signup"));
+  if ($("forgotPwBtn")) $("forgotPwBtn").addEventListener("click", handleForgotPassword);
   $("logoutBtn").addEventListener("click", logout);
  
   if ($("togglePassword")) {
@@ -3627,6 +3662,7 @@ function maybeShowWhatsNew() {
 }
 
 sb.auth.onAuthStateChange((_event, session) => {
+  if (_event === "PASSWORD_RECOVERY") { showResetPasswordModal(); return; } // lien "mot de passe oublié" cliqué
   currentUser = session?.user || null;
   if (currentUser) { showApp(); loadMissions(); loadDocuments(); maybeShowWhatsNew(); }
   else showAuth();
