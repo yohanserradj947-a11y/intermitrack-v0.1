@@ -161,7 +161,8 @@ export default function HomeScreen(){
     const monthM=missions.filter((m:any)=>{const d=new Date(m.mission_date+'T00:00:00');return d.getMonth()===current.getMonth()&&d.getFullYear()===current.getFullYear();});
     const monthH=Math.round(monthM.reduce((a:number,m:any)=>a+Number(m.hours||0),0)*10)/10;
     const monthG=monthM.reduce((a:number,m:any)=>a+Number(m.gross_amount||0),0);
-    const monthVac=monthM.reduce((a:number,m:any)=>a+Math.max(1,Math.round((new Date((m.end_date||m.mission_date)+'T00:00:00').getTime()-new Date(m.mission_date+'T00:00:00').getTime())/86400000)+1),0); // 1 vacation = 1 jour de mission
+    const _mvS=new Date(current.getFullYear(),current.getMonth(),1).getTime(), _mvE=new Date(current.getFullYear(),current.getMonth()+1,0).getTime();
+    const monthVac=monthM.reduce((a:number,m:any)=>{const s=new Date(m.mission_date+'T00:00:00').getTime(),e=new Date((m.end_date||m.mission_date)+'T00:00:00').getTime();const p=Math.max(s,_mvS),q=Math.min(e,_mvE);return a+(q<p?0:Math.round((q-p)/86400000)+1);},0); // 1 vacation = 1 jour de mission (borné au mois)
     const monthRate=monthH>0?Math.round(monthG/monthH):0;
     // Net à payer estimé = brut − charges salariales − prélèvement à la source
     const monthNet=Math.round(monthG*(1-chargeRate/100)*(1-pasRate/100));
