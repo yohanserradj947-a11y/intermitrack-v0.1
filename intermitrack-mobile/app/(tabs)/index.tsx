@@ -162,7 +162,7 @@ export default function HomeScreen(){
     const monthH=Math.round(monthM.reduce((a:number,m:any)=>a+Number(m.hours||0),0)*10)/10;
     const monthG=monthM.reduce((a:number,m:any)=>a+Number(m.gross_amount||0),0);
     const _mvS=new Date(current.getFullYear(),current.getMonth(),1).getTime(), _mvE=new Date(current.getFullYear(),current.getMonth()+1,0).getTime();
-    const monthVac=monthM.reduce((a:number,m:any)=>{const s=new Date(m.mission_date+'T00:00:00').getTime(),e=new Date((m.end_date||m.mission_date)+'T00:00:00').getTime();const p=Math.max(s,_mvS),q=Math.min(e,_mvE);return a+(q<p?0:Math.round((q-p)/86400000)+1);},0); // 1 vacation = 1 jour de mission (borné au mois)
+    const monthVac=missions.reduce((a:number,m:any)=>{const s=new Date(m.mission_date+'T00:00:00').getTime(),e=new Date((m.end_date||m.mission_date)+'T00:00:00').getTime();const p=Math.max(s,_mvS),q=Math.min(e,_mvE);return a+(q<p?0:Math.round((q-p)/86400000)+1);},0); // 1 vacation = 1 jour de mission, missions chevauchant le mois, bornées au mois
     const monthRate=monthH>0?Math.round(monthG/monthH):0;
     // Net à payer estimé = brut − charges salariales − prélèvement à la source
     const monthNet=Math.round(monthG*(1-chargeRate/100)*(1-pasRate/100));
