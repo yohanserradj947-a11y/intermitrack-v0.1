@@ -42,7 +42,8 @@ export default function Actualisation(){
 
   const totalHours=useMemo(()=>Math.round(monthMissions.reduce((a,m:any)=>a+Number(m.hours||0),0)*10)/10,[monthMissions]);
   const totalGross=useMemo(()=>monthMissions.reduce((a,m:any)=>a+Number(m.gross_amount||0),0),[monthMissions]);
-  const totalVac=useMemo(()=>monthMissions.reduce((a,m:any)=>a+Number(m.vacations||Math.round(Number(m.hours||0)/8)),0),[monthMissions]);
+  const vacDays=(m:any)=>Math.max(1,Math.round((new Date((m.end_date||m.mission_date)+'T00:00:00').getTime()-new Date(m.mission_date+'T00:00:00').getTime())/86400000)+1);
+  const totalVac=useMemo(()=>monthMissions.reduce((a,m:any)=>a+vacDays(m),0),[monthMissions]); // 1 vacation = 1 jour de mission
 
   function moveMonth(n:number){const d=new Date(current);d.setMonth(d.getMonth()+n);d.setDate(1);setCurrent(d);}
 

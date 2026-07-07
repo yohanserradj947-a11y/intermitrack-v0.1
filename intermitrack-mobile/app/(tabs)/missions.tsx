@@ -129,7 +129,7 @@ export default function Missions(){
     name, list:groups[name], color:colorOrDefault(name,i),
     gross:groups[name].reduce((a:number,m:any)=>a+Number(m.gross_amount||0),0),
     hours:Math.round(groups[name].reduce((a:number,m:any)=>a+Number(m.hours||0),0)*10)/10,
-    vac:groups[name].reduce((a:number,m:any)=>a+Number(m.vacations||Math.round(Number(m.hours||0)/8)),0),
+    vac:groups[name].reduce((a:number,m:any)=>a+Math.max(1,Math.round((new Date((m.end_date||m.mission_date)+'T00:00:00').getTime()-new Date(m.mission_date+'T00:00:00').getTime())/86400000)+1),0), // 1 vacation = 1 jour de mission
     count:groups[name].length,
   })).sort((a,b)=>b.gross-a.gross);
 
@@ -184,7 +184,7 @@ export default function Missions(){
                 {m.emission?<View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="videocam-outline" size={13} color={C.muted} /><Text style={s.meta}>{m.emission}</Text></View>:null}
                 {m.lieu?<View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="location-outline" size={13} color={C.muted} /><Text style={s.meta}>{m.lieu}</Text></View>:null}
                 <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="calendar-outline" size={13} color={C.muted} /><Text style={s.meta}>{fmtPeriod(m.mission_date,m.end_date)}</Text></View>
-                <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="time-outline" size={13} color={C.muted} /><Text style={s.meta}>{m.hours}h · </Text><Ionicons name="briefcase-outline" size={13} color={C.muted} /><Text style={s.meta}> {m.vacations||Math.round(Number(m.hours||0)/8)} vacation(s)</Text></View>
+                <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="time-outline" size={13} color={C.muted} /><Text style={s.meta}>{m.hours}h · </Text><Ionicons name="briefcase-outline" size={13} color={C.muted} /><Text style={s.meta}> {Math.max(1,Math.round((new Date((m.end_date||m.mission_date)+'T00:00:00').getTime()-new Date(m.mission_date+'T00:00:00').getTime())/86400000)+1)} vacation(s)</Text></View>
                 <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="cash-outline" size={13} color={C.muted} /><Text style={s.meta}>{money(m.gross_amount)}</Text></View>
               </View>
               <Text style={s.tapHint}>Toucher pour modifier</Text>

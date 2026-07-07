@@ -354,7 +354,7 @@ async function _xlDoImport(){
   const sel=_xlDrafts.filter(function(d){return d.selected;}); if(!sel.length)return;
   if(!currentUser){ toast('Connecte-toi.'); return; }
   const btn=document.getElementById('xlImport'); btn.disabled=true; btn.textContent='Import en cours…';
-  const payloads=sel.map(function(d){ return { user_id:currentUser.id, production:normalizeProductionName(d.prod), emission:'', lieu:d.lieu||'', mission_type:'Tournage', mission_date:d.date, end_date:d.date, hours:d.hours>0?d.hours:8, gross_amount:d.price||0, vacations:Math.max(1,Math.round((d.hours||8)/8)), km_distance:0, km_rate:0, km_amount:0 }; });
+  const payloads=sel.map(function(d){ return { user_id:currentUser.id, production:normalizeProductionName(d.prod), emission:'', lieu:d.lieu||'', mission_type:'Tournage', mission_date:d.date, end_date:d.date, hours:d.hours>0?d.hours:8, gross_amount:d.price||0, vacations:1, km_distance:0, km_rate:0, km_amount:0 }; });
   try{
     for(let i=0;i<payloads.length;i+=100){ const r=await sb.from('missions').insert(payloads.slice(i,i+100)); if(r.error)throw r.error; }
     document.getElementById('xlOverlay').classList.remove('open');
@@ -2181,6 +2181,15 @@ function splitMissionByTime(mission) {
 function sumDone(list) { return list.reduce((total, m) => total + splitMissionByTime(m).done, 0); }
 function sumPlanned(list) { return list.reduce((total, m) => total + splitMissionByTime(m).planned, 0); }
 function sumMissionDays(list) { return list.reduce((total, m) => total + missionDayCount(m), 0); }
+// Jours d'une mission qui tombent DANS le mois de référence (1 vacation = 1 jour de mission, borné au mois).
+function missionDaysInMonth(m, ref) {
+  const y = ref.getFullYear(), mo = ref.getMonth();
+  const ms = new Date(y, mo, 1), me = new Date(y, mo + 1, 0);
+  const s = new Date(m.date + "T00:00:00"), e = new Date((m.endDate || m.date) + "T00:00:00");
+  const a = s > ms ? s : ms, b = e < me ? e : me;
+  return b < a ? 0 : daysInclusive(a, b);
+}
+function sumMonthVac(list, ref) { return list.reduce((total, m) => total + missionDaysInMonth(m, ref), 0); }
 
 function getProductionInitials(name) {
   return String(name || "---").replace(/[^a-zA-ZÀ-ÿ0-9\s]/g," ").trim().split(/\s+/).join("").slice(0, 3).toUpperCase() || "---";
@@ -2336,7 +2345,7 @@ function renderFiscalite(yearGross, yearMissions) {
   if ($("fiscaliteDeclarationPreview")) $("fiscaliteDeclarationPreview").textContent =
     `Net imposable ~${money(netTotal)} · Frais ${useForfait ? "forfait" : "réels"} ${money(useForfait ? forfait : totalFraisReels)}`;
   // Auto-remplir SJR carence depuis vacations
-  const totalVac = yearMissions.reduce((a, x) => a + Number(x.vacations || 0), 0);
+  const totalVac = sumMissionDays(yearMissions); // 1 vacation = 1 jour de mission
   const sjrAuto = totalVac > 0 ? yearGross / totalVac : 0;
   if ($("carenceSJM") && !$("carenceSJM").dataset.userEdited && sjrAuto > 0) {
     $("carenceSJM").value = sjrAuto.toFixed(2);
@@ -2431,7 +2440,7 @@ function render() {
   if ($("remainingHours")) $("remainingHours").textContent = remaining;
   if ($("plannedHours")) $("plannedHours").textContent = plannedHours;
   if ($("missionCount")) {
-  const totalVac = selectedMonthMissions.reduce((a, x) => a + Number(x.vacations || 0), 0);
+  const totalVac = sumMonthVac(selectedMonthMissions, current); // 1 vacation = 1 jour de mission (borné au mois)
   $("missionCount").textContent = totalVac;
 }
   if ($("progressText")) $("progressText").textContent = percent + "% de ton objectif intermittent";
@@ -2803,7 +2812,7 @@ function renderAllMissions() {
     name, list: groups[name],
     gross: groups[name].reduce((a, x) => a + Number(x.gross || 0), 0),
     hours: Math.round(groups[name].reduce((a, x) => a + Number(x.hours || 0), 0) * 10) / 10,
-    vacations: groups[name].reduce((a, x) => a + Number(x.vacations || Math.round(Number(x.hours || 0) / 8)), 0),
+    vacations: sumMissionDays(groups[name]), // 1 vacation = 1 jour de mission
     count: groups[name].length
   })).sort((a, b) => b.gross - a.gross);
   const totalGross = sorted.reduce((a, x) => a + x.gross, 0);
@@ -3271,7 +3280,7 @@ function renderActualisation() {
     .sort((a, b) => new Date(a.date) - new Date(b.date));
   const totalHours = Math.round(sumDone(list) * 10) / 10;
   const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
-  const totalVac = list.reduce((a, x) => a + Number(x.vacations || Math.round(Number(x.hours || 0) / 8)), 0);
+  const totalVac = sumMonthVac(list, current); // 1 vacation = 1 jour de mission (borné au mois)
 
   $("actualisationMonthPicker").value = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}`;
   if ($("actualisationMonthTitle")) $("actualisationMonthTitle").textContent = current.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
