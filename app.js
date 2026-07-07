@@ -2420,7 +2420,7 @@ function renderPoleEmploi(list, salaireNet) {
     const lk = $("peProfilLink"); if (lk) lk.onclick = function(e){ e.preventDefault(); if (typeof openProfilModal === "function") openProfilModal(); };
     return;
   }
-  const heures = list.reduce(function(a,x){ return a + (Number(x.hours)||0); }, 0);
+  const heures = list.reduce(function(a,x){ return a + (Number(x.hours)||0) * (missionDaysInMonth(x, current) / missionDayCount(x)); }, 0); // prorata : part du mois pour missions à cheval
   const artiste = (_profil && _profil.annexe === "artiste");
   const coef = artiste ? 1.3 : 1.4, divJ = artiste ? 10 : 8;
   const daysInMonth = new Date(current.getFullYear(), current.getMonth()+1, 0).getDate();
@@ -2452,9 +2452,11 @@ function render() {
   const selectedMonthMissions = monthMissions(current);
   const yearHours = Math.round(sumDone(yearMissions) * 10) / 10;
   const plannedHours = Math.round(sumPlanned(yearMissions) * 10) / 10;
-  const monthHours = Math.round(selectedMonthMissions.reduce((total, m) => total + Number(m.hours || 0), 0) * 10) / 10;
+  // Prorata : une mission à cheval sur 2 mois ne compte que sa part de jours DANS le mois affiché (heures ET brut suivent les vacations).
+  const monthFrac = (m) => missionDaysInMonth(m, current) / missionDayCount(m);
+  const monthHours = Math.round(selectedMonthMissions.reduce((total, m) => total + Number(m.hours || 0) * monthFrac(m), 0) * 10) / 10;
   const yearGross = yearMissions.reduce((a, x) => a + Number(x.gross || 0), 0);
-  const monthGross = selectedMonthMissions.reduce((a, x) => a + Number(x.gross || 0), 0);
+  const monthGross = Math.round(selectedMonthMissions.reduce((a, x) => a + Number(x.gross || 0) * monthFrac(x), 0));
   const percent = Math.round((yearHours / OBJECTIVE_HOURS) * 100);
   const remaining = Math.max(0, Math.round((OBJECTIVE_HOURS - yearHours - plannedHours) * 10) / 10);
 
@@ -3312,9 +3314,9 @@ function renderActualisation() {
   const list = monthMissions(current)
     .filter((m) => new Date(m.date + "T00:00:00") <= todayDateOnly())
     .sort((a, b) => new Date(a.date) - new Date(b.date));
-  const totalHours = Math.round(sumDone(list) * 10) / 10;
-  const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
-  const totalVac = sumMonthVac(list, current); // 1 vacation = 1 jour de mission (borné au mois)
+  const totalHours = Math.round(list.reduce((a, x) => a + Number(x.hours || 0) * (missionDaysInMonth(x, current) / missionDayCount(x)), 0) * 10) / 10;
+  const totalGross = Math.round(list.reduce((a, x) => a + Number(x.gross || 0) * (missionDaysInMonth(x, current) / missionDayCount(x)), 0));
+  const totalVac = sumMonthVac(list, current); // 1 vacation = 1 jour de mission (borné au mois) — heures/brut au prorata idem
 
   $("actualisationMonthPicker").value = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}`;
   if ($("actualisationMonthTitle")) $("actualisationMonthTitle").textContent = current.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });

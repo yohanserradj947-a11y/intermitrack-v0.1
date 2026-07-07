@@ -40,11 +40,11 @@ export default function Actualisation(){
     return d.getMonth()===month && d.getFullYear()===year;
   }),[missions,month,year]);
 
-  const totalHours=useMemo(()=>Math.round(monthMissions.reduce((a,m:any)=>a+Number(m.hours||0),0)*10)/10,[monthMissions]);
-  const totalGross=useMemo(()=>monthMissions.reduce((a,m:any)=>a+Number(m.gross_amount||0),0),[monthMissions]);
-  // 1 vacation = 1 jour de mission, borné au mois affiché (une mission à cheval sur 2 mois ne compte que ses jours du mois).
-  const vacDays=(m:any)=>{ const ms=new Date(year,month,1).getTime(), me=new Date(year,month+1,0).getTime(); const s=new Date(m.mission_date+'T00:00:00').getTime(), e=new Date((m.end_date||m.mission_date)+'T00:00:00').getTime(); const a=Math.max(s,ms), b=Math.min(e,me); return b<a?0:Math.round((b-a)/86400000)+1; };
-  const totalVac=useMemo(()=>missions.reduce((a,m:any)=>a+vacDays(m),0),[missions,month,year]); // missions chevauchant le mois, bornées au mois
+  // Tout suit la même logique : la part de chaque mission qui tombe DANS le mois (prorata des jours). Missions à cheval sur 2 mois comptées au prorata.
+  const monthDays=(m:any)=>{ const ms=new Date(year,month,1).getTime(), me=new Date(year,month+1,0).getTime(); const s=new Date(m.mission_date+'T00:00:00').getTime(), e=new Date((m.end_date||m.mission_date)+'T00:00:00').getTime(); const tot=Math.max(1,Math.round((e-s)/86400000)+1); const a=Math.max(s,ms), b=Math.min(e,me); const inM=b<a?0:Math.round((b-a)/86400000)+1; return {inM,frac:inM/tot}; };
+  const totalHours=useMemo(()=>Math.round(missions.reduce((a,m:any)=>a+Number(m.hours||0)*monthDays(m).frac,0)*10)/10,[missions,month,year]);
+  const totalGross=useMemo(()=>Math.round(missions.reduce((a,m:any)=>a+Number(m.gross_amount||0)*monthDays(m).frac,0)),[missions,month,year]);
+  const totalVac=useMemo(()=>missions.reduce((a,m:any)=>a+monthDays(m).inM,0),[missions,month,year]);
 
   function moveMonth(n:number){const d=new Date(current);d.setMonth(d.getMonth()+n);d.setDate(1);setCurrent(d);}
 

@@ -158,11 +158,12 @@ export default function HomeScreen(){
     const doneH=Math.round(yearM.reduce((a:number,m:any)=>a+splitT(m).done,0)*10)/10;
     const planH=Math.round(yearM.reduce((a:number,m:any)=>a+splitT(m).planned,0)*10)/10;
     const remaining=Math.max(0,Math.round((507-doneH-planH)*10)/10);
-    const monthM=missions.filter((m:any)=>{const d=new Date(m.mission_date+'T00:00:00');return d.getMonth()===current.getMonth()&&d.getFullYear()===current.getFullYear();});
-    const monthH=Math.round(monthM.reduce((a:number,m:any)=>a+Number(m.hours||0),0)*10)/10;
-    const monthG=monthM.reduce((a:number,m:any)=>a+Number(m.gross_amount||0),0);
+    // Tout le récap du mois suit la MÊME logique : la part de chaque mission qui tombe DANS le mois (au prorata des jours).
     const _mvS=new Date(current.getFullYear(),current.getMonth(),1).getTime(), _mvE=new Date(current.getFullYear(),current.getMonth()+1,0).getTime();
-    const monthVac=missions.reduce((a:number,m:any)=>{const s=new Date(m.mission_date+'T00:00:00').getTime(),e=new Date((m.end_date||m.mission_date)+'T00:00:00').getTime();const p=Math.max(s,_mvS),q=Math.min(e,_mvE);return a+(q<p?0:Math.round((q-p)/86400000)+1);},0); // 1 vacation = 1 jour de mission, missions chevauchant le mois, bornées au mois
+    const monthDays=(m:any)=>{const s=new Date(m.mission_date+'T00:00:00').getTime(),e=new Date((m.end_date||m.mission_date)+'T00:00:00').getTime();const tot=Math.max(1,Math.round((e-s)/86400000)+1);const p=Math.max(s,_mvS),q=Math.min(e,_mvE);const inM=q<p?0:Math.round((q-p)/86400000)+1;return {inM,frac:inM/tot};};
+    const monthH=Math.round(missions.reduce((a:number,m:any)=>a+Number(m.hours||0)*monthDays(m).frac,0)*10)/10;
+    const monthG=Math.round(missions.reduce((a:number,m:any)=>a+Number(m.gross_amount||0)*monthDays(m).frac,0));
+    const monthVac=missions.reduce((a:number,m:any)=>a+monthDays(m).inM,0); // 1 vacation = 1 jour de mission dans le mois
     const monthRate=monthH>0?Math.round(monthG/monthH):0;
     // Net à payer estimé = brut − charges salariales − prélèvement à la source
     const monthNet=Math.round(monthG*(1-chargeRate/100)*(1-pasRate/100));
