@@ -3298,14 +3298,23 @@ function openDayModal(dateStr){
   document.getElementById('dayModalOverlay').classList.add('open');
 }
 
+// Récap au format actualisation France Travail : une ligne par mission
+// (Production · Période · Heures · Jours/Cachets · Brut), + total. À recopier ligne par ligne.
 function buildActualisationText() {
   const list = monthMissions(current).filter((m) => new Date(m.date + "T00:00:00") <= todayDateOnly()).sort((a, b) => new Date(a.date) - new Date(b.date));
   const title = current.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  const artiste = (typeof _profil !== "undefined" && _profil && _profil.annexe === "artiste");
+  const unit = artiste ? "cachet" : "jour";
+  const lines = ["Actualisation — " + title, ""];
+  list.forEach((m) => {
+    const j = missionDayCount(m);
+    lines.push("• " + m.production + " · " + formatPeriod(m.date, m.endDate) + " · " + m.hours + "h · " + j + " " + unit + (j > 1 ? "s" : "") + " · " + money(m.gross));
+  });
+  lines.push("");
+  const totalDays = sumMissionDays(list);
   const totalHours = Math.round(sumDone(list) * 10) / 10;
   const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
-  const totalDays = sumMissionDays(list);
-  const lines = [`Actualisation ${title}`, "", `Total journées : ${totalDays}`, `Total heures : ${totalHours}h`, `Total brut : ${money(totalGross)}`, ""];
-  list.forEach((mission, index) => { lines.push(`${index + 1}. ${mission.production}`); lines.push(`Période : ${formatPeriod(mission.date, mission.endDate)}`); lines.push(`Mission : ${mission.type}`); lines.push(`Heures : ${mission.hours}h`); lines.push(`Brut : ${money(mission.gross)}`); lines.push(""); });
+  lines.push("Total : " + totalDays + " " + unit + (totalDays > 1 ? "s" : "") + " · " + totalHours + "h · " + money(totalGross) + " brut");
   return lines.join("\n");
 }
 
@@ -3593,6 +3602,16 @@ function setupEvents() {
  
   if ($("copyActualisationBtn")) $("copyActualisationBtn").addEventListener("click", copyActualisation);
   if ($("pdfActualisationBtn")) $("pdfActualisationBtn").addEventListener("click", generateActualisationPDF);
+  if ($("franceTravailBtn")) $("franceTravailBtn").addEventListener("click", () => {
+    if ($("ftRecapText")) $("ftRecapText").value = buildActualisationText();
+    if ($("modalFranceTravail")) $("modalFranceTravail").classList.remove("hidden");
+  });
+  if ($("ftRecapCopy")) $("ftRecapCopy").addEventListener("click", async () => {
+    const t = $("ftRecapText") ? $("ftRecapText").value : "";
+    try { await navigator.clipboard.writeText(t); toast("Récap copié ✅ Colle-le dans ton actualisation."); }
+    catch (e) { if ($("ftRecapText")) { $("ftRecapText").select(); document.execCommand("copy"); toast("Récap copié ✅"); } }
+  });
+  if ($("modalFtClose")) $("modalFtClose").addEventListener("click", () => { if ($("modalFranceTravail")) $("modalFranceTravail").classList.add("hidden"); });
  
   document.addEventListener("click", async (event) => {
     const docProductionOpen = event.target.closest("[data-doc-production-open]");

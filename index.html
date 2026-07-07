@@ -771,18 +771,21 @@ z-index: 500 !important;
           </div>
           <div class="actualisation-actions-clean" id="actualisationActions" style="display:none;">
             <button class="btn-act-pdf" type="button" id="pdfActualisationBtn">📄 Générer PDF</button>
-            <button class="btn-act-ft" type="button" id="franceTravailBtn">🏛️ France Travail<div class="badge-dev">Bientôt</div></button>
+            <button class="btn-act-ft" type="button" id="franceTravailBtn">🏛️ Récap pour France Travail</button>
           </div>
         </article>
       </section>
 
       <div class="modal-overlay hidden" id="modalFranceTravail">
-        <div class="modal-ft">
-          <div style="font-size:48px;margin-bottom:16px;">🚧</div>
-          <h3>En développement</h3>
-          <div class="modal-ft-badge">⏳ Bientôt disponible</div>
-          <p>La connexion directe avec France Travail est en cours de développement. Cette fonctionnalité permettra d'envoyer ton actualisation automatiquement depuis Intermitrack.</p>
-          <button class="btn-ft-close" type="button" id="modalFtClose">Compris !</button>
+        <div class="modal-ft" style="max-width:540px;text-align:left;">
+          <h3 style="text-align:center;margin-bottom:6px;">Récap pour ton actualisation</h3>
+          <p style="font-size:12.5px;color:#718096;text-align:center;margin-bottom:14px;line-height:1.4;">Recopie ces infos dans ton actualisation France Travail, ligne par ligne.<br>Outil d'aide — aucun envoi automatique.</p>
+          <textarea id="ftRecapText" readonly style="width:100%;box-sizing:border-box;height:210px;border:1px solid #E2E8F0;border-radius:10px;padding:12px;font-size:13px;font-family:inherit;background:#F7F9FB;resize:none;color:#2D3748;"></textarea>
+          <div style="display:flex;gap:10px;margin-top:12px;">
+            <button class="btn-ft-close" type="button" id="ftRecapCopy" style="flex:1;background:#1F4E5F;color:#fff;">📋 Copier le récap</button>
+            <a href="https://www.francetravail.fr/spectacle/" target="_blank" rel="noopener" style="flex:1;background:#C79A3B;color:#0a0a0a;text-decoration:none;border-radius:11px;padding:12px;font-weight:800;text-align:center;box-sizing:border-box;">🏛️ Ouvrir France Travail</a>
+          </div>
+          <button class="btn-ft-close" type="button" id="modalFtClose" style="margin-top:10px;background:#EEF4F1;color:#1F4E5F;">Fermer</button>
         </div>
       </div>
 
@@ -1348,7 +1351,7 @@ z-index: 500 !important;
   </main>
 
   <script src="document-parser.js?v=5"></script>
-  <script src="app.js?v=36"></script>
+  <script src="app.js?v=37"></script>
 
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>
