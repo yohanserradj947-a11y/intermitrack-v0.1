@@ -2936,11 +2936,18 @@ function renderAllMissions() {
     if (!groups[key]) groups[key] = [];
     groups[key].push(mission);
   });
+  // Prorata en mode « Mois » : une mission à cheval ne compte que sa part du mois (cohérent avec le dashboard). Saisie rapide = vacations stockées.
+  const _isMonthView = _missionsPeriod === "month";
+  const _mvSite = function (x) {
+    const fast = x.type === "Saisie rapide";
+    if (_isMonthView) { const inM = missionDaysInMonth(x, _missionsMonthRef); const frac = inM / missionDayCount(x); return { gross: Number(x.gross || 0) * frac, hours: Number(x.hours || 0) * frac, vac: fast ? (Number(x.vacations) || 1) : inM }; }
+    return { gross: Number(x.gross || 0), hours: Number(x.hours || 0), vac: fast ? (Number(x.vacations) || 1) : missionDayCount(x) };
+  };
   const sorted = Object.keys(groups).map((name) => ({
     name, list: groups[name],
-    gross: groups[name].reduce((a, x) => a + Number(x.gross || 0), 0),
-    hours: Math.round(groups[name].reduce((a, x) => a + Number(x.hours || 0), 0) * 10) / 10,
-    vacations: sumMissionDays(groups[name]), // 1 vacation = 1 jour de mission
+    gross: Math.round(groups[name].reduce((a, x) => a + _mvSite(x).gross, 0)),
+    hours: Math.round(groups[name].reduce((a, x) => a + _mvSite(x).hours, 0) * 10) / 10,
+    vacations: groups[name].reduce((a, x) => a + _mvSite(x).vac, 0), // 1 vacation = 1 jour (prorata du mois en mode Mois)
     count: groups[name].length
   })).sort((a, b) => b.gross - a.gross);
   const totalGross = sorted.reduce((a, x) => a + x.gross, 0);
@@ -2960,7 +2967,7 @@ function renderAllMissions() {
     ${addBtnHtml}
     ${_missionsPeriodBar()}
     <div class="missions-stats-row">
-     <div class="mstat-box"><strong>${Math.round(totalHours / 8)}</strong><span>Vacations</span></div>
+     <div class="mstat-box"><strong>${totalVacations}</strong><span>Vacations</span></div>
       <div class="mstat-box"><strong>${totalHours}h</strong><span>Heures totales</span></div>
       <div class="mstat-box highlight"><strong>${money(totalGross)}</strong><span>Brut total</span></div>
       <div class="mstat-box"><strong>${sorted.length}</strong><span>Productions</span></div>
