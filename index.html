@@ -741,11 +741,24 @@ z-index: 500 !important;
               <div style="flex:1;min-width:140px;"><label for="noteDate">Date début</label><input id="noteDate" type="date" required style="width:100%;box-sizing:border-box;" /></div>
               <div style="flex:1;min-width:140px;"><label for="noteEndDate">Date fin</label><input id="noteEndDate" type="date" required style="width:100%;box-sizing:border-box;" /></div>
             </div>
-            <label for="noteText">Note (courte)</label>
+            <div id="noteHoursWrap" style="display:none;">
+              <label for="noteHours">Heures de formation</label>
+              <input id="noteHours" type="number" min="0" step="0.5" inputmode="decimal" placeholder="Ex : 35" style="width:100%;box-sizing:border-box;" />
+            </div>
+            <label for="noteText" id="noteTextLabel">Note (courte)</label>
             <textarea id="noteText" rows="3" maxlength="200" placeholder="Ex : RDV dentiste 14h…" style="width:100%;box-sizing:border-box;font-family:inherit;font-size:14px;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--text);resize:none;"></textarea>
             <div id="noteCount" style="text-align:right;font-size:11px;color:var(--muted);margin-top:4px;">0 / 200</div>
             <label style="display:block;margin-top:10px;">Couleur (repère)</label>
             <div class="note-color-row" id="noteColorRow"></div>
+            <div id="noteFormCond" style="display:none;margin-top:14px;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:13px 14px;">
+              <div style="font-size:11.5px;font-weight:800;color:var(--petrol);text-transform:uppercase;letter-spacing:.03em;margin-bottom:7px;">À savoir</div>
+              <ul style="margin:0;padding-left:16px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <li>Les heures comptent dans tes 507 h, <strong style="color:var(--text);">plafonnées à 338 h</strong> (les 2/3).</li>
+                <li>Uniquement si tu <strong style="color:var(--text);">n'es pas indemnisé</strong> (ARE) pendant la formation.</li>
+                <li>Formation éligible (toutes les formations <strong style="color:var(--text);">AFDAS</strong> le sont).</li>
+                <li>Pense à ta <strong style="color:var(--text);">cessation d'inscription</strong> auprès de France Travail avant l'entrée.</li>
+              </ul>
+            </div>
             <button class="primary" type="submit" style="margin-top:16px;">Enregistrer la note</button>
           </form>
         </article>
@@ -1356,7 +1369,7 @@ z-index: 500 !important;
   </main>
 
   <script src="document-parser.js?v=5"></script>
-  <script src="app.js?v=40"></script>
+  <script src="app.js?v=41"></script>
 
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>

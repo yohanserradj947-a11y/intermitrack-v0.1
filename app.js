@@ -2452,13 +2452,16 @@ function render() {
   const selectedMonthMissions = monthMissions(current);
   const yearHours = Math.round(sumDone(yearMissions) * 10) / 10;
   const plannedHours = Math.round(sumPlanned(yearMissions) * 10) / 10;
+  // Heures de formation dans la période de droits (plafonnées à 338 h pour les 507 h).
+  const formationRaw = Math.round((typeof getNotes === "function" ? getNotes() : []).filter((n) => n.kind === "formation" && new Date((n.date) + "T00:00:00") >= areStartDate).reduce((a, n) => a + (Number(n.hours) || 0), 0) * 10) / 10;
+  const formationHours = Math.min(formationRaw, FORM_CAP);
   // Prorata : une mission à cheval sur 2 mois ne compte que sa part de jours DANS le mois affiché (heures ET brut suivent les vacations).
   const monthFrac = (m) => missionDaysInMonth(m, current) / missionDayCount(m);
   const monthHours = Math.round(selectedMonthMissions.reduce((total, m) => total + Number(m.hours || 0) * monthFrac(m), 0) * 10) / 10;
   const yearGross = yearMissions.reduce((a, x) => a + Number(x.gross || 0), 0);
   const monthGross = Math.round(selectedMonthMissions.reduce((a, x) => a + Number(x.gross || 0) * monthFrac(x), 0));
   const percent = Math.round((yearHours / OBJECTIVE_HOURS) * 100);
-  const remaining = Math.max(0, Math.round((OBJECTIVE_HOURS - yearHours - plannedHours) * 10) / 10);
+  const remaining = Math.max(0, Math.round((OBJECTIVE_HOURS - yearHours - plannedHours - formationHours) * 10) / 10);
 
   if ($("yearHours")) $("yearHours").textContent = yearHours;
   if ($("monthHours")) $("monthHours").textContent = monthHours + "h";
@@ -2482,7 +2485,7 @@ function render() {
   if ($("progressText")) $("progressText").textContent = percent + "% de ton objectif intermittent";
   renderFiscalite(yearGross, yearMissions);
 
-  renderChart(yearHours, plannedHours);
+  renderChart(yearHours, plannedHours, formationHours);
   ;
   renderAllMissions();
   renderCalendar();
@@ -2664,23 +2667,39 @@ function checkAndShowNotification(remaining, yearHours) {
     }
   }
 
-function renderChart(doneHours, plannedHours = 0) {
+function renderChart(doneHours, plannedHours = 0, formationHours = 0) {
   const total = OBJECTIVE_HOURS;
   const doneRaw = Math.max(0, Number(doneHours) || 0);
   const plannedRaw = Math.max(0, Number(plannedHours) || 0);
+  const formRaw = Math.max(0, Number(formationHours) || 0);
+  const formCapped = Math.min(formRaw, FORM_CAP);
   // Même calcul que la jauge de l'appli : on borne, et on arrondit la SOMME (pas chaque part).
   // Pourcentages AFFICHÉS : non plafonnés (peuvent dépasser 100%, comme l'appli).
   const donePercent = Math.round((doneRaw / total) * 100);
   const plannedPercent = Math.round((plannedRaw / total) * 100);
-  const totalPercent = Math.round(((doneRaw + plannedRaw) / total) * 100);
-  // Remplissage de l'arc : borné au demi-cercle (impossible de dessiner au-delà de 100%).
+  const totalPercent = Math.round(((doneRaw + formCapped + plannedRaw) / total) * 100);
+  // Remplissage de l'arc : effectué → formation → prévu, borné au demi-cercle.
   const doneFrac = Math.min(doneRaw / total, 1);
-  const plannedFrac = Math.min(plannedRaw / total, 1 - doneFrac);
+  const formFrac = Math.min(formCapped / total, 1 - doneFrac);
+  const plannedFrac = Math.min(plannedRaw / total, 1 - doneFrac - formFrac);
   const CIRC = 377;
   const doneDash = Math.min(doneFrac * CIRC, CIRC);
-  const plannedDash = Math.min(plannedFrac * CIRC, CIRC - doneDash);
+  const formDash = Math.min(formFrac * CIRC, CIRC - doneDash);
+  const plannedDash = Math.min(plannedFrac * CIRC, CIRC - doneDash - formDash);
   if (!$("chart")) return;
  const isDark = document.body.classList.contains('theme-dark');
+  const FORM_HEX = '#7C3AED';
+  // Légende dynamique (Formation ajoutée seulement si des heures existent)
+  const legend = [{ c: isDark ? '#7ACCE0' : '#1F4E5F', t: `Effectué · ${donePercent}%` }];
+  if (formRaw > 0) legend.push({ c: FORM_HEX, t: 'Formation' });
+  legend.push({ c: '#F97316', t: `Prévu · ${plannedPercent}%` });
+  legend.push({ c: isDark ? 'rgba(255,255,255,.08)' : '#D8E4DF', t: 'Restant', muted: true });
+  const step = 340 / legend.length;
+  const legendSvg = legend.map(function (it, i) {
+    const x = -16 + i * step;
+    const tc = it.muted ? (isDark ? 'rgba(255,255,255,.4)' : '#718096') : (isDark ? '#E0F4FF' : '#2D3748');
+    return `<rect x="${x}" y="188" width="10" height="10" rx="3" fill="${it.c}"/><text x="${x + 14}" y="197" font-size="9.5" font-weight="700" fill="${tc}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${it.t}</text>`;
+  }).join('');
   $("chart").innerHTML = `
  <svg viewBox="-20 0 340 210" width="100%" role="img" aria-label="Arc progression heures">
       <defs>
@@ -2696,17 +2715,13 @@ function renderChart(doneHours, plannedHours = 0) {
       </defs>
       <path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="${isDark ? 'rgba(255,255,255,.12)' : '#EEF4F1'}" stroke-width="30" stroke-linecap="butt"/>
       ${doneDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3done)" stroke-width="30" stroke-linecap="butt" stroke-dasharray="${doneDash} ${CIRC}"/>` : ""}
-      ${plannedDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3plan)" stroke-width="30" stroke-linecap="butt" stroke-dasharray="${plannedDash} ${CIRC}" stroke-dashoffset="${-doneDash}"/>` : ""}
+      ${formDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="${FORM_HEX}" stroke-width="30" stroke-linecap="butt" stroke-dasharray="${formDash} ${CIRC}" stroke-dashoffset="${-doneDash}"/>` : ""}
+      ${plannedDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3plan)" stroke-width="30" stroke-linecap="butt" stroke-dasharray="${plannedDash} ${CIRC}" stroke-dashoffset="${-(doneDash + formDash)}"/>` : ""}
       <text x="150" y="132" text-anchor="middle" font-size="44" font-weight="900" fill="${isDark ? '#7ACCE0' : '#1F4E5F'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${totalPercent}%</text>
       <text x="150" y="155" text-anchor="middle" font-size="13" fill="${isDark ? 'rgba(255,255,255,.4)' : '#718096'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">potentiel total</text>
-      <rect x="10" y="188" width="11" height="11" rx="3" fill="${isDark ? '#7ACCE0' : '#1F4E5F'}"/>
-      <text x="26" y="198" font-size="10" font-weight="700" fill="${isDark ? '#E0F4FF' : '#2D3748'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Effectué · ${donePercent}%</text>
-      <rect x="130" y="188" width="11" height="11" rx="3" fill="#F97316"/>
-      <text x="146" y="198" font-size="10" font-weight="700" fill="${isDark ? '#E0F4FF' : '#2D3748'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Prévu · ${plannedPercent}%</text>
-      <rect x="245" y="188" width="11" height="11" rx="3" fill="${isDark ? 'rgba(255,255,255,.08)' : '#D8E4DF'}"/>
-      <text x="261" y="198" font-size="10" font-weight="700" fill="${isDark ? 'rgba(255,255,255,.4)' : '#718096'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Restant</text>
+      ${legendSvg}
     </svg>
-
+    ${formRaw > 0 ? `<div style="display:flex;align-items:flex-start;gap:6px;margin:2px 10px 10px;padding:9px 11px;border-radius:11px;background:${isDark ? 'rgba(255,255,255,.05)' : '#F4F7F8'};font-size:11px;line-height:1.45;color:${isDark ? 'rgba(255,255,255,.6)' : '#6B7A87'};"><span>🎓</span><span>Formation comptée : <strong style="color:${isDark ? '#E0F4FF' : '#1A2330'};">${formCapped} h / ${FORM_CAP} h max</strong>${formRaw > FORM_CAP ? ` (${formRaw} h saisies, plafonnées)` : ''}. Uniquement si tu n'es pas indemnisé pendant la formation.</span></div>` : ''}
   `;}
 function renderHistory() {
   const missionsEl = $("missions");
@@ -3213,29 +3228,66 @@ function _renderNoteColors(){
   html+='<button type="button" class="note-color-add" title="Ajouter une couleur perso">+</button>';
   wrap.innerHTML=html;
 }
-function resetNoteFormForDate(dateStr){
+// Une formation = une note avec des heures (kind:'formation'). Le formulaire de note
+// s'adapte : label « Organisme », champ heures + encart conditions. Aucune modif base (JSON profiles.notes).
+var _noteFormMode = 'note';
+var FORM_CAP = 338; // heures de formation prises en compte pour les 507 h (plafond 2/3)
+function _applyNoteFormMode(mode){
+  _noteFormMode = (mode === 'formation') ? 'formation' : 'note';
+  var isForm = _noteFormMode === 'formation';
+  var t = $("addMissionTitle"); if(t) t.textContent = isForm ? 'Ajouter une formation' : 'Ajouter une note';
+  var tl = document.querySelector('label[for="noteTitle"]'); if(tl) tl.textContent = isForm ? 'Organisme de formation' : 'Titre de la note';
+  var ti = $("noteTitle"); if(ti) ti.placeholder = isForm ? 'Ex : AFDAS, CFPTS, INA…' : 'Ex : RDV médecin, Congés posés…';
+  var xl = $("noteTextLabel"); if(xl) xl.textContent = isForm ? 'Intitulé (facultatif)' : 'Note (courte)';
+  var tx = $("noteText"); if(tx) tx.placeholder = isForm ? 'Ex : Habilitation électrique…' : 'Ex : RDV dentiste 14h…';
+  var cat = $("noteCatRow"); if(cat) cat.style.display = isForm ? 'none' : '';
+  var hw = $("noteHoursWrap"); if(hw) hw.style.display = isForm ? '' : 'none';
+  var cond = $("noteFormCond"); if(cond) cond.style.display = isForm ? '' : 'none';
+  var sb = document.querySelector("#noteForm button[type='submit']");
+  if(sb) sb.textContent = editingNoteId ? (isForm ? 'Modifier la formation' : 'Modifier la note') : (isForm ? 'Enregistrer la formation' : 'Enregistrer la note');
+}
+function resetNoteFormForDate(dateStr, mode){
   editingNoteId = null;
   if($("noteForm")) $("noteForm").reset();
   if($("noteTitle")) $("noteTitle").value = "";
   if($("noteText")) $("noteText").value = "";
+  if($("noteHours")) $("noteHours").value = "";
   if($("noteDate")) $("noteDate").value = dateStr;
   if($("noteEndDate")) $("noteEndDate").value = dateStr;
   selectedNoteColor = '#1E6FE0';
   if(typeof _renderNoteColors==='function') _renderNoteColors();
   if($("noteCount")) $("noteCount").textContent = "0 / 200";
-  const sb=document.querySelector("#noteForm button[type='submit']"); if(sb) sb.textContent="Enregistrer la note";
+  _applyNoteFormMode(mode || 'note');
 }
 function saveNote(event){
   if(event) event.preventDefault();
-  const title=($("noteTitle").value||'').trim() || 'Note';
+  const isForm = _noteFormMode === 'formation';
+  const rawTitle=($("noteTitle").value||'').trim();
   const text=($("noteText").value||'').trim();
-  if(!text){ toast("Écris ta note (courte)."); return; }
   const d=$("noteDate").value, e=$("noteEndDate").value||d;
-  if(!d){ toast("Choisis une date pour la note."); return; }
+  if(!d){ toast("Choisis une date."); return; }
   if(e<d){ toast("La date de fin ne peut pas être avant le début."); return; }
   const arr=getNotes();
-  if(editingNoteId){ const i=arr.findIndex(function(n){return n.id===editingNoteId;}); if(i>=0) arr[i]=Object.assign({}, arr[i], {date:d,endDate:e,title:title,text:text,color:selectedNoteColor}); }
-  else { arr.push({ id:'n'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), date:d, endDate:e, title:title, text:text, color:selectedNoteColor }); }
+  if(isForm){
+    if(!rawTitle){ toast("Indique l'organisme de formation."); return; }
+    let h = Number(($("noteHours").value||'').replace(',','.'));
+    if(!h || h<=0){ toast("Indique le nombre d'heures de formation."); return; }
+    h = Math.round(h*10)/10;
+    const rec = {date:d,endDate:e,title:rawTitle,text:text,color:selectedNoteColor,kind:'formation',hours:h};
+    if(editingNoteId){ const i=arr.findIndex(function(n){return n.id===editingNoteId;}); if(i>=0) arr[i]=Object.assign({}, arr[i], rec); }
+    else { arr.push(Object.assign({ id:'n'+Date.now().toString(36)+Math.random().toString(36).slice(2,6) }, rec)); }
+    _saveNotesArr(arr);
+    editingNoteId=null;
+    toast("Formation enregistrée ✓");
+    if(typeof renderCalendar==='function') renderCalendar();
+    if(typeof renderChart==='function') renderChart(); // maj de la jauge 507 h
+    activateView("calendar");
+    return;
+  }
+  const title = rawTitle || 'Note';
+  if(!text){ toast("Écris ta note (courte)."); return; }
+  if(editingNoteId){ const i=arr.findIndex(function(n){return n.id===editingNoteId;}); if(i>=0) arr[i]=Object.assign({}, arr[i], {date:d,endDate:e,title:title,text:text,color:selectedNoteColor,kind:'note'}); }
+  else { arr.push({ id:'n'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), date:d, endDate:e, title:title, text:text, color:selectedNoteColor, kind:'note' }); }
   _saveNotesArr(arr);
   editingNoteId=null;
   toast("Note enregistrée ✓");
@@ -3249,12 +3301,13 @@ function editNote(id){
   editingNoteId=id;
   if($("noteTitle")) $("noteTitle").value=n.title||'';
   if($("noteText")) $("noteText").value=n.text||'';
+  if($("noteHours")) $("noteHours").value=(n.hours!=null?n.hours:'');
   if($("noteDate")) $("noteDate").value=n.date;
   if($("noteEndDate")) $("noteEndDate").value=n.endDate||n.date;
   selectedNoteColor=n.color||'#1E6FE0';
   if(typeof _renderNoteColors==='function') _renderNoteColors();
   if($("noteCount")) $("noteCount").textContent = (n.text||'').length + " / 200";
-  const sb=document.querySelector("#noteForm button[type='submit']"); if(sb) sb.textContent="Modifier la note";
+  _applyNoteFormMode(n.kind==='formation' ? 'formation' : 'note');
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function deleteNote(id){
@@ -3275,7 +3328,8 @@ function _ensureDayModal(){
   ov.addEventListener('click', function(e){
     if(e.target===ov || (e.target.closest && e.target.closest('#dmClose'))){ ov.classList.remove('open'); return; }
     if(e.target.closest && e.target.closest('#dmAddMission')){ ov.classList.remove('open'); addMissionReturnView='calendar'; activateView('add-mission'); switchAddTab('mission'); resetMissionFormForDate(_dayModalDate); window.scrollTo({top:0,behavior:'smooth'}); return; }
-    if(e.target.closest && e.target.closest('#dmAddNote')){ ov.classList.remove('open'); addMissionReturnView='calendar'; activateView('add-mission'); switchAddTab('note'); resetNoteFormForDate(_dayModalDate); window.scrollTo({top:0,behavior:'smooth'}); return; }
+    if(e.target.closest && e.target.closest('#dmAddNote')){ ov.classList.remove('open'); addMissionReturnView='calendar'; activateView('add-mission'); switchAddTab('note'); resetNoteFormForDate(_dayModalDate,'note'); window.scrollTo({top:0,behavior:'smooth'}); return; }
+    if(e.target.closest && e.target.closest('#dmAddFormation')){ ov.classList.remove('open'); addMissionReturnView='calendar'; activateView('add-mission'); switchAddTab('note'); resetNoteFormForDate(_dayModalDate,'formation'); window.scrollTo({top:0,behavior:'smooth'}); return; }
     const me=e.target.closest && e.target.closest('[data-dm-edit]'); if(me){ ov.classList.remove('open'); switchAddTab('mission'); editMission(me.dataset.dmEdit); return; }
     const md=e.target.closest && e.target.closest('[data-dm-del]'); if(md){ ov.classList.remove('open'); deleteMission(md.dataset.dmDel); return; }
     const ne=e.target.closest && e.target.closest('[data-dm-nedit]'); if(ne){ ov.classList.remove('open'); editNote(ne.dataset.dmNedit); return; }
@@ -3288,7 +3342,7 @@ function _refreshDayModal(){
   const ms=missions.filter(function(m){return isDateInPeriod(dateStr,m);}).sort(function(a,b){return new Date(a.date)-new Date(b.date);});
   const ns=notesForDate(dateStr);
   let html="<div class=\"dm-head\"><span class=\"dm-date\">"+escapeHtml(formatDate(dateStr))+"</span><button class=\"dm-x\" id=\"dmClose\" type=\"button\">✕</button></div>";
-  html+="<div class=\"dm-acts\"><button class=\"dm-act mission\" id=\"dmAddMission\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2\" y=\"7\" width=\"20\" height=\"14\" rx=\"2\"/><path d=\"M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\"/></svg></span>Ajouter une mission</button><button class=\"dm-act note\" id=\"dmAddNote\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 3h9l5 5v13H5z\"/><path d=\"M14 3v5h5\"/><path d=\"M8 13.5h7M8 17h5\"/></svg></span>Note perso</button></div>";
+  html+="<div class=\"dm-acts\"><button class=\"dm-act mission\" id=\"dmAddMission\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2\" y=\"7\" width=\"20\" height=\"14\" rx=\"2\"/><path d=\"M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\"/></svg></span>Ajouter une mission</button><button class=\"dm-act note\" id=\"dmAddNote\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 3h9l5 5v13H5z\"/><path d=\"M14 3v5h5\"/><path d=\"M8 13.5h7M8 17h5\"/></svg></span>Note perso</button><button class=\"dm-act formation\" id=\"dmAddFormation\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M22 10L12 5 2 10l10 5 10-5z\"/><path d=\"M6 12v5c0 1 2.5 3 6 3s6-2 6-3v-5\"/></svg></span>Formation</button></div>";
   if(ms.length){ html+="<div class=\"dm-sec-t\">Missions du jour</div>"; ms.forEach(function(m){ var col=getProductionColorHex(normalizeProductionName(m.production))||'#1F4E5F'; var nb=missionDayCount(m); html+="<div class=\"dm-item\" style=\"border-left-color:"+col+"\"><div class=\"nm\"><strong>"+escapeHtml((m.production||'').toUpperCase())+"</strong><span>"+escapeHtml(m.type)+" · "+(Math.round((Number(m.hours||0)/nb)*10)/10)+"h · "+money(Math.round(Number(m.gross||0)/nb))+"</span></div><div class=\"acts\"><button data-dm-edit=\""+escapeHtml(m.id)+"\" type=\"button\">Modifier</button><button class=\"del\" data-dm-del=\""+escapeHtml(m.id)+"\" type=\"button\">✕</button></div></div>"; }); }
   if(ns.length){ html+="<div class=\"dm-sec-t\">Notes</div>"; ns.forEach(function(n){ html+="<div class=\"dm-item\" data-note-detail=\""+escapeHtml(n.id)+"\" style=\"cursor:pointer;border-left-color:"+(n.color||'#1E6FE0')+"\"><div class=\"nm\"><strong>"+escapeHtml(n.title||'Note')+"</strong><span>"+escapeHtml((n.text||'').slice(0,90))+"</span></div><div class=\"acts\"><span style=\"color:var(--muted);font-size:18px;\">›</span></div></div>"; }); }
   box.innerHTML=html;
