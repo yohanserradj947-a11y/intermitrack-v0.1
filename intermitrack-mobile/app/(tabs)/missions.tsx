@@ -17,10 +17,13 @@ import { useProdColors, PROD_PRESETS } from '../../lib/prodColors';
 import { usePostes } from '../../lib/postes';
 import { LinearGradient } from 'expo-linear-gradient';
 import ColorPickerModal from '../../components/ColorPickerModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Couleurs par production gérées via lib/prodColors (useProdColors).
 
 function money(n:number){return(n??0).toLocaleString('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0});}
+function monthLabel(d:Date){const l=d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});return l.charAt(0).toUpperCase()+l.slice(1);}
+function isoDisp(isoStr:string){if(!isoStr)return'';const[y,m,d]=isoStr.split('-');return`${d}/${m}/${y}`;}
 function fmtDate(d:string){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});}
 function fmtPeriod(s:string,e:string){if(!e||e===s)return fmtDate(s);return fmtDate(s)+' → '+fmtDate(e);}
 function iso(d:Date){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -40,8 +43,23 @@ export default function Missions(){
   const [missions,setMissions]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
   const [selected,setSelected]=useState<string|null>(null);
-  const [period,setPeriod]=useState<'all'|'year'|'custom'>('all');
+  const [period,setPeriod]=useState<'all'|'year'|'custom'|'month'|'ai'>('all');
   const [customYear,setCustomYear]=useState(new Date().getFullYear());
+  const [monthRef,setMonthRef]=useState(new Date()); // filtre « Mois »
+  const [areDate,setAreDate]=useState(''); // date ARE pour le filtre « Année d'intermittence »
+  useEffect(()=>{ AsyncStorage.getItem('intermitrack_are_date').then(v=>{ if(v) setAreDate(v); }); },[]);
+  // Fenêtre de l'année d'intermittence en cours (12 mois depuis l'anniversaire de la date ARE).
+  const aiWin=useMemo(()=>{
+    if(!areDate) return null;
+    const a=new Date(areDate+'T00:00:00');
+    const today=new Date(); today.setHours(0,0,0,0);
+    let k=today.getFullYear()-a.getFullYear();
+    const anniv=new Date(a); anniv.setFullYear(a.getFullYear()+k);
+    if(anniv>today) k-=1;
+    const start=new Date(a); start.setFullYear(a.getFullYear()+k);
+    const end=new Date(a);   end.setFullYear(a.getFullYear()+k+1);
+    return { start:start.getTime(), end:end.getTime(), startISO:iso(start), endISO:iso(end) };
+  },[areDate]);
 
   const kmRef=useRef<KmHandle>(null);
   const [editKmDist,setEditKmDist]=useState(0);
@@ -125,9 +143,12 @@ export default function Missions(){
   }
 
   const filtered=missions.filter((m:any)=>{
-    const y=new Date(m.mission_date+'T00:00:00').getFullYear();
+    const d=new Date(m.mission_date+'T00:00:00');
+    const y=d.getFullYear();
     if(period==='year')return y===new Date().getFullYear();
     if(period==='custom')return y===customYear;
+    if(period==='month')return y===monthRef.getFullYear() && d.getMonth()===monthRef.getMonth();
+    if(period==='ai')return aiWin ? (d.getTime()>=aiWin.start && d.getTime()<aiWin.end) : true;
     return true;
   });
   const years=Array.from(new Set(missions.map((m:any)=>new Date(m.mission_date+'T00:00:00').getFullYear()))).sort((a,b)=>b-a);
@@ -371,8 +392,14 @@ export default function Missions(){
         <TouchableOpacity style={[s.periodChip,period==='all'&&s.periodOn]} onPress={()=>setPeriod('all')}>
           <Text style={period==='all'?s.periodTxtOn:s.periodTxt}>Tout</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={[s.periodChip,period==='month'&&s.periodOn]} onPress={()=>setPeriod('month')}>
+          <Text style={period==='month'?s.periodTxtOn:s.periodTxt}>Mois</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={[s.periodChip,period==='year'&&s.periodOn]} onPress={()=>setPeriod('year')}>
-          <Text style={period==='year'?s.periodTxtOn:s.periodTxt}>Cette année</Text>
+          <Text style={period==='year'?s.periodTxtOn:s.periodTxt}>Année civile</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[s.periodChip,period==='ai'&&s.periodOn]} onPress={()=>setPeriod('ai')}>
+          <Text style={period==='ai'?s.periodTxtOn:s.periodTxt}>Année interm.</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[s.periodChip,period==='custom'&&s.periodOn]} onPress={()=>setPeriod('custom')}>
           <Text style={period==='custom'?s.periodTxtOn:s.periodTxt}>Par année</Text>
@@ -386,6 +413,22 @@ export default function Missions(){
               <Text style={customYear===y?s.periodTxtOn:s.periodTxt}>{y}</Text>
             </TouchableOpacity>
           ))}
+        </View>
+      )}
+
+      {period==='month'&&(
+        <View style={s.monthNav}>
+          <TouchableOpacity style={s.monthNavBtn} onPress={()=>setMonthRef(d=>{const n=new Date(d);n.setDate(1);n.setMonth(n.getMonth()-1);return n;})}><Ionicons name="chevron-back" size={18} color={C.petrol}/></TouchableOpacity>
+          <Text style={s.monthNavLbl}>{monthLabel(monthRef)}</Text>
+          <TouchableOpacity style={s.monthNavBtn} onPress={()=>setMonthRef(d=>{const n=new Date(d);n.setDate(1);n.setMonth(n.getMonth()+1);return n;})}><Ionicons name="chevron-forward" size={18} color={C.petrol}/></TouchableOpacity>
+        </View>
+      )}
+
+      {period==='ai'&&(
+        <View style={s.aiInfo}>
+          {aiWin
+            ? <Text style={s.aiInfoTxt}>Du {isoDisp(aiWin.startISO)} au {isoDisp(aiWin.endISO)} · année d&apos;intermittence en cours</Text>
+            : <Text style={s.aiInfoTxt}>Renseigne ta date ARE dans le Tableau de bord pour activer ce filtre.</Text>}
         </View>
       )}
 
@@ -433,8 +476,13 @@ const makeS=(C:any)=>StyleSheet.create({
   pageHeader:{backgroundColor:C.card,padding:18,paddingTop:52,borderBottomWidth:1,borderBottomColor:C.line},
   pageTitle:{fontSize:22,fontWeight:'900',color:C.petrol,letterSpacing:-0.5},
   pageSub:{fontSize:13,color:C.muted,marginTop:4},
-  periodBar:{flexDirection:'row',gap:8,paddingHorizontal:16,paddingTop:16},
-  periodChip:{flex:1,paddingVertical:10,borderRadius:12,backgroundColor:C.card,borderWidth:1,borderColor:C.line,alignItems:'center'},
+  periodBar:{flexDirection:'row',flexWrap:'wrap',gap:8,paddingHorizontal:16,paddingTop:16},
+  periodChip:{paddingVertical:9,paddingHorizontal:14,borderRadius:12,backgroundColor:C.card,borderWidth:1,borderColor:C.line,alignItems:'center'},
+  monthNav:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:10,marginHorizontal:16,marginTop:10},
+  monthNavBtn:{width:38,height:38,borderRadius:19,backgroundColor:C.soft,alignItems:'center',justifyContent:'center'},
+  monthNavLbl:{flex:1,textAlign:'center',fontSize:14,fontWeight:'800',color:C.petrol,backgroundColor:C.card,borderWidth:1,borderColor:C.line,borderRadius:12,paddingVertical:10},
+  aiInfo:{marginHorizontal:16,marginTop:10,padding:11,borderRadius:12,backgroundColor:C.soft},
+  aiInfoTxt:{fontSize:12,fontWeight:'700',color:C.petrol,textAlign:'center'},
   periodOn:{backgroundColor:C.petrol,borderColor:C.petrol},
   periodTxt:{fontSize:13,fontWeight:'700',color:C.petrol},
   periodTxtOn:{fontSize:13,fontWeight:'700',color:'white'},

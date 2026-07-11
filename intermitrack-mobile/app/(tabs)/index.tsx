@@ -46,6 +46,7 @@ export default function HomeScreen(){
   const [current,setCurrent]=useState(new Date());
   const [missionPage,setMissionPage]=useState(0);
   const [areDate,setAreDate]=useState('');
+  const [yearOffset,setYearOffset]=useState(0); // navigation dans l'historique des années d'intermittence (0 = année en cours)
   const [chargeRate,setChargeRate]=useState(22.5); // % charges salariales (réglé dans Prévisions)
   const [pasRate,setPasRate]=useState(0);          // % prélèvement à la source
   const [showDatePicker,setShowDatePicker]=useState(false);
@@ -142,8 +143,24 @@ export default function HomeScreen(){
 
   const stats=useMemo(()=>{
     const today=new Date();today.setHours(0,0,0,0);
-    const areStart=areDate?new Date(areDate+'T00:00:00'):null;
-    const yearM=areStart?missions.filter((m:any)=>new Date(m.mission_date+'T00:00:00')>=areStart):missions;
+    // Fenêtre « année d'intermittence » : 12 mois à partir de la date ARE (anniversaire), navigable via yearOffset.
+    let winStart:Date, winEnd:Date;
+    const hasARE = !!areDate;
+    if(hasARE){
+      const a=new Date(areDate+'T00:00:00');
+      let k=today.getFullYear()-a.getFullYear();
+      const anniv=new Date(a); anniv.setFullYear(a.getFullYear()+k);
+      if(anniv>today) k-=1;               // année d'intermittence en cours (contient aujourd'hui)
+      k+=yearOffset;                       // navigation historique (offset ≤ 0)
+      winStart=new Date(a); winStart.setFullYear(a.getFullYear()+k);
+      winEnd=new Date(a);   winEnd.setFullYear(a.getFullYear()+k+1);
+    } else {
+      winStart=new Date(today.getFullYear(),0,1);
+      winEnd=new Date(today.getFullYear()+1,0,1);
+    }
+    const winStartT=winStart.getTime(), winEndT=winEnd.getTime();
+    const inWin=(isoStr:string)=>{ const t=new Date(isoStr+'T00:00:00').getTime(); return t>=winStartT && t<winEndT; };
+    const yearM=missions.filter((m:any)=>inWin(m.mission_date));
     // Répartit une mission en "effectué / prévu". Une mission en cours (à cheval sur
     // aujourd'hui) est comptée au prorata des jours déjà écoulés (même logique que le site).
     const splitT=(m:any)=>{
@@ -162,7 +179,7 @@ export default function HomeScreen(){
     const doneH=Math.round(yearM.reduce((a:number,m:any)=>a+splitT(m).done,0)*10)/10;
     const planH=Math.round(yearM.reduce((a:number,m:any)=>a+splitT(m).planned,0)*10)/10;
     // Heures de formation dans la période de droits (plafonnées à 338 h pour le calcul des 507 h).
-    const formRaw=Math.round((notes||[]).filter((n:any)=>n.kind==='formation'&&(!areStart||new Date((n.date)+'T00:00:00')>=areStart)).reduce((a:number,n:any)=>a+(Number(n.hours)||0),0)*10)/10;
+    const formRaw=Math.round((notes||[]).filter((n:any)=>n.kind==='formation'&&inWin(n.date)).reduce((a:number,n:any)=>a+(Number(n.hours)||0),0)*10)/10;
     const formH=Math.min(formRaw,FORM_CAP);
     const remaining=Math.max(0,Math.round((507-doneH-planH-formH)*10)/10);
     // Tout le récap du mois suit la MÊME logique : la part de chaque mission qui tombe DANS le mois (au prorata des jours).
@@ -175,10 +192,10 @@ export default function HomeScreen(){
     // Net à payer estimé = brut − charges salariales − prélèvement à la source
     const monthNet=Math.round(monthG*(1-chargeRate/100)*(1-pasRate/100));
     const monthRateNet=monthH>0?Math.round(monthNet/monthH):0;
-    return { doneH, planH, remaining, formH, formRaw, monthH, monthG, monthNet, monthVac, monthRate, monthRateNet, upcoming };
-  },[missions,notes,areDate,current,chargeRate,pasRate]);
+    return { doneH, planH, remaining, formH, formRaw, monthH, monthG, monthNet, monthVac, monthRate, monthRateNet, upcoming, winStart, winEnd, hasARE };
+  },[missions,notes,areDate,yearOffset,current,chargeRate,pasRate]);
 
-  const { doneH, planH, remaining, formH, formRaw, monthH, monthG, monthNet, monthVac, monthRate, monthRateNet, upcoming } = stats;
+  const { doneH, planH, remaining, formH, formRaw, monthH, monthG, monthNet, monthVac, monthRate, monthRateNet, upcoming, winStart, winEnd, hasARE } = stats;
 
   const ft=useMemo(()=>{
     const aj=(profil&&Number(profil.taux_journalier))||0;
@@ -210,6 +227,8 @@ export default function HomeScreen(){
   async function saveAreDate(d:Date){
     const isoStr=d.toISOString().slice(0,10);
     setAreDate(isoStr);
+    setYearOffset(0); // on repart sur l'année d'intermittence en cours
+
     await AsyncStorage.setItem('intermitrack_are_date',isoStr);
     const { data:{ user } }=await supabase.auth.getUser();
     if(user) await supabase.from('profiles').upsert({id:user.id,are_date:isoStr},{onConflict:'id'});
@@ -252,8 +271,15 @@ export default function HomeScreen(){
           </Text>
           <Ionicons name="calendar-outline" size={16} color={C.petrol} />
         </TouchableOpacity>
-        {areDate
-          ?<Text style={s.areInfo}>Calcul depuis le {isoToDisplay(areDate)}</Text>
+        {hasARE
+          ?<View style={s.aiNav}>
+              <TouchableOpacity style={s.aiNavBtn} onPress={()=>setYearOffset(o=>o-1)}><Ionicons name="chevron-back" size={18} color={C.petrol}/></TouchableOpacity>
+              <View style={{flex:1,alignItems:'center'}}>
+                <Text style={s.aiPeriod}>{isoToDisplay(iso(winStart))} → {isoToDisplay(iso(winEnd))}</Text>
+                <Text style={s.aiPeriodSub}>{yearOffset===0?'Année d\'intermittence en cours':(yearOffset===-1?'Année précédente':'Il y a '+(-yearOffset)+' ans')}</Text>
+              </View>
+              <TouchableOpacity style={[s.aiNavBtn,yearOffset>=0?{opacity:0.25}:null]} disabled={yearOffset>=0} onPress={()=>setYearOffset(o=>Math.min(0,o+1))}><Ionicons name="chevron-forward" size={18} color={C.petrol}/></TouchableOpacity>
+            </View>
           :<Text style={s.areInfo}>Renseignez votre date pour un calcul précis</Text>
         }
         {showDatePicker&&(
@@ -547,6 +573,10 @@ const makeS=(C:any)=>StyleSheet.create({
   arePickerPlaceholder:{fontSize:15,color:C.muted},
   arePickerIcon:{fontSize:16},
   areInfo:{fontSize:11,color:C.muted,marginTop:6,fontStyle:'italic'},
+  aiNav:{flexDirection:'row',alignItems:'center',gap:8,marginTop:8},
+  aiNavBtn:{width:34,height:34,borderRadius:17,alignItems:'center',justifyContent:'center',backgroundColor:C.soft},
+  aiPeriod:{fontSize:13.5,fontWeight:'900',color:C.petrol},
+  aiPeriodSub:{fontSize:10.5,color:C.muted,marginTop:1,fontWeight:'700'},
   areValidateBtn:{backgroundColor:C.petrol,borderRadius:12,paddingVertical:13,alignItems:'center',marginTop:10},
   areValidateTxt:{color:'#FFFFFF',fontWeight:'800',fontSize:15},
   chartCard:{marginHorizontal:16,backgroundColor:C.card,borderRadius:22,padding:4,borderWidth:1,borderColor:C.line,marginTop:12,shadowColor:C.petrol,shadowOpacity:0.06,shadowRadius:16,elevation:3},
