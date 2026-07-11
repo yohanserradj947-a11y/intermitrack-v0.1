@@ -453,9 +453,21 @@ async function resetProdColors(){
   if (document.getElementById('pcmList')) _refreshProdColorsList();
   if (typeof toast==='function') toast('Couleurs réinitialisées ✓');
 }
+// Réinitialise le calendrier : supprime TOUTES les missions (repartir de zéro). Distinct de "Réinitialiser les couleurs".
+async function resetCalendar(){
+  if (!currentUser) return;
+  const ok = await confirmDialog("⚠️ Réinitialiser TON CALENDRIER ?\n\nCela supprime DÉFINITIVEMENT toutes tes missions (pour repartir de zéro, ex. après un import raté). Tes couleurs, notes et infos ne sont PAS touchées.\n\nAction irréversible.");
+  if (!ok) return;
+  const { error } = await sb.from("missions").delete().eq("user_id", currentUser.id);
+  if (error) { if (typeof toast==='function') toast("Erreur : " + error.message); return; }
+  if (typeof loadMissions==='function') await loadMissions();
+  if (typeof render==='function') render();
+  if (typeof toast==='function') toast("Calendrier réinitialisé — toutes les missions ont été supprimées ✓");
+}
 document.addEventListener('click', function(e){
   if (e.target.closest && e.target.closest('#prodColorsManageBtn')) openProdColorsManager();
   else if (e.target.closest && e.target.closest('#prodColorsResetBtn')) resetProdColors();
+  else if (e.target.closest && e.target.closest('#resetCalendarBtn')) resetCalendar();
 });
 
 function getTaxableIncome() { return Number(localStorage.getItem(storageKey("taxable_income")) || 0); }
@@ -2955,6 +2967,7 @@ function renderCalendar() {
       <button class="cal-tool-btn" type="button" id="prodColorsManageBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.37 2.63 14 7l-1.59-1.59a2 2 0 0 0-2.82 0L8 7l9 9 1.59-1.59a2 2 0 0 0 0-2.82L17 10l4.37-4.37a2.12 2.12 0 1 0-3-3Z"/><path d="M9 8c-2 3-4 3.5-7 4l8 10c2-1 6-5 6-7"/><path d="M14.5 17.5 4.5 15"/></svg>Personnaliser les couleurs</button>
       <button class="cal-tool-btn" type="button" id="prodColorsResetBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Réinitialiser les couleurs</button>
       <button class="cal-tool-btn" type="button" id="importExcelBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8"/></svg>Importer un Excel/CSV</button>
+      <button class="cal-tool-btn" type="button" id="resetCalendarBtn" style="color:#DC2626;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>Réinitialiser le calendrier</button>
     </div>
     <div class="new-cal-daynames"><div>L</div><div>M</div><div>M</div><div>J</div><div>V</div><div>S</div><div>D</div></div>
     <div class="new-cal-grid" id="calendar"></div>
@@ -3079,9 +3092,10 @@ cards.innerHTML = visible.map((m) => {
     const isFuture = new Date(m.date + "T00:00:00") >= todayDateOnly();
     const _ch = getProductionColorHex(normalizeProductionName(m.production));
     return `
-      <div class="new-mission-card ${isFuture ? "planned" : "done"}" data-calendar-date="${escapeHtml(m.date)}" style="cursor:pointer;${_ch ? `border-left-color:${_ch} !important;` : ''}">
+      <div class="new-mission-card ${isFuture ? "planned" : "done"}" data-calendar-date="${escapeHtml(m.date)}" style="cursor:pointer;position:relative;${_ch ? `border-left-color:${_ch} !important;` : ''}">
         <div class="new-mission-body"><div class="new-mission-prod">${ICO.doc}${escapeHtml((m.production||'').toUpperCase())}</div>${(m.emission||'').trim() ? `<div class="new-mission-emission">${ICO.camera}${escapeHtml(m.emission.trim())}</div>` : ''}${(m.lieu||'').trim() ? `<div class="new-mission-lieu">${ICO.pin}${escapeHtml(m.lieu.trim())}</div>` : ''}<div class="new-mission-dates">${ICO.cal}${escapeHtml(formatPeriod(m.date, m.endDate))}</div></div>
         <div class="new-mission-right"><span class="new-mission-hours">${ICO.clock}${m.hours}h</span><span class="new-mission-type ${isFuture ? "type-planned" : "type-done"}">${escapeHtml(m.type)}</span></div>
+        <button type="button" data-quick-del="${escapeHtml(m.id)}" title="Supprimer cette mission" aria-label="Supprimer" style="position:absolute;top:7px;right:7px;width:24px;height:24px;border:none;border-radius:50%;background:rgba(220,38,38,.12);color:#DC2626;font-size:13px;font-weight:800;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3;">✕</button>
       </div>
     `;
   }).join("");
@@ -3620,6 +3634,8 @@ function setupEvents() {
     if (docProductionBack) { openDocumentProduction = null; documentFilter = "Tous"; renderDocuments(); return; }
     const docFilterButton = event.target.closest("[data-doc-filter]");
     if (docFilterButton) { documentFilter = docFilterButton.dataset.docFilter; renderDocuments(); return; }
+    const quickDel = event.target.closest("[data-quick-del]");
+    if (quickDel) { event.stopPropagation(); const ok = await confirmDialog("Supprimer cette mission ? (action irréversible)"); if (ok) await deleteMission(quickDel.dataset.quickDel); return; }
     const calendarDay = event.target.closest("[data-calendar-date]");
     if (calendarDay) { openCalendarDay(calendarDay.dataset.calendarDate); return; }
     const calendarAddButton = event.target.closest("[data-calendar-add-date]");
