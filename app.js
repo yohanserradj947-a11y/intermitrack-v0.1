@@ -3092,10 +3092,10 @@ cards.innerHTML = visible.map((m) => {
     const isFuture = new Date(m.date + "T00:00:00") >= todayDateOnly();
     const _ch = getProductionColorHex(normalizeProductionName(m.production));
     return `
-      <div class="new-mission-card ${isFuture ? "planned" : "done"}" data-calendar-date="${escapeHtml(m.date)}" style="cursor:pointer;position:relative;${_ch ? `border-left-color:${_ch} !important;` : ''}">
+      <div class="new-mission-card ${isFuture ? "planned" : "done"}" data-calendar-date="${escapeHtml(m.date)}" style="cursor:pointer;${_ch ? `border-left-color:${_ch} !important;` : ''}">
         <div class="new-mission-body"><div class="new-mission-prod">${ICO.doc}${escapeHtml((m.production||'').toUpperCase())}</div>${(m.emission||'').trim() ? `<div class="new-mission-emission">${ICO.camera}${escapeHtml(m.emission.trim())}</div>` : ''}${(m.lieu||'').trim() ? `<div class="new-mission-lieu">${ICO.pin}${escapeHtml(m.lieu.trim())}</div>` : ''}<div class="new-mission-dates">${ICO.cal}${escapeHtml(formatPeriod(m.date, m.endDate))}</div></div>
         <div class="new-mission-right"><span class="new-mission-hours">${ICO.clock}${m.hours}h</span><span class="new-mission-type ${isFuture ? "type-planned" : "type-done"}">${escapeHtml(m.type)}</span></div>
-        <button type="button" data-quick-del="${escapeHtml(m.id)}" title="Supprimer cette mission" aria-label="Supprimer" style="position:absolute;top:7px;right:7px;width:24px;height:24px;border:none;border-radius:50%;background:rgba(220,38,38,.12);color:#DC2626;font-size:13px;font-weight:800;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3;">✕</button>
+        <button type="button" data-quick-del="${escapeHtml(m.id)}" title="Supprimer cette mission" aria-label="Supprimer" style="flex:0 0 auto;align-self:center;width:32px;height:32px;border:none;border-radius:9px;background:rgba(220,38,38,.1);color:#DC2626;font-size:15px;font-weight:800;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
       </div>
     `;
   }).join("");
@@ -3315,7 +3315,7 @@ function openDayModal(dateStr){
 // Récap au format actualisation France Travail : une ligne par mission
 // (Production · Période · Heures · Jours/Cachets · Brut), + total. À recopier ligne par ligne.
 function buildActualisationText() {
-  const list = monthMissions(current).filter((m) => new Date(m.date + "T00:00:00") <= todayDateOnly()).sort((a, b) => new Date(a.date) - new Date(b.date));
+  const list = monthMissions(current).sort((a, b) => new Date(a.date) - new Date(b.date)); // tout le mois (aligné dashboard)
   const title = current.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
   const artiste = (typeof _profil !== "undefined" && _profil && _profil.annexe === "artiste");
   const unit = artiste ? "cachet" : "jour";
@@ -3334,9 +3334,7 @@ function buildActualisationText() {
 
 function renderActualisation() {
   if (!$("actualisationMonthPicker")) return;
-  const list = monthMissions(current)
-    .filter((m) => new Date(m.date + "T00:00:00") <= todayDateOnly())
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  const list = monthMissions(current).sort((a, b) => new Date(a.date) - new Date(b.date)); // tout le mois (aligné sur le dashboard) — une date non faite = à supprimer
   const totalHours = Math.round(list.reduce((a, x) => a + Number(x.hours || 0) * (missionDaysInMonth(x, current) / missionDayCount(x)), 0) * 10) / 10;
   const totalGross = Math.round(list.reduce((a, x) => a + Number(x.gross || 0) * (missionDaysInMonth(x, current) / missionDayCount(x)), 0));
   const totalVac = sumMonthVac(list, current); // 1 vacation = 1 jour de mission (borné au mois) — heures/brut au prorata idem
