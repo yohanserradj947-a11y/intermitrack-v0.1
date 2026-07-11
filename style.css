@@ -667,8 +667,9 @@ body.theme-dark .calendar-day-panel-head span, body.theme-dark .calendar-day-mis
 .pcp-cell { width: 54px; height: 46px; border-radius: 9px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; color: #fff; background: linear-gradient(135deg,#1F4E5F,#2F8F6B); }
 .pcp-cell small { font-size: 8.5px; font-weight: 700; opacity: .92; margin-top: 1px; }
 /* Boutons couleurs au-dessus du calendrier */
-.new-cal-tools { display: flex; gap: 8px; background: var(--soft); border-radius: 12px; padding: 5px; margin: 2px 0 12px; }
-.cal-tool-btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-family: inherit; font-size: 12.5px; font-weight: 800; padding: 9px; border: none; border-radius: 9px; background: var(--card); color: var(--petrol); cursor: pointer; box-shadow: 0 2px 6px rgba(13,27,42,.08); transition: all .15s; }
+.new-cal-tools { display: flex; flex-wrap: wrap; gap: 8px; background: var(--soft); border-radius: 12px; padding: 5px; margin: 2px 0 12px; }
+.cal-tool-btn { flex: 1 1 140px; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-align: center; line-height: 1.15; font-family: inherit; font-size: 12.5px; font-weight: 800; padding: 9px; border: none; border-radius: 9px; background: var(--card); color: var(--petrol); cursor: pointer; box-shadow: 0 2px 6px rgba(13,27,42,.08); transition: all .15s; }
+.cal-tool-btn svg { flex-shrink: 0; }
 .cal-tool-btn:hover { background: var(--petrol); color: #fff; }
 /* Onglets Mission / Note + formulaire de note */
 .add-tabs { display: flex; gap: 8px; background: var(--soft); border-radius: 13px; padding: 5px; margin-bottom: 16px; }
