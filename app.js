@@ -2224,7 +2224,7 @@ function missionDaysInMonth(m, ref) {
   const a = s > ms ? s : ms, b = e < me ? e : me;
   return b < a ? 0 : daysInclusive(a, b);
 }
-function sumMonthVac(list, ref) { return list.reduce((total, m) => total + missionDaysInMonth(m, ref), 0); }
+function sumMonthVac(list, ref) { return list.reduce((total, m) => { const inM = missionDaysInMonth(m, ref); return total + (m.type === "Saisie rapide" ? (inM > 0 ? (Number(m.vacations) || 1) : 0) : inM); }, 0); }
 
 function getProductionInitials(name) {
   return String(name || "---").replace(/[^a-zA-ZÀ-ÿ0-9\s]/g," ").trim().split(/\s+/).join("").slice(0, 3).toUpperCase() || "---";
@@ -3408,7 +3408,7 @@ function deleteNote(id){
 function _ensureDayModal(){
   if(document.getElementById('dayModalOverlay')) return;
   const st=document.createElement('style');
-  st.textContent="#dayModalOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:100040;}#dayModalOverlay.open{display:flex;}.dm-box{background:var(--card);color:var(--text);border-radius:22px 22px 0 0;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-sizing:border-box;padding:22px 22px 30px;box-shadow:0 -10px 40px rgba(0,0,0,.3);}@media(min-width:600px){#dayModalOverlay{align-items:center;padding:18px;}.dm-box{border-radius:20px;max-width:440px;max-height:88vh;}}.dm-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}.dm-date{font-size:17px;font-weight:900;color:var(--petrol);text-transform:capitalize;}.dm-x{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;}.dm-acts{display:flex;gap:10px;margin-bottom:8px;}.dm-act{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 8px;border-radius:14px;border:1.5px solid var(--line);background:var(--card);cursor:pointer;font-weight:800;font-size:13px;color:var(--text);}.dm-act .ic{font-size:24px;}.dm-act.mission{border-color:rgba(31,78,95,.35);}.dm-act.note{border-color:rgba(245,158,11,.45);}.dm-sec-t{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:16px 0 8px;}.dm-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-left-width:4px;border-radius:10px;margin-bottom:8px;}.dm-item .nm{flex:1;min-width:0;}.dm-item .nm strong{font-size:13px;color:var(--petrol);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.dm-item .nm span{font-size:11.5px;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}.dm-item .acts{display:flex;gap:6px;flex-shrink:0;}.dm-item button{border:none;background:var(--soft);color:var(--petrol);border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;cursor:pointer;}.dm-item button.del{background:rgba(220,38,38,.12);color:#DC2626;}";
+  st.textContent="#dayModalOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:100040;}#dayModalOverlay.open{display:flex;}.dm-box{background:var(--card);color:var(--text);border-radius:22px 22px 0 0;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-sizing:border-box;padding:22px 22px 30px;box-shadow:0 -10px 40px rgba(0,0,0,.3);}@media(min-width:600px){#dayModalOverlay{align-items:center;padding:18px;}.dm-box{border-radius:20px;max-width:440px;max-height:88vh;}}.dm-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}.dm-date{font-size:17px;font-weight:900;color:var(--petrol);text-transform:capitalize;}.dm-x{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;}.dm-acts{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;}.dm-act{flex:1 1 46%;display:flex;flex-direction:column;align-items:center;gap:6px;padding:15px 8px;border-radius:14px;border:1.5px solid var(--line);background:var(--card);cursor:pointer;font-weight:800;font-size:13px;color:var(--text);}.dm-act .ic{font-size:24px;}.dm-act.mission{border-color:rgba(31,78,95,.35);}.dm-act.note{border-color:rgba(245,158,11,.45);}.dm-act.fast{border-color:rgba(18,117,74,.5);color:#12754A;}.dm-sec-t{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:16px 0 8px;}.dm-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-left-width:4px;border-radius:10px;margin-bottom:8px;}.dm-item .nm{flex:1;min-width:0;}.dm-item .nm strong{font-size:13px;color:var(--petrol);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.dm-item .nm span{font-size:11.5px;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}.dm-item .acts{display:flex;gap:6px;flex-shrink:0;}.dm-item button{border:none;background:var(--soft);color:var(--petrol);border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;cursor:pointer;}.dm-item button.del{background:rgba(220,38,38,.12);color:#DC2626;}";
   document.head.appendChild(st);
   const ov=document.createElement('div');
   ov.id='dayModalOverlay';
@@ -3419,6 +3419,7 @@ function _ensureDayModal(){
     if(e.target.closest && e.target.closest('#dmAddMission')){ ov.classList.remove('open'); addMissionReturnView='calendar'; activateView('add-mission'); switchAddTab('mission'); resetMissionFormForDate(_dayModalDate); window.scrollTo({top:0,behavior:'smooth'}); return; }
     if(e.target.closest && e.target.closest('#dmAddNote')){ ov.classList.remove('open'); addMissionReturnView='calendar'; activateView('add-mission'); switchAddTab('note'); resetNoteFormForDate(_dayModalDate,'note'); window.scrollTo({top:0,behavior:'smooth'}); return; }
     if(e.target.closest && e.target.closest('#dmAddFormation')){ ov.classList.remove('open'); addMissionReturnView='calendar'; activateView('add-mission'); switchAddTab('note'); resetNoteFormForDate(_dayModalDate,'formation'); window.scrollTo({top:0,behavior:'smooth'}); return; }
+    if(e.target.closest && e.target.closest('#dmAddQuick')){ ov.classList.remove('open'); openQuickEntry(_dayModalDate); return; }
     const me=e.target.closest && e.target.closest('[data-dm-edit]'); if(me){ ov.classList.remove('open'); switchAddTab('mission'); editMission(me.dataset.dmEdit); return; }
     const md=e.target.closest && e.target.closest('[data-dm-del]'); if(md){ ov.classList.remove('open'); deleteMission(md.dataset.dmDel); return; }
     const ne=e.target.closest && e.target.closest('[data-dm-nedit]'); if(ne){ ov.classList.remove('open'); editNote(ne.dataset.dmNedit); return; }
@@ -3431,7 +3432,7 @@ function _refreshDayModal(){
   const ms=missions.filter(function(m){return isDateInPeriod(dateStr,m);}).sort(function(a,b){return new Date(a.date)-new Date(b.date);});
   const ns=notesForDate(dateStr);
   let html="<div class=\"dm-head\"><span class=\"dm-date\">"+escapeHtml(formatDate(dateStr))+"</span><button class=\"dm-x\" id=\"dmClose\" type=\"button\">✕</button></div>";
-  html+="<div class=\"dm-acts\"><button class=\"dm-act mission\" id=\"dmAddMission\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2\" y=\"7\" width=\"20\" height=\"14\" rx=\"2\"/><path d=\"M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\"/></svg></span>Ajouter une mission</button><button class=\"dm-act note\" id=\"dmAddNote\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 3h9l5 5v13H5z\"/><path d=\"M14 3v5h5\"/><path d=\"M8 13.5h7M8 17h5\"/></svg></span>Note perso</button><button class=\"dm-act formation\" id=\"dmAddFormation\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M22 10L12 5 2 10l10 5 10-5z\"/><path d=\"M6 12v5c0 1 2.5 3 6 3s6-2 6-3v-5\"/></svg></span>Formation</button></div>";
+  html+="<div class=\"dm-acts\"><button class=\"dm-act mission\" id=\"dmAddMission\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2\" y=\"7\" width=\"20\" height=\"14\" rx=\"2\"/><path d=\"M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\"/></svg></span>Ajouter une mission</button><button class=\"dm-act note\" id=\"dmAddNote\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 3h9l5 5v13H5z\"/><path d=\"M14 3v5h5\"/><path d=\"M8 13.5h7M8 17h5\"/></svg></span>Note perso</button><button class=\"dm-act formation\" id=\"dmAddFormation\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M22 10L12 5 2 10l10 5 10-5z\"/><path d=\"M6 12v5c0 1 2.5 3 6 3s6-2 6-3v-5\"/></svg></span>Formation</button><button class=\"dm-act fast\" id=\"dmAddQuick\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M13 2L3 14h7l-1 8 10-12h-7z\"/></svg></span>Saisie rapide</button></div>";
   if(ms.length){ html+="<div class=\"dm-sec-t\">Missions du jour</div>"; ms.forEach(function(m){ var col=getProductionColorHex(normalizeProductionName(m.production))||'#1F4E5F'; var nb=missionDayCount(m); html+="<div class=\"dm-item\" style=\"border-left-color:"+col+"\"><div class=\"nm\"><strong>"+escapeHtml((m.production||'').toUpperCase())+"</strong><span>"+escapeHtml(m.type)+" · "+(Math.round((Number(m.hours||0)/nb)*10)/10)+"h · "+money(Math.round(Number(m.gross||0)/nb))+"</span></div><div class=\"acts\"><button data-dm-edit=\""+escapeHtml(m.id)+"\" type=\"button\">Modifier</button><button class=\"del\" data-dm-del=\""+escapeHtml(m.id)+"\" type=\"button\">✕</button></div></div>"; }); }
   if(ns.length){ html+="<div class=\"dm-sec-t\">Notes</div>"; ns.forEach(function(n){ html+="<div class=\"dm-item\" data-note-detail=\""+escapeHtml(n.id)+"\" style=\"cursor:pointer;border-left-color:"+(n.color||'#1E6FE0')+"\"><div class=\"nm\"><strong>"+escapeHtml(n.title||'Note')+"</strong><span>"+escapeHtml((n.text||'').slice(0,90))+"</span></div><div class=\"acts\"><span style=\"color:var(--muted);font-size:18px;\">›</span></div></div>"; }); }
   box.innerHTML=html;
@@ -3441,6 +3442,79 @@ function openDayModal(dateStr){
   _dayModalDate=dateStr;
   _refreshDayModal();
   document.getElementById('dayModalOverlay').classList.add('open');
+}
+
+// ===== Saisie rapide du mois (site) : total heures + brut d'un mois d'un coup =====
+// Crée UNE mission-résumé (mission_type 'Saisie rapide') → compte dans les 507 h et l'estimation FT comme une mission.
+let _quickMonthRef = new Date();
+let _quickColor = PROD_PRESETS[0];
+let _qkHours = "", _qkGross = "", _qkJours = "";
+function _quickProdName(){ const l = _quickMonthRef.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }); return normalizeProductionName("RÉCAP " + (l.charAt(0).toUpperCase() + l.slice(1))); }
+function _qkCapture(){ const h = document.getElementById("qkHours"); if (h) _qkHours = h.value; const g = document.getElementById("qkGross"); if (g) _qkGross = g.value; const j = document.getElementById("qkJours"); if (j) _qkJours = j.value; }
+function _ensureQuickModal(){
+  if (document.getElementById("quickOverlay")) return;
+  const st = document.createElement("style");
+  st.textContent = "#quickOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:100050;}#quickOverlay.open{display:flex;}.qk-box{background:var(--card);color:var(--text);border-radius:22px 22px 0 0;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;box-sizing:border-box;padding:22px 22px 30px;}@media(min-width:600px){#quickOverlay{align-items:center;padding:18px;}.qk-box{border-radius:20px;max-width:440px;}}.qk-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}.qk-title{font-size:18px;font-weight:900;color:var(--petrol);}.qk-x{background:var(--soft);border:none;width:32px;height:32px;border-radius:50%;font-size:16px;color:var(--muted);cursor:pointer;}.qk-intro{font-size:12.5px;color:var(--muted);margin-bottom:10px;line-height:1.4;}.qk-lbl{font-size:12.5px;font-weight:700;color:var(--petrol);margin:12px 0 5px;display:block;}.qk-month{display:flex;align-items:center;gap:10px;}.qk-mbtn{width:36px;height:36px;border-radius:50%;border:none;background:var(--soft);color:var(--petrol);font-size:18px;font-weight:800;cursor:pointer;}.qk-mlbl{flex:1;text-align:center;font-weight:800;color:var(--petrol);font-size:14px;background:var(--soft);border-radius:10px;padding:9px;}.qk-row{display:flex;gap:10px;}.qk-row>div{flex:1;}.qk-in{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--text);font-size:14px;font-family:inherit;}.qk-colors{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}.qk-sw{width:30px;height:30px;border-radius:9px;border:2px solid transparent;cursor:pointer;}.qk-sw.sel{border-color:var(--text);}.qk-warn{margin-top:13px;background:#FFF7ED;border:1px solid #FCE4C7;border-radius:11px;padding:11px 13px;font-size:11.5px;color:#9A5B12;line-height:1.5;}.qk-save{margin-top:16px;width:100%;padding:13px;border:none;border-radius:12px;background:var(--petrol);color:#fff;font-weight:800;font-size:14.5px;cursor:pointer;font-family:inherit;}.qk-cancel{width:100%;padding:12px;margin-top:8px;border:none;background:transparent;color:var(--muted);font-weight:700;cursor:pointer;font-family:inherit;}";
+  document.head.appendChild(st);
+  const ov = document.createElement("div");
+  ov.id = "quickOverlay";
+  ov.innerHTML = "<div class=\"qk-box\" id=\"qkBox\"></div>";
+  document.body.appendChild(ov);
+  ov.addEventListener("click", function(e){
+    if (e.target === ov || (e.target.closest && (e.target.closest("#qkClose") || e.target.closest("#qkCancel")))) { ov.classList.remove("open"); return; }
+    const nav = e.target.closest && e.target.closest("[data-qk-nav]");
+    if (nav) { _qkCapture(); const n = new Date(_quickMonthRef); n.setDate(1); n.setMonth(n.getMonth() + Number(nav.dataset.qkNav)); _quickMonthRef = n; _renderQuickModal(); return; }
+    const sw = e.target.closest && e.target.closest("[data-qk-color]");
+    if (sw) { _qkCapture(); _quickColor = sw.dataset.qkColor; _renderQuickModal(); return; }
+    if (e.target.closest && e.target.closest("#qkSave")) { _saveQuick(); return; }
+  });
+}
+function _renderQuickModal(){
+  const box = document.getElementById("qkBox"); if (!box) return;
+  const y = _quickMonthRef.getFullYear(), mo = _quickMonthRef.getMonth();
+  const monthL = (function(){ const l = _quickMonthRef.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }); return l.charAt(0).toUpperCase() + l.slice(1); })();
+  const hasDetailed = missions.some(function(m){ const d = new Date(m.date + "T00:00:00"); return d.getFullYear() === y && d.getMonth() === mo && m.type !== "Saisie rapide"; });
+  const existing = missions.find(function(m){ const d = new Date(m.date + "T00:00:00"); return d.getFullYear() === y && d.getMonth() === mo && m.type === "Saisie rapide"; });
+  const sel = (_quickColor || "").toLowerCase();
+  const presetLc = PROD_PRESETS.map(function(p){ return p.toLowerCase(); });
+  const swatches = PROD_PRESETS.concat(getCustomColors().filter(function(c){ return presetLc.indexOf(c.toLowerCase()) < 0; })).map(function(c){ return '<button type="button" class="qk-sw' + (c.toLowerCase() === sel ? " sel" : "") + '" data-qk-color="' + c + '" style="background:' + c + '"></button>'; }).join("");
+  box.innerHTML =
+    '<div class="qk-head"><span class="qk-title">Saisie rapide du mois</span><button class="qk-x" id="qkClose" type="button">✕</button></div>' +
+    '<div class="qk-intro">Le total du mois d\'un coup, sans détailler chaque mission. Compté dans tes 507 h et l\'estimation France Travail.</div>' +
+    '<label class="qk-lbl">Mois concerné</label>' +
+    '<div class="qk-month"><button class="qk-mbtn" data-qk-nav="-1" type="button">‹</button><span class="qk-mlbl">' + escapeHtml(monthL) + '</span><button class="qk-mbtn" data-qk-nav="1" type="button">›</button></div>' +
+    '<div class="qk-row"><div><label class="qk-lbl">Total heures</label><input class="qk-in" id="qkHours" type="number" inputmode="decimal" min="0" step="0.5" placeholder="Ex : 120" value="' + escapeHtml(_qkHours) + '"></div><div><label class="qk-lbl">Brut total (€)</label><input class="qk-in" id="qkGross" type="number" inputmode="decimal" min="0" placeholder="Ex : 3200" value="' + escapeHtml(_qkGross) + '"></div></div>' +
+    '<label class="qk-lbl">Jours / cachets (facultatif)</label><input class="qk-in" id="qkJours" type="number" inputmode="numeric" min="0" placeholder="Ex : 15" value="' + escapeHtml(_qkJours) + '">' +
+    '<label class="qk-lbl">Couleur</label><div class="qk-colors">' + swatches + '</div>' +
+    (hasDetailed ? '<div class="qk-warn">⚠️ Ce mois contient déjà des missions détaillées. Pour ne pas compter les heures en double, utilise soit le détail, soit la saisie rapide — pas les deux.</div>' : "") +
+    '<button class="qk-save" id="qkSave" type="button">' + (existing ? "Mettre à jour le mois" : "Enregistrer le mois") + '</button>' +
+    '<button class="qk-cancel" id="qkCancel" type="button">Annuler</button>';
+}
+function openQuickEntryCurrent(){ openQuickEntry(current.getFullYear() + "-" + String(current.getMonth() + 1).padStart(2, "0") + "-01"); }
+function openQuickEntry(dateStr){
+  _ensureQuickModal();
+  const d = dateStr ? new Date(dateStr + "T00:00:00") : new Date(); d.setDate(1);
+  _quickMonthRef = d; _quickColor = PROD_PRESETS[0]; _qkHours = ""; _qkGross = ""; _qkJours = "";
+  _renderQuickModal();
+  document.getElementById("quickOverlay").classList.add("open");
+}
+async function _saveQuick(){
+  _qkCapture();
+  const h = Number((_qkHours || "").replace(",", "."));
+  if (!h || h <= 0) { toast("Indique le total d'heures du mois."); return; }
+  const g = Number((_qkGross || "").replace(",", ".")) || 0;
+  const j = Number((_qkJours || "").replace(",", ".")) || 0;
+  const y = _quickMonthRef.getFullYear(), mo = _quickMonthRef.getMonth();
+  const first = y + "-" + String(mo + 1).padStart(2, "0") + "-01";
+  const prod = _quickProdName();
+  const existing = missions.find(function(m){ const d = new Date(m.date + "T00:00:00"); return d.getFullYear() === y && d.getMonth() === mo && m.type === "Saisie rapide"; });
+  const payload = { user_id: currentUser.id, production: prod, emission: "", lieu: "", mission_type: "Saisie rapide", mission_date: first, end_date: first, hours: Math.round(h * 10) / 10, gross_amount: Math.round(g), vacations: j > 0 ? Math.round(j) : 1, km_distance: 0, km_rate: 0, km_amount: 0 };
+  setProductionColorHex(prod, _quickColor);
+  const result = existing ? await sb.from("missions").update(payload).eq("id", existing.id) : await sb.from("missions").insert(payload);
+  if (result.error) { toast("Erreur : " + result.error.message); return; }
+  document.getElementById("quickOverlay").classList.remove("open");
+  toast("Mois enregistré ✓");
+  await loadMissions();
 }
 
 // Récap au format actualisation France Travail : une ligne par mission
