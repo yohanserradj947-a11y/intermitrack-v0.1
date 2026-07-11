@@ -15,6 +15,7 @@ let current = new Date();
 let deferredInstallPrompt = null;
 let historyPage = 1;
 let areAdmissionDate = "";
+let aiYearOffset = 0; // navigation dans l'historique des années d'intermittence (0 = année en cours)
 const HISTORY_PER_PAGE = 6;
 let documentsPage = 1;
 const DOCS_PER_PAGE_DESKTOP = 9;
@@ -2447,13 +2448,45 @@ function render() {
   const year = now.getFullYear();
   if ($("areAdmissionDate")) $("areAdmissionDate").value = areAdmissionDate || "";
   if ($("areAdmissionInfo") && areAdmissionDate) $("areAdmissionInfo").textContent = "Calcul des heures effectué depuis le " + new Date(areAdmissionDate).toLocaleDateString("fr-FR");
-  const areStartDate = areAdmissionDate ? new Date(areAdmissionDate + "T00:00:00") : new Date(year, 0, 1);
-  const yearMissions = missions.filter((m) => new Date(m.date + "T00:00:00") >= areStartDate);
+  // Fenêtre « année d'intermittence » : 12 mois depuis l'anniversaire de la date ARE, navigable via aiYearOffset.
+  let winStart, winEnd;
+  if (areAdmissionDate) {
+    const a = new Date(areAdmissionDate + "T00:00:00");
+    const today0 = new Date(); today0.setHours(0, 0, 0, 0);
+    let k = today0.getFullYear() - a.getFullYear();
+    const anniv = new Date(a); anniv.setFullYear(a.getFullYear() + k);
+    if (anniv > today0) k -= 1;          // année d'intermittence en cours (contient aujourd'hui)
+    k += aiYearOffset;                    // navigation historique (offset ≤ 0)
+    winStart = new Date(a); winStart.setFullYear(a.getFullYear() + k);
+    winEnd = new Date(a);   winEnd.setFullYear(a.getFullYear() + k + 1);
+  } else {
+    winStart = new Date(year, 0, 1);
+    winEnd = new Date(year + 1, 0, 1);
+  }
+  const _winS = winStart.getTime(), _winE = winEnd.getTime();
+  const inWin = (ds) => { const t = new Date(ds + "T00:00:00").getTime(); return t >= _winS && t < _winE; };
+  const areStartDate = winStart; // borne basse de la période (formation)
+  const yearMissions = missions.filter((m) => inWin(m.date));
+  // Navigation « année d'intermittence » (flèches + libellé de période)
+  const _aiNav = $("aiNav");
+  if (_aiNav) {
+    if (areAdmissionDate) {
+      _aiNav.style.display = "flex";
+      if ($("areAdmissionInfo")) $("areAdmissionInfo").style.display = "none";
+      const _fmt = (d) => { const p = (n) => String(n).padStart(2, "0"); return p(d.getDate()) + "/" + p(d.getMonth() + 1) + "/" + d.getFullYear(); };
+      if ($("aiPeriod")) $("aiPeriod").textContent = _fmt(winStart) + " → " + _fmt(winEnd);
+      if ($("aiPeriodSub")) $("aiPeriodSub").textContent = aiYearOffset === 0 ? "Année d'intermittence en cours" : (aiYearOffset === -1 ? "Année précédente" : "Il y a " + (-aiYearOffset) + " ans");
+      if ($("aiNext")) $("aiNext").style.opacity = aiYearOffset >= 0 ? "0.25" : "1";
+    } else {
+      _aiNav.style.display = "none";
+      if ($("areAdmissionInfo")) $("areAdmissionInfo").style.display = "";
+    }
+  }
   const selectedMonthMissions = monthMissions(current);
   const yearHours = Math.round(sumDone(yearMissions) * 10) / 10;
   const plannedHours = Math.round(sumPlanned(yearMissions) * 10) / 10;
   // Heures de formation dans la période de droits (plafonnées à 338 h pour les 507 h).
-  const formationRaw = Math.round((typeof getNotes === "function" ? getNotes() : []).filter((n) => n.kind === "formation" && new Date((n.date) + "T00:00:00") >= areStartDate).reduce((a, n) => a + (Number(n.hours) || 0), 0) * 10) / 10;
+  const formationRaw = Math.round((typeof getNotes === "function" ? getNotes() : []).filter((n) => n.kind === "formation" && inWin(n.date)).reduce((a, n) => a + (Number(n.hours) || 0), 0) * 10) / 10;
   const formationHours = Math.min(formationRaw, FORM_CAP);
   // Prorata : une mission à cheval sur 2 mois ne compte que sa part de jours DANS le mois affiché (heures ET brut suivent les vacations).
   const monthFrac = (m) => missionDaysInMonth(m, current) / missionDayCount(m);
@@ -2766,8 +2799,22 @@ function renderHistory() {
   if ($("historyPagePrev")) $("historyPagePrev").addEventListener("click", () => { historyPage--; renderHistory(); });
   if ($("historyPageNext")) $("historyPageNext").addEventListener("click", () => { historyPage++; renderHistory(); });
 }
-let _missionsPeriod = "all";              // 'all' | 'year' | 'custom'  (comme l'app mobile)
+let _missionsPeriod = "all";              // 'all' | 'month' | 'year' | 'ai' | 'custom'  (comme l'app mobile)
 let _missionsCustomYear = new Date().getFullYear();
+let _missionsMonthRef = new Date();       // filtre « Mois »
+
+// Fenêtre de l'année d'intermittence en cours (12 mois depuis l'anniversaire de la date ARE).
+function _aiWindowCurrent(){
+  if (!areAdmissionDate) return null;
+  const a = new Date(areAdmissionDate + "T00:00:00");
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  let k = today.getFullYear() - a.getFullYear();
+  const anniv = new Date(a); anniv.setFullYear(a.getFullYear() + k);
+  if (anniv > today) k -= 1;
+  const start = new Date(a); start.setFullYear(a.getFullYear() + k);
+  const end = new Date(a);   end.setFullYear(a.getFullYear() + k + 1);
+  return { start: start.getTime(), end: end.getTime(), startDate: start, endDate: end };
+}
 
 function _lastDayOfMonth(ym){
   const parts = ym.split("-"); const y = +parts[0], m = +parts[1];
@@ -2782,6 +2829,15 @@ function _missionsYears(){
 }
 function _missionsInPeriod(){
   if (_missionsPeriod === "all") return missions.slice();
+  if (_missionsPeriod === "month") {
+    const y = _missionsMonthRef.getFullYear(), m = _missionsMonthRef.getMonth();
+    return missions.filter(function(mm){ const d = new Date((mm.date) + "T00:00:00"); return d.getFullYear() === y && d.getMonth() === m; });
+  }
+  if (_missionsPeriod === "ai") {
+    const w = _aiWindowCurrent();
+    if (!w) return missions.slice();
+    return missions.filter(function(mm){ const t = new Date((mm.date) + "T00:00:00").getTime(); return t >= w.start && t < w.end; });
+  }
   const target = _missionsPeriod === "year" ? new Date().getFullYear() : _missionsCustomYear;
   return missions.filter(function(m){
     return new Date((m.date) + "T00:00:00").getFullYear() === target;
@@ -2792,7 +2848,9 @@ function _missionsPeriodBar(){
   const chip = function(active){ return 'padding:8px 15px;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:inherit;' + (active ? 'background:var(--petrol);color:#fff;' : 'background:var(--soft);color:var(--petrol);'); };
   let html = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">' +
     '<button type="button" class="mperiod-chip" data-mp="all" style="' + chip(_missionsPeriod==='all') + '">Tout</button>' +
-    '<button type="button" class="mperiod-chip" data-mp="year" style="' + chip(_missionsPeriod==='year') + '">Cette année</button>' +
+    '<button type="button" class="mperiod-chip" data-mp="month" style="' + chip(_missionsPeriod==='month') + '">Mois</button>' +
+    '<button type="button" class="mperiod-chip" data-mp="year" style="' + chip(_missionsPeriod==='year') + '">Année civile</button>' +
+    '<button type="button" class="mperiod-chip" data-mp="ai" style="' + chip(_missionsPeriod==='ai') + '">Année interm.</button>' +
     '<button type="button" class="mperiod-chip" data-mp="custom" style="' + chip(_missionsPeriod==='custom') + '">Par année</button>' +
     '</div>';
   if (_missionsPeriod === 'custom') {
@@ -2800,6 +2858,22 @@ function _missionsPeriodBar(){
     const ychip = function(active){ return 'padding:6px 13px;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid var(--line);font-family:inherit;' + (active ? 'background:var(--petrol);color:#fff;border-color:var(--petrol);' : 'background:var(--card);color:var(--petrol);'); };
     html += '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;">' +
       (years.length ? years.map(function(y){ return '<button type="button" class="myear-chip" data-my="' + y + '" style="' + ychip(y===_missionsCustomYear) + '">' + y + '</button>'; }).join('') : '<span style="font-size:13px;color:var(--muted);">Aucune année</span>') +
+      '</div>';
+  }
+  if (_missionsPeriod === 'month') {
+    const fmtMonth = function(d){ const l = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }); return l.charAt(0).toUpperCase() + l.slice(1); };
+    const nav = 'width:34px;height:34px;border-radius:50%;border:none;background:var(--soft);color:var(--petrol);font-size:18px;font-weight:800;cursor:pointer;font-family:inherit;';
+    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">' +
+      '<button type="button" class="mmonth-nav" data-mm="-1" style="' + nav + '">‹</button>' +
+      '<span style="flex:1;text-align:center;font-weight:800;color:var(--petrol);font-size:14px;">' + fmtMonth(_missionsMonthRef) + '</span>' +
+      '<button type="button" class="mmonth-nav" data-mm="1" style="' + nav + '">›</button>' +
+      '</div>';
+  }
+  if (_missionsPeriod === 'ai') {
+    const w = _aiWindowCurrent();
+    const fmtD = function(d){ const p = function(n){ return String(n).padStart(2, '0'); }; return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear(); };
+    html += '<div style="margin-bottom:14px;padding:10px 12px;border-radius:11px;background:var(--soft);font-size:12.5px;font-weight:700;color:var(--petrol);text-align:center;">' +
+      (w ? ('Du ' + fmtD(w.startDate) + ' au ' + fmtD(w.endDate) + ' · année d\'intermittence en cours') : 'Renseigne ta date ARE dans le Tableau de bord pour activer ce filtre.') +
       '</div>';
   }
   return html;
@@ -2817,6 +2891,9 @@ function _bindMissionsPeriod(){
   });
   container.querySelectorAll(".myear-chip").forEach(function(b){
     b.addEventListener("click", function(){ _missionsCustomYear = Number(b.dataset.my); renderAllMissions(); });
+  });
+  container.querySelectorAll(".mmonth-nav").forEach(function(b){
+    b.addEventListener("click", function(){ const n = new Date(_missionsMonthRef); n.setDate(1); n.setMonth(n.getMonth() + Number(b.dataset.mm)); _missionsMonthRef = n; renderAllMissions(); });
   });
 }
 
@@ -2946,6 +3023,11 @@ const list = missions.filter((m) => normalizeProductionName(m.production || "San
 function moveMonth(amount) {
   current.setMonth(current.getMonth() + amount);
   current.setDate(1);
+  render();
+}
+// Navigation dans l'historique des années d'intermittence (on ne va pas au-delà de l'année en cours).
+function shiftAiYear(delta) {
+  aiYearOffset = Math.min(0, aiYearOffset + delta);
   render();
 }
 
@@ -3500,6 +3582,7 @@ function setupEvents() {
       const value = $("areAdmissionDate").value;
       localStorage.setItem(storageKey("areAdmissionDate"), value);
       areAdmissionDate = value;
+      aiYearOffset = 0; // on repart sur l'année d'intermittence en cours
       render();
       toast("Date d'admission ARE enregistrée.");
       // Synchro multi-appareils : on enregistre aussi dans Supabase.
