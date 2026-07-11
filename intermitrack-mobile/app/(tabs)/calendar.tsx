@@ -223,6 +223,34 @@ export default function Calendar(){
     ]);
   }
 
+  // Supprimer une mission directement (croix) sans ouvrir le formulaire.
+  function quickDelete(m:any){
+    showAlert('Supprimer ?','Cette mission sera définitivement supprimée.',[
+      {text:'Annuler',style:'cancel'},
+      {text:'Supprimer',style:'destructive',onPress:async()=>{
+        const { error, count }=await supabase.from('missions').delete({count:'exact'}).eq('id',m.id);
+        if(error){ showAlert('Erreur',error.message); return; }
+        if(count===0){ showAlert('Bloqué','La suppression a été refusée (droits Supabase / RLS).'); return; }
+        setDayMenu((dm:any)=>dm?{...dm,missions:dm.missions.filter((x:any)=>x.id!==m.id)}:dm);
+        loadMissions(true);
+      }},
+    ]);
+  }
+
+  // Réinitialiser le calendrier : supprime TOUTES les missions (distinct de la remise à zéro des couleurs).
+  function resetCalendar(){
+    showAlert('Réinitialiser le calendrier ?','Toutes tes missions seront définitivement supprimées pour repartir de zéro. Tes couleurs et notes ne sont pas touchées. Cette action est irréversible.',[
+      {text:'Annuler',style:'cancel'},
+      {text:'Tout supprimer',style:'destructive',onPress:async()=>{
+        const { data:{ user } }=await supabase.auth.getUser();
+        if(!user){ showAlert('Erreur','Session expirée, reconnecte-toi.'); return; }
+        const { error }=await supabase.from('missions').delete().eq('user_id',user.id);
+        if(error){ showAlert('Erreur',error.message); return; }
+        loadMissions(true);
+      }},
+    ]);
+  }
+
   function toggleDay(i:number){ setMdpDays(ds=>ds.map((d,idx)=>idx===i?{...d,checked:!d.checked}:d)); }
   function setDayHours(i:number,h:string){ setMdpDays(ds=>ds.map((d,idx)=>idx===i?{...d,hours:Number(h)||0}:d)); }
   function setAll(val:boolean){ setMdpDays(ds=>ds.map(d=>({...d,checked:val}))); }
@@ -367,6 +395,11 @@ export default function Calendar(){
         </TouchableOpacity>
       </View>
 
+      <TouchableOpacity style={s.resetCalBtn} activeOpacity={0.85} onPress={resetCalendar}>
+        <Ionicons name="trash-outline" size={15} color={C.danger}/>
+        <Text style={s.resetCalTxt}>Réinitialiser le calendrier</Text>
+      </TouchableOpacity>
+
       <View style={s.weekRow}>
         {['L','M','M','J','V','S','D'].map((d,i)=>(<Text key={i} style={s.weekDay}>{d}</Text>))}
       </View>
@@ -491,8 +524,13 @@ export default function Calendar(){
         <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
         <View style={s.modalOverlay}>
           <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
+            <View style={s.modalHeader}>
+              <Text style={[s.modalTitle,{marginBottom:0,flex:1,textAlign:'left'}]}>{editId?'Modifier la mission':'Ajouter une mission'}</Text>
+              <TouchableOpacity style={s.modalClose} onPress={()=>{setShowForm(false);setEditId(null);}} hitSlop={8}>
+                <Ionicons name="close" size={22} color={C.muted}/>
+              </TouchableOpacity>
+            </View>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <Text style={s.modalTitle}>{editId?'Modifier la mission':'Ajouter une mission'}</Text>
 
               <Text style={s.label}>Nom de la production</Text>
               <TxtInput style={s.input} value={fProduction} onChangeText={(t:string)=>{setFProduction(t);setShowSuggest(true);}} onFocus={()=>setShowSuggest(true)} placeholder="Ex : ENDEMOL" placeholderTextColor={C.muted} autoCapitalize="characters"/>
@@ -752,13 +790,18 @@ export default function Calendar(){
               {dayMenu?.missions.map((m:any)=>{
                 const hpj=Math.round((Number(m.hours||0)/daysInclusive(new Date((m.mission_date)+'T00:00:00'),new Date((m.end_date||m.mission_date)+'T00:00:00')))*10)/10;
                 return(
-                  <TouchableOpacity key={m.id} style={s.dayMenuItem} onPress={()=>{const mm=m;setDayMenu(null);openEdit(mm);}}>
-                    <View style={{flex:1}}>
-                      <Text style={s.dayMenuItemProd} numberOfLines={1}>{m.production||'Mission'}</Text>
-                      <Text style={s.dayMenuItemMeta}>{hpj}h/jour · {m.mission_type}</Text>
-                    </View>
-                    <Text style={s.dayMenuChevron}>›</Text>
-                  </TouchableOpacity>
+                  <View key={m.id} style={s.dayMenuItem}>
+                    <TouchableOpacity style={{flex:1,flexDirection:'row',alignItems:'center'}} onPress={()=>{const mm=m;setDayMenu(null);openEdit(mm);}}>
+                      <View style={{flex:1}}>
+                        <Text style={s.dayMenuItemProd} numberOfLines={1}>{m.production||'Mission'}</Text>
+                        <Text style={s.dayMenuItemMeta}>{hpj}h/jour · {m.mission_type}</Text>
+                      </View>
+                      <Text style={s.dayMenuChevron}>›</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={s.quickDelBtn} onPress={()=>quickDelete(m)} hitSlop={6}>
+                      <Ionicons name="close" size={18} color={C.danger}/>
+                    </TouchableOpacity>
+                  </View>
                 );
               })}
               {dayMenu && notesForDate(iso(dayMenu.date)).map((n)=>(
@@ -910,6 +953,11 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   colorTools:{flexDirection:'row',gap:8,paddingHorizontal:16,marginTop:2,marginBottom:8},
   colorToolBtn:{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6,paddingVertical:11,paddingHorizontal:8,borderRadius:12,backgroundColor:C.soft},
   colorToolTxt:{fontSize:11.5,fontWeight:'800',color:C.petrol,textAlign:'center'},
+  resetCalBtn:{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,marginHorizontal:16,marginTop:2,marginBottom:10,paddingVertical:11,borderRadius:12,borderWidth:1,borderColor:C.danger,backgroundColor:'transparent'},
+  resetCalTxt:{fontSize:12.5,fontWeight:'800',color:C.danger},
+  modalHeader:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:12},
+  modalClose:{width:34,height:34,borderRadius:17,alignItems:'center',justifyContent:'center',backgroundColor:C.soft},
+  quickDelBtn:{width:32,height:32,borderRadius:9,alignItems:'center',justifyContent:'center',backgroundColor:C.danger+'1A',marginLeft:2},
   calTabs:{flexDirection:'row',gap:8,marginHorizontal:16,marginTop:18,marginBottom:12,backgroundColor:C.soft,borderRadius:12,padding:5},
   calTab:{flex:1,paddingVertical:9,borderRadius:9,alignItems:'center'},
   calTabOn:{backgroundColor:C.card,shadowColor:'#000',shadowOpacity:0.08,shadowRadius:6,elevation:2},

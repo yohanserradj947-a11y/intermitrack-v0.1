@@ -111,6 +111,19 @@ export default function Missions(){
     ]);
   }
 
+  // Supprimer une mission directement (croix) sans ouvrir le formulaire.
+  function quickDelete(m:any){
+    showAlert('Supprimer ?','Cette mission sera définitivement supprimée.',[
+      {text:'Annuler',style:'cancel'},
+      {text:'Supprimer',style:'destructive',onPress:async()=>{
+        const { error,count }=await supabase.from('missions').delete({count:'exact'}).eq('id',m.id);
+        if(error){ showAlert('Erreur',error.message); return; }
+        if(count===0){ showAlert('Bloqué','Suppression refusée (droits Supabase).'); return; }
+        loadMissions();
+      }},
+    ]);
+  }
+
   const filtered=missions.filter((m:any)=>{
     const y=new Date(m.mission_date+'T00:00:00').getFullYear();
     if(period==='year')return y===new Date().getFullYear();
@@ -179,6 +192,9 @@ export default function Missions(){
               <View style={s.missionHead}>
                 <View style={{flexDirection:'row',alignItems:'center',gap:5,flex:1}}><Ionicons name="document-text-outline" size={13} color={C.petrol}/><Text style={s.missionProd} numberOfLines={1}>{m.production}</Text></View>
                 <View style={s.pill}><Text style={s.pillTxt}>{m.mission_type}</Text></View>
+                <TouchableOpacity style={s.quickDelBtn} onPress={()=>quickDelete(m)} hitSlop={6}>
+                  <Ionicons name="close" size={17} color={C.danger}/>
+                </TouchableOpacity>
               </View>
               <View style={{gap:4,marginTop:8}}>
                 {m.emission?<View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="videocam-outline" size={13} color={C.muted} /><Text style={s.meta}>{m.emission}</Text></View>:null}
@@ -196,8 +212,13 @@ export default function Missions(){
           <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
           <View style={s.modalOverlay}>
             <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
+              <View style={s.modalHeader}>
+                <Text style={[s.modalTitle,{marginBottom:0,flex:1,textAlign:'left'}]}>Modifier la mission</Text>
+                <TouchableOpacity style={s.modalClose} onPress={()=>setEditId(null)} hitSlop={8}>
+                  <Ionicons name="close" size={22} color={C.muted}/>
+                </TouchableOpacity>
+              </View>
               <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                <Text style={s.modalTitle}>Modifier la mission</Text>
 
                 <Text style={s.label}>Nom de la production</Text>
                 <TextInput style={s.input} value={fProduction} onChangeText={(t:string)=>{setFProduction(t);setShowSuggest(true);}} onFocus={()=>setShowSuggest(true)} placeholderTextColor={C.muted} autoCapitalize="characters"/>
@@ -438,6 +459,9 @@ const makeS=(C:any)=>StyleSheet.create({
   detailTitle:{fontSize:18,fontWeight:'900',color:C.petrol},
   detailSub:{fontSize:12,color:C.muted,marginTop:2},
   missionCard:{backgroundColor:C.card,borderRadius:16,padding:14,borderWidth:1,borderColor:C.line,borderLeftWidth:4,borderLeftColor:C.petrol},
+  quickDelBtn:{width:30,height:30,borderRadius:9,alignItems:'center',justifyContent:'center',backgroundColor:C.danger+'1A',marginLeft:6},
+  modalHeader:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:12},
+  modalClose:{width:34,height:34,borderRadius:17,alignItems:'center',justifyContent:'center',backgroundColor:C.soft},
   missionHead:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:8},
   missionProd:{fontSize:14,fontWeight:'900',color:C.petrol,flex:1,textTransform:'uppercase'},
   pill:{backgroundColor:C.soft,borderRadius:99,paddingHorizontal:9,paddingVertical:4},
