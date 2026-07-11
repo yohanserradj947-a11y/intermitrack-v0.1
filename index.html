@@ -17,7 +17,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=16" />
+  <link rel="stylesheet" href="style.css?v=17" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js" integrity="sha384-wgi7s9Y2xefdDru3II6Xb11y/YNoKVbuydTikWejwId9z2xRd8SveCTrJjj/QAnH" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
   <style>
@@ -254,6 +254,11 @@ z-index: 500 !important;
             <!-- Mes informations -->
             <button class="account-dd-logout" type="button" id="profileBtn" style="background:var(--soft);color:var(--petrol);margin-bottom:8px;">
               <span>📝</span> Mes informations
+            </button>
+
+            <!-- Donner mon avis -->
+            <button class="account-dd-logout" type="button" onclick="window.open('https://forms.gle/vadarsUu66Pq2U4s5','_blank')" style="background:var(--soft);color:var(--petrol);margin-bottom:8px;">
+              <span>💬</span> Donner mon avis
             </button>
 
             <!-- Thème -->
@@ -1351,7 +1356,7 @@ z-index: 500 !important;
   </main>
 
   <script src="document-parser.js?v=5"></script>
-  <script src="app.js?v=39"></script>
+  <script src="app.js?v=40"></script>
 
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>
@@ -1404,8 +1409,16 @@ z-index: 500 !important;
       </div>
     </div>
   </div>
-<button class="feedback-float-btn hidden" id="feedbackBtn" onclick="window.open('https://forms.gle/vadarsUu66Pq2U4s5', '_blank')">💬 Donner mon avis</button>
-<button class="theme-toggle-float hidden" id="themeToggleFloat" title="Changer de thème">☀️</button>
+<!-- Téléchargement de l'app — toujours visible (iOS + Android) -->
+<div class="dl-float" id="dlFloat" aria-label="Télécharger l'application Intermitrack">
+  <span class="dl-float-label">Télécharger l'app</span>
+  <a class="dl-float-btn" href="https://apps.apple.com/fr/app/intermitrack/id6781755113" target="_blank" rel="noopener" title="Télécharger sur l'App Store (iOS)" aria-label="Télécharger sur l'App Store (iOS)">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 1.5c0 1.2-.5 2.3-1.3 3.1-.9.9-2 1.5-3.1 1.4-.1-1.1.5-2.3 1.3-3 .8-.8 2.1-1.4 3.1-1.5zM20.5 17c-.5 1.2-.8 1.7-1.5 2.7-.9 1.4-2.3 3.1-3.9 3.1-1.5 0-1.9-1-3.9-1-2 0-2.4 1-3.9 1-1.6 0-2.9-1.6-3.8-2.9-2.5-3.7-2.8-8.1-1.2-10.4 1.1-1.7 2.8-2.6 4.5-2.6 1.7 0 2.7 1 4.1 1 1.3 0 2.1-1 4.1-1 1.5 0 3.1.8 4.2 2.2-3.7 2-3.1 7.3.9 8.9z"/></svg>
+  </a>
+  <a class="dl-float-btn" href="https://play.google.com/store/apps/details?id=fr.intermitrack.app" target="_blank" rel="noopener" title="Télécharger sur Google Play (Android)" aria-label="Télécharger sur Google Play (Android)">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l16 9-16 9V3z"/></svg>
+  </a>
+</div>
   <style>body.is-scrolling .lp-aurora,body.is-scrolling .lp-blob,body.is-scrolling .sbubble,body.is-scrolling .demo-browser,body.is-scrolling .demo-track,body.is-scrolling .lp-marquee-track,body.is-scrolling .bg-fx .blob{animation-play-state:paused!important}</style>
   <script>(function(){var t;window.addEventListener('scroll',function(){var b=document.body;if(!b.classList.contains('is-scrolling'))b.classList.add('is-scrolling');clearTimeout(t);t=setTimeout(function(){b.classList.remove('is-scrolling');},150);},{passive:true});})();</script>
 </body>

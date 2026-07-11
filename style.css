@@ -1085,6 +1085,28 @@ body.theme-dark .ae-add-presta { color: #8FD3EA; }
 }
 .feedback-float-btn:hover { transform: scale(1.05); }
 
+/* ── Téléchargement app (flottant, toujours visible) ─────────────── */
+.dl-float {
+  position: fixed; bottom: 18px; right: 16px; z-index: 7000;
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 8px 7px 14px; border-radius: 99px;
+  background: var(--card, #fff); border: 1px solid var(--line, #E7ECEF);
+  box-shadow: 0 6px 20px rgba(13,79,108,.18);
+}
+.dl-float-label { font-size: 12px; font-weight: 800; color: var(--petrol); white-space: nowrap; }
+.dl-float-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--petrol); color: #fff; text-decoration: none; transition: transform .15s;
+}
+.dl-float-btn:hover { transform: scale(1.1); }
+.dl-float-btn svg { width: 19px; height: 19px; fill: currentColor; }
+@media (max-width: 480px) {
+  .dl-float { bottom: 14px; right: 12px; padding: 6px 7px; gap: 6px; }
+  .dl-float-label { display: none; }
+  .dl-float-btn { width: 40px; height: 40px; }
+}
+
 /* ── Footer légal ────────────────────────────────────────────────── */
 .legal-footer {
   display: flex; align-items: center; justify-content: center;

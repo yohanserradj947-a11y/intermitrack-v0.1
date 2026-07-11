@@ -991,21 +991,9 @@ if (typeof monterWidgetParser === "function") monterWidgetParser();
   
   const savedTheme = localStorage.getItem("intermitrack_theme") || "light";
   applyTheme(savedTheme);
+  // Thème + « Donner mon avis » sont maintenant dans le menu des initiales.
+  // Le bouton flottant sert au téléchargement de l'app (toujours visible).
 
-  const floatBtn = $("themeToggleFloat");
-  if (floatBtn) {
-    floatBtn.classList.remove("hidden");
-    floatBtn.textContent = savedTheme === "dark" ? "☀️" : "🌙";
-    floatBtn.onclick = () => {
-      const current = localStorage.getItem("intermitrack_theme") || "light";
-      const next = current === "dark" ? "light" : "dark";
-      applyTheme(next);
-      localStorage.setItem("intermitrack_theme", next);
-      floatBtn.textContent = next === "dark" ? "☀️" : "🌙";
-    };
-  }
-
-  if ($("feedbackBtn")) $("feedbackBtn").classList.remove("hidden");
   if (typeof initProfilFeature === "function") initProfilFeature();
   if (typeof _renderProdSwatches === "function") _renderProdSwatches();
 }
