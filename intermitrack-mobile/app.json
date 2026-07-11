@@ -2,7 +2,7 @@
   "expo": {
     "name": "Intermitrack",
     "slug": "intermitrack-mobile",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "intermitrackmobile",
@@ -61,7 +61,58 @@
           "calendarPermission": "Intermitrack accède à ton calendrier pour importer tes missions et te faire gagner du temps."
         }
       ],
-      "@bacons/apple-targets"
+      "@bacons/apple-targets",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "Hours",
+              "label": "Intermitrack — Heures / 507 h",
+              "description": "Ta progression vers les droits France Travail.",
+              "minWidth": "140dp",
+              "minHeight": "140dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "resizeMode": "none",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "Next",
+              "label": "Intermitrack — Prochaine mission",
+              "description": "Ta prochaine mission d'un coup d'oeil.",
+              "minWidth": "140dp",
+              "minHeight": "140dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "resizeMode": "none",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "CalendarAgenda",
+              "label": "Intermitrack — Calendrier (agenda)",
+              "description": "Mini-calendrier + prochaines missions.",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "CalendarMonth",
+              "label": "Intermitrack — Calendrier (mois)",
+              "description": "Le mois complet, colore par prod, + a venir.",
+              "minWidth": "250dp",
+              "minHeight": "250dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 4,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

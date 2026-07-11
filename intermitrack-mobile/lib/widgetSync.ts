@@ -37,17 +37,13 @@ function daysInclusive(a: string, b: string) {
   return Math.max(1, Math.round((B.getTime() - A.getTime()) / 86400000) + 1);
 }
 
-// Calcule et écrit les données des widgets iOS dans l'App Group partagé, puis recharge les widgets.
-// Reproduit fidèlement le calendrier de l'app : couleurs par prod, dégradés auto, missions
-// multi-jours, notes (jour note-seule hachuré + pastille sur mission+note). Ne fait rien hors iOS.
+// Calcule les données des widgets (heures/507h, prochaine mission, calendrier) et les pousse
+// vers iOS (App Group + WidgetKit) OU Android (AsyncStorage + react-native-android-widget).
+// Reproduit fidèlement le calendrier de l'app : couleurs par prod, missions multi-jours, notes.
 export async function syncWidgets(missions: any[], getColor: (name: string) => string | null, notes: any[] = []) {
-  if (Platform.OS !== 'ios') return;
-  let ExtensionStorage: any;
-  try { ExtensionStorage = require('@bacons/apple-targets').ExtensionStorage; } catch (e) { return; }
-  if (!ExtensionStorage) return;
+  if (Platform.OS !== 'ios' && Platform.OS !== 'android') return;
 
   try {
-    const storage = new ExtensionStorage(GROUP);
     const now = new Date();
     const todayISO = ymd(now);
     const areDate = await AsyncStorage.getItem('intermitrack_are_date'); // 'YYYY-MM-DD' ou null
@@ -63,24 +59,23 @@ export async function syncWidgets(missions: any[], getColor: (name: string) => s
       else if (ms > todayISO) planned += Number(m.hours || 0);  // à venir
       else done += Number(m.hours || 0);                        // en cours → comptée en fait
     });
-    storage.set('widget_hours', JSON.stringify({ done: Math.round(done), planned: Math.round(planned), target: 507 }));
+    const hoursData = { done: Math.round(done), planned: Math.round(planned), target: 507 };
 
     // --- Prochaine mission ---
     const upcomingList = missions
       .filter((m) => (m.mission_date || '') >= todayISO)
       .sort((a, b) => (a.mission_date || '').localeCompare(b.mission_date || ''));
     const nm = upcomingList[0];
+    let nextData: any = null;
     if (nm) {
       const d = new Date(nm.mission_date + 'T00:00:00');
       const diff = Math.round((d.getTime() - new Date(todayISO + 'T00:00:00').getTime()) / 86400000);
       const when = diff <= 0 ? "Aujourd'hui" : diff === 1 ? 'Demain' : d.toLocaleDateString('fr-FR', { weekday: 'short' });
       const dateStr = d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' });
-      storage.set('widget_next', JSON.stringify({
+      nextData = {
         when, date: dateStr, prod: (nm.production || '').toUpperCase(),
         lieu: nm.lieu || '', hours: Number(nm.hours || 0), price: Number(nm.gross_amount || 0),
-      }));
-    } else {
-      storage.remove('widget_next');
+      };
     }
 
     // --- Calendrier du mois courant (reproduction fidèle de l'app) ---
@@ -92,7 +87,6 @@ export async function syncWidgets(missions: any[], getColor: (name: string) => s
     const days: any[] = [];
     for (let day = 1; day <= daysInMonth; day++) {
       const dISO = ymd(new Date(y, mo, day));
-      // Missions couvrant ce jour (plage début→fin), dans l'ordre du calendrier (trié par date).
       const covering = missions.filter((m) => {
         const s = m.mission_date || ''; if (!s) return false;
         const e = m.end_date || m.mission_date || s;
@@ -111,21 +105,16 @@ export async function syncWidgets(missions: any[], getColor: (name: string) => s
         days.push({
           d: day, ab: prod.slice(0, 3), g, txt: custom ? textOn(custom) : '#fff',
           hours, more: covering.length - 1,
-          hach: !!(past && custom), // missions passées perso hachurées (comme l'app)
-          note: dayNotes.length > 0 ? (dayNotes[0].color || '#1E6FE0') : '', // pastille si note en +
+          hach: !!(past && custom),
+          note: dayNotes.length > 0 ? (dayNotes[0].color || '#1E6FE0') : '',
         });
       } else if (dayNotes.length > 0) {
         const n0 = dayNotes[0];
         const col = n0.color || '#1E6FE0';
-        days.push({
-          d: day, ab: noteAbbr(n0.title), g: prodGradient(col), txt: textOn(col),
-          hours: 0, more: 0, hach: true, note: '', // note seule : toujours hachurée
-        });
+        days.push({ d: day, ab: noteAbbr(n0.title), g: prodGradient(col), txt: textOn(col), hours: 0, more: 0, hach: true, note: '' });
       }
-      // sinon : jour vide (pas d'entrée)
     }
 
-    // Prochaines missions (liste du grand widget calendrier)
     const up = upcomingList.slice(0, 3).map((m) => {
       const d = new Date(m.mission_date + 'T00:00:00');
       const prod = (m.production || '').toUpperCase();
@@ -137,11 +126,36 @@ export async function syncWidgets(missions: any[], getColor: (name: string) => s
     });
 
     const title = now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-    storage.set('widget_calendar', JSON.stringify({
+    const calData = {
       title: title.charAt(0).toUpperCase() + title.slice(1),
       firstWeekday: fw, daysInMonth, today: now.getDate(), days, upcoming: up,
-    }));
+    };
 
-    ExtensionStorage.reloadWidget();
+    // ---------- iOS : App Group + WidgetKit ----------
+    if (Platform.OS === 'ios') {
+      let ExtensionStorage: any;
+      try { ExtensionStorage = require('@bacons/apple-targets').ExtensionStorage; } catch (e) { return; }
+      if (!ExtensionStorage) return;
+      const storage = new ExtensionStorage(GROUP);
+      storage.set('widget_hours', JSON.stringify(hoursData));
+      if (nextData) storage.set('widget_next', JSON.stringify(nextData)); else storage.remove('widget_next');
+      storage.set('widget_calendar', JSON.stringify(calData));
+      ExtensionStorage.reloadWidget();
+      return;
+    }
+
+    // ---------- Android : AsyncStorage (lu par le task handler) + demande de mise à jour ----------
+    await AsyncStorage.setItem('widget_hours', JSON.stringify(hoursData));
+    await AsyncStorage.setItem('widget_calendar', JSON.stringify(calData));
+    if (nextData) await AsyncStorage.setItem('widget_next', JSON.stringify(nextData));
+    else await AsyncStorage.removeItem('widget_next');
+    try {
+      const { requestWidgetUpdate } = require('react-native-android-widget');
+      const { buildWidget } = require('../components/widgets/IntermitrackWidgets');
+      const data = { hours: hoursData, next: nextData, cal: calData };
+      ['Hours', 'Next', 'CalendarAgenda', 'CalendarMonth'].forEach((wname) => {
+        requestWidgetUpdate({ widgetName: wname, renderWidget: () => buildWidget(wname, data), widgetNotFound: () => {} });
+      });
+    } catch (e) { /* lib indisponible (ex. web) → non bloquant */ }
   } catch (e) { /* non bloquant */ }
 }
