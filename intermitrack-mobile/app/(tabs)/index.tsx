@@ -16,6 +16,9 @@ import { GradientButton } from '../../components/GradientButton';
 import { openMesInfos, onProfilChanged } from '../../components/AccountMenu';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemeControls } from '../../lib/theme';
+import { useNotes } from '../../lib/notes';
+
+const FORM_CAP = 338; // heures de formation prises en compte pour les 507 h : plafond 2/3
 
 // La palette vient maintenant du thème (lib/theme) → const C = useTheme() dans le composant.
 const POSTES_TECH = ['Montage','Tournage','Démontage','Régie','Son','Lumière','Image / Vidéo','Machiniste','Électricien','Poursuiteur','Plateau','Décor','HMC'];
@@ -37,6 +40,7 @@ export default function HomeScreen(){
   const { scheme }=useThemeControls();
   const s=useMemo(()=>makeS(C),[C]);
   const mp=useMemo(()=>makeMp(C),[C]);
+  const { notes }=useNotes();
   const [loading,setLoading]=useState(true);
   const [missions,setMissions]=useState<any[]>([]);
   const [current,setCurrent]=useState(new Date());
@@ -157,7 +161,10 @@ export default function HomeScreen(){
     const upcoming=missions.filter((m:any)=>new Date((m.end_date||m.mission_date)+'T00:00:00')>=today);
     const doneH=Math.round(yearM.reduce((a:number,m:any)=>a+splitT(m).done,0)*10)/10;
     const planH=Math.round(yearM.reduce((a:number,m:any)=>a+splitT(m).planned,0)*10)/10;
-    const remaining=Math.max(0,Math.round((507-doneH-planH)*10)/10);
+    // Heures de formation dans la période de droits (plafonnées à 338 h pour le calcul des 507 h).
+    const formRaw=Math.round((notes||[]).filter((n:any)=>n.kind==='formation'&&(!areStart||new Date((n.date)+'T00:00:00')>=areStart)).reduce((a:number,n:any)=>a+(Number(n.hours)||0),0)*10)/10;
+    const formH=Math.min(formRaw,FORM_CAP);
+    const remaining=Math.max(0,Math.round((507-doneH-planH-formH)*10)/10);
     // Tout le récap du mois suit la MÊME logique : la part de chaque mission qui tombe DANS le mois (au prorata des jours).
     const _mvS=new Date(current.getFullYear(),current.getMonth(),1).getTime(), _mvE=new Date(current.getFullYear(),current.getMonth()+1,0).getTime();
     const monthDays=(m:any)=>{const s=new Date(m.mission_date+'T00:00:00').getTime(),e=new Date((m.end_date||m.mission_date)+'T00:00:00').getTime();const tot=Math.max(1,Math.round((e-s)/86400000)+1);const p=Math.max(s,_mvS),q=Math.min(e,_mvE);const inM=q<p?0:Math.round((q-p)/86400000)+1;return {inM,frac:inM/tot};};
@@ -168,10 +175,10 @@ export default function HomeScreen(){
     // Net à payer estimé = brut − charges salariales − prélèvement à la source
     const monthNet=Math.round(monthG*(1-chargeRate/100)*(1-pasRate/100));
     const monthRateNet=monthH>0?Math.round(monthNet/monthH):0;
-    return { doneH, planH, remaining, monthH, monthG, monthNet, monthVac, monthRate, monthRateNet, upcoming };
-  },[missions,areDate,current,chargeRate,pasRate]);
+    return { doneH, planH, remaining, formH, formRaw, monthH, monthG, monthNet, monthVac, monthRate, monthRateNet, upcoming };
+  },[missions,notes,areDate,current,chargeRate,pasRate]);
 
-  const { doneH, planH, remaining, monthH, monthG, monthNet, monthVac, monthRate, monthRateNet, upcoming } = stats;
+  const { doneH, planH, remaining, formH, formRaw, monthH, monthG, monthNet, monthVac, monthRate, monthRateNet, upcoming } = stats;
 
   const ft=useMemo(()=>{
     const aj=(profil&&Number(profil.taux_journalier))||0;
@@ -276,7 +283,13 @@ export default function HomeScreen(){
       </View>
 
       <View style={s.chartCard}>
-        <Gauge done={doneH} planned={planH} total={507}/>
+        <Gauge done={doneH} planned={planH} total={507} formation={formH}/>
+        {formRaw>0&&(
+          <View style={s.formNote}>
+            <Ionicons name="school-outline" size={14} color="#7C3AED"/>
+            <Text style={s.formNoteTxt}>Formation comptée : <Text style={{fontWeight:'800',color:C.text}}>{formH} h / {FORM_CAP} h max</Text>{formRaw>FORM_CAP?` (${formRaw} h saisies, plafonnées)`:''}. Uniquement si tu n'es pas indemnisé pendant la formation.</Text>
+          </View>
+        )}
       </View>
 
       <View style={s.section}>
@@ -537,6 +550,8 @@ const makeS=(C:any)=>StyleSheet.create({
   areValidateBtn:{backgroundColor:C.petrol,borderRadius:12,paddingVertical:13,alignItems:'center',marginTop:10},
   areValidateTxt:{color:'#FFFFFF',fontWeight:'800',fontSize:15},
   chartCard:{marginHorizontal:16,backgroundColor:C.card,borderRadius:22,padding:4,borderWidth:1,borderColor:C.line,marginTop:12,shadowColor:C.petrol,shadowOpacity:0.06,shadowRadius:16,elevation:3},
+  formNote:{flexDirection:'row',alignItems:'flex-start',gap:6,marginHorizontal:10,marginTop:2,marginBottom:10,padding:10,borderRadius:12,backgroundColor:C.soft},
+  formNoteTxt:{flex:1,fontSize:11.5,lineHeight:16,color:C.muted},
   section:{marginHorizontal:16,marginTop:16},
   sectionHead:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginBottom:12},
   sectionTitle:{fontSize:17,fontWeight:'900',color:C.petrol,letterSpacing:-0.5},

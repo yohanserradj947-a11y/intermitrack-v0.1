@@ -17,16 +17,19 @@ function arc(cx: number, cy: number, r: number, startFrac: number, endFrac: numb
   return `M ${p0.x} ${p0.y} A ${r} ${r} 0 0 1 ${p1.x} ${p1.y}`;
 }
 
-export default function Gauge({ done, planned, total }: { done: number; planned: number; total: number }) {
+const FORM_COLOR = '#7C3AED'; // accent formation (agrégat de la jauge uniquement, pas la couleur des formations sur le calendrier)
+
+export default function Gauge({ done, planned, total, formation = 0 }: { done: number; planned: number; total: number; formation?: number }) {
   const C = useTheme();
   const g = useMemo(() => makeG(C), [C]);
-  // Fractions pour le TRACÉ de l'arc (plafonnées à un demi-cercle plein)
+  // Fractions pour le TRACÉ de l'arc (plafonnées à un demi-cercle plein), ordre : effectué → formation → prévu
   const doneP = Math.max(0, Math.min(done / total, 1));
-  const planP = Math.max(0, Math.min(planned / total, 1 - doneP));
+  const formP = Math.max(0, Math.min(formation / total, 1 - doneP));
+  const planP = Math.max(0, Math.min(planned / total, 1 - doneP - formP));
   // Pourcentages AFFICHÉS : non plafonnés (peuvent dépasser 100 %)
   const donePct = Math.round((Math.max(0, done) / total) * 100);
   const planPct = Math.round((Math.max(0, planned) / total) * 100);
-  const totalPct = Math.round(((Math.max(0, done) + Math.max(0, planned)) / total) * 100);
+  const totalPct = Math.round(((Math.max(0, done) + Math.max(0, formation) + Math.max(0, planned)) / total) * 100);
   const reached = totalPct >= 100;
 
   const W = 260, H = 150, cx = 130, cy = 138, r = 108, sw = 22;
@@ -37,7 +40,10 @@ export default function Gauge({ done, planned, total }: { done: number; planned:
         <Svg width={W} height={H}>
           <Path d={arc(cx, cy, r, 0, 1)} stroke={C.track} strokeWidth={sw} fill="none" strokeLinecap="round" />
           {planP > 0 && (
-            <Path d={arc(cx, cy, r, 0, doneP + planP)} stroke={C.orange} strokeWidth={sw} fill="none" strokeLinecap="round" />
+            <Path d={arc(cx, cy, r, 0, doneP + formP + planP)} stroke={C.orange} strokeWidth={sw} fill="none" strokeLinecap="round" />
+          )}
+          {formP > 0 && (
+            <Path d={arc(cx, cy, r, 0, doneP + formP)} stroke={FORM_COLOR} strokeWidth={sw} fill="none" strokeLinecap="round" />
           )}
           {doneP > 0 && (
             <Path d={arc(cx, cy, r, 0, doneP)} stroke={C.petrol} strokeWidth={sw} fill="none" strokeLinecap="round" />
@@ -50,6 +56,7 @@ export default function Gauge({ done, planned, total }: { done: number; planned:
       </View>
       <View style={g.legends}>
         <View style={g.leg}><View style={[g.dot, { backgroundColor: C.petrol }]} /><Text style={g.legTxt}>Effectué · {donePct}%</Text></View>
+        {formation > 0 && <View style={g.leg}><View style={[g.dot, { backgroundColor: FORM_COLOR }]} /><Text style={g.legTxt}>Formation</Text></View>}
         <View style={g.leg}><View style={[g.dot, { backgroundColor: C.orange }]} /><Text style={g.legTxt}>Prévu · {planPct}%</Text></View>
         <View style={g.leg}><View style={[g.dot, { backgroundColor: C.track }]} /><Text style={[g.legTxt, { color: C.muted }]}>Restant</Text></View>
       </View>

@@ -73,6 +73,7 @@ export default function Calendar(){
   const [noteFormOpen,setNoteFormOpen]=useState(false);
   const [noteFormEdit,setNoteFormEdit]=useState<Note|null>(null);
   const [noteFormDate,setNoteFormDate]=useState('');
+  const [noteFormMode,setNoteFormMode]=useState<'note'|'formation'>('note');
   const [noteDetail,setNoteDetail]=useState<Note|null>(null);
   const [calTab,setCalTab]=useState<'missions'|'notes'>('missions');
   const { postes, addPoste, removePoste } = usePostes();
@@ -815,12 +816,16 @@ export default function Calendar(){
               ))}
               <View style={s.dmActs}>
                 <TouchableOpacity style={[s.dmAct,{borderColor:C.petrol}]} activeOpacity={0.8} onPress={()=>{const dd=dayMenu?.date;setDayMenu(null);if(dd)openCreate(dd);}}>
-                  <Ionicons name="briefcase-outline" size={24} color={C.petrol}/>
-                  <Text style={[s.dmActTxt,{color:C.petrol}]}>Ajouter une mission</Text>
+                  <Ionicons name="briefcase-outline" size={22} color={C.petrol}/>
+                  <Text style={[s.dmActTxt,{color:C.petrol}]}>Mission</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[s.dmAct,{borderColor:C.orange}]} activeOpacity={0.8} onPress={()=>{const dd=dayMenu?.date;setDayMenu(null);if(dd){setNoteFormEdit(null);setNoteFormDate(iso(dd));setNoteFormOpen(true);}}}>
-                  <Ionicons name="document-text-outline" size={24} color={C.orange}/>
-                  <Text style={[s.dmActTxt,{color:C.orange}]}>Note perso</Text>
+                <TouchableOpacity style={[s.dmAct,{borderColor:C.orange}]} activeOpacity={0.8} onPress={()=>{const dd=dayMenu?.date;setDayMenu(null);if(dd){setNoteFormMode('note');setNoteFormEdit(null);setNoteFormDate(iso(dd));setNoteFormOpen(true);}}}>
+                  <Ionicons name="document-text-outline" size={22} color={C.orange}/>
+                  <Text style={[s.dmActTxt,{color:C.orange}]}>Note</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[s.dmAct,{borderColor:C.petrol}]} activeOpacity={0.8} onPress={()=>{const dd=dayMenu?.date;setDayMenu(null);if(dd){setNoteFormMode('formation');setNoteFormEdit(null);setNoteFormDate(iso(dd));setNoteFormOpen(true);}}}>
+                  <Ionicons name="school-outline" size={22} color={C.petrol}/>
+                  <Text style={[s.dmActTxt,{color:C.petrol}]}>Formation</Text>
                 </TouchableOpacity>
               </View>
               <TouchableOpacity style={s.cancelBtn} onPress={()=>setDayMenu(null)}>
@@ -832,7 +837,7 @@ export default function Calendar(){
       </Modal>
 
       <ProdColorManager visible={managerOpen} productions={allProds} onClose={()=>setManagerOpen(false)} />
-      <NoteFormModal visible={noteFormOpen} editNote={noteFormEdit} defaultDate={noteFormDate} onClose={()=>{setNoteFormOpen(false);setNoteFormEdit(null);}} />
+      <NoteFormModal visible={noteFormOpen} editNote={noteFormEdit} defaultDate={noteFormDate} mode={noteFormMode} onClose={()=>{setNoteFormOpen(false);setNoteFormEdit(null);}} />
       <NoteDetailModal note={noteDetail} onClose={()=>setNoteDetail(null)} onEdit={(n)=>{setNoteDetail(null);setNoteFormEdit(n);setNoteFormDate(n.date);setNoteFormOpen(true);}} />
     </ScrollView>
   );

@@ -3,7 +3,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 import { useSession } from './auth';
 
-export type Note = { id: string; date: string; endDate: string; title: string; text: string; color: string };
+// kind: 'note' (défaut) ou 'formation'. Une formation = une note avec des heures qui comptent
+// dans les 507 h (plafond 338 h). Stockée dans le même JSON profiles.notes → aucune modif de base.
+export type Note = { id: string; date: string; endDate: string; title: string; text: string; color: string; kind?: 'note' | 'formation'; hours?: number };
+
+export function isFormation(n: Note) { return n.kind === 'formation'; }
 
 // 5 couleurs de note (identiques au site).
 export const NOTE_PRESETS = ['#1E6FE0', '#F0552B', '#15B86B', '#F59E0B', '#7C3AED'];
