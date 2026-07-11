@@ -14,6 +14,7 @@ import KmSection, { KmHandle } from '../../components/KmSection';
 import TxtInput from '../../components/TxtInput';
 import { GradientButton } from '../../components/GradientButton';
 import { openMesInfos, onProfilChanged } from '../../components/AccountMenu';
+import QuickEntryModal from '../../components/QuickEntryModal';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemeControls } from '../../lib/theme';
 import { useNotes } from '../../lib/notes';
@@ -47,6 +48,7 @@ export default function HomeScreen(){
   const [missionPage,setMissionPage]=useState(0);
   const [areDate,setAreDate]=useState('');
   const [yearOffset,setYearOffset]=useState(0); // navigation dans l'historique des années d'intermittence (0 = année en cours)
+  const [quickOpen,setQuickOpen]=useState(false);
   const [chargeRate,setChargeRate]=useState(22.5); // % charges salariales (réglé dans Prévisions)
   const [pasRate,setPasRate]=useState(0);          // % prélèvement à la source
   const [showDatePicker,setShowDatePicker]=useState(false);
@@ -187,7 +189,7 @@ export default function HomeScreen(){
     const monthDays=(m:any)=>{const s=new Date(m.mission_date+'T00:00:00').getTime(),e=new Date((m.end_date||m.mission_date)+'T00:00:00').getTime();const tot=Math.max(1,Math.round((e-s)/86400000)+1);const p=Math.max(s,_mvS),q=Math.min(e,_mvE);const inM=q<p?0:Math.round((q-p)/86400000)+1;return {inM,frac:inM/tot};};
     const monthH=Math.round(missions.reduce((a:number,m:any)=>a+Number(m.hours||0)*monthDays(m).frac,0)*10)/10;
     const monthG=Math.round(missions.reduce((a:number,m:any)=>a+Number(m.gross_amount||0)*monthDays(m).frac,0));
-    const monthVac=missions.reduce((a:number,m:any)=>a+monthDays(m).inM,0); // 1 vacation = 1 jour de mission dans le mois
+    const monthVac=missions.reduce((a:number,m:any)=>{const md=monthDays(m);return a+(m.mission_type==='Saisie rapide'?(md.inM>0?(Number(m.vacations)||1):0):md.inM);},0); // 1 vacation = 1 jour ; saisie rapide = vacations saisies
     const monthRate=monthH>0?Math.round(monthG/monthH):0;
     // Net à payer estimé = brut − charges salariales − prélèvement à la source
     const monthNet=Math.round(monthG*(1-chargeRate/100)*(1-pasRate/100));
@@ -235,6 +237,7 @@ export default function HomeScreen(){
   }
 
   return(
+    <>
     <ScrollView style={s.container} contentContainerStyle={{paddingBottom:40}}>
       <StatusBar barStyle={scheme==='dark'?'light-content':'dark-content'} backgroundColor={C.card}/>
 
@@ -333,6 +336,10 @@ export default function HomeScreen(){
             </TouchableOpacity>
           </View>
         </View>
+        <TouchableOpacity style={s.quickBtn} onPress={()=>setQuickOpen(true)} activeOpacity={0.85}>
+          <Ionicons name="flash-outline" size={16} color={C.green}/>
+          <Text style={s.quickBtnTxt}>Saisie rapide du mois</Text>
+        </TouchableOpacity>
         <View style={s.statsGrid}>
           <View style={s.statBox}><Text style={s.statVal}>{monthH}h</Text><Text style={s.statLbl}>Heures</Text></View>
           <View style={s.statBox}><Text style={s.statVal}>{money(monthNet)}</Text><Text style={s.statSub}>Brut {money(monthG)}</Text><Text style={s.statLbl}>Net à payer (est.)</Text></View>
@@ -531,6 +538,8 @@ export default function HomeScreen(){
         </View>
       )}
     </ScrollView>
+    <QuickEntryModal visible={quickOpen} defaultDate={iso(current)} missions={missions} onClose={()=>setQuickOpen(false)} onSaved={()=>loadData(true)} />
+    </>
   );
 }
 
@@ -584,6 +593,8 @@ const makeS=(C:any)=>StyleSheet.create({
   formNoteTxt:{flex:1,fontSize:11.5,lineHeight:16,color:C.muted},
   section:{marginHorizontal:16,marginTop:16},
   sectionHead:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginBottom:12},
+  quickBtn:{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8,paddingVertical:12,marginBottom:12,borderRadius:13,borderWidth:1.5,borderStyle:'dashed',borderColor:C.green,backgroundColor:C.greenBg},
+  quickBtnTxt:{fontSize:14,fontWeight:'800',color:C.green},
   sectionTitle:{fontSize:17,fontWeight:'900',color:C.petrol,letterSpacing:-0.5},
   monthNav:{flexDirection:'row',alignItems:'center',gap:8},
   navBtn:{width:34,height:34,borderRadius:17,backgroundColor:C.soft,justifyContent:'center',alignItems:'center'},

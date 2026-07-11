@@ -142,12 +142,21 @@ export default function Missions(){
     ]);
   }
 
+  // Prorata pour le filtre « Mois » : une mission à cheval ne compte que sa part de jours DANS le mois (cohérent avec le dashboard).
+  const _mS=new Date(monthRef.getFullYear(),monthRef.getMonth(),1).getTime();
+  const _mE=new Date(monthRef.getFullYear(),monthRef.getMonth()+1,0).getTime();
+  const _mDays=(m:any)=>{ const s=new Date(m.mission_date+'T00:00:00').getTime(), e=new Date((m.end_date||m.mission_date)+'T00:00:00').getTime(); const tot=Math.max(1,Math.round((e-s)/86400000)+1); const a=Math.max(s,_mS), b=Math.min(e,_mE); const inM=b<a?0:Math.round((b-a)/86400000)+1; return {inM,frac:inM/tot}; };
+  const _fullVac=(m:any)=>Math.max(1,Math.round((new Date((m.end_date||m.mission_date)+'T00:00:00').getTime()-new Date(m.mission_date+'T00:00:00').getTime())/86400000)+1);
+  const isMonth=period==='month';
+  // Valeur d'une mission selon le filtre : au prorata du mois en mode « Mois », complète sinon. Saisie rapide = vacations stockées.
+  const mv=(m:any)=>{ const fast=m.mission_type==='Saisie rapide'; if(isMonth){ const {inM,frac}=_mDays(m); return { gross:Number(m.gross_amount||0)*frac, hours:Number(m.hours||0)*frac, vac:fast?(Number(m.vacations)||1):inM }; } return { gross:Number(m.gross_amount||0), hours:Number(m.hours||0), vac:fast?(Number(m.vacations)||1):_fullVac(m) }; };
+
   const filtered=missions.filter((m:any)=>{
     const d=new Date(m.mission_date+'T00:00:00');
     const y=d.getFullYear();
     if(period==='year')return y===new Date().getFullYear();
     if(period==='custom')return y===customYear;
-    if(period==='month')return y===monthRef.getFullYear() && d.getMonth()===monthRef.getMonth();
+    if(period==='month')return _mDays(m).inM>0; // chevauchement du mois (pas seulement le début)
     if(period==='ai')return aiWin ? (d.getTime()>=aiWin.start && d.getTime()<aiWin.end) : true;
     return true;
   });
@@ -161,9 +170,9 @@ export default function Missions(){
   });
   const sorted=Object.keys(groups).map((name,i)=>({
     name, list:groups[name], color:colorOrDefault(name,i),
-    gross:groups[name].reduce((a:number,m:any)=>a+Number(m.gross_amount||0),0),
-    hours:Math.round(groups[name].reduce((a:number,m:any)=>a+Number(m.hours||0),0)*10)/10,
-    vac:groups[name].reduce((a:number,m:any)=>a+Math.max(1,Math.round((new Date((m.end_date||m.mission_date)+'T00:00:00').getTime()-new Date(m.mission_date+'T00:00:00').getTime())/86400000)+1),0), // 1 vacation = 1 jour de mission
+    gross:Math.round(groups[name].reduce((a:number,m:any)=>a+mv(m).gross,0)),
+    hours:Math.round(groups[name].reduce((a:number,m:any)=>a+mv(m).hours,0)*10)/10,
+    vac:groups[name].reduce((a:number,m:any)=>a+mv(m).vac,0), // 1 vacation = 1 jour (prorata du mois en mode Mois)
     count:groups[name].length,
   })).sort((a,b)=>b.gross-a.gross);
 

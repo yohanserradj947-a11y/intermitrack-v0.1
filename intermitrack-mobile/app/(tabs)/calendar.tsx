@@ -17,6 +17,7 @@ import { useProdColors, PROD_PRESETS, prodGradient, textOn } from '../../lib/pro
 import ColorPickerModal from '../../components/ColorPickerModal';
 import ProdColorManager from '../../components/ProdColorManager';
 import NoteFormModal from '../../components/NoteFormModal';
+import QuickEntryModal from '../../components/QuickEntryModal';
 import NoteDetailModal from '../../components/NoteDetailModal';
 import CalendarImportModal from '../../components/CalendarImportModal';
 import { syncWidgets } from '../../lib/widgetSync';
@@ -74,6 +75,8 @@ export default function Calendar(){
   const [noteFormEdit,setNoteFormEdit]=useState<Note|null>(null);
   const [noteFormDate,setNoteFormDate]=useState('');
   const [noteFormMode,setNoteFormMode]=useState<'note'|'formation'>('note');
+  const [quickOpen,setQuickOpen]=useState(false);
+  const [quickDate,setQuickDate]=useState('');
   const [noteDetail,setNoteDetail]=useState<Note|null>(null);
   const [calTab,setCalTab]=useState<'missions'|'notes'>('missions');
   const { postes, addPoste, removePoste } = usePostes();
@@ -830,6 +833,10 @@ export default function Calendar(){
                   <Ionicons name="school-outline" size={22} color={C.petrol}/>
                   <Text style={[s.dmActTxt,{color:C.petrol}]}>Formation</Text>
                 </TouchableOpacity>
+                <TouchableOpacity style={[s.dmAct,{borderColor:C.green}]} activeOpacity={0.8} onPress={()=>{const dd=dayMenu?.date;setDayMenu(null);if(dd){setQuickDate(iso(dd));setQuickOpen(true);}}}>
+                  <Ionicons name="flash-outline" size={22} color={C.green}/>
+                  <Text style={[s.dmActTxt,{color:C.green}]}>Saisie rapide</Text>
+                </TouchableOpacity>
               </View>
               <TouchableOpacity style={s.cancelBtn} onPress={()=>setDayMenu(null)}>
                 <Text style={s.cancelBtnTxt}>Annuler</Text>
@@ -841,6 +848,7 @@ export default function Calendar(){
 
       <ProdColorManager visible={managerOpen} productions={allProds} onClose={()=>setManagerOpen(false)} />
       <NoteFormModal visible={noteFormOpen} editNote={noteFormEdit} defaultDate={noteFormDate} mode={noteFormMode} onClose={()=>{setNoteFormOpen(false);setNoteFormEdit(null);}} />
+      <QuickEntryModal visible={quickOpen} defaultDate={quickDate} missions={missions} onClose={()=>setQuickOpen(false)} onSaved={()=>loadMissions(true)} />
       <NoteDetailModal note={noteDetail} onClose={()=>setNoteDetail(null)} onEdit={(n)=>{setNoteDetail(null);setNoteFormEdit(n);setNoteFormDate(n.date);setNoteFormOpen(true);}} />
     </ScrollView>
   );
@@ -971,7 +979,7 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   calTabOn:{backgroundColor:C.card,shadowColor:'#000',shadowOpacity:0.08,shadowRadius:6,elevation:2},
   calTabTxt:{fontSize:12.5,fontWeight:'800',color:C.muted},
   calTabTxtOn:{fontSize:12.5,fontWeight:'800',color:C.petrol},
-  dmActs:{flexDirection:'row',gap:10,marginTop:10,marginBottom:4},
-  dmAct:{flex:1,alignItems:'center',justifyContent:'center',gap:8,paddingVertical:18,paddingHorizontal:8,borderRadius:14,borderWidth:1.5,backgroundColor:C.card},
+  dmActs:{flexDirection:'row',flexWrap:'wrap',gap:10,marginTop:10,marginBottom:4},
+  dmAct:{flexGrow:1,flexBasis:'46%',alignItems:'center',justifyContent:'center',gap:8,paddingVertical:16,paddingHorizontal:8,borderRadius:14,borderWidth:1.5,backgroundColor:C.card},
   dmActTxt:{fontSize:13,fontWeight:'800',textAlign:'center'},
 });

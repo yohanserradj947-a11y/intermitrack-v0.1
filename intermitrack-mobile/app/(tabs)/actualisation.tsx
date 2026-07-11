@@ -44,7 +44,7 @@ export default function Actualisation(){
   const monthDays=(m:any)=>{ const ms=new Date(year,month,1).getTime(), me=new Date(year,month+1,0).getTime(); const s=new Date(m.mission_date+'T00:00:00').getTime(), e=new Date((m.end_date||m.mission_date)+'T00:00:00').getTime(); const tot=Math.max(1,Math.round((e-s)/86400000)+1); const a=Math.max(s,ms), b=Math.min(e,me); const inM=b<a?0:Math.round((b-a)/86400000)+1; return {inM,frac:inM/tot}; };
   const totalHours=useMemo(()=>Math.round(missions.reduce((a,m:any)=>a+Number(m.hours||0)*monthDays(m).frac,0)*10)/10,[missions,month,year]);
   const totalGross=useMemo(()=>Math.round(missions.reduce((a,m:any)=>a+Number(m.gross_amount||0)*monthDays(m).frac,0)),[missions,month,year]);
-  const totalVac=useMemo(()=>missions.reduce((a,m:any)=>a+monthDays(m).inM,0),[missions,month,year]);
+  const totalVac=useMemo(()=>missions.reduce((a,m:any)=>{const md=monthDays(m);return a+(m.mission_type==='Saisie rapide'?(md.inM>0?(Number(m.vacations)||1):0):md.inM);},0),[missions,month,year]);
 
   function moveMonth(n:number){const d=new Date(current);d.setMonth(d.getMonth()+n);d.setDate(1);setCurrent(d);}
 
