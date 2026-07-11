@@ -491,6 +491,9 @@ export default function Calendar(){
                   <View style={{flexDirection:'row',alignItems:'center',gap:4}}><Ionicons name="time-outline" size={14} color={col}/><Text style={[s.mHours,{color:col}]}>{m.hours}h</Text></View>
                   <View style={s.mPill}><Text style={s.mPillTxt}>{m.mission_type}</Text></View>
                 </View>
+                <TouchableOpacity style={[s.quickDelBtn,{alignSelf:'center'}]} onPress={()=>quickDelete(m)} hitSlop={6}>
+                  <Ionicons name="close" size={17} color={C.danger}/>
+                </TouchableOpacity>
               </TouchableOpacity>
             );
           })

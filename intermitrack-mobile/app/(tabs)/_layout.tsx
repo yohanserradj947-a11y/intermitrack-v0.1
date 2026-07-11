@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+import { createMaterialTopTabNavigator, MaterialTopTabBar } from '@react-navigation/material-top-tabs';
 import { withLayoutContext } from 'expo-router';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ScrollArrowHint } from '@/components/scroll-arrow-hint';
+import { TabDots } from '@/components/tab-dots';
 import { SwipeHint } from '@/components/swipe-hint';
 import { AccountMenu } from '@/components/AccountMenu';
 import WhatsNewModal from '@/components/WhatsNewModal';
@@ -26,6 +26,12 @@ export default function TabLayout() {
     <ThemeBackdrop />
     <MaterialTopTabs
       tabBarPosition="bottom"
+      tabBar={(props) => (
+        <View style={{ backgroundColor: C.card }}>
+          <TabDots index={props.state.index} count={props.state.routes.length} />
+          <MaterialTopTabBar {...props} />
+        </View>
+      )}
       screenOptions={{
         sceneStyle: { backgroundColor: 'transparent' },
         swipeEnabled: true,
@@ -85,7 +91,6 @@ export default function TabLayout() {
         options={{ title: 'Contacts', tabBarIcon: ({ color }: { color: string }) => <Ionicons name="call-outline" size={ICON} color={color} /> }}
       />
     </MaterialTopTabs>
-    <ScrollArrowHint tabs={['index', 'calendar', 'missions', 'actualisation', 'previsions', 'documents', 'autoentrepreneur', 'fiscalite', 'contacts']} />
     <SwipeHint />
     <AccountMenu />
     <WhatsNewModal />
