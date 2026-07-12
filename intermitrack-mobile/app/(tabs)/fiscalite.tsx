@@ -215,7 +215,7 @@ export default function Fiscalite() {
                 <Text style={s.modalTitle}>Ajouter une dépense</Text>
                 <Text style={s.label}>Date</Text>
                 <TouchableOpacity style={s.input} onPress={() => setShowDate(true)}><Text style={s.inputTxt}>{fDate.toLocaleDateString('fr-FR')}</Text></TouchableOpacity>
-                {showDate && <DateTimePicker value={fDate} mode="date" themeVariant={scheme} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(_e, d) => { setShowDate(false); if (d) setFDate(d); }} />}
+                {showDate && <DateTimePicker value={fDate} mode="date" locale="fr-FR" themeVariant={scheme} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(_e, d) => { setShowDate(false); if (d) setFDate(d); }} />}
                 <Text style={s.label}>Catégorie</Text>
                 <View style={s.chips}>
                   {CATS.map((c) => (

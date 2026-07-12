@@ -643,12 +643,12 @@ export default function Calendar(){
                 </View>
               </View>
               {showStartPicker&&(
-                <DateTimePicker value={fStart} mode="date" themeVariant={scheme} display={Platform.OS==='ios'?'spinner':'default'}
+                <DateTimePicker value={fStart} mode="date" locale="fr-FR" themeVariant={scheme} display={Platform.OS==='ios'?'spinner':'default'}
                   onChange={(_e,date)=>{setShowStartPicker(false);if(date){setFStart(date);if(date>fEnd)setFEnd(date);}}}/>
               )}
               {showEndPicker&&(
-                <DateTimePicker value={fEnd} mode="date" themeVariant={scheme} display={Platform.OS==='ios'?'spinner':'default'}
-                  onChange={(_e,date)=>{setShowEndPicker(false);if(date){setFEnd(date);if(!editId&&daysInclusive(fStart,date)>=2)openDayPicker(fStart,date);}}}/>
+                <DateTimePicker value={fEnd} mode="date" locale="fr-FR" themeVariant={scheme} display={Platform.OS==='ios'?'spinner':'default'}
+                  onChange={(_e,date)=>{setShowEndPicker(false);if(date){setFEnd(date);}}}/>
               )}
 
               <Text style={s.label}>Heures cumulées</Text>

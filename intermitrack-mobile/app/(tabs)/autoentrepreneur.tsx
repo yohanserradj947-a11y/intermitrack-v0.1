@@ -455,8 +455,8 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
                     <TouchableOpacity style={s.input} onPress={() => setShowEnd(true)}><Text style={s.inputTxt}>{facEnd ? facEnd.toLocaleDateString('fr-FR') : '—'}</Text></TouchableOpacity>
                   </View>
                 </View>
-                {showStart && <DateTimePicker value={facStart} mode="date" themeVariant={scheme} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(_e, d) => { setShowStart(false); if (d) setFacStart(d); }} />}
-                {showEnd && <DateTimePicker value={facEnd || facStart} mode="date" themeVariant={scheme} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(_e, d) => { setShowEnd(false); if (d) setFacEnd(d); }} />}
+                {showStart && <DateTimePicker value={facStart} mode="date" locale="fr-FR" themeVariant={scheme} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(_e, d) => { setShowStart(false); if (d) setFacStart(d); }} />}
+                {showEnd && <DateTimePicker value={facEnd || facStart} mode="date" locale="fr-FR" themeVariant={scheme} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(_e, d) => { setShowEnd(false); if (d) setFacEnd(d); }} />}
 
                 <Text style={s.label}>Prestations</Text>
                 <TouchableOpacity style={s.addPrestaBtn} onPress={() => { setPrestaSel([]); setShowPresta(true); }}><Text style={s.addPrestaTxt}>+ Ajouter une prestation</Text></TouchableOpacity>

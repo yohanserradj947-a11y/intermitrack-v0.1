@@ -289,7 +289,7 @@ export default function HomeScreen(){
           <>
           <DateTimePicker
             value={areDate?new Date(areDate):new Date()}
-            mode="date"
+            mode="date" locale="fr-FR"
             themeVariant={scheme}
             display={Platform.OS==='ios'?'spinner':'default'}
             onChange={(e:any,date?:Date)=>{
@@ -474,11 +474,11 @@ export default function HomeScreen(){
                 </View>
               </View>
               {showStartPicker&&(
-                <DateTimePicker value={fStart} mode="date" themeVariant="light" display={Platform.OS==='ios'?'spinner':'default'}
+                <DateTimePicker value={fStart} mode="date" locale="fr-FR" themeVariant="light" display={Platform.OS==='ios'?'spinner':'default'}
                   onChange={(_e,date)=>{setShowStartPicker(false);if(date){setFStart(date);if(date>fEnd)setFEnd(date);}}}/>
               )}
               {showEndPicker&&(
-                <DateTimePicker value={fEnd} mode="date" themeVariant="light" display={Platform.OS==='ios'?'spinner':'default'}
+                <DateTimePicker value={fEnd} mode="date" locale="fr-FR" themeVariant="light" display={Platform.OS==='ios'?'spinner':'default'}
                   onChange={(_e,date)=>{setShowEndPicker(false);if(date)setFEnd(date);}}/>
               )}
 

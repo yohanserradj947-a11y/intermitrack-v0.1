@@ -97,8 +97,8 @@ export default function NoteFormModal({ visible, editNote, defaultDate, mode = '
                   <TouchableOpacity style={s.input} onPress={() => setShowEnd(true)}><Text style={s.inputTxt}>{end.toLocaleDateString('fr-FR')}</Text></TouchableOpacity>
                 </View>
               </View>
-              {showStart && <DateTimePicker value={start} mode="date" themeVariant={scheme} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(_e, d) => { setShowStart(false); if (d) { setStart(d); if (d > end) setEnd(d); } }} />}
-              {showEnd && <DateTimePicker value={end} mode="date" themeVariant={scheme} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(_e, d) => { setShowEnd(false); if (d) setEnd(d); }} />}
+              {showStart && <DateTimePicker value={start} mode="date" locale="fr-FR" themeVariant={scheme} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(_e, d) => { setShowStart(false); if (d) { setStart(d); if (d > end) setEnd(d); } }} />}
+              {showEnd && <DateTimePicker value={end} mode="date" locale="fr-FR" themeVariant={scheme} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(_e, d) => { setShowEnd(false); if (d) setEnd(d); }} />}
 
               {isForm && (<>
                 <Text style={s.label}>Heures de formation</Text>
