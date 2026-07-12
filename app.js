@@ -384,6 +384,21 @@ async function _xlPickFile(){
   inp.click();
 }
 document.addEventListener('click', function(e){ if(e.target.closest && e.target.closest('#importExcelBtn')) _xlPickFile(); });
+// Popup d'aide : comment préparer son fichier Excel/CSV
+function _xlInfoShow(){
+  let ov=document.getElementById('xlInfoOverlay');
+  if(!ov){
+    const st=document.createElement('style');
+    st.textContent="#xlInfoOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:100060;padding:16px;}#xlInfoOverlay.open{display:flex;}.xli-box{background:var(--card);color:var(--text);border-radius:18px;max-width:430px;width:100%;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,.3);box-sizing:border-box;}.xli-box h3{margin:0 0 8px;color:var(--petrol);font-size:17px;}.xli-box p{font-size:13.5px;color:var(--muted);line-height:1.5;margin:0 0 6px;}.xli-box ul{margin:8px 0;padding-left:18px;}.xli-box li{font-size:13.5px;color:var(--text);line-height:1.6;}.xli-ex{background:var(--soft);border-radius:10px;padding:10px 12px;font-family:monospace;font-size:12.5px;color:var(--text);margin:10px 0;line-height:1.5;}.xli-close{margin-top:14px;width:100%;padding:12px;border:none;border-radius:11px;background:var(--petrol);color:#fff;font-weight:800;cursor:pointer;font-family:inherit;}";
+    document.head.appendChild(st);
+    ov=document.createElement('div'); ov.id='xlInfoOverlay';
+    ov.innerHTML='<div class="xli-box"><h3>📄 Format du fichier Excel / CSV</h3><p>Une <b>ligne par mission</b>. Intermitrack reconnaît ces colonnes (peu importe l\'ordre, la casse, et <b>tous les onglets</b> sont lus) :</p><ul><li><b>Date</b> — ex. 05/07/2026</li><li><b>Production</b> — nom de l\'employeur</li><li><b>Heures</b> — ex. 8</li><li><b>Montant / Brut</b> — ex. 230</li></ul><div class="xli-ex">Date&nbsp;|&nbsp;Production&nbsp;|&nbsp;Heures&nbsp;|&nbsp;Montant<br>05/07/2026&nbsp;|&nbsp;ENDEMOL&nbsp;|&nbsp;8&nbsp;|&nbsp;230</div><p>Une colonne manquante&nbsp;? Pas grave, tu pourras compléter après l\'import.</p><button class="xli-close" id="xliClose" type="button">Compris</button></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click',function(e){ if(e.target===ov || (e.target.closest && e.target.closest('#xliClose'))) ov.classList.remove('open'); });
+  }
+  ov.classList.add('open');
+}
+document.addEventListener('click', function(e){ if(e.target.closest && e.target.closest('#xlInfoBtn')) _xlInfoShow(); });
 
 // --- Gestionnaire "Personnaliser les couleurs" (liste toutes les prods) + Réinitialiser ---
 function _ensureProdColorsModal(){
@@ -3085,6 +3100,7 @@ function renderCalendar() {
       <button class="cal-tool-btn" type="button" id="prodColorsManageBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.37 2.63 14 7l-1.59-1.59a2 2 0 0 0-2.82 0L8 7l9 9 1.59-1.59a2 2 0 0 0 0-2.82L17 10l4.37-4.37a2.12 2.12 0 1 0-3-3Z"/><path d="M9 8c-2 3-4 3.5-7 4l8 10c2-1 6-5 6-7"/><path d="M14.5 17.5 4.5 15"/></svg>Personnaliser les couleurs</button>
       <button class="cal-tool-btn" type="button" id="prodColorsResetBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Réinitialiser les couleurs</button>
       <button class="cal-tool-btn" type="button" id="importExcelBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8"/></svg>Importer un Excel/CSV</button>
+      <button class="cal-tool-btn" type="button" id="xlInfoBtn" title="Comment préparer mon fichier Excel ?" style="flex:0 0 auto;padding:9px 12px;">ⓘ Format Excel</button>
       <button class="cal-tool-btn" type="button" id="resetCalendarBtn" style="color:#DC2626;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>Réinitialiser le calendrier</button>
     </div>
     <div class="new-cal-daynames"><div>L</div><div>M</div><div>M</div><div>J</div><div>V</div><div>S</div><div>D</div></div>
