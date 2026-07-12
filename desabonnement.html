@@ -3,13 +3,12 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://upeogpgczoghlfwblnkb.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://upeogpgczoghlfwblnkb.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Se désinscrire — Intermitrack</title>
 <link rel="icon" href="icon-512.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js" integrity="sha384-wgi7s9Y2xefdDru3II6Xb11y/YNoKVbuydTikWejwId9z2xRd8SveCTrJjj/QAnH" crossorigin="anonymous"></script>
 <style>
   :root{--petrol:#1F4E5F;--orange:#F97316;--ink:#1A2330;--muted:#6B7A87;--line:#E7ECEF;--soft:#F4F7F8;--green:#12754A;}
   *{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',system-ui,Segoe UI,sans-serif;}
@@ -54,7 +53,6 @@
 <script>
   const SUPABASE_URL = "https://upeogpgczoghlfwblnkb.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwZW9ncGdjem9naGxmd2JsbmtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MjkyMDQsImV4cCI6MjA5NjEwNTIwNH0.6535_0KMaEDLxTMhz_OX-4OqC_tpQsPJR5jkFQL7UqI";
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const $ = (id) => document.getElementById(id);
   const msg = $("msg"), btn = $("btn"), input = $("email");
@@ -66,6 +64,10 @@
   } catch (_) {}
 
   function show(type, text) { msg.className = "msg " + type; msg.textContent = text; }
+  function done() {
+    $("form").style.display = "none";
+    show("ok", "C'est fait ✓ Tu es désinscrit(e) : tu ne recevras plus d'emails de nouveautés. La désinscription est prise en compte dès le prochain envoi.");
+  }
 
   $("form").addEventListener("submit", async (ev) => {
     ev.preventDefault();
@@ -73,12 +75,20 @@
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { show("err", "Entre une adresse email valide."); return; }
     btn.disabled = true; btn.textContent = "Un instant…";
     try {
-      const { error } = await sb
-        .from("email_unsubscribes")
-        .upsert({ email }, { onConflict: "email", ignoreDuplicates: true });
-      if (error) throw error;
-      $("form").style.display = "none";
-      show("ok", "C'est fait ✓ Tu es désinscrit(e) : tu ne recevras plus d'emails de nouveautés. La désinscription est prise en compte dès le prochain envoi.");
+      // Insert simple "sans retour" (Prefer: return=minimal) → aucune lecture nécessaire, juste le droit d'insertion.
+      const res = await fetch(SUPABASE_URL + "/rest/v1/email_unsubscribes", {
+        method: "POST",
+        headers: {
+          "apikey": SUPABASE_ANON_KEY,
+          "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+          "Content-Type": "application/json",
+          "Prefer": "return=minimal",
+        },
+        body: JSON.stringify({ email }),
+      });
+      // 201 = inscrit ; 409 = déjà dans la liste → dans les deux cas, c'est bon pour la personne.
+      if (res.status === 201 || res.status === 200 || res.status === 204 || res.status === 409) { done(); return; }
+      throw new Error("HTTP " + res.status);
     } catch (err) {
       btn.disabled = false; btn.textContent = "Ne plus recevoir d'emails";
       show("err", "Oups, une erreur est survenue. Réessaie, ou écris à contact@intermitrack.fr et je te retire à la main.");
