@@ -610,7 +610,7 @@ z-index: 500 !important;
   <div class="stats">
             <div class="stat"><b id="monthHours">0h</b><span>Heures </span></div>
             <div class="stat"><b id="monthNet">0 EUR</b><span>Net à payer (est.)</span><small id="monthGross" style="display:block;font-size:11px;font-weight:600;color:#8a9a97;margin-top:2px;">Brut 0 €</small></div>
-            <div class="stat"><b id="missionCount">0</b><span>Vacations</span></div>
+            <div class="stat"><b id="missionCount">0</b><span id="vacLabelDash">Vacations</span></div>
             <div class="stat"><b id="monthRateNet">0 EUR</b><span>Moyenne €/h (net est.)</span><small id="monthRate" style="display:block;font-size:11px;font-weight:600;color:#8a9a97;margin-top:2px;">Brut 0 €/h</small></div>
           </div>
           <button type="button" onclick="openQuickEntryCurrent()" style="width:100%;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border:1.5px dashed #12754A;background:rgba(18,117,74,.06);color:#12754A;font-weight:800;font-size:14px;border-radius:12px;cursor:pointer;font-family:inherit;">⚡ Saisie rapide du mois</button>
@@ -668,16 +668,22 @@ z-index: 500 !important;
             <select id="type" style="display:none;"><optgroup label="Technique"><option>Montage</option><option>Tournage</option><option>Démontage</option><option>Régie</option><option>Son</option><option>Lumière</option><option>Image / Vidéo</option><option>Machiniste</option><option>Électricien</option><option>Poursuiteur</option><option>Plateau</option><option>Décor</option><option>HMC</option></optgroup><optgroup label="Artiste"><option>Comédien</option><option>Chanteur</option><option>Musicien</option><option>Danseur</option><option>Choriste</option></optgroup><option>Autres</option></select><button type="button" id="typeBtn" style="display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--text);font-weight:400;font-size:14px;font-family:inherit;cursor:pointer;"><span id="typeBtnLabel">Montage</span><span style="opacity:.45;">▾</span></button>
             <label for="date">Date début</label><input id="date" type="date" required />
             <label for="endDate">Date fin</label><input id="endDate" type="date" required />
-            <label for="hours">Nombre d'heures cumulées sur la période</label>
+            <div id="missionModeRow" style="display:none;gap:8px;margin:2px 0 12px;">
+              <button type="button" class="mm-opt" data-mm="heures" style="flex:1;padding:10px;border:1.5px solid var(--line);border-radius:11px;background:var(--card);color:var(--petrol);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;">⏱ Heures</button>
+              <button type="button" class="mm-opt" data-mm="cachet" style="flex:1;padding:10px;border:1.5px solid var(--line);border-radius:11px;background:var(--card);color:var(--petrol);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;">🎭 Cachet</button>
+            </div>
+            <label for="vacations" id="cachetLabel" style="display:none;">Nombre de cachets</label>
+            <input id="cachetInput" type="number" min="0" step="1" placeholder="Ex : 2" style="display:none;" />
+            <label for="hours" id="hoursLabel">Nombre d'heures cumulées sur la période</label>
             <input id="hours" type="number" min="0" step="0.5" placeholder="Ex : 8" required />
-            <div class="hour-quick">
+            <div class="hour-quick" id="hourQuick">
               <button type="button" class="hour-chip" data-h="4">4h</button>
               <button type="button" class="hour-chip" data-h="8">8h</button>
               <button type="button" class="hour-chip" data-h="12">12h</button>
             </div>
-            <label for="vacations">Nombre de vacations / cachets</label>
+            <label for="vacations" id="vacationsLabel">Nombre de vacations / cachets</label>
             <input id="vacations" type="number" min="0" step="1" placeholder="Ex : 1" />
-            <small style="display:block;color:var(--muted);font-size:11.5px;margin:-4px 0 4px;line-height:1.4;">1 vacation = 1 journée de travail (technicien) · 1 cachet (artiste / musicien). Se remplit tout seul pour les missions sur plusieurs jours.</small>
+            <small id="vacationsHint" style="display:block;color:var(--muted);font-size:11.5px;margin:-4px 0 4px;line-height:1.4;">1 vacation = 1 journée de travail (technicien) · 1 cachet (artiste / musicien). Se remplit tout seul pour les missions sur plusieurs jours.</small>
             <label for="gross">Montant brut de la mission (EUR)</label>
             <input id="gross" type="number" min="0" step="0.01" placeholder="Ex : 230" required />
             <details class="optional-block">
@@ -789,7 +795,7 @@ z-index: 500 !important;
           <div class="act-stats-row" id="actualisationStats" style="display:none;">
             <div class="act-stat-box"><strong id="actualisationCount">0</strong><span>Missions</span></div>
             <div class="act-stat-box"><strong id="actualisationHours">0h</strong><span>Heures totales</span></div>
-            <div class="act-stat-box"><strong id="actualisationVac">0</strong><span>Vacations</span></div>
+            <div class="act-stat-box"><strong id="actualisationVac">0</strong><span id="vacLabelActu">Vacations</span></div>
             <div class="act-stat-box highlight"><strong id="actualisationGross">0 €</strong><span>Brut total</span></div>
           </div>
           <div class="actualisation-table-wrap" id="actualisationTableWrap" style="display:none;">
@@ -1378,7 +1384,7 @@ z-index: 500 !important;
   </main>
 
   <script src="document-parser.js?v=5"></script>
-  <script src="app.js?v=46"></script>
+  <script src="app.js?v=47"></script>
 
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>

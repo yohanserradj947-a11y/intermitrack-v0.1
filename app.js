@@ -16,6 +16,8 @@ let deferredInstallPrompt = null;
 let historyPage = 1;
 let areAdmissionDate = "";
 let aiYearOffset = 0; // navigation dans l'historique des années d'intermittence (0 = année en cours)
+let _missionMode = 'heures';   // 'heures' (technicien) | 'cachet' (artiste) — pour la saisie de mission
+const CACHET_H = 12;           // 1 cachet = 12 h pour le comptage des 507 h (cachet isolé ; ajustable via le champ heures)
 const HISTORY_PER_PAGE = 6;
 let documentsPage = 1;
 const DOCS_PER_PAGE_DESKTOP = 9;
@@ -1266,18 +1268,31 @@ async function addMission(event) {
     await _mdpSaveBreakdown();
     return;
   }
-  // Période de 2 jours ou plus non encore traitée → ouvrir le pop-up des jours travaillés
-  if (!editingMissionId && $("date").value && $("endDate").value &&
+  const cachetMode = (_missionMode === 'cachet');
+  // Période de 2 jours ou plus (mode HEURES uniquement) → pop-up des jours travaillés
+  if (!cachetMode && !editingMissionId && $("date").value && $("endDate").value &&
       daysInclusive(new Date($("date").value+"T00:00:00"), new Date($("endDate").value+"T00:00:00")) > 1) {
     openMultiDayPicker($("date").value, $("endDate").value);
     return;
+  }
+  // Mode cachet (artiste) : les cachets se convertissent en heures pour les 507 h (1 cachet = 12 h) + heures en plus éventuelles.
+  let _hours, _vac;
+  if (cachetMode) {
+    const cachets = Number($("cachetInput").value) || 0;
+    if (cachets <= 0) { toast("Indique le nombre de cachets."); return; }
+    const extra = Number($("hours").value) || 0;
+    _hours = Math.round((cachets * CACHET_H + extra) * 10) / 10;
+    _vac = cachets;
+  } else {
+    _hours = Number($("hours").value);
+    _vac = Number($("vacations").value) || Math.round((Number($("hours").value)||0)/8);
   }
   const payload = {
     user_id: currentUser.id, production: normalizeProductionName($("production").value),
     emission: $("emission")?.value || "", lieu: $("lieu")?.value || "",
     mission_type: $("type").value, mission_date: $("date").value, end_date: $("endDate").value,
-    hours: Number($("hours").value), gross_amount: Number($("gross").value),
-    vacations: Number($("vacations").value) || Math.round((Number($("hours").value)||0)/8),
+    hours: _hours, gross_amount: Number($("gross").value),
+    vacations: _vac,
     km_distance: kmEffectiveDistance(), km_rate: kmRateUsed(), km_amount: calculateKmAmount()
   };
   setProductionColorHex(payload.production, selectedProdColor === 'default' ? null : selectedProdColor);
@@ -1461,7 +1476,17 @@ function editMission(id) {
   $("date").value = mission.date || "";
   $("endDate").value = mission.endDate || mission.date || "";
   $("hours").value = mission.hours || 0;
+  if ($("vacations")) $("vacations").value = mission.vacations || "";
   $("gross").value = mission.gross || 0;
+  // Mode Heures/Cachet selon l'annexe (en édition). « Les deux » : on devine (heures ≈ cachets×12 → cachet).
+  const _ax=(typeof _profil!=='undefined' && _profil && _profil.annexe)||'technicien';
+  const _mode = _ax==='artiste' ? 'cachet'
+    : (_ax==='les_deux' && Number(mission.vacations)>0 && Math.abs(Number(mission.hours||0)-Number(mission.vacations)*CACHET_H)<0.6 ? 'cachet' : 'heures');
+  if (typeof setMissionModeForOpen==='function') setMissionModeForOpen(_mode);
+  if (_mode==='cachet'){
+    if ($("cachetInput")) $("cachetInput").value = mission.vacations || "";
+    if ($("hours")) $("hours").value = Math.max(0, Math.round((Number(mission.hours||0)-Number(mission.vacations||0)*CACHET_H)*10)/10) || "";
+  }
   if ($("kmDistance")) $("kmDistance").value = mission.kmDistance || "";
   if ($("kmRate")) $("kmRate").value = mission.kmRate || "";
   // La distance stockée est déjà la distance finale comptée : on évite de la re-plafonner / re-multiplier
@@ -2514,6 +2539,7 @@ function render() {
   if ($("missionCount")) {
   const totalVac = sumMonthVac(selectedMonthMissions, current); // 1 vacation = 1 jour de mission (borné au mois)
   $("missionCount").textContent = totalVac;
+  if($("vacLabelDash")){ const _art=(typeof _profil!=="undefined" && _profil && _profil.annexe==="artiste"); $("vacLabelDash").textContent = _art ? "Cachets" : "Vacations"; }
 }
   if ($("progressText")) $("progressText").textContent = percent + "% de ton objectif intermittent";
   renderFiscalite(yearGross, yearMissions);
@@ -3227,7 +3253,9 @@ function resetMissionFormForDate(dateStr) {
   if ($("date")) $("date").value = dateStr;
   if ($("endDate")) $("endDate").value = dateStr;
   if ($("hours")) $("hours").value = "";
+  if ($("cachetInput")) $("cachetInput").value = "";
   if ($("gross")) $("gross").value = "";
+  if (typeof setMissionModeForOpen === 'function') setMissionModeForOpen();  // Heures/Cachet selon l'annexe
   const submitBtn = document.querySelector("#missionForm button[type='submit']");
   if (submitBtn) submitBtn.textContent = "Enregistrer la mission";
 }
@@ -3297,6 +3325,30 @@ document.addEventListener('click', function(e){
   const dm=document.getElementById('dayModalOverlay'); if(dm) dm.classList.remove('open');
   openNoteDetail(nd.dataset.noteDetail);
 });
+
+// ── Saisie mission : bascule Heures (technicien) / Cachet (artiste) ──
+function applyMissionMode(mode){
+  _missionMode = (mode==='cachet') ? 'cachet' : 'heures';
+  const cachet = _missionMode==='cachet';
+  const show=(id,on)=>{ const el=$(id); if(el) el.style.display = on ? (id==='cachetInput'||id==='hours'||id==='vacations'?'block':'block') : 'none'; };
+  show('cachetLabel',cachet); show('cachetInput',cachet);
+  const hl=$("hoursLabel"); if(hl) hl.textContent = cachet ? "Heures payées en heures (répétitions, ateliers… facultatif)" : "Nombre d'heures cumulées sur la période";
+  const hi=$("hours"); if(hi) hi.required = !cachet;
+  show('vacationsLabel',!cachet); show('vacations',!cachet); show('vacationsHint',!cachet);
+  document.querySelectorAll('#missionModeRow .mm-opt').forEach(function(b){
+    const on=b.dataset.mm===_missionMode;
+    b.style.background=on?'var(--petrol)':'var(--card)'; b.style.color=on?'#fff':'var(--petrol)'; b.style.borderColor=on?'var(--petrol)':'var(--line)';
+  });
+}
+// Choisit le mode selon l'annexe du profil (toggle visible seulement pour « les deux »)
+function setMissionModeForOpen(forceMode){
+  const ax=(typeof _profil!=='undefined' && _profil && _profil.annexe) || 'technicien';
+  const row=$("missionModeRow");
+  if(ax==='les_deux'){ if(row) row.style.display='flex'; applyMissionMode(forceMode||_missionMode||'heures'); }
+  else if(ax==='artiste'){ if(row) row.style.display='none'; applyMissionMode('cachet'); }
+  else { if(row) row.style.display='none'; applyMissionMode('heures'); }
+}
+document.addEventListener('click', function(e){ const b=e.target.closest && e.target.closest('#missionModeRow .mm-opt'); if(b) applyMissionMode(b.dataset.mm); });
 
 function switchAddTab(tab){
   document.querySelectorAll('.add-tab').forEach(function(b){ b.classList.toggle('on', b.dataset.addtab===tab); });
@@ -3527,13 +3579,13 @@ function buildActualisationText() {
   const lines = ["Actualisation — " + title, ""];
   list.forEach((m) => {
     const j = missionDayCount(m);
-    lines.push("• " + m.production + " · " + formatPeriod(m.date, m.endDate) + " · " + m.hours + "h · " + j + " " + unit + (j > 1 ? "s" : "") + " · " + money(m.gross));
+    lines.push("• " + m.production + " · " + formatPeriod(m.date, m.endDate) + " · " + m.hours + "h · " + j + " " + unit + (j > 1 ? "s" : "") + " · " + money2(m.gross));
   });
   lines.push("");
   const totalDays = sumMissionDays(list);
   const totalHours = Math.round(sumDone(list) * 10) / 10;
   const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
-  lines.push("Total : " + totalDays + " " + unit + (totalDays > 1 ? "s" : "") + " · " + totalHours + "h · " + money(totalGross) + " brut");
+  lines.push("Total : " + totalDays + " " + unit + (totalDays > 1 ? "s" : "") + " · " + totalHours + "h · " + money2(totalGross) + " brut");
   return lines.join("\n");
 }
 
@@ -3548,8 +3600,9 @@ function renderActualisation() {
   if ($("actualisationMonthTitle")) $("actualisationMonthTitle").textContent = current.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
   if ($("actualisationCount")) $("actualisationCount").textContent = list.length;
   if ($("actualisationHours")) $("actualisationHours").textContent = totalHours + "h";
-  if ($("actualisationGross")) $("actualisationGross").textContent = money(totalGross);
+  if ($("actualisationGross")) $("actualisationGross").textContent = money2(totalGross);
   if ($("actualisationVac")) $("actualisationVac").textContent = totalVac;
+  if ($("vacLabelActu")){ const _art=(typeof _profil!=="undefined" && _profil && _profil.annexe==="artiste"); $("vacLabelActu").textContent = _art ? "Cachets" : "Vacations"; }
 
   const stats = $("actualisationStats");
   const tableWrap = $("actualisationTableWrap");
@@ -3596,10 +3649,10 @@ function generateActualisationPDF() {
   const totalHours = Math.round(sumDone(list) * 10) / 10;
   const totalGross = list.reduce((a, x) => a + Number(x.gross || 0), 0);
   const totalDays = sumMissionDays(list);
-  const rows = list.map((mission) => `<tr><td>${escapeHtml(formatPeriod(mission.date, mission.endDate))}</td><td><strong>${ICO.doc}${escapeHtml(mission.production)}</strong></td><td>${escapeHtml(mission.type)}</td><td>${escapeHtml(mission.hours)}h</td><td>${escapeHtml(money(mission.gross))}</td></tr>`).join("");
+  const rows = list.map((mission) => `<tr><td>${escapeHtml(formatPeriod(mission.date, mission.endDate))}</td><td><strong>${ICO.doc}${escapeHtml(mission.production)}</strong></td><td>${escapeHtml(mission.type)}</td><td>${escapeHtml(mission.hours)}h</td><td>${escapeHtml(money2(mission.gross))}</td></tr>`).join("");
   const win = window.open("", "_blank");
   if (!win) { toast("Impossible d'ouvrir la fenêtre PDF. Autorise les pop-ups pour ce site."); return; }
-  win.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"/><title>Actualisation ${escapeHtml(title)}</title><style>*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#2D3748;background:#fff;padding:34px}.header{border-bottom:3px solid #1F4E5F;padding-bottom:16px;margin-bottom:22px}h1{margin:0;color:#1F4E5F;font-size:28px;letter-spacing:-.03em}.subtitle{color:#718096;margin:6px 0 0;font-size:14px}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0 24px}.summary-box{border:1px solid #E2E8F0;border-radius:14px;padding:14px;background:#F8FAF9}.summary-box strong{display:block;color:#1F4E5F;font-size:24px;line-height:1.1}.summary-box span{display:block;margin-top:4px;color:#718096;font-size:12px;text-transform:uppercase;font-weight:700}table{width:100%;border-collapse:collapse;margin-top:10px}th{text-align:left;color:#718096;font-size:12px;text-transform:uppercase;letter-spacing:.03em;padding:10px 8px;border-bottom:2px solid #E2E8F0}td{padding:12px 8px;border-bottom:1px solid #E2E8F0;font-size:14px;vertical-align:top}tr:nth-child(even) td{background:#FBFCFC}.footer{margin-top:26px;padding-top:12px;border-top:1px solid #E2E8F0;font-size:12px;color:#718096;line-height:1.45}@media print{body{padding:20px}.summary-box,tr:nth-child(even) td{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body><div class="header"><h1>Récapitulatif actualisation</h1><p class="subtitle">${escapeHtml(title)} · Généré avec Intermitrack</p></div><div class="summary"><div class="summary-box"><strong>${escapeHtml(totalDays)}</strong><span>Journées</span></div><div class="summary-box"><strong>${escapeHtml(totalHours)}h</strong><span>Heures</span></div><div class="summary-box"><strong>${escapeHtml(money(totalGross))}</strong><span>Brut total</span></div></div>${list.length ? `<table><thead><tr><th>Période</th><th>Production</th><th>Mission</th><th>Heures</th><th>Brut</th></tr></thead><tbody>${rows}</tbody></table>` : `<div class="empty">Aucune mission effectuée sur ce mois.</div>`}<p class="footer">Ce document est un récapitulatif personnel destiné à faciliter l'actualisation mensuelle. Les informations doivent être vérifiées par l'utilisateur avant déclaration officielle.</p></body></html>`);
+  win.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"/><title>Actualisation ${escapeHtml(title)}</title><style>*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#2D3748;background:#fff;padding:34px}.header{border-bottom:3px solid #1F4E5F;padding-bottom:16px;margin-bottom:22px}h1{margin:0;color:#1F4E5F;font-size:28px;letter-spacing:-.03em}.subtitle{color:#718096;margin:6px 0 0;font-size:14px}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0 24px}.summary-box{border:1px solid #E2E8F0;border-radius:14px;padding:14px;background:#F8FAF9}.summary-box strong{display:block;color:#1F4E5F;font-size:24px;line-height:1.1}.summary-box span{display:block;margin-top:4px;color:#718096;font-size:12px;text-transform:uppercase;font-weight:700}table{width:100%;border-collapse:collapse;margin-top:10px}th{text-align:left;color:#718096;font-size:12px;text-transform:uppercase;letter-spacing:.03em;padding:10px 8px;border-bottom:2px solid #E2E8F0}td{padding:12px 8px;border-bottom:1px solid #E2E8F0;font-size:14px;vertical-align:top}tr:nth-child(even) td{background:#FBFCFC}.footer{margin-top:26px;padding-top:12px;border-top:1px solid #E2E8F0;font-size:12px;color:#718096;line-height:1.45}@media print{body{padding:20px}.summary-box,tr:nth-child(even) td{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body><div class="header"><h1>Récapitulatif actualisation</h1><p class="subtitle">${escapeHtml(title)} · Généré avec Intermitrack</p></div><div class="summary"><div class="summary-box"><strong>${escapeHtml(totalDays)}</strong><span>Journées</span></div><div class="summary-box"><strong>${escapeHtml(totalHours)}h</strong><span>Heures</span></div><div class="summary-box"><strong>${escapeHtml(money2(totalGross))}</strong><span>Brut total</span></div></div>${list.length ? `<table><thead><tr><th>Période</th><th>Production</th><th>Mission</th><th>Heures</th><th>Brut</th></tr></thead><tbody>${rows}</tbody></table>` : `<div class="empty">Aucune mission effectuée sur ce mois.</div>`}<p class="footer">Ce document est un récapitulatif personnel destiné à faciliter l'actualisation mensuelle. Les informations doivent être vérifiées par l'utilisateur avant déclaration officielle.</p></body></html>`);
   win.document.close(); win.focus(); win.print();
 }
 
