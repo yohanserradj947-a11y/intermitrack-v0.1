@@ -373,8 +373,8 @@ export default function Calendar(){
 
       <View style={s.nav}>
         <TouchableOpacity style={s.navBtn} onPress={()=>moveMonth(-1)}><Text style={s.navTxt}>‹</Text></TouchableOpacity>
-        <TouchableOpacity onPress={()=>{setPickerYear(current.getFullYear());setShowMonthPicker(true);}} activeOpacity={0.7} style={{flexDirection:'row',alignItems:'center',gap:5}}>
-          <Text style={s.navLabel}>{monthLabel(current)}</Text>
+        <TouchableOpacity onPress={()=>{setPickerYear(current.getFullYear());setShowMonthPicker(true);}} activeOpacity={0.7} style={[s.navLabel,{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6}]}>
+          <Text style={{fontSize:16,fontWeight:'900',color:C.petrol}}>{monthLabel(current)}</Text>
           <Ionicons name="chevron-down" size={15} color={C.petrol}/>
         </TouchableOpacity>
         <TouchableOpacity style={s.navBtn} onPress={()=>moveMonth(1)}><Text style={s.navTxt}>›</Text></TouchableOpacity>
