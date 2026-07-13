@@ -45,8 +45,16 @@ export default function Previsions(){
   const [c4Pas,setC4Pas]=useState('');
   const [c4Res,setC4Res]=useState<any>(null);
 
-  useEffect(()=>{loadMissions();loadTaux();},[]);
+  useEffect(()=>{loadMissions();loadTaux();loadAnnexe();},[]);
   useFocusEffect(useCallback(()=>{loadMissions();},[]));
+  // Prévisions : présélectionne l'annexe selon le profil de l'user (avant : bloqué sur technicien).
+  async function loadAnnexe(){
+    const { data:{ user } }=await supabase.auth.getUser();
+    if(!user) return;
+    const { data }=await supabase.from('profiles').select('annexe').eq('id',user.id).maybeSingle();
+    if(data && data.annexe==='artiste'){ setC1Annexe('artiste'); setC2Annexe('artiste'); setC4Statut('artiste'); }
+    // 'les_deux' / 'technicien' → technicien (état initial conservé)
+  }
   async function loadMissions(){
     const{data}=await supabase.from('missions').select('*');
     if(data)setMissions(data);
@@ -159,7 +167,7 @@ export default function Previsions(){
       </View>
 
       <View style={s.card}>
-        <Text style={s.cardTitle}>Franchises / carences (Annexe 8)</Text>
+        <Text style={s.cardTitle}>Franchises / carences (Annexe {c2Annexe==='artiste'?'10':'8'})</Text>
         <Text style={s.cardSub}>Estimation des jours de carence avant versement de l'ARE.</Text>
         <View style={s.toggleRow}>
           {(['technicien','artiste'] as const).map(a=>(

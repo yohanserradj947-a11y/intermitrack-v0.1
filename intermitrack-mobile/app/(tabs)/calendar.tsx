@@ -53,6 +53,7 @@ function money(n:number){return(n??0).toLocaleString('fr-FR',{style:'currency',c
 function fmtDate(d:string){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});}
 function iso(d:Date){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function monthLabel(d:Date){const l=d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});return l.charAt(0).toUpperCase()+l.slice(1);}
+const MONTHS_FR=['Janv.','Févr.','Mars','Avr.','Mai','Juin','Juil.','Août','Sept.','Oct.','Nov.','Déc.'];
 function frDay(ds:string){return new Date(ds+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long'});}
 function daysInclusive(a:Date,b:Date){return Math.max(1,Math.round((b.getTime()-a.getTime())/86400000)+1);}
 function isNextDay(aStr:string,bStr:string){const a=new Date(aStr+'T00:00:00');a.setDate(a.getDate()+1);return iso(a)===bStr;}
@@ -88,6 +89,8 @@ export default function Calendar(){
   const [loading,setLoading]=useState(true);
   const [current,setCurrent]=useState(new Date());
   const [page,setPage]=useState(0);
+  const [showMonthPicker,setShowMonthPicker]=useState(false);
+  const [pickerYear,setPickerYear]=useState(new Date().getFullYear());
 
   const [showForm,setShowForm]=useState(false);
   const [editId,setEditId]=useState<string|null>(null);
@@ -333,6 +336,11 @@ export default function Calendar(){
   const allProds=Array.from(new Set(missions.map((m:any)=>(m.production||'').toUpperCase().trim()).filter(Boolean))).sort();
 
   function moveMonth(n:number){const d=new Date(current);d.setMonth(d.getMonth()+n);d.setDate(1);setCurrent(d);setPage(0);}
+  function _showExcelInfo(){
+    showAlert('Format Excel / CSV',
+      "Une ligne par mission. Intermitrack lit ces colonnes (peu importe l'ordre) :\n\n• Date — ex. 05/07/2026\n• Production — l'employeur\n• Heures — ex. 8\n• Montant / Brut — ex. 230\n\nExemple :\nDate | Production | Heures | Montant\n05/07/2026 | ENDEMOL | 8 | 230\n\nUne colonne manque ? Pas grave, tu completeras apres l'import.",
+      [{text:'Compris'}]);
+  }
 
   function onCellPress(d:Date){
     setDayMenu({date:d,missions:missionsOn(d)});
@@ -365,11 +373,20 @@ export default function Calendar(){
 
       <View style={s.nav}>
         <TouchableOpacity style={s.navBtn} onPress={()=>moveMonth(-1)}><Text style={s.navTxt}>‹</Text></TouchableOpacity>
-        <Text style={s.navLabel}>{monthLabel(current)}</Text>
+        <TouchableOpacity onPress={()=>{setPickerYear(current.getFullYear());setShowMonthPicker(true);}} activeOpacity={0.7} style={{flexDirection:'row',alignItems:'center',gap:5}}>
+          <Text style={s.navLabel}>{monthLabel(current)}</Text>
+          <Ionicons name="chevron-down" size={15} color={C.petrol}/>
+        </TouchableOpacity>
         <TouchableOpacity style={s.navBtn} onPress={()=>moveMonth(1)}><Text style={s.navTxt}>›</Text></TouchableOpacity>
       </View>
 
-      <Text style={{marginHorizontal:16,marginTop:2,marginBottom:6,fontSize:12.5,fontWeight:'700',color:C.muted}}>Importer mes missions</Text>
+      <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginHorizontal:16,marginTop:2,marginBottom:6}}>
+        <Text style={{fontSize:12.5,fontWeight:'700',color:C.muted}}>Importer mes missions</Text>
+        <TouchableOpacity onPress={_showExcelInfo} hitSlop={8} style={{flexDirection:'row',alignItems:'center',gap:4}}>
+          <Ionicons name="information-circle-outline" size={15} color={C.petrol}/>
+          <Text style={{fontSize:12,fontWeight:'800',color:C.petrol}}>Format Excel</Text>
+        </TouchableOpacity>
+      </View>
       <View style={{flexDirection:'row',gap:8,marginHorizontal:14,marginBottom:10}}>
         <TouchableOpacity onPress={()=>{setImportMode('calendar');setShowImport(true);}} activeOpacity={0.85} style={{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
           <Ionicons name="calendar-outline" size={17} color={C.petrol}/>
@@ -382,6 +399,29 @@ export default function Calendar(){
       </View>
 
       <CalendarImportModal visible={showImport} mode={importMode} onClose={()=>setShowImport(false)} onImported={()=>loadMissions()}/>
+
+      <Modal visible={showMonthPicker} transparent animationType="fade" onRequestClose={()=>setShowMonthPicker(false)}>
+        <TouchableOpacity activeOpacity={1} onPress={()=>setShowMonthPicker(false)} style={{flex:1,backgroundColor:'rgba(0,0,0,.5)',justifyContent:'center',alignItems:'center',padding:24}}>
+          <TouchableOpacity activeOpacity={1} onPress={()=>{}} style={{backgroundColor:C.card,borderRadius:20,padding:18,width:'100%',maxWidth:360}}>
+            <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+              <TouchableOpacity onPress={()=>setPickerYear(pickerYear-1)} hitSlop={10} style={{padding:6}}><Ionicons name="chevron-back" size={22} color={C.petrol}/></TouchableOpacity>
+              <Text style={{fontSize:18,fontWeight:'900',color:C.text}}>{pickerYear}</Text>
+              <TouchableOpacity onPress={()=>setPickerYear(pickerYear+1)} hitSlop={10} style={{padding:6}}><Ionicons name="chevron-forward" size={22} color={C.petrol}/></TouchableOpacity>
+            </View>
+            <View style={{flexDirection:'row',flexWrap:'wrap',gap:8,justifyContent:'space-between'}}>
+              {MONTHS_FR.map((mName,mi)=>{
+                const isCur = mi===current.getMonth() && pickerYear===current.getFullYear();
+                return (
+                  <TouchableOpacity key={mi} onPress={()=>{setCurrent(new Date(pickerYear,mi,1));setPage(0);setShowMonthPicker(false);}}
+                    style={{width:'31%',paddingVertical:12,borderRadius:11,alignItems:'center',backgroundColor:isCur?C.petrol:C.soft}}>
+                    <Text style={{fontSize:13,fontWeight:'800',color:isCur?'#fff':C.text}}>{mName}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       <View style={s.colorTools}>
         <TouchableOpacity style={s.colorToolBtn} onPress={()=>setManagerOpen(true)}>
