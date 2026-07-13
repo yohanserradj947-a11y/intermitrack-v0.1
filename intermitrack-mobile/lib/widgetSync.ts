@@ -1,13 +1,10 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { paletteFor, ThemeId, CustomSettings } from './theme';
 
 const GROUP = 'group.fr.intermitrack.app';
 const pad = (n: number) => String(n).padStart(2, '0');
 const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-
-// Dégradés auto (identiques au calendrier de l'app : passé pétrole→vert, futur orange).
-const GRAD_PAST = ['#1F4E5F', '#2F8F6B'];
-const GRAD_FUTURE = ['#F97316', '#FDBA74'];
 
 // --- Helpers couleur (repris tels quels de lib/prodColors) ---
 function shade(hex: string, amt: number): string {
@@ -47,6 +44,16 @@ export async function syncWidgets(missions: any[], getColor: (name: string) => s
     const now = new Date();
     const todayISO = ymd(now);
     const areDate = await AsyncStorage.getItem('intermitrack_are_date'); // 'YYYY-MM-DD' ou null
+
+    // --- Thème actif → les widgets adoptent le thème choisi dans l'app (Rock, Noir & Or, etc.) ---
+    const themeId = ((await AsyncStorage.getItem('intermitrack_theme')) as ThemeId) || 'light';
+    let customTheme: CustomSettings | null = null;
+    try { const cv = await AsyncStorage.getItem('intermitrack_theme_custom'); if (cv) customTheme = JSON.parse(cv); } catch (e) {}
+    const C = paletteFor(themeId, customTheme);
+    // Dégradés par défaut = ceux de l'app pour CE thème (passé pétrole→vert, futur orange du thème).
+    const GRAD_PAST = [C.petrol, C.green];
+    const GRAD_FUTURE = prodGradient(C.orange);
+    const themePalette = { bg: C.card, text: C.text, muted: C.muted, petrol: C.petrol, green: C.green, orange: C.orange, line: C.line, track: C.track };
 
     // --- Heures / 507h : DEPUIS la date ARE (période de droits France Travail), comme l'app ---
     let done = 0, planned = 0;
@@ -120,7 +127,7 @@ export async function syncWidgets(missions: any[], getColor: (name: string) => s
       const prod = (m.production || '').toUpperCase();
       return {
         date: d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit' }),
-        prod, color: getColor(prod) || '#1F4E5F',
+        prod, color: getColor(prod) || C.petrol,
         hours: Number(m.hours || 0), price: Number(m.gross_amount || 0),
       };
     });
@@ -140,6 +147,7 @@ export async function syncWidgets(missions: any[], getColor: (name: string) => s
       storage.set('widget_hours', JSON.stringify(hoursData));
       if (nextData) storage.set('widget_next', JSON.stringify(nextData)); else storage.remove('widget_next');
       storage.set('widget_calendar', JSON.stringify(calData));
+      storage.set('widget_theme', JSON.stringify(themePalette));
       ExtensionStorage.reloadWidget();
       return;
     }
@@ -147,12 +155,13 @@ export async function syncWidgets(missions: any[], getColor: (name: string) => s
     // ---------- Android : AsyncStorage (lu par le task handler) + demande de mise à jour ----------
     await AsyncStorage.setItem('widget_hours', JSON.stringify(hoursData));
     await AsyncStorage.setItem('widget_calendar', JSON.stringify(calData));
+    await AsyncStorage.setItem('widget_theme', JSON.stringify(themePalette));
     if (nextData) await AsyncStorage.setItem('widget_next', JSON.stringify(nextData));
     else await AsyncStorage.removeItem('widget_next');
     try {
       const { requestWidgetUpdate } = require('react-native-android-widget');
       const { buildWidget } = require('../components/widgets/IntermitrackWidgets');
-      const data = { hours: hoursData, next: nextData, cal: calData };
+      const data = { hours: hoursData, next: nextData, cal: calData, theme: themePalette };
       ['Hours', 'Next', 'CalendarAgenda', 'CalendarMonth'].forEach((wname) => {
         requestWidgetUpdate({ widgetName: wname, renderWidget: () => buildWidget(wname, data), widgetNotFound: () => {} });
       });

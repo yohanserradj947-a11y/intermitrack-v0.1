@@ -19,6 +19,13 @@ func loadJSON<T: Decodable>(_ key: String) -> T? {
   return try? JSONDecoder().decode(T.self, from: data)
 }
 
+// Palette du thème actif de l'app (Rock, Noir & Or, etc.), écrite par lib/widgetSync (clé widget_theme).
+struct WTheme: Codable {
+  var bg: String; var text: String; var muted: String; var petrol: String; var green: String; var orange: String; var line: String; var track: String
+}
+let THEME_FALLBACK = WTheme(bg: "#FFFFFF", text: "#2D3748", muted: "#718096", petrol: "#1F4E5F", green: "#12754A", orange: "#F97316", line: "#E2E8F0", track: "#E2E8F0")
+func loadTheme() -> WTheme { loadJSON("widget_theme") ?? THEME_FALLBACK }
+
 extension Color {
   init(hexString: String) {
     let h = hexString.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
@@ -33,9 +40,10 @@ extension Color {
 }
 
 extension View {
-  @ViewBuilder func widgetBg() -> some View {
-    if #available(iOS 17.0, *) { self.containerBackground(for: .widget) { Color(.systemBackground) } }
-    else { self.padding(14).background(Color(.systemBackground)) }
+  // bg == nil → fond système (clair/sombre) ; sinon fond du thème choisi dans l'app.
+  @ViewBuilder func widgetBg(_ bg: Color? = nil) -> some View {
+    if #available(iOS 17.0, *) { self.containerBackground(for: .widget) { bg ?? Color(.systemBackground) } }
+    else { self.padding(14).background(bg ?? Color(.systemBackground)) }
   }
 }
 
@@ -164,7 +172,7 @@ struct CalProvider: TimelineProvider {
   }
 }
 struct CalCell: View {
-  let day: Int; let info: CalDay?; let today: Int; let h: CGFloat; let big: Bool
+  let day: Int; let info: CalDay?; let today: Int; let h: CGFloat; let big: Bool; let theme: WTheme
   var isToday: Bool { day == today }
   var mission: CalDay? { if let i = info, !i.g.isEmpty { return i }; return nil }
   var body: some View {
@@ -174,8 +182,8 @@ struct CalCell: View {
   var bigCell: some View {
     VStack(spacing: 1.5) {
       ZStack {
-        if isToday { Circle().fill(ORANGE).frame(width: h * 0.44, height: h * 0.44) }
-        Text("\(day)").font(.system(size: h * 0.28, weight: isToday ? .bold : .medium)).foregroundColor(isToday ? .white : .primary)
+        if isToday { Circle().fill(Color(hexString: theme.orange)).frame(width: h * 0.44, height: h * 0.44) }
+        Text("\(day)").font(.system(size: h * 0.28, weight: isToday ? .bold : .medium)).foregroundColor(isToday ? .white : Color(hexString: theme.text))
       }
       .frame(height: h * 0.44)
       if let i = mission {
@@ -199,10 +207,10 @@ struct CalCell: View {
         RoundedRectangle(cornerRadius: 4).fill(LinearGradient(colors: i.g.map { Color(hexString: $0) }, startPoint: .topLeading, endPoint: .bottomTrailing))
         if i.hach { HachureOverlay().clipShape(RoundedRectangle(cornerRadius: 4)) }
       }
-      if isToday { Circle().fill(ORANGE).frame(width: h * 0.80, height: h * 0.80) }
+      if isToday { Circle().fill(Color(hexString: theme.orange)).frame(width: h * 0.80, height: h * 0.80) }
       Text("\(day)")
         .font(.system(size: h * 0.46, weight: (isToday || mission != nil) ? .heavy : .medium))
-        .foregroundColor(isToday ? .white : (mission.map { Color(hexString: $0.txt) } ?? .primary))
+        .foregroundColor(isToday ? .white : (mission.map { Color(hexString: $0.txt) } ?? Color(hexString: theme.text)))
         .minimumScaleFactor(0.6)
       if !isToday { noteDot(6) }
     }
@@ -215,29 +223,29 @@ struct CalCell: View {
   }
 }
 struct UpcomingRow: View {
-  let m: UpNext
+  let m: UpNext; let theme: WTheme
   func fmtH(_ h: Double) -> String { h == h.rounded() ? "\(Int(h))" : String(format: "%.1f", h) }
   var body: some View {
     HStack(spacing: 8) {
       RoundedRectangle(cornerRadius: 2).fill(Color(hexString: m.color)).frame(width: 3, height: 24)
-      Text(m.date).font(.system(size: 12, weight: .bold)).foregroundColor(.primary).frame(width: 64, alignment: .leading)
-      Text(m.prod).font(.system(size: 12, weight: .semibold)).foregroundColor(.primary).lineLimit(1)
+      Text(m.date).font(.system(size: 12, weight: .bold)).foregroundColor(Color(hexString: theme.text)).frame(width: 64, alignment: .leading)
+      Text(m.prod).font(.system(size: 12, weight: .semibold)).foregroundColor(Color(hexString: theme.text)).lineLimit(1)
       Spacer(minLength: 4)
-      Text("\(fmtH(m.hours)) h\(m.price > 0 ? " · \(Int(m.price)) €" : "")").font(.system(size: 11)).foregroundColor(.secondary).lineLimit(1)
+      Text("\(fmtH(m.hours)) h\(m.price > 0 ? " · \(Int(m.price)) €" : "")").font(.system(size: 11)).foregroundColor(Color(hexString: theme.muted)).lineLimit(1)
     }
   }
 }
 // Mini-case du calendrier (colonne de gauche du widget moyen)
 struct MiniCell: View {
-  let day: Int; let info: CalDay?; let today: Int
+  let day: Int; let info: CalDay?; let today: Int; let theme: WTheme
   var isToday: Bool { day == today }
   var mission: CalDay? { if let i = info, !i.g.isEmpty { return i }; return nil }
   var body: some View {
     ZStack {
-      if let m = mission { RoundedRectangle(cornerRadius: 2.5).fill(LinearGradient(colors: m.g.map { Color(hexString: $0) }, startPoint: .topLeading, endPoint: .bottomTrailing)) }
-      if isToday { Circle().fill(ORANGE).frame(width: 15, height: 15) }
-      Text("\(day)").font(.system(size: 8, weight: (isToday || mission != nil) ? .heavy : .medium)).foregroundColor(isToday ? .white : (mission.map { Color(hexString: $0.txt) } ?? .primary)).minimumScaleFactor(0.7)
-    }.frame(height: 15)
+      if let m = mission { RoundedRectangle(cornerRadius: 4).fill(LinearGradient(colors: m.g.map { Color(hexString: $0) }, startPoint: .topLeading, endPoint: .bottomTrailing)) }
+      if isToday { Circle().fill(Color(hexString: theme.orange)).frame(width: 21, height: 21) }
+      Text("\(day)").font(.system(size: 12.5, weight: (isToday || mission != nil) ? .heavy : .medium)).foregroundColor(isToday ? .white : (mission.map { Color(hexString: $0.txt) } ?? Color(hexString: theme.text))).minimumScaleFactor(0.7)
+    }.frame(height: 22)
   }
 }
 struct CalView: View {
@@ -249,42 +257,44 @@ struct CalView: View {
       if family == .systemLarge { monthView(cal) } else { agendaView(cal) }
     } else {
       Text("Ouvre Intermitrack pour afficher tes missions.")
-        .font(.system(size: 12)).foregroundColor(.secondary)
+        .font(.system(size: 12)).foregroundColor(Color(hexString: loadTheme().muted))
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .widgetBg()
+        .widgetBg(Color(hexString: loadTheme().bg))
     }
   }
   // GRAND : mois complet + prochaines missions (le format qui plaît)
   func monthView(_ cal: CalData) -> some View {
+    let t = loadTheme()
     let leading = max(0, cal.firstWeekday - 1)
     let byDay = Dictionary(cal.days.map { ($0.d, $0) }, uniquingKeysWith: { a, _ in a })
     var monthCells: [Int] = Array(repeating: 0, count: leading)
     for d in 1...max(1, cal.daysInMonth) { monthCells.append(d) }
     while monthCells.count % 7 != 0 { monthCells.append(0) }
     return VStack(alignment: .leading, spacing: 6) {
-      Text(cal.title).font(.system(size: 16, weight: .heavy)).foregroundColor(.primary)
+      Text(cal.title).font(.system(size: 16, weight: .heavy)).foregroundColor(Color(hexString: t.text))
       HStack(spacing: 3) {
         ForEach(Array(["L","M","M","J","V","S","D"].enumerated()), id: \.offset) { _, w in
-          Text(w).font(.system(size: 10, weight: .bold)).foregroundColor(.secondary).frame(maxWidth: .infinity)
+          Text(w).font(.system(size: 10, weight: .bold)).foregroundColor(Color(hexString: t.muted)).frame(maxWidth: .infinity)
         }
       }
       LazyVGrid(columns: cols, spacing: 3) {
         ForEach(Array(monthCells.enumerated()), id: \.offset) { _, day in
           if day == 0 { Color.clear.frame(height: 34) }
-          else { CalCell(day: day, info: byDay[day], today: cal.today, h: 34, big: true) }
+          else { CalCell(day: day, info: byDay[day], today: cal.today, h: 34, big: true, theme: t) }
         }
       }
       if let up = cal.upcoming, !up.isEmpty {
         Divider().padding(.vertical, 1)
-        ForEach(Array(up.enumerated()), id: \.offset) { _, m in UpcomingRow(m: m) }
+        ForEach(Array(up.enumerated()), id: \.offset) { _, m in UpcomingRow(m: m, theme: t) }
       }
       Spacer(minLength: 0)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-    .widgetBg()
+    .widgetBg(Color(hexString: t.bg))
   }
   // MOYEN : mini-calendrier du mois (gauche) + prochaines missions (droite), façon Calendrier iPhone
   func agendaView(_ cal: CalData) -> some View {
+    let t = loadTheme()
     let leading = max(0, cal.firstWeekday - 1)
     let byDay = Dictionary(cal.days.map { ($0.d, $0) }, uniquingKeysWith: { a, _ in a })
     let miniCols = Array(repeating: GridItem(.flexible(), spacing: 2), count: 7)
@@ -295,42 +305,42 @@ struct CalView: View {
     return HStack(alignment: .top, spacing: 12) {
       // GAUCHE : mini-calendrier des jours (structure identique au grand mois)
       VStack(alignment: .leading, spacing: 3) {
-        Text(cal.title).font(.system(size: 11, weight: .heavy)).foregroundColor(.primary).lineLimit(1)
+        Text(cal.title).font(.system(size: 12.5, weight: .heavy)).foregroundColor(Color(hexString: t.text)).lineLimit(1)
         HStack(spacing: 2) {
           ForEach(Array(["L","M","M","J","V","S","D"].enumerated()), id: \.offset) { _, w in
-            Text(w).font(.system(size: 6.5, weight: .bold)).foregroundColor(.secondary).frame(maxWidth: .infinity)
+            Text(w).font(.system(size: 9, weight: .bold)).foregroundColor(Color(hexString: t.muted)).frame(maxWidth: .infinity)
           }
         }
-        LazyVGrid(columns: miniCols, spacing: 2) {
+        LazyVGrid(columns: miniCols, spacing: 3) {
           ForEach(Array(monthCells.enumerated()), id: \.offset) { _, day in
-            if day == 0 { Color.clear.frame(height: 15) }
-            else { MiniCell(day: day, info: byDay[day], today: cal.today) }
+            if day == 0 { Color.clear.frame(height: 22) }
+            else { MiniCell(day: day, info: byDay[day], today: cal.today, theme: t) }
           }
         }
       }
-      .frame(width: 152)
+      .frame(width: 172)
       // DROITE : prochaines missions
       VStack(alignment: .leading, spacing: 7) {
-        Text("À VENIR").font(.system(size: 9.5, weight: .heavy)).foregroundColor(ORANGE)
+        Text("À VENIR").font(.system(size: 9.5, weight: .heavy)).foregroundColor(Color(hexString: t.orange))
         if let up = cal.upcoming, !up.isEmpty {
           ForEach(Array(up.prefix(3).enumerated()), id: \.offset) { _, m in
             HStack(spacing: 7) {
               RoundedRectangle(cornerRadius: 2).fill(Color(hexString: m.color)).frame(width: 4, height: 26)
               VStack(alignment: .leading, spacing: 1) {
-                Text(m.prod).font(.system(size: 13, weight: .heavy)).foregroundColor(.primary).lineLimit(1)
-                Text("\(m.date) · \(fmtHours(m.hours)) h").font(.system(size: 10, weight: .medium)).foregroundColor(.secondary).lineLimit(1)
+                Text(m.prod).font(.system(size: 13, weight: .heavy)).foregroundColor(Color(hexString: t.text)).lineLimit(1)
+                Text("\(m.date) · \(fmtHours(m.hours)) h").font(.system(size: 10, weight: .medium)).foregroundColor(Color(hexString: t.muted)).lineLimit(1)
               }
               Spacer(minLength: 0)
             }
           }
         } else {
-          Text("Aucune mission à venir").font(.system(size: 12)).foregroundColor(.secondary)
+          Text("Aucune mission à venir").font(.system(size: 12)).foregroundColor(Color(hexString: t.muted))
         }
         Spacer(minLength: 0)
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-    .widgetBg()
+    .widgetBg(Color(hexString: t.bg))
   }
 }
 struct CalWidget: Widget {

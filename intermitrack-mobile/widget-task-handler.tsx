@@ -5,14 +5,15 @@ import { buildWidget, WidgetData } from './components/widgets/IntermitrackWidget
 // Lit les données écrites par lib/widgetSync.ts (mêmes clés que iOS).
 async function loadWidgetData(): Promise<WidgetData> {
   try {
-    const [h, n, c] = await Promise.all([
+    const [h, n, c, t] = await Promise.all([
       AsyncStorage.getItem('widget_hours'),
       AsyncStorage.getItem('widget_next'),
       AsyncStorage.getItem('widget_calendar'),
+      AsyncStorage.getItem('widget_theme'),
     ]);
-    return { hours: h ? JSON.parse(h) : null, next: n ? JSON.parse(n) : null, cal: c ? JSON.parse(c) : null };
+    return { hours: h ? JSON.parse(h) : null, next: n ? JSON.parse(n) : null, cal: c ? JSON.parse(c) : null, theme: t ? JSON.parse(t) : null };
   } catch (e) {
-    return { hours: null, next: null, cal: null };
+    return { hours: null, next: null, cal: null, theme: null };
   }
 }
 

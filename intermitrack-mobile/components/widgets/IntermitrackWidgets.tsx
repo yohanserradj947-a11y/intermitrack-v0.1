@@ -12,6 +12,8 @@ export type WidgetData = {
     days: { d: number; ab: string; g: string[]; txt: string; hours: number; more: number; hach: boolean; note: string }[];
     upcoming?: { date: string; prod: string; color: string; hours: number; price: number }[];
   } | null;
+  // Palette du thème actif (écrite par lib/widgetSync). Absente → on retombe sur clair/sombre système.
+  theme?: { bg: string; text: string; muted: string; track: string; petrol: string; green: string; orange: string; line: string } | null;
 };
 
 type Hex = `#${string}`;
@@ -119,19 +121,21 @@ function CalendarAgendaWidget(cal: WidgetData['cal'], p: Pal) {
   const rows = chunk7(monthCells(cal));
   return (
     <FlexWidget style={{ width: 'match_parent', height: 'match_parent', flexDirection: 'row', backgroundColor: p.bg, borderRadius: 24, padding: 14, flexGap: 12 }}>
-      <FlexWidget style={{ flexDirection: 'column', width: 150 }}>
-        <TextWidget text={cal.title} style={{ fontSize: 11, fontWeight: '900', color: p.text, marginBottom: 3 }} maxLines={1} />
-        <FlexWidget style={{ flexDirection: 'row', width: 'match_parent', marginBottom: 2 }}>
-          {WD.map((w, i) => (<FlexWidget key={i} style={{ flex: 1, alignItems: 'center' }}><TextWidget text={w} style={{ fontSize: 7, fontWeight: '700', color: p.muted }} /></FlexWidget>))}
+      <FlexWidget style={{ flexDirection: 'column', flex: 1.3, height: 'match_parent' }}>
+        <TextWidget text={cal.title} style={{ fontSize: 13, fontWeight: '900', color: p.text, marginBottom: 4 }} maxLines={1} />
+        <FlexWidget style={{ flexDirection: 'row', width: 'match_parent', marginBottom: 3 }}>
+          {WD.map((w, i) => (<FlexWidget key={i} style={{ flex: 1, alignItems: 'center' }}><TextWidget text={w} style={{ fontSize: 9, fontWeight: '700', color: p.muted }} /></FlexWidget>))}
         </FlexWidget>
-        {rows.map((row, ri) => (
-          <FlexWidget key={ri} style={{ flexDirection: 'row', width: 'match_parent', height: 16, marginBottom: 2, flexGap: 2 }}>
-            {row.map((d, ci) => miniCell(d, bd[d], cal.today, p, ci))}
-          </FlexWidget>
-        ))}
+        <FlexWidget style={{ flexDirection: 'column', width: 'match_parent', flex: 1 }}>
+          {rows.map((row, ri) => (
+            <FlexWidget key={ri} style={{ flexDirection: 'row', width: 'match_parent', flex: 1, marginBottom: 3, flexGap: 3 }}>
+              {row.map((d, ci) => miniCell(d, bd[d], cal.today, p, ci))}
+            </FlexWidget>
+          ))}
+        </FlexWidget>
       </FlexWidget>
-      <FlexWidget style={{ flexDirection: 'column', flex: 1 }}>
-        <TextWidget text="À VENIR" style={{ fontSize: 9.5, fontWeight: '900', color: p.orange, marginBottom: 8, letterSpacing: 0.4 }} />
+      <FlexWidget style={{ flexDirection: 'column', flex: 1, height: 'match_parent' }}>
+        <TextWidget text="À VENIR" style={{ fontSize: 10, fontWeight: '900', color: p.orange, marginBottom: 8, letterSpacing: 0.4 }} />
         {upcomingRows(cal, p, false)}
       </FlexWidget>
     </FlexWidget>
@@ -144,8 +148,8 @@ function miniCell(d: number, info: any, today: number, p: Pal, key: number) {
   const bg: Hex = isToday ? p.orange : mission ? hx(mission.g[1] || mission.g[0]) : TRANSPARENT;
   const txt: Hex = isToday ? '#FFFFFF' : mission ? hx(mission.txt || '#FFFFFF') : p.text;
   return (
-    <FlexWidget key={key} style={{ flex: 1, height: 'match_parent', borderRadius: 3, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
-      <TextWidget text={String(d)} style={{ fontSize: 8, fontWeight: isToday || mission ? '900' : '500', color: txt }} />
+    <FlexWidget key={key} style={{ flex: 1, height: 'match_parent', borderRadius: 4, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
+      <TextWidget text={String(d)} style={{ fontSize: 11, fontWeight: isToday || mission ? '900' : '500', color: txt }} />
     </FlexWidget>
   );
 }
@@ -201,7 +205,8 @@ function EmptyCal(p: Pal) {
 
 // Construit un widget par nom, pour un thème donné.
 function buildOne(name: string, data: WidgetData, dark: boolean) {
-  const p = pal(dark);
+  // Palette du thème de l'app si dispo (Rock, Noir & Or…), sinon clair/sombre par défaut.
+  const p: Pal = (data.theme as any as Pal) || pal(dark);
   switch (name) {
     case 'Hours': return HoursWidget(data.hours, p);
     case 'Next': return NextWidget(data.next, p);

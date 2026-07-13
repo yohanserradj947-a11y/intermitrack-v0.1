@@ -80,6 +80,13 @@ function buildCustom(s: CustomSettings): Palette {
   return { ...base, petrol: s.accent, sage: s.accent, orange: s.accent2, green: s.accent2 };
 }
 
+// Palette d'un thème donné SANS composant React — utilisée par la synchro des widgets
+// (lib/widgetSync) pour que les widgets adoptent le thème choisi dans l'app.
+export function paletteFor(id: ThemeId, custom?: CustomSettings | null): Palette {
+  if (id === 'custom') return buildCustom(custom || DEFAULT_CUSTOM);
+  return (PALETTES as any)[id] || light;
+}
+
 // Métadonnées pour le sélecteur (aperçu couleurs + libellé).
 export const THEME_META: { id: ThemeId; label: string; colors: string[]; premium: boolean }[] = [
   { id: 'light', label: 'Clair', colors: ['#1F4E5F', '#F97316', '#FFFFFF'], premium: false },

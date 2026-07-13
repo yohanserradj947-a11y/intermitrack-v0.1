@@ -341,6 +341,11 @@ export default function Calendar(){
       "Une ligne par mission. Intermitrack lit ces colonnes (peu importe l'ordre) :\n\n• Date — ex. 05/07/2026\n• Production — l'employeur\n• Heures — ex. 8\n• Montant / Brut — ex. 230\n\nExemple :\nDate | Production | Heures | Montant\n05/07/2026 | ENDEMOL | 8 | 230\n\nUne colonne manque ? Pas grave, tu completeras apres l'import.",
       [{text:'Compris'}]);
   }
+  function _showCalInfo(){
+    showAlert('Format agenda / calendrier',
+      "Intermitrack lit les evenements de ton agenda (iPhone / Samsung). Pour qu'il recupere tout, ecris dans le TITRE de l'evenement :\n\nProduction   Heures   Prix\nEx : ENDEMOL 8h 350€\n\nL'ordre est libre (ENDEMOL 350€ 8h marche aussi). La date vient de l'evenement. Il manque une info ? Tu completeras apres l'import.",
+      [{text:'Compris'}]);
+  }
 
   function onCellPress(d:Date){
     setDayMenu({date:d,missions:missionsOn(d)});
@@ -380,22 +385,28 @@ export default function Calendar(){
         <TouchableOpacity style={s.navBtn} onPress={()=>moveMonth(1)}><Text style={s.navTxt}>›</Text></TouchableOpacity>
       </View>
 
-      <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginHorizontal:16,marginTop:2,marginBottom:6}}>
-        <Text style={{fontSize:12.5,fontWeight:'700',color:C.muted}}>Importer mes missions</Text>
-        <TouchableOpacity onPress={_showExcelInfo} hitSlop={8} style={{flexDirection:'row',alignItems:'center',gap:4}}>
-          <Ionicons name="information-circle-outline" size={15} color={C.petrol}/>
-          <Text style={{fontSize:12,fontWeight:'800',color:C.petrol}}>Format Excel</Text>
-        </TouchableOpacity>
-      </View>
+      <Text style={{fontSize:12.5,fontWeight:'700',color:C.muted,marginHorizontal:16,marginTop:2,marginBottom:6}}>Importer mes missions</Text>
       <View style={{flexDirection:'row',gap:8,marginHorizontal:14,marginBottom:10}}>
-        <TouchableOpacity onPress={()=>{setImportMode('calendar');setShowImport(true);}} activeOpacity={0.85} style={{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
-          <Ionicons name="calendar-outline" size={17} color={C.petrol}/>
-          <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}}>Calendrier</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={()=>{setImportMode('excel');setShowImport(true);}} activeOpacity={0.85} style={{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
-          <Ionicons name="document-text-outline" size={17} color={C.petrol}/>
-          <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}}>Excel / CSV</Text>
-        </TouchableOpacity>
+        <View style={{flex:1}}>
+          <TouchableOpacity onPress={_showCalInfo} hitSlop={6} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:4,marginBottom:5}}>
+            <Ionicons name="information-circle-outline" size={14} color={C.petrol}/>
+            <Text style={{fontSize:11.5,fontWeight:'800',color:C.petrol}}>Format agenda</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={()=>{setImportMode('calendar');setShowImport(true);}} activeOpacity={0.85} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
+            <Ionicons name="calendar-outline" size={17} color={C.petrol}/>
+            <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}}>Calendrier</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={{flex:1}}>
+          <TouchableOpacity onPress={_showExcelInfo} hitSlop={6} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:4,marginBottom:5}}>
+            <Ionicons name="information-circle-outline" size={14} color={C.petrol}/>
+            <Text style={{fontSize:11.5,fontWeight:'800',color:C.petrol}}>Format Excel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={()=>{setImportMode('excel');setShowImport(true);}} activeOpacity={0.85} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
+            <Ionicons name="document-text-outline" size={17} color={C.petrol}/>
+            <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}}>Excel / CSV</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <CalendarImportModal visible={showImport} mode={importMode} onClose={()=>setShowImport(false)} onImported={()=>loadMissions()}/>
