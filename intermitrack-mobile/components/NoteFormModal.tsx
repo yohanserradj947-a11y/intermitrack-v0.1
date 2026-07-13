@@ -10,13 +10,15 @@ import ColorPickerModal from './ColorPickerModal';
 const SUGGESTIONS = ['Médical', 'Perso', 'Vacances', 'Repos', 'Autres'];
 const ORG_SUGGESTIONS = ['AFDAS', 'CFPTS', 'INA', 'GRETA', 'CFA'];
 function iso(d: Date) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function isNextDayISO(a: string, b: string) { const d = new Date(a + 'T00:00:00'); d.setDate(d.getDate() + 1); return iso(d) === b; }
+const WEEKDAYS_FR = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']; // index 0 = lundi
 
 export default function NoteFormModal({ visible, editNote, defaultDate, mode = 'note', onClose }: { visible: boolean; editNote: Note | null; defaultDate: string; mode?: 'note' | 'formation'; onClose: () => void }) {
   const C = useTheme();
   const { scheme } = useThemeControls();
   const s = makeS(C);
   const insets = useSafeAreaInsets();
-  const { addNote, updateNote } = useNotes();
+  const { addNote, addNotes, updateNote } = useNotes();
 
   // Une formation = une note avec des heures. Le formulaire s'adapte selon le mode.
   const isForm = editNote ? editNote.kind === 'formation' : mode === 'formation';
@@ -31,6 +33,10 @@ export default function NoteFormModal({ visible, editNote, defaultDate, mode = '
   const [showEnd, setShowEnd] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [customColors, setCustomColors] = useState<string[]>([]);
+  // Formation sur plusieurs mois : motif hebdo (Lun..Dim) + heures/jour → génère les jours, ajustables 1 par 1.
+  const [weekdays, setWeekdays] = useState<boolean[]>([false, false, false, false, false, false, false]);
+  const [perDayHours, setPerDayHours] = useState('');
+  const [formDays, setFormDays] = useState<{ date: string; checked: boolean; hours: number }[]>([]);
 
   useEffect(() => {
     if (!visible) return;
@@ -45,6 +51,7 @@ export default function NoteFormModal({ visible, editNote, defaultDate, mode = '
       const d = defaultDate ? new Date(defaultDate + 'T00:00:00') : new Date();
       setTitle(''); setText(''); setHours(''); setStart(d); setEnd(d); setColor(NOTE_PRESETS[0]);
     }
+    setWeekdays([false, false, false, false, false, false, false]); setPerDayHours(''); setFormDays([]);
   }, [visible]);
 
   function save() {
@@ -52,6 +59,23 @@ export default function NoteFormModal({ visible, editNote, defaultDate, mode = '
     if (endISO < startISO) { showAlert('Dates', 'La date de fin ne peut pas être avant le début.'); return; }
     if (isForm) {
       if (!title.trim()) { showAlert('Organisme manquant', 'Indique l\'organisme de formation.'); return; }
+      if (multiDay) {
+        if (!formDays.length) { showAlert('Jours à définir', 'Choisis les jours (motif hebdo + heures/jour) puis « Générer ».'); return; }
+        const checked = formDays.filter(d => d.checked && (Number(d.hours) || 0) > 0);
+        if (!checked.length) { showAlert('Aucun jour', 'Coche au moins un jour de formation avec des heures.'); return; }
+        // Regroupe les jours cochés consécutifs (mêmes heures) en une seule note ; les jours isolés = 1 note chacun.
+        const runs: { start: string; end: string; hours: number; days: number }[] = [];
+        let cur: any = null;
+        for (const d of formDays) {
+          if (!d.checked || !((Number(d.hours) || 0) > 0)) { cur = null; continue; }
+          if (cur && d.hours === cur.hours && isNextDayISO(cur.end, d.date)) { cur.end = d.date; cur.days++; }
+          else { cur = { start: d.date, end: d.date, hours: d.hours, days: 1 }; runs.push(cur); }
+        }
+        const newNotes = runs.map(r => ({ date: r.start, endDate: r.end, title: title.trim(), text: text.trim(), color, kind: 'formation' as const, hours: Math.round(r.hours * r.days * 10) / 10 }));
+        addNotes(newNotes);
+        onClose();
+        return;
+      }
       const h = Number((hours || '').replace(',', '.'));
       if (!h || h <= 0) { showAlert('Heures manquantes', 'Indique le nombre d\'heures de formation.'); return; }
       const data = { date: startISO, endDate: endISO, title: title.trim(), text: text.trim(), color, kind: 'formation' as const, hours: Math.round(h * 10) / 10 };
@@ -64,6 +88,28 @@ export default function NoteFormModal({ visible, editNote, defaultDate, mode = '
     if (editNote) updateNote(editNote.id, data); else addNote(data);
     onClose();
   }
+
+  const multiDay = isForm && !editNote && iso(start) !== iso(end);
+  function toggleWeekday(i: number) { setWeekdays(w => w.map((x, j) => j === i ? !x : x)); }
+  function generateDays() {
+    const ph = Number((perDayHours || '').replace(',', '.')) || 0;
+    if (!(ph > 0)) { showAlert('Heures/jour', 'Indique les heures par jour de formation.'); return; }
+    const anyWd = weekdays.some(Boolean);
+    const list: { date: string; checked: boolean; hours: number }[] = [];
+    const cur = new Date(start); cur.setHours(0, 0, 0, 0);
+    const last = new Date(end); last.setHours(0, 0, 0, 0);
+    let guard = 0;
+    while (cur <= last && guard < 2000) {
+      const mi = (cur.getDay() + 6) % 7; // 0 = lundi
+      if (!anyWd || weekdays[mi]) list.push({ date: iso(new Date(cur)), checked: true, hours: ph });
+      cur.setDate(cur.getDate() + 1);
+      guard++;
+    }
+    if (!list.length) { showAlert('Aucun jour', 'Aucun jour ne correspond dans cette période.'); return; }
+    setFormDays(list);
+  }
+  const fdChecked = formDays.filter(d => d.checked);
+  const fdTotalH = Math.round(fdChecked.reduce((a, d) => a + (Number(d.hours) || 0), 0) * 10) / 10;
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -100,10 +146,46 @@ export default function NoteFormModal({ visible, editNote, defaultDate, mode = '
               {showStart && <DateTimePicker value={start} mode="date" locale="fr-FR" themeVariant={scheme} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(_e, d) => { setShowStart(false); if (d) { setStart(d); if (d > end) setEnd(d); } }} />}
               {showEnd && <DateTimePicker value={end} mode="date" locale="fr-FR" themeVariant={scheme} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(_e, d) => { setShowEnd(false); if (d) setEnd(d); }} />}
 
-              {isForm && (<>
+              {isForm && !multiDay && (<>
                 <Text style={s.label}>Heures de formation</Text>
                 <TextInput style={s.input} value={hours} onChangeText={setHours} keyboardType="numeric" placeholder="Ex : 35" placeholderTextColor={C.muted} />
               </>)}
+
+              {isForm && multiDay && (
+                <View style={s.mdBox}>
+                  <Text style={s.label}>Jours de formation dans la période</Text>
+                  <Text style={s.mdHint}>Choisis les jours qui reviennent (ex. 2 par semaine) + les heures/jour, puis « Générer ». Tu pourras décocher les exceptions (vacances, fériés). Laisse les jours vides pour tout cocher à la main.</Text>
+                  <View style={s.wdRow}>
+                    {WEEKDAYS_FR.map((w, i) => (
+                      <TouchableOpacity key={i} style={[s.wdBtn, weekdays[i] && s.wdBtnOn]} onPress={() => toggleWeekday(i)}>
+                        <Text style={[s.wdTxt, weekdays[i] && s.wdTxtOn]}>{w}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <View style={s.mdGenRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.mdMini}>Heures / jour</Text>
+                      <TextInput style={s.input} value={perDayHours} onChangeText={setPerDayHours} keyboardType="numeric" placeholder="Ex : 7" placeholderTextColor={C.muted} />
+                    </View>
+                    <TouchableOpacity style={s.genBtn} onPress={generateDays}><Text style={s.genBtnTxt}>Générer</Text></TouchableOpacity>
+                  </View>
+                  {formDays.length > 0 && (
+                    <View style={{ marginTop: 8 }}>
+                      <Text style={s.mdSummary}>{fdChecked.length} jour{fdChecked.length > 1 ? 's' : ''} · {fdTotalH} h au total</Text>
+                      {formDays.map((d, i) => (
+                        <View key={d.date} style={[s.fdRow, !d.checked && { opacity: 0.45 }]}>
+                          <TouchableOpacity style={s.fdLeft} onPress={() => setFormDays(arr => arr.map((x, j) => j === i ? { ...x, checked: !x.checked } : x))}>
+                            <View style={[s.fdCheck, d.checked && s.fdCheckOn]}>{d.checked ? <Text style={s.fdCheckTxt}>✓</Text> : null}</View>
+                            <Text style={s.fdLabel}>{new Date(d.date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' })}</Text>
+                          </TouchableOpacity>
+                          <TextInput style={s.fdHours} value={String(d.hours)} keyboardType="numeric" editable={d.checked} onChangeText={(v) => { const n = Number(v.replace(',', '.')) || 0; setFormDays(arr => arr.map((x, j) => j === i ? { ...x, hours: n } : x)); }} />
+                          <Text style={s.fdHoursU}>h</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
 
               <Text style={s.label}>{isForm ? 'Intitulé (facultatif)' : 'Note (courte)'}</Text>
               <TextInput style={[s.input, { height: 80, textAlignVertical: 'top' }]} value={text} onChangeText={setText} maxLength={200} multiline placeholder={isForm ? 'Ex : Habilitation électrique…' : 'Ex : RDV dentiste 14h…'} placeholderTextColor={C.muted} />
@@ -167,4 +249,24 @@ const makeS = (C: any) => StyleSheet.create({
   saveTxt: { color: '#fff', fontWeight: '800', fontSize: 15 },
   cancel: { paddingVertical: 14, alignItems: 'center', marginTop: 4 },
   cancelTxt: { color: C.muted, fontWeight: '700', fontSize: 14 },
+  mdBox: { marginTop: 4 },
+  mdHint: { fontSize: 12, color: C.muted, lineHeight: 16, marginBottom: 8 },
+  wdRow: { flexDirection: 'row', gap: 5, marginBottom: 10 },
+  wdBtn: { flex: 1, paddingVertical: 9, borderRadius: 9, backgroundColor: C.soft, alignItems: 'center' },
+  wdBtnOn: { backgroundColor: C.petrol },
+  wdTxt: { fontSize: 11.5, fontWeight: '800', color: C.petrol },
+  wdTxtOn: { color: '#fff' },
+  mdGenRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-end' },
+  mdMini: { fontSize: 12, fontWeight: '700', color: C.text, marginBottom: 6 },
+  genBtn: { backgroundColor: C.petrol, borderRadius: 12, paddingVertical: 13, paddingHorizontal: 18, alignItems: 'center' },
+  genBtnTxt: { color: '#fff', fontWeight: '800', fontSize: 14 },
+  mdSummary: { fontSize: 13, fontWeight: '800', color: C.petrol, backgroundColor: C.soft, borderRadius: 10, padding: 10, marginBottom: 8, overflow: 'hidden' },
+  fdRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 7, paddingHorizontal: 10, borderWidth: 1, borderColor: C.line, borderRadius: 11, marginBottom: 6, backgroundColor: C.card },
+  fdLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  fdCheck: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: C.line, alignItems: 'center', justifyContent: 'center' },
+  fdCheckOn: { backgroundColor: C.petrol, borderColor: C.petrol },
+  fdCheckTxt: { color: '#fff', fontWeight: '900', fontSize: 13 },
+  fdLabel: { fontSize: 13, fontWeight: '700', color: C.text, textTransform: 'capitalize' },
+  fdHours: { width: 54, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: 9, paddingVertical: 6, paddingHorizontal: 8, textAlign: 'center', fontSize: 14, color: C.text },
+  fdHoursU: { fontSize: 12, color: C.muted },
 });

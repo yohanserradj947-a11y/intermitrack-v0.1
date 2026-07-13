@@ -20,6 +20,7 @@ type Ctx = {
   notes: Note[];
   notesForDate: (dateStr: string) => Note[];
   addNote: (n: Omit<Note, 'id'>) => void;
+  addNotes: (ns: Omit<Note, 'id'>[]) => void;
   updateNote: (id: string, patch: Partial<Note>) => void;
   deleteNote: (id: string) => void;
 };
@@ -72,6 +73,19 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     });
   }, [persist]);
 
+  // Ajout GROUPÉ : une seule sauvegarde pour N notes (évite la course sur l'upsert
+  // quand on crée plusieurs jours de formation d'un coup).
+  const addNotes = useCallback((ns: Omit<Note, 'id'>[]) => {
+    if (!ns.length) return;
+    setNotes(prev => {
+      const base = Date.now();
+      const created = ns.map((n, i) => ({ ...n, id: 'n' + (base + i).toString(36) + Math.random().toString(36).slice(2, 6) }));
+      const next = [...prev, ...created];
+      persist(next);
+      return next;
+    });
+  }, [persist]);
+
   const updateNote = useCallback((id: string, patch: Partial<Note>) => {
     setNotes(prev => {
       const next = prev.map(n => n.id === id ? { ...n, ...patch } : n);
@@ -89,7 +103,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   }, [persist]);
 
   return (
-    <NotesContext.Provider value={{ notes, notesForDate, addNote, updateNote, deleteNote }}>
+    <NotesContext.Provider value={{ notes, notesForDate, addNote, addNotes, updateNote, deleteNote }}>
       {children}
     </NotesContext.Provider>
   );
