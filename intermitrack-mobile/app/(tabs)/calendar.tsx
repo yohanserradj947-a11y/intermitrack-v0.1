@@ -450,11 +450,6 @@ export default function Calendar(){
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={s.resetCalBtn} activeOpacity={0.85} onPress={resetCalendar}>
-        <Ionicons name="trash-outline" size={15} color={C.danger}/>
-        <Text style={s.resetCalTxt}>Réinitialiser le calendrier</Text>
-      </TouchableOpacity>
-
       <View style={s.weekRow}>
         {['L','M','M','J','V','S','D'].map((d,i)=>(<Text key={i} style={s.weekDay}>{d}</Text>))}
       </View>
@@ -517,6 +512,9 @@ export default function Calendar(){
       </View>
 
       <Text style={s.hint}>Touche un jour pour ajouter une mission, ou une mission existante pour la modifier</Text>
+      <TouchableOpacity onPress={resetCalendar} hitSlop={8} style={{alignSelf:'center',marginTop:1,marginBottom:2,paddingVertical:5,paddingHorizontal:10}}>
+        <Text style={{fontSize:11.5,color:C.muted,textDecorationLine:'underline'}}>Réinitialiser le calendrier</Text>
+      </TouchableOpacity>
 
       <View style={s.calTabs}>
         <TouchableOpacity style={[s.calTab,calTab==='missions'&&s.calTabOn]} onPress={()=>setCalTab('missions')}>

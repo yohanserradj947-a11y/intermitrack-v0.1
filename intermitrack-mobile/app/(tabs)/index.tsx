@@ -14,7 +14,6 @@ import KmSection, { KmHandle } from '../../components/KmSection';
 import TxtInput from '../../components/TxtInput';
 import { GradientButton } from '../../components/GradientButton';
 import { openMesInfos, onProfilChanged } from '../../components/AccountMenu';
-import QuickEntryModal from '../../components/QuickEntryModal';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemeControls } from '../../lib/theme';
 import { useNotes } from '../../lib/notes';
@@ -48,7 +47,6 @@ export default function HomeScreen(){
   const [missionPage,setMissionPage]=useState(0);
   const [areDate,setAreDate]=useState('');
   const [yearOffset,setYearOffset]=useState(0); // navigation dans l'historique des années d'intermittence (0 = année en cours)
-  const [quickOpen,setQuickOpen]=useState(false);
   const [chargeRate,setChargeRate]=useState(22.5); // % charges salariales (réglé dans Prévisions)
   const [pasRate,setPasRate]=useState(0);          // % prélèvement à la source
   const [showDatePicker,setShowDatePicker]=useState(false);
@@ -336,10 +334,6 @@ export default function HomeScreen(){
             </TouchableOpacity>
           </View>
         </View>
-        <TouchableOpacity style={s.quickBtn} onPress={()=>setQuickOpen(true)} activeOpacity={0.85}>
-          <Ionicons name="flash-outline" size={16} color={C.green}/>
-          <Text style={s.quickBtnTxt}>Saisie rapide du mois</Text>
-        </TouchableOpacity>
         <View style={s.statsGrid}>
           <View style={s.statBox}><Text style={s.statVal}>{monthH}h</Text><Text style={s.statLbl}>Heures</Text></View>
           <View style={s.statBox}><Text style={s.statVal}>{money(monthNet)}</Text><Text style={s.statSub}>Brut {money(monthG)}</Text><Text style={s.statLbl}>Net à payer (est.)</Text></View>
@@ -538,7 +532,6 @@ export default function HomeScreen(){
         </View>
       )}
     </ScrollView>
-    <QuickEntryModal visible={quickOpen} defaultDate={iso(current)} missions={missions} onClose={()=>setQuickOpen(false)} onSaved={()=>loadData(true)} />
     </>
   );
 }
