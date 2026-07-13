@@ -205,12 +205,13 @@ function EmptyCal(p: Pal) {
 
 // Construit un widget par nom, pour un thème donné.
 function buildOne(name: string, data: WidgetData, dark: boolean) {
-  // Palette du thème de l'app si dispo (Rock, Noir & Or…), sinon clair/sombre par défaut.
-  const p: Pal = (data.theme as any as Pal) || pal(dark);
+  const p = pal(dark); // clair/sombre système — les widgets NON concernés restent inchangés
+  // Seul le widget calendrier MOYEN (CalendarAgenda) adopte le thème de l'app (Rock, Noir & Or…).
+  const themed: Pal = (data.theme as any as Pal) || p;
   switch (name) {
     case 'Hours': return HoursWidget(data.hours, p);
     case 'Next': return NextWidget(data.next, p);
-    case 'CalendarAgenda': return CalendarAgendaWidget(data.cal, p);
+    case 'CalendarAgenda': return CalendarAgendaWidget(data.cal, themed);
     case 'CalendarMonth': return CalendarMonthWidget(data.cal, p);
     default: return HoursWidget(data.hours, p);
   }
