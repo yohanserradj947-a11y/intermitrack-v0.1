@@ -688,7 +688,7 @@ export default function Calendar(){
               )}
               {showEndPicker&&(
                 <DateTimePicker value={fEnd} mode="date" locale="fr-FR" themeVariant={scheme} display={Platform.OS==='ios'?'spinner':'default'}
-                  onChange={(_e,date)=>{setShowEndPicker(false);if(date){setFEnd(date);}}}/>
+                  onChange={(_e,date)=>{setShowEndPicker(false);if(date){setFEnd(date); if(!editId && mdpDays.length===0 && daysInclusive(fStart,date)>=2){ openDayPicker(fStart,date); }}}}/>
               )}
 
               <Text style={s.label}>Heures cumulées</Text>
