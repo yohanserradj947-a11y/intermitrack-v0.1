@@ -1486,8 +1486,7 @@ function editMission(id) {
   $("production").value = mission.production || ""; if (typeof syncProdColorPicker === 'function') syncProdColorPicker();
   if ($("emission")) $("emission").value = mission.emission || "";
   if ($("lieu")) $("lieu").value = mission.lieu || "";
-  $("type").value = mission.type || "Autre";
-  if (typeof _syncTypeBtn === "function") _syncTypeBtn();
+  _setTypeValue(mission.type || "Autres");
   $("date").value = mission.date || "";
   $("endDate").value = mission.endDate || mission.date || "";
   $("hours").value = mission.hours || 0;
@@ -2461,23 +2460,33 @@ function renderPoleEmploi(list, salaireNet) {
     const lk = $("peProfilLink"); if (lk) lk.onclick = function(e){ e.preventDefault(); if (typeof openProfilModal === "function") openProfilModal(); };
     return;
   }
-  const heures = list.reduce(function(a,x){ return a + (Number(x.hours)||0) * (missionDaysInMonth(x, current) / missionDayCount(x)); }, 0); // prorata : part du mois pour missions à cheval
+  const _frac = function(x){ return missionDaysInMonth(x, current) / missionDayCount(x); }; // prorata : part du mois pour missions à cheval
+  const heures = list.reduce(function(a,x){ return a + (Number(x.hours)||0) * _frac(x); }, 0);
+  const brutMois = list.reduce(function(a,x){ return a + (Number(x.gross)||0) * _frac(x); }, 0);
   const artiste = (_profil && _profil.annexe === "artiste");
   const coef = artiste ? 1.3 : 1.4, divJ = artiste ? 10 : 8;
   const daysInMonth = new Date(current.getFullYear(), current.getMonth()+1, 0).getDate();
-  const jniBase = heures * coef / divJ;                       // jours non indemnisables (base formule FT)
   function clampDays(v){ return Math.max(0, Math.min(daysInMonth, v)); }
-  const indemHaut = clampDays(daysInMonth - jniBase * 1.05);  // optimiste (formule officielle)
-  const indemBas  = clampDays(daysInMonth - jniBase * 1.20);  // prudent (heures majorées FT ~+15-20%)
+  // Jours non indemnisables (formule officielle France Travail) : heures × coef ÷ diviseur.
+  // Fourchette ±1 jour (arrondi) pour rester une estimation honnête — MÊME formule que l'appli.
+  const jniRaw = heures * coef / divJ;
+  const daysHaut = clampDays(daysInMonth - Math.floor(jniRaw)); // moins de JNI → borne haute
+  const daysBas  = clampDays(daysInMonth - Math.ceil(jniRaw));  // plus de JNI → borne basse
+  // Plafond de cumul : salaire brut du mois + allocation ≤ 118 % du PMSS.
+  const PMSS = 4005, PLAFOND_CUMUL = 1.18, plafondCumul = PMSS * PLAFOND_CUMUL;
+  const daysPlafond = Math.max(0, Math.ceil((plafondCumul - brutMois) / aj));
+  const dHaut = Math.min(daysHaut, daysPlafond), dBas = Math.min(daysBas, daysPlafond);
+  const plafondActif = daysPlafond < daysHaut; // le plafond rabote l'allocation ce mois-ci
   const tax = (_profil && Number(_profil.taux_impot)) || 0;
   const fNet = 1 - tax/100, showNet = tax > 0;
-  const bas = Math.round(aj * indemBas * fNet), haut = Math.round(aj * indemHaut * fNet);
+  const bas = Math.round(aj * dBas * fNet), haut = Math.round(aj * dHaut * fNet);
   const heuresR = Math.round(heures*10)/10;
   box.innerHTML =
     '<div class="pe-card">' +
       '<div class="pe-head"><span class="pe-label">' + ICO.euro + ' Estimation France Travail (ce mois)</span><span class="pe-val">≈ ' + bas.toLocaleString('fr-FR') + ' – ' + money(haut) + '</span></div>' +
       '<div class="pe-detail">' + (showNet ? 'fourchette nette (après ' + tax + ' % d\'impôt)' : 'fourchette brute') + ' · basée sur ' + heuresR + ' h ce mois' + (artiste ? ' (artiste, annexe 10)' : ' (technicien, annexe 8)') + '</div>' +
       '<div class="pe-total"><div class="pe-total-row"><span class="pe-total-label">Revenu total estimé ce mois</span><span class="pe-total-val">≈ ' + (salaireNet + bas).toLocaleString('fr-FR') + ' – ' + money(salaireNet + haut) + '</span></div><div class="pe-total-sub">salaire net ' + money(salaireNet) + ' + allocation France Travail</div></div>' +
+      (plafondActif ? '<div class="pe-detail" style="color:#c26a00">Plafond de cumul atteint : salaire + allocation limités à 118 % du PMSS (' + money(Math.round(plafondCumul)) + ') → allocation réduite ce mois-ci.</div>' : '') +
       '<div class="pe-note">Fourchette <b>indicative</b> — nous <b>affinons en continu notre formule</b> pour nous rapprocher au plus près du montant réel (le calcul France Travail est complexe : heures majorées, SJR, carences, plafonds). Ne tient pas compte des <b>carences / franchises</b>. Fiable seulement avec tes <b>vraies heures</b>. Montant exact → ton espace <a href="https://www.francetravail.fr/spectacle/" target="_blank" rel="noopener">France Travail</a>.' + (showNet ? '' : ' <a href="#" id="peTaxLink">Ajouter mon taux d\'impôt</a> pour le net.') + '</div>' +
     '</div>';
   if (!showNet) { const tk = $("peTaxLink"); if (tk) tk.onclick = function(e){ e.preventDefault(); if (typeof openProfilModal === "function") openProfilModal(); }; }
@@ -2775,7 +2784,7 @@ function renderChart(doneHours, plannedHours = 0, formationHours = 0) {
     return `<rect x="${x}" y="188" width="10" height="10" rx="3" fill="${it.c}"/><text x="${x + 14}" y="197" font-size="9.5" font-weight="700" fill="${tc}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${it.t}</text>`;
   }).join('');
   $("chart").innerHTML = `
- <svg viewBox="-20 0 340 210" width="100%" role="img" aria-label="Arc progression heures">
+ <svg viewBox="-20 0 340 210" width="100%" style="max-height:300px;display:block;" role="img" aria-label="Arc progression heures">
       <defs>
         <linearGradient id="g3done" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stop-color="${isDark ? '#1F6E8F' : '#1F4E5F'}"/>
@@ -3264,8 +3273,7 @@ function resetMissionFormForDate(dateStr) {
   if (typeof switchAddTab === 'function') switchAddTab('mission');
   if ($("missionForm")) $("missionForm").reset();
   if ($("production")) $("production").value = ""; if (typeof syncProdColorPicker === 'function') syncProdColorPicker();
-  if ($("type")) $("type").value = (getCustomPostes()[0]) || "Montage";
-  if (typeof _syncTypeBtn === "function") _syncTypeBtn();
+  if ($("type")) _setTypeValue((getCustomPostes()[0]) || "Montage");
   if ($("date")) $("date").value = dateStr;
   if ($("endDate")) $("endDate").value = dateStr;
   if ($("hours")) $("hours").value = "";
@@ -4055,7 +4063,22 @@ async function loadProfil(){
     }
     if (typeof renderCalendar === 'function') renderCalendar();
     if (typeof renderAllMissions === 'function') renderAllMissions();
+    if (typeof _syncPrevAnnexe === 'function') _syncPrevAnnexe();
   }catch(e){ _profil = null; }
+}
+
+// Prévisions : présélectionne l'annexe (Artiste/Technicien) selon le profil de l'user.
+// Les 2 cartes utilisent data-a ; la carte carence (itk-c2) s'en sert pour son CALCUL.
+function _syncPrevAnnexe(){
+  var a = (typeof _profil !== 'undefined' && _profil && _profil.annexe) || '';
+  // "les deux" → technicien par défaut (le calcul carence porte sur une seule annexe, ajustable à la main).
+  var want = (a === 'artiste') ? 'artiste' : 'technicien';
+  ['itk-c1-annexe','itk-c2-annexe'].forEach(function(id){
+    var box = document.getElementById(id); if(!box) return;
+    [].forEach.call(box.querySelectorAll('button'), function(b){
+      b.classList.toggle('itk-on', b.getAttribute('data-a') === want);
+    });
+  });
 }
 
 function _profilEnsureDom(){
@@ -4144,6 +4167,7 @@ async function _profilSave(){
   var res = await sb.from('profiles').upsert(Object.assign({ id: currentUser.id }, p), { onConflict:'id' });
   if(res.error){ if(typeof toast==='function') toast('Erreur : '+res.error.message); return; }
   _profil = p;
+  if (typeof _syncPrevAnnexe === 'function') _syncPrevAnnexe(); // Prévisions suivent l'annexe choisie tout de suite
   ov.classList.remove('open');
   if(typeof toast==='function') toast('Infos enregistrées ✅');
   if(typeof render==='function') render(); // re-render le dashboard → l'estimation France Travail s'adapte tout de suite (annexe artiste/technicien)
@@ -4169,6 +4193,18 @@ function initProfilFeature(){
 }
 // ===== Sélecteur de type de mission (pop-up à boutons, comme les jours) =====
 function _syncTypeBtn(){ var l=document.getElementById('typeBtnLabel'); var t=document.getElementById('type'); if(l && t) l.textContent = t.value || 'Choisir…'; }
+// Le <select id="type"> a une liste d'<option> FIXE. Une valeur hors liste (ex. un poste
+// perso "Chorégraphe") est REFUSÉE par le navigateur et remise à vide → "ça ne se sélectionne pas".
+// On crée donc l'<option> manquante avant d'affecter la valeur.
+function _setTypeValue(v){
+  var t = document.getElementById('type'); if(!t) return;
+  v = v || '';
+  if(v && !Array.prototype.some.call(t.options, function(o){ return o.value === v; })){
+    t.add(new Option(v, v));
+  }
+  t.value = v;
+  if(typeof _syncTypeBtn === 'function') _syncTypeBtn();
+}
 function _renderTypePicker(ov){
   var base = ['Montage','Tournage','Démontage'];
   var customs = getCustomPostes();
@@ -4185,7 +4221,7 @@ function _typePickerAddFromInput(ov){
   var inp = document.getElementById('newPosteInput'); var v = (inp && inp.value || '').trim();
   if(!v) return;
   addCustomPoste(v);
-  var t = document.getElementById('type'); if(t) t.value = v; _syncTypeBtn();
+  _setTypeValue(v);
   ov.style.display='none';
 }
 function _openTypePicker(){
@@ -4205,7 +4241,7 @@ function _openTypePicker(){
       if(del){ e.stopPropagation(); removeCustomPoste(del.dataset.delposte); _renderTypePicker(ov); return; }
       if(e.target.id==='addPosteBtn'){ _typePickerAddFromInput(ov); return; }
       var b = e.target.closest('[data-type]');
-      if(b){ var t=document.getElementById('type'); if(t) t.value = b.dataset.type; _syncTypeBtn(); ov.style.display='none'; }
+      if(b){ _setTypeValue(b.dataset.type); ov.style.display='none'; }
     });
     ov.addEventListener('keydown', function(e){ if(e.key==='Enter' && e.target.id==='newPosteInput'){ e.preventDefault(); _typePickerAddFromInput(ov); } });
   }
