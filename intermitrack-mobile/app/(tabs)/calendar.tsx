@@ -343,7 +343,7 @@ export default function Calendar(){
   }
   function _showCalInfo(){
     showAlert('Format agenda / calendrier',
-      "Intermitrack lit les evenements de ton agenda (iPhone / Samsung). Pour qu'il recupere tout, ecris dans le TITRE de l'evenement :\n\nProduction   Heures   Prix\nEx : ENDEMOL 8h 350€\n\nL'ordre est libre (ENDEMOL 350€ 8h marche aussi). La date vient de l'evenement. Il manque une info ? Tu completeras apres l'import.",
+      "Intermitrack lit les evenements de ton agenda (iPhone / Samsung). Pour qu'il recupere tout, ecris dans le TITRE de l'evenement :\n\nProduction   Heures   Prix\nEx : ENDEMOL 8h 350€\n\nL'ordre est libre (ENDEMOL 350€ 8h marche aussi). La date vient de l'evenement.\n\nPas d'heures indiquees ? On met 8h par defaut pour le jour (modifiable apres l'import). Il manque une autre info ? Tu completeras apres.",
       [{text:'Compris'}]);
   }
 
@@ -586,7 +586,7 @@ export default function Calendar(){
                 <Ionicons name="close" size={22} color={C.muted}/>
               </TouchableOpacity>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets={true}>
 
               <Text style={s.label}>Nom de la production</Text>
               <TxtInput style={s.input} value={fProduction} onChangeText={(t:string)=>{setFProduction(t);setShowSuggest(true);}} onFocus={()=>setShowSuggest(true)} placeholder="Ex : ENDEMOL" placeholderTextColor={C.muted} autoCapitalize="characters"/>
@@ -704,8 +704,8 @@ export default function Calendar(){
               <NumInput style={s.input} value={fHours} onChangeText={setFHours} placeholder="8" placeholderTextColor={C.muted}/>
               <View style={{flexDirection:'row',flexWrap:'wrap',gap:8,marginTop:8}}>
                 {[4,8,12].map(h=>(
-                  <TouchableOpacity key={h} style={s.mdpTool} onPress={()=>setFHours(String(h))}>
-                    <Text style={s.mdpToolTxt}>{h}h</Text>
+                  <TouchableOpacity key={h} style={[s.mdpTool, fHours===String(h)&&{backgroundColor:C.petrol}]} onPressIn={()=>setFHours(String(h))}>
+                    <Text style={[s.mdpToolTxt, fHours===String(h)&&{color:'#fff'}]}>{h}h</Text>
                   </TouchableOpacity>
                 ))}
               </View>

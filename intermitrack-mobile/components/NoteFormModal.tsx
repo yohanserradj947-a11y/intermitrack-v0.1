@@ -120,7 +120,7 @@ export default function NoteFormModal({ visible, editNote, defaultDate, mode = '
               <Text style={[s.title, { marginBottom: 0, flex: 1, textAlign: 'left' }]}>{editNote ? (isForm ? 'Modifier la formation' : 'Modifier la note') : (isForm ? 'Ajouter une formation' : 'Note perso')}</Text>
               <TouchableOpacity style={s.close} onPress={onClose} hitSlop={8}><Text style={s.closeTxt}>✕</Text></TouchableOpacity>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets={true} contentContainerStyle={{ paddingBottom: 24 }}>
               {isForm && <Text style={s.formIntro}>Une formation compte dans tes heures, pas dans ton brut ni tes cachets.</Text>}
 
               <Text style={s.label}>{isForm ? 'Organisme de formation' : 'Titre de la note'}</Text>
