@@ -4339,7 +4339,10 @@ function _openProdPicker(){
     document.head.appendChild(st);
     ov = document.createElement('div');
     ov.id = 'prodPickerOverlay';
-    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:100003;padding:16px;';
+    // Ancré EN HAUT et non centré : sur mobile, le clavier ne redimensionne pas la page (position:fixed),
+    // une fenêtre centrée verrait donc son bas — dont la liste — recouvert dès qu'on tape un nom.
+    // En haut, le champ de saisie et les premières productions restent toujours visibles.
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-start;justify-content:center;z-index:100003;padding:6vh 16px 16px;overflow-y:auto;';
     document.body.appendChild(ov);
     ov.addEventListener('click', function(e){
       if(e.target===ov || e.target.id==='prodPickClose'){ ov.style.display='none'; return; }

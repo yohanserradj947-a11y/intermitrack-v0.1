@@ -495,7 +495,7 @@ export default function HomeScreen(){
               )}
               {!showTypePicker && !!fType && (
                 <TouchableOpacity onPress={()=>{setTypeAddMode(true);setShowTypePicker(true);}}>
-                  <Text style={s.typeAddLink}>+ Ajouter un type de mission (ex. Son + Light)</Text>
+                  <Text style={s.typeAddLink}>+ 2e type de mission (ex. Son + Light)</Text>
                 </TouchableOpacity>
               )}
               {showTypePicker && (

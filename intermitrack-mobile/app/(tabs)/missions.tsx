@@ -86,7 +86,6 @@ export default function Missions(){
   const [showStartPicker,setShowStartPicker]=useState(false);
   const [showEndPicker,setShowEndPicker]=useState(false);
   const [saving,setSaving]=useState(false);
-  const [showSuggest,setShowSuggest]=useState(false);
   const [showProdPicker,setShowProdPicker]=useState(false);
   const [showEmSuggest,setShowEmSuggest]=useState(false);
 
@@ -111,7 +110,7 @@ export default function Missions(){
     else { setFCachets(''); setFHours(String(m.hours||'')); }
     setFGross(String(m.gross_amount||'')); setFVacations(String(m.vacations||''));
     setEditKmDist(Number(m.km_distance) || 0); setEditKmRate(Number(m.km_rate) || 0);
-    setShowSuggest(false); setShowEmSuggest(false); setShowTypePicker(false);
+    setShowEmSuggest(false); setShowTypePicker(false);
   }
 
   async function saveEdit(){
@@ -205,10 +204,6 @@ export default function Missions(){
   // Employeurs deja saisis, classes du PLUS FREQUENT au moins frequent (idem onglet calendrier).
   const prodCounts=missions.reduce((acc:Record<string,number>,m:any)=>{const p=(m.production||'').toUpperCase().trim();if(p)acc[p]=(acc[p]||0)+1;return acc;},{});
   const knownProductions=Object.keys(prodCounts).sort((a,b)=>prodCounts[b]-prodCounts[a]);
-  // Champ vide (au focus) -> employeurs recurrents proposes directement, sans rien taper. Retour Damien.
-  const prodSuggestions=prodQuery
-    ? knownProductions.filter(p=>p.includes(prodQuery)&&p!==prodQuery).slice(0,5)
-    : knownProductions.slice(0,8);
 
   // Suggestions d'émission : d'abord celles déjà utilisées pour la production choisie,
   // puis les autres. Insensible à la casse, casse d'origine conservée.
@@ -350,7 +345,7 @@ export default function Missions(){
                 )}
                 {!showTypePicker && !!fType && (
                   <TouchableOpacity onPress={()=>{setTypeAddMode(true);setShowTypePicker(true);}}>
-                    <Text style={s.typeAddLink}>+ Ajouter un type de mission (ex. Son + Light)</Text>
+                    <Text style={s.typeAddLink}>+ 2e type de mission (ex. Son + Light)</Text>
                   </TouchableOpacity>
                 )}
                 {showTypePicker && (

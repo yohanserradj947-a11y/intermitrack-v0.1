@@ -33,7 +33,12 @@ export default function ProductionPickerModal({
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? undefined : 'height'}>
+      {/* Ici, contrairement aux formulaires mission/note, AUCUN ScrollView n'a automaticallyAdjustKeyboardInsets :
+          c'est donc le KeyboardAvoidingView qui doit gerer le clavier, avec "padding" sur iOS. Le mettre a
+          undefined (comme dans ces formulaires) laisserait le clavier recouvrir la liste.
+          La fenetre etant centree et bornee en hauteur, le padding la remonte ET la retrecit : le champ de
+          saisie du haut reste visible et la liste continue de defiler sous lui. */}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={onClose}>
           <TouchableOpacity style={s.box} activeOpacity={1} onPress={() => {}}>
             <View style={s.head}>

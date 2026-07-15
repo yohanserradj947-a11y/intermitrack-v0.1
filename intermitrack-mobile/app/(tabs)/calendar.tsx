@@ -117,7 +117,6 @@ export default function Calendar(){
   const [showStartPicker,setShowStartPicker]=useState(false);
   const [showEndPicker,setShowEndPicker]=useState(false);
   const [saving,setSaving]=useState(false);
-  const [showSuggest,setShowSuggest]=useState(false);
   const [showProdPicker,setShowProdPicker]=useState(false);
   const [showEmSuggest,setShowEmSuggest]=useState(false);
 
@@ -161,7 +160,7 @@ export default function Calendar(){
     setFMode(modeForNew(annexe)); setFCachets('');
     setFHours(''); setFGross(''); setFVacations(''); setMdpDays([]);
     setKmOpen(false); setKmFrom(''); setKmTo(''); setKmFromCoords(null); setKmToCoords(null); setKmRT(false); setKmEveryDay(false); setKmJustify(false); setKmCv(''); setKmTranche('1'); setKmDistance(''); setKmRate('');
-    setShowSuggest(false); setShowEmSuggest(false);
+    setShowEmSuggest(false);
     setShowForm(true);
   }
   function openEdit(m:any){
@@ -181,7 +180,7 @@ export default function Calendar(){
     setKmFrom(''); setKmTo(''); setKmFromCoords(null); setKmToCoords(null); setKmRT(false); setKmEveryDay(false); setKmJustify(false); setKmCv(''); setKmTranche('1');
     setKmDistance(m.km_distance?String(m.km_distance):''); setKmRate(m.km_rate?String(m.km_rate):'');
     setKmOpen(!!(m.km_distance||m.km_amount));
-    setShowSuggest(false); setShowEmSuggest(false);
+    setShowEmSuggest(false);
     setShowForm(true);
   }
 
@@ -386,11 +385,6 @@ export default function Calendar(){
   // Employeurs deja saisis, classes du PLUS FREQUENT au moins frequent : les recurrents remontent d'eux-memes.
   const prodCounts=missions.reduce((acc:Record<string,number>,m:any)=>{const p=(m.production||'').toUpperCase().trim();if(p)acc[p]=(acc[p]||0)+1;return acc;},{});
   const knownProductions=Object.keys(prodCounts).sort((a,b)=>prodCounts[b]-prodCounts[a]);
-  // Champ vide (au focus) -> on propose directement les employeurs recurrents, sans rien avoir a taper.
-  // Champ rempli -> on filtre. Retour Damien : avant, il fallait taper une lettre pour voir quoi que ce soit.
-  const prodSuggestions=prodQuery
-    ? knownProductions.filter(p=>p.includes(prodQuery)&&p!==prodQuery).slice(0,5)
-    : knownProductions.slice(0,8);
 
   // Suggestions d'émission : on propose d'abord les émissions déjà utilisées pour la
   // production choisie, puis les autres. Insensible à la casse, casse d'origine conservée.
@@ -746,7 +740,7 @@ export default function Calendar(){
               )}
               {!showTypePicker && !!fType && (
                 <TouchableOpacity onPress={()=>{setTypeAddMode(true);setShowTypePicker(true);}}>
-                  <Text style={s.typeAddLink}>+ Ajouter un type de mission (ex. Son + Light)</Text>
+                  <Text style={s.typeAddLink}>+ 2e type de mission (ex. Son + Light)</Text>
                 </TouchableOpacity>
               )}
               {showTypePicker && (
@@ -1090,8 +1084,6 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   input:{borderWidth:1,borderColor:C.line,borderRadius:14,paddingVertical:13,paddingHorizontal:14,fontSize:15,color:C.text,backgroundColor:C.card},
   inputTxt:{fontSize:15,color:C.text},
   suggestBox:{backgroundColor:C.card,borderWidth:1,borderColor:C.line,borderRadius:14,marginTop:6,overflow:'hidden'},
-  // En-tête de la liste déroulante : dit qu'on peut choisir OU taper un nouveau nom (sinon on ne devine pas).
-  suggestHead:{fontSize:11,fontWeight:'800',color:C.muted,paddingHorizontal:14,paddingTop:10,paddingBottom:6},
   suggestItem:{paddingVertical:12,paddingHorizontal:14,borderBottomWidth:1,borderBottomColor:C.soft},
   suggestTxt:{fontSize:15,fontWeight:'700',color:C.petrol},
   row:{flexDirection:'row',gap:10},
