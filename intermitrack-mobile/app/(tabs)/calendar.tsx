@@ -611,7 +611,7 @@ export default function Calendar(){
                       <Text style={s.rgOptTitle}>Un travail hors spectacle</Text>
                     </View>
                     <Text style={s.rgOptEx}>Pub en tant que mannequin, restauration, bureau, vente… Tout emploi salarié qui ne relève pas des annexes 8 ou 10.</Text>
-                    <Text style={[s.rgOptTag,{color:'#9A3412',backgroundColor:'#FFEDD5'}]}>Ne compte PAS dans les 507 h</Text>
+                    <Text style={[s.rgOptTag,{color:C.warnTx,backgroundColor:C.warnBg}]}>Ne compte PAS dans les 507 h</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity style={[s.rgOpt,fRegime==='enseignement'&&s.rgOptOn]} activeOpacity={0.85}
@@ -623,7 +623,7 @@ export default function Calendar(){
                       <Text style={s.rgOptTitle}>De l'enseignement</Text>
                     </View>
                     <Text style={s.rgOptEx}>Tu donnes des cours (chant, technique, danse…) dans un établissement <Text style={{fontWeight:'800'}}>agréé</Text>, sur une matière <Text style={{fontWeight:'800'}}>en lien avec ton métier</Text>, avec un vrai contrat de travail. Les 3 conditions sont obligatoires.</Text>
-                    <Text style={[s.rgOptTag,{color:'#075985',backgroundColor:'#E0F2FE'}]}>COMPTE dans les 507 h</Text>
+                    <Text style={[s.rgOptTag,{color:C.green,backgroundColor:C.greenBg}]}>COMPTE dans les 507 h</Text>
                   </TouchableOpacity>
 
                   <Text style={s.rgInfo}>
@@ -1078,22 +1078,24 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   calTabOn:{backgroundColor:C.card,shadowColor:'#000',shadowOpacity:0.08,shadowRadius:6,elevation:2},
   calTabTxt:{fontSize:12.5,fontWeight:'800',color:C.muted},
   calTabTxtOn:{fontSize:12.5,fontWeight:'800',color:C.petrol},
-  // Encadré "activité hors intermittence" : 2 cas exposés côte à côte, on choisit en connaissance de cause
-  rgBox:{backgroundColor:'#F0F9FF',borderWidth:1,borderColor:'#BAE6FD',borderRadius:14,padding:13,marginBottom:6},
-  rgTitle:{fontSize:14,fontWeight:'900',color:'#0B4A5F'},
-  rgLead:{fontSize:12.5,color:'#3B6C80',lineHeight:17,marginTop:3,marginBottom:10},
-  rgOpt:{backgroundColor:'#fff',borderWidth:1.5,borderColor:'#D8E6EC',borderRadius:12,padding:11,marginBottom:8},
-  rgOptOn:{borderColor:'#0EA5E9',backgroundColor:'#F7FCFF'},
+  // Encadré "activité hors intermittence" : 2 cas exposés côte à côte, on choisit en connaissance de cause.
+  // Toutes les couleurs viennent du thème (C) → suit Sombre, Rock, Noir & Or, etc. Seul l'accent
+  // enseignement (#0EA5E9) est fixe : c'est la couleur du segment correspondant sur la jauge.
+  rgBox:{backgroundColor:C.soft,borderWidth:1,borderColor:C.line,borderRadius:14,padding:13,marginBottom:6},
+  rgTitle:{fontSize:14,fontWeight:'900',color:C.text},
+  rgLead:{fontSize:12.5,color:C.muted,lineHeight:17,marginTop:3,marginBottom:10},
+  rgOpt:{backgroundColor:C.card,borderWidth:1.5,borderColor:C.line,borderRadius:12,padding:11,marginBottom:8},
+  rgOptOn:{borderColor:'#0EA5E9'},
   rgOptHead:{flexDirection:'row',alignItems:'center',gap:9},
-  rgRadio:{width:19,height:19,borderRadius:10,borderWidth:1.5,borderColor:'#9FBECB',backgroundColor:'#fff',
+  rgRadio:{width:19,height:19,borderRadius:10,borderWidth:1.5,borderColor:C.line,backgroundColor:C.card,
     alignItems:'center',justifyContent:'center',flexShrink:0},
   rgRadioOn:{borderColor:'#0EA5E9'},
   rgRadioDot:{width:9,height:9,borderRadius:5,backgroundColor:'#0EA5E9'},
-  rgOptTitle:{flex:1,fontSize:13.5,fontWeight:'900',color:'#0B4A5F'},
-  rgOptEx:{fontSize:12,color:'#5A7A88',lineHeight:16.5,marginTop:6},
+  rgOptTitle:{flex:1,fontSize:13.5,fontWeight:'900',color:C.text},
+  rgOptEx:{fontSize:12,color:C.muted,lineHeight:16.5,marginTop:6},
   rgOptTag:{alignSelf:'flex-start',fontSize:10.5,fontWeight:'900',letterSpacing:0.2,
     paddingVertical:3,paddingHorizontal:8,borderRadius:20,marginTop:8,overflow:'hidden'},
-  rgInfo:{fontSize:12,color:'#3B6C80',lineHeight:17,marginTop:2},
+  rgInfo:{fontSize:12,color:C.muted,lineHeight:17,marginTop:2},
   dmActs:{flexDirection:'row',flexWrap:'wrap',gap:10,marginTop:10,marginBottom:4},
   dmAct:{flexGrow:1,flexBasis:'46%',alignItems:'center',justifyContent:'center',gap:8,paddingVertical:16,paddingHorizontal:8,borderRadius:14,borderWidth:1.5,backgroundColor:C.card},
   dmActTxt:{fontSize:13,fontWeight:'800',textAlign:'center'},
