@@ -17,6 +17,8 @@ import { useProdColors, PROD_PRESETS, prodGradient, textOn } from '../../lib/pro
 import { useAnnexe, modeForNew, modeForEdit, computeHoursVac, extraHoursOf, CACHET_H } from '../../lib/annexe';
 import { typeParts, addType, removeType } from '../../lib/missionType';
 import ProductionPickerModal from '../../components/ProductionPickerModal';
+import AddressPickerModal from '../../components/AddressPickerModal';
+import { knownFrom, knownTo, useKmDefaults } from '../../lib/kmAddresses';
 import ColorPickerModal from '../../components/ColorPickerModal';
 import ProdColorManager from '../../components/ProdColorManager';
 import NoteFormModal from '../../components/NoteFormModal';
@@ -130,6 +132,10 @@ export default function Calendar(){
   const [kmJustify,setKmJustify]=useState(false);
   const [kmCv,setKmCv]=useState('');
   const [kmTranche,setKmTranche]=useState('1');
+  const [showFromPicker,setShowFromPicker]=useState(false);
+  const [showToPicker,setShowToPicker]=useState(false);
+  // Vehicule memorise dans « Mes informations » : pre-remplit chaque mission, reste modifiable ici.
+  const kmDefaults=useKmDefaults();
   const [kmDistance,setKmDistance]=useState('');
   const [kmRate,setKmRate]=useState('');
   const [kmCalc,setKmCalc]=useState(false);
@@ -159,7 +165,10 @@ export default function Calendar(){
     setShowTypePicker(false); setTypeAddMode(false);
     setFMode(modeForNew(annexe)); setFCachets('');
     setFHours(''); setFGross(''); setFVacations(''); setMdpDays([]);
-    setKmOpen(false); setKmFrom(''); setKmTo(''); setKmFromCoords(null); setKmToCoords(null); setKmRT(false); setKmEveryDay(false); setKmJustify(false); setKmCv(''); setKmTranche('1'); setKmDistance(''); setKmRate('');
+    setKmOpen(false); setKmFrom(''); setKmTo(''); setKmFromCoords(null); setKmToCoords(null); setKmRT(false); setKmEveryDay(false); setKmJustify(false); setKmDistance(''); setKmRate('');
+    // Vehicule pre-rempli depuis « Mes informations » : « je ne change pas ma voiture » (JB). Reste modifiable.
+    setKmCv(kmDefaults.cv); setKmTranche(kmDefaults.tranche);
+    setShowFromPicker(false); setShowToPicker(false);
     setShowEmSuggest(false);
     setShowForm(true);
   }
@@ -177,7 +186,16 @@ export default function Calendar(){
     if(_mode==='cachet'){ setFCachets(String(_v||'')); setFHours(String(extraHoursOf(_h,_v)||'')); }
     else { setFCachets(''); setFHours(String(m.hours||'')); }
     setFGross(String(m.gross_amount||'')); setFVacations(String(m.vacations||''));
-    setKmFrom(''); setKmTo(''); setKmFromCoords(null); setKmToCoords(null); setKmRT(false); setKmEveryDay(false); setKmJustify(false); setKmCv(''); setKmTranche('1');
+    // Les adresses sont enfin relues : elles n'etaient enregistrees NULLE PART avant le 15/07/2026,
+    // d'ou le retour « les adresses n'apparaissent pas quand je modifie une mission ».
+    setKmFrom(m.km_from||''); setKmTo(m.km_to||'');
+    setKmFromCoords(m.km_from_lat!=null&&m.km_from_lng!=null?[Number(m.km_from_lng),Number(m.km_from_lat)]:null);
+    setKmToCoords(m.km_to_lat!=null&&m.km_to_lng!=null?[Number(m.km_to_lng),Number(m.km_to_lat)]:null);
+    setKmRT(false); setKmEveryDay(false); setKmJustify(false);
+    // Le CV n'est pas stocke par mission (seul le taux l'est) : on reprend celui du profil, sinon
+    // l'estimation affichee retombait a 0 a la reouverture d'une mission saisie au bareme.
+    setKmCv(kmDefaults.cv); setKmTranche(kmDefaults.tranche);
+    setShowFromPicker(false); setShowToPicker(false);
     setKmDistance(m.km_distance?String(m.km_distance):''); setKmRate(m.km_rate?String(m.km_rate):'');
     setKmOpen(!!(m.km_distance||m.km_amount));
     setShowEmSuggest(false);
@@ -221,6 +239,11 @@ export default function Calendar(){
       gross_amount:Number(fGross)||0, status:'effectue',
       km_distance:Math.round(kmEff(kmWorkedDays)), km_rate:pf(kmRate),
       km_amount:Math.round(kmFraisFor(kmWorkedDays)*100)/100,
+      // Adresses enfin enregistrees (+ coords) : elles alimentent le pop-up des prochaines missions
+      // et reapparaissent a l'edition. Avant, seules distance/taux/montant etaient sauvegardes.
+      km_from:kmFrom.trim()||null, km_to:kmTo.trim()||null,
+      km_from_lat:kmFromCoords?kmFromCoords[1]:null, km_from_lng:kmFromCoords?kmFromCoords[0]:null,
+      km_to_lat:kmToCoords?kmToCoords[1]:null, km_to_lng:kmToCoords?kmToCoords[0]:null,
     };
     const { error }= editId
       ? await supabase.from('missions').update(payload).eq('id',editId)
@@ -861,9 +884,35 @@ export default function Calendar(){
               {kmOpen&&(
                 <View style={s.kmBody}>
                   <Text style={s.label}>Lieu de départ</Text>
-                  <AddressInput style={s.input} value={kmFrom} onChangeText={setKmFrom} onCoords={setKmFromCoords} placeholder="Ville / adresse de départ"/>
+                  {/* Un appui ouvre le pop-up des adresses deja saisies, de la plus utilisee a la moins
+                      utilisee : le domicile remonte tout seul en tete. Retours JB et second utilisateur. */}
+                  <TouchableOpacity style={s.typeBtn} onPress={()=>setShowFromPicker(true)}>
+                    <Text style={[s.typeBtnTxt,!kmFrom&&{color:C.muted,fontWeight:'400'}]} numberOfLines={1}>{kmFrom||'Choisir ou saisir…'}</Text>
+                    <Text style={s.typeBtnChevron}>▾</Text>
+                  </TouchableOpacity>
+                  <AddressPickerModal
+                    visible={showFromPicker}
+                    addresses={knownFrom(missions)}
+                    current={kmFrom}
+                    title="Lieu de départ"
+                    onPick={(l,c)=>{setKmFrom(l);setKmFromCoords(c);setShowFromPicker(false);}}
+                    onClose={()=>setShowFromPicker(false)}
+                  />
                   <Text style={s.label}>Lieu d'arrivée</Text>
-                  <AddressInput style={s.input} value={kmTo} onChangeText={setKmTo} onCoords={setKmToCoords} placeholder="Ville / adresse d'arrivée"/>
+                  {/* L'arrivee propose aussi les LIEUX de mission deja saisis : ce champ etait deja
+                      enregistre, la liste est donc utile des la premiere ouverture. */}
+                  <TouchableOpacity style={s.typeBtn} onPress={()=>setShowToPicker(true)}>
+                    <Text style={[s.typeBtnTxt,!kmTo&&{color:C.muted,fontWeight:'400'}]} numberOfLines={1}>{kmTo||'Choisir ou saisir…'}</Text>
+                    <Text style={s.typeBtnChevron}>▾</Text>
+                  </TouchableOpacity>
+                  <AddressPickerModal
+                    visible={showToPicker}
+                    addresses={knownTo(missions)}
+                    current={kmTo}
+                    title="Lieu d'arrivée"
+                    onPick={(l,c)=>{setKmTo(l);setKmToCoords(c);setShowToPicker(false);}}
+                    onClose={()=>setShowToPicker(false)}
+                  />
                   <TouchableOpacity style={s.kmCheck} onPress={()=>setKmRT(v=>!v)}>
                     <View style={[s.kmBox,kmRT&&s.kmBoxOn]}>{kmRT&&<Text style={s.kmBoxTxt}>✓</Text>}</View>
                     <Text style={s.kmCheckTxt}>Aller-retour (×2)</Text>

@@ -68,6 +68,10 @@ export function AccountMenu(){
   const [miNewPoste,setMiNewPoste]=useState('');
   const [miAnnexe,setMiAnnexe]=useState<'technicien'|'artiste'|'les_deux'|''>('');
   const [miDroits,setMiDroits]=useState<boolean|null>(null);
+  // Vehicule memorise : « je ne change pas ma voiture, et mon nombre de kilometres annuel ne change
+  // pas d'une mission a l'autre ainsi que ma puissance fiscale » (retour JB).
+  const [miKmCv,setMiKmCv]=useState('');
+  const [miKmTranche,setMiKmTranche]=useState('1');
   const [miAj,setMiAj]=useState('');
   const [miImpot,setMiImpot]=useState('');
 
@@ -75,7 +79,7 @@ export function AccountMenu(){
 
   async function loadProfil(){
     const { data:{ user } }=await supabase.auth.getUser();
-    if(user){ const { data }=await supabase.from('profiles').select('annexe,droits_ouverts,taux_journalier,taux_impot').eq('id',user.id).maybeSingle(); setProfil(data||null); }
+    if(user){ const { data }=await supabase.from('profiles').select('annexe,droits_ouverts,taux_journalier,taux_impot,km_cv,km_tranche').eq('id',user.id).maybeSingle(); setProfil(data||null); }
   }
 
   function openMesInfosModal(){
@@ -83,6 +87,8 @@ export function AccountMenu(){
     setMiDroits(profil?profil.droits_ouverts:null);
     setMiAj(profil?.taux_journalier!=null?String(profil.taux_journalier):'');
     setMiImpot(profil?.taux_impot!=null?String(profil.taux_impot):'');
+    setMiKmCv(profil?.km_cv||'');
+    setMiKmTranche(profil?.km_tranche||'1');
     setShowMesInfos(true);
   }
 
@@ -96,7 +102,7 @@ export function AccountMenu(){
     const { data:{ user } }=await supabase.auth.getUser();
     if(!user)return;
     const droits=miDroits===true;
-    const { error }=await supabase.from('profiles').upsert({ id:user.id, annexe:miAnnexe||null, droits_ouverts:miDroits, taux_journalier:droits?(Number(miAj)||null):null, taux_impot:droits?(Number(miImpot)||null):null },{onConflict:'id'});
+    const { error }=await supabase.from('profiles').upsert({ id:user.id, annexe:miAnnexe||null, droits_ouverts:miDroits, taux_journalier:droits?(Number(miAj)||null):null, taux_impot:droits?(Number(miImpot)||null):null, km_cv:miKmCv||null, km_tranche:miKmTranche||null },{onConflict:'id'});
     if(error){ showAlert('Erreur',error.message); return; }
     setShowMesInfos(false); loadProfil(); _emitProfilChanged();
   }
@@ -267,6 +273,26 @@ export function AccountMenu(){
                 {([['technicien','Technicien (annexe 8)'],['artiste','Artiste (annexe 10)'],['les_deux','Les deux']] as ['technicien'|'artiste'|'les_deux',string][]).map(([val,lbl])=>(
                   <TouchableOpacity key={val} style={[s.typeChip,miAnnexe===val&&s.typeChipActive]} onPress={()=>setMiAnnexe(val)}>
                     <Text style={miAnnexe===val?s.typeChipTxtActive:s.typeChipTxt}>{lbl}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Vehicule memorise -> pre-remplit les frais km de chaque mission (retour JB).
+                  Les cles sont celles du bareme, identiques a l'appli ET au site : ne pas diverger. */}
+              <Text style={s.label}>Ton véhicule <Text style={{fontWeight:'400',color:C.muted,fontSize:12}}>— pré-remplit tes frais kilométriques</Text></Text>
+              <Text style={{fontSize:12,color:C.muted,marginBottom:8,lineHeight:17}}>Puissance fiscale (carte grise, case P.6). Tu n'auras plus qu'à saisir tes kilomètres.</Text>
+              <View style={s.typeWrap}>
+                {([['3','3 CV'],['4','4 CV'],['5','5 CV'],['6','6 CV'],['7','7+ CV'],['moto','Moto']] as [string,string][]).map(([val,lbl])=>(
+                  <TouchableOpacity key={val} style={[s.typeChip,miKmCv===val&&s.typeChipActive]} onPress={()=>setMiKmCv(c=>c===val?'':val)}>
+                    <Text style={miKmCv===val?s.typeChipTxtActive:s.typeChipTxt}>{lbl}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={[s.label,{marginTop:10}]}>Kilomètres parcourus par an</Text>
+              <View style={s.typeWrap}>
+                {([['1','≤ 5 000'],['2','5 001–20 000'],['3','> 20 000']] as [string,string][]).map(([val,lbl])=>(
+                  <TouchableOpacity key={val} style={[s.typeChip,miKmTranche===val&&s.typeChipActive]} onPress={()=>setMiKmTranche(val)}>
+                    <Text style={miKmTranche===val?s.typeChipTxtActive:s.typeChipTxt}>{lbl}</Text>
                   </TouchableOpacity>
                 ))}
               </View>

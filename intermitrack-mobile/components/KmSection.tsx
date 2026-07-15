@@ -1,10 +1,12 @@
 import { showAlert } from "../lib/dialog";
-import { forwardRef, useImperativeHandle, useState, useMemo } from 'react';
+import { forwardRef, useImperativeHandle, useState, useMemo, useEffect } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import AddressInput from './AddressInput';
 import NumInput from './NumInput';
+import AddressPickerModal from './AddressPickerModal';
 import { useTheme } from '../lib/theme';
+import { useKmDefaults } from '../lib/kmAddresses';
+import type { Addr } from '../lib/kmAddresses';
 
 // La palette vient du thème (lib/theme) → const C = useTheme() dans le composant.
 
@@ -24,25 +26,47 @@ function trancheLabel(t: string) { return t === '2' ? '5 001–20 000 km/an' : t
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) { const R = 6371, tr = (d: number) => d * Math.PI / 180; const dLat = tr(lat2 - lat1), dLon = tr(lon2 - lon1); const x = Math.sin(dLat / 2) ** 2 + Math.cos(tr(lat1)) * Math.cos(tr(lat2)) * Math.sin(dLon / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); }
 const money = (n: number) => (n ?? 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 
-export type KmValues = { km_distance: number; km_rate: number; km_amount: number };
+// Les adresses font partie des valeurs enregistrées depuis le 15/07/2026 : avant, seuls
+// distance/taux/montant l'étaient, d'où « les adresses n'apparaissent pas quand je modifie
+// une mission » — elles n'existaient tout simplement pas en base.
+export type KmValues = {
+  km_distance: number; km_rate: number; km_amount: number;
+  km_from: string | null; km_to: string | null;
+  km_from_lat: number | null; km_from_lng: number | null;
+  km_to_lat: number | null; km_to_lng: number | null;
+};
 export type KmHandle = { values: (nbDays: number) => KmValues };
 
 // Section "Frais kilométriques" réutilisable. nbDays = jours travaillés (pour ×jours).
-// Le parent récupère les valeurs via ref.current.values(nbDays).
-const KmSection = forwardRef<KmHandle, { nbDays: number; initialDistance?: number; initialRate?: number }>(
-  ({ nbDays, initialDistance, initialRate }, ref) => {
+// Le parent récupère les valeurs via ref.current.values(nbDays) et fournit les adresses connues.
+const KmSection = forwardRef<KmHandle, {
+  nbDays: number; initialDistance?: number; initialRate?: number;
+  initialFrom?: string; initialTo?: string;
+  initialFromCoords?: number[] | null; initialToCoords?: number[] | null;
+  knownFrom?: Addr[]; knownTo?: Addr[];
+}>(
+  ({ nbDays, initialDistance, initialRate, initialFrom, initialTo, initialFromCoords, initialToCoords, knownFrom = [], knownTo = [] }, ref) => {
     const C = useTheme();
     const s = useMemo(() => makeS(C), [C]);
     const [open, setOpen] = useState(!!(initialDistance));
-    const [from, setFrom] = useState('');
-    const [to, setTo] = useState('');
-    const [fromC, setFromC] = useState<number[] | null>(null);
-    const [toC, setToC] = useState<number[] | null>(null);
+    const [from, setFrom] = useState(initialFrom || '');
+    const [to, setTo] = useState(initialTo || '');
+    const [fromC, setFromC] = useState<number[] | null>(initialFromCoords || null);
+    const [toC, setToC] = useState<number[] | null>(initialToCoords || null);
+    const [showFromPicker, setShowFromPicker] = useState(false);
+    const [showToPicker, setShowToPicker] = useState(false);
     const [rt, setRt] = useState(false);
     const [everyDay, setEveryDay] = useState(false);
     const [justify, setJustify] = useState(false);
+    // Véhicule pré-rempli depuis « Mes informations » (retour JB) — modifiable ici mission par mission.
+    const kmDefaults = useKmDefaults();
     const [cv, setCv] = useState('');
     const [tranche, setTranche] = useState('1');
+    // Le profil arrive de façon asynchrone : on l'applique quand il est là, sans écraser un choix déjà fait.
+    const [cvTouched, setCvTouched] = useState(false);
+    useEffect(() => {
+      if (!cvTouched && kmDefaults.cv) { setCv(kmDefaults.cv); setTranche(kmDefaults.tranche); }
+    }, [kmDefaults.cv, kmDefaults.tranche, cvTouched]);
     const [distance, setDistance] = useState(initialDistance ? String(initialDistance) : '');
     const [rate, setRate] = useState(initialRate ? String(initialRate) : '');
     const [calc, setCalc] = useState(false);
@@ -52,7 +76,12 @@ const KmSection = forwardRef<KmHandle, { nbDays: number; initialDistance?: numbe
     function valuesFor(nb: number): KmValues {
       const eff = kmBase() * (rt ? 2 : 1) * (everyDay ? Math.max(1, nb) : 1);
       const frais = cv ? eff * kmCoef(cv, tranche) : pf(rate) * eff;
-      return { km_distance: Math.round(eff), km_rate: pf(rate), km_amount: Math.round(frais * 100) / 100 };
+      return {
+        km_distance: Math.round(eff), km_rate: pf(rate), km_amount: Math.round(frais * 100) / 100,
+        km_from: from.trim() || null, km_to: to.trim() || null,
+        km_from_lat: fromC ? fromC[1] : null, km_from_lng: fromC ? fromC[0] : null,
+        km_to_lat: toC ? toC[1] : null, km_to_lng: toC ? toC[0] : null,
+      };
     }
     useImperativeHandle(ref, () => ({ values: valuesFor }));
 
@@ -81,10 +110,23 @@ const KmSection = forwardRef<KmHandle, { nbDays: number; initialDistance?: numbe
         </TouchableOpacity>
         {open && (
           <View style={{ marginTop: 6 }}>
+            {/* Pop-up des adresses déjà saisies, de la plus utilisée à la moins utilisée : le domicile
+                remonte tout seul en tête pour le départ. Retours JB et second utilisateur. */}
             <Text style={s.label}>Lieu de départ</Text>
-            <AddressInput style={s.input} value={from} onChangeText={setFrom} onCoords={setFromC} placeholder="Ville / adresse de départ" />
+            <TouchableOpacity style={s.pickBtn} onPress={() => setShowFromPicker(true)}>
+              <Text style={[s.pickTxt, !from && { color: C.muted, fontWeight: '400' }]} numberOfLines={1}>{from || 'Choisir ou saisir…'}</Text>
+              <Text style={s.pickChevron}>▾</Text>
+            </TouchableOpacity>
+            <AddressPickerModal visible={showFromPicker} addresses={knownFrom} current={from} title="Lieu de départ"
+              onPick={(l, c) => { setFrom(l); setFromC(c); setShowFromPicker(false); }} onClose={() => setShowFromPicker(false)} />
+
             <Text style={s.label}>Lieu d'arrivée</Text>
-            <AddressInput style={s.input} value={to} onChangeText={setTo} onCoords={setToC} placeholder="Ville / adresse d'arrivée" />
+            <TouchableOpacity style={s.pickBtn} onPress={() => setShowToPicker(true)}>
+              <Text style={[s.pickTxt, !to && { color: C.muted, fontWeight: '400' }]} numberOfLines={1}>{to || 'Choisir ou saisir…'}</Text>
+              <Text style={s.pickChevron}>▾</Text>
+            </TouchableOpacity>
+            <AddressPickerModal visible={showToPicker} addresses={knownTo} current={to} title="Lieu d'arrivée"
+              onPick={(l, c) => { setTo(l); setToC(c); setShowToPicker(false); }} onClose={() => setShowToPicker(false)} />
             <TouchableOpacity style={s.check} onPress={() => setRt((v) => !v)}>
               <View style={[s.box, rt && s.boxOn]}>{rt && <Text style={s.boxTxt}>✓</Text>}</View>
               <Text style={s.checkTxt}>Aller-retour (×2)</Text>
@@ -108,13 +150,13 @@ const KmSection = forwardRef<KmHandle, { nbDays: number; initialDistance?: numbe
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={s.label}>Taux €/km (manuel)</Text>
-                <NumInput style={[s.input, cv ? { opacity: 0.5 } : null]} value={rate} onChangeText={(t: string) => { setRate(t); if (t) setCv(''); }} placeholder="sinon choisis CV" placeholderTextColor={C.muted} />
+                <NumInput style={[s.input, cv ? { opacity: 0.5 } : null]} value={rate} onChangeText={(t: string) => { setRate(t); setCvTouched(true); if (t) setCv(''); }} placeholder="sinon choisis CV" placeholderTextColor={C.muted} />
               </View>
             </View>
             <Text style={s.label}>Puissance fiscale</Text>
             <View style={s.chips}>
               {BAREME.map((o) => (
-                <TouchableOpacity key={o.key} style={[s.chip, cv === o.key && s.chipOn]} onPress={() => setCv((c) => c === o.key ? '' : o.key)}><Text style={cv === o.key ? s.chipTxtOn : s.chipTxt}>{o.label}</Text></TouchableOpacity>
+                <TouchableOpacity key={o.key} style={[s.chip, cv === o.key && s.chipOn]} onPress={() => { setCvTouched(true); setCv((c) => c === o.key ? '' : o.key); }}><Text style={cv === o.key ? s.chipTxtOn : s.chipTxt}>{o.label}</Text></TouchableOpacity>
               ))}
             </View>
             <Text style={s.label}>Tes km parcourus par an (environ)</Text>
@@ -144,6 +186,10 @@ const makeS = (C:any) => StyleSheet.create({
   chevron: { fontSize: 12, color: C.petrol, fontWeight: '800' },
   label: { fontSize: 13, fontWeight: '700', color: C.text, marginTop: 12, marginBottom: 6 },
   input: { borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 14, fontSize: 15, color: C.text, backgroundColor: C.card },
+  // Bouton qui ouvre le pop-up d'adresses (même allure que les autres sélecteurs de l'appli).
+  pickBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 14, backgroundColor: C.card },
+  pickTxt: { fontSize: 15, fontWeight: '700', color: C.text, flexShrink: 1 },
+  pickChevron: { fontSize: 12, color: C.muted },
   row: { flexDirection: 'row', gap: 10 },
   check: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
   box: { width: 24, height: 24, borderRadius: 7, borderWidth: 1, borderColor: C.line, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },

@@ -17,6 +17,7 @@ import { useProdColors, PROD_PRESETS } from '../../lib/prodColors';
 import { useAnnexe, modeForEdit, computeHoursVac, extraHoursOf, CACHET_H } from '../../lib/annexe';
 import { typeParts, addType, removeType } from '../../lib/missionType';
 import ProductionPickerModal from '../../components/ProductionPickerModal';
+import { knownFrom, knownTo } from '../../lib/kmAddresses';
 import { usePostes } from '../../lib/postes';
 import { LinearGradient } from 'expo-linear-gradient';
 import ColorPickerModal from '../../components/ColorPickerModal';
@@ -67,6 +68,11 @@ export default function Missions(){
   const kmRef=useRef<KmHandle>(null);
   const [editKmDist,setEditKmDist]=useState(0);
   const [editKmRate,setEditKmRate]=useState(0);
+  // Adresses relues a l'edition : elles n'etaient enregistrees nulle part avant le 15/07/2026.
+  const [editKmFrom,setEditKmFrom]=useState('');
+  const [editKmTo,setEditKmTo]=useState('');
+  const [editKmFromCoords,setEditKmFromCoords]=useState<number[]|null>(null);
+  const [editKmToCoords,setEditKmToCoords]=useState<number[]|null>(null);
   const [editId,setEditId]=useState<string|null>(null);
   const [fProduction,setFProduction]=useState('');
   const [fEmission,setFEmission]=useState('');
@@ -110,6 +116,9 @@ export default function Missions(){
     else { setFCachets(''); setFHours(String(m.hours||'')); }
     setFGross(String(m.gross_amount||'')); setFVacations(String(m.vacations||''));
     setEditKmDist(Number(m.km_distance) || 0); setEditKmRate(Number(m.km_rate) || 0);
+    setEditKmFrom(m.km_from||''); setEditKmTo(m.km_to||'');
+    setEditKmFromCoords(m.km_from_lat!=null&&m.km_from_lng!=null?[Number(m.km_from_lng),Number(m.km_from_lat)]:null);
+    setEditKmToCoords(m.km_to_lat!=null&&m.km_to_lng!=null?[Number(m.km_to_lng),Number(m.km_to_lat)]:null);
     setShowEmSuggest(false); setShowTypePicker(false);
   }
 
@@ -441,7 +450,11 @@ export default function Missions(){
                 <Text style={s.label}>Montant brut (€)</Text>
                 <NumInput style={s.input} value={fGross} onChangeText={setFGross}/>
 
-                <KmSection key={editId} ref={kmRef} nbDays={Math.max(1, Math.min(Math.round((fEnd.getTime() - fStart.getTime()) / 86400000) + 1, Math.round((Number(fHours) || 0) / 8)))} initialDistance={editKmDist} initialRate={editKmRate} />
+                <KmSection key={editId} ref={kmRef} nbDays={Math.max(1, Math.min(Math.round((fEnd.getTime() - fStart.getTime()) / 86400000) + 1, Math.round((Number(fHours) || 0) / 8)))}
+                  initialDistance={editKmDist} initialRate={editKmRate}
+                  initialFrom={editKmFrom} initialTo={editKmTo}
+                  initialFromCoords={editKmFromCoords} initialToCoords={editKmToCoords}
+                  knownFrom={knownFrom(missions)} knownTo={knownTo(missions)} />
 
                 <GradientButton onPress={saveEdit} disabled={saving} style={s.saveBtn} textStyle={s.saveBtnTxt} label={saving?'Enregistrement…':'Mettre à jour'} />
                 <TouchableOpacity style={s.deleteBtn} onPress={deleteEdit}>
