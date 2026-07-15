@@ -36,14 +36,19 @@ function build(rows: { label: any; lat: any; lng: any }[]): Addr[] {
 //
 // Le tri par fréquence suffit à faire remonter le domicile en tête du départ : il apparaît dans
 // toutes les missions, donc il est le plus fréquent. Pas besoin de le déclarer.
+// On ne propose QUE des adresses réellement géolocalisées (retour Yohan : « il faut faire en sorte
+// que ça propose dans la liste que des vraies adresses »). Une entrée sans coordonnées est de toute
+// façon inutilisable : le calcul de distance ne peut rien en faire, il faudrait la re-géocoder et ça
+// échouerait sur un nom inventé.
+// C'est pourquoi on n'ajoute PAS les « lieux » de mission (« Studio 130 », « La Plaine »…) : ce sont
+// des noms libres saisis par l'utilisateur, pas des adresses. Ils polluaient la liste.
+// Conséquence assumée : la liste est vide tant qu'aucune adresse n'a été choisie dans les
+// suggestions de la carte. Elle se remplit ensuite toute seule.
 export function knownAddresses(missions: any[]): Addr[] {
   return build([
     ...missions.map(m => ({ label: m.km_from, lat: m.km_from_lat, lng: m.km_from_lng })),
     ...missions.map(m => ({ label: m.km_to, lat: m.km_to_lat, lng: m.km_to_lng })),
-    // Les LIEUX de mission : ce champ était déjà enregistré depuis toujours, il rend la liste
-    // utile dès la 1re ouverture au lieu d'attendre que l'utilisateur ait tout ressaisi.
-    ...missions.map(m => ({ label: m.lieu, lat: null, lng: null })),
-  ]);
+  ]).filter(a => a.coords != null);
 }
 
 // ── Véhicule mémorisé (profil) ─────────────────────────────────────────────

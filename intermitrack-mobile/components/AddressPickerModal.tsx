@@ -55,12 +55,20 @@ export default function AddressPickerModal({
               placeholder="Chercher une nouvelle adresse…"
             />
 
-            {!!q.trim() && (
+            {!!q.trim() && (<>
               <TouchableOpacity style={s.useBtn} onPress={() => onPick(q.trim(), qCoords)}>
                 <Ionicons name="checkmark-circle-outline" size={17} color="#fff" />
-                <Text style={s.useTxt} numberOfLines={1}>Utiliser « {q.trim()} »</Text>
+                <Text style={s.useTxt} numberOfLines={1}>Ajouter « {q.trim()} »</Text>
               </TouchableOpacity>
-            )}
+              {/* Sans coordonnées, l'adresse ne sera ni mémorisée ni utilisable pour la distance.
+                  Le dire ici évite qu'on se demande pourquoi elle ne revient jamais dans la liste. */}
+              {!qCoords && (
+                <Text style={s.warnTxt}>
+                  Choisis plutôt une suggestion ci-dessus : sans elle, la distance ne pourra pas être
+                  calculée et l'adresse ne sera pas mémorisée pour tes prochaines missions.
+                </Text>
+              )}
+            </>)}
 
             {list.length > 0 ? (
               <>
@@ -77,8 +85,8 @@ export default function AddressPickerModal({
             ) : (
               !q.trim() && (
                 <Text style={s.empty}>
-                  Aucune adresse enregistrée pour l'instant. Tape-la ci-dessus : elle sera proposée
-                  automatiquement les prochaines fois, sans avoir à la retaper.
+                  Aucune adresse enregistrée pour l'instant. Tape la tienne ci-dessus et choisis-la
+                  dans les suggestions : elle te sera proposée automatiquement les prochaines fois.
                 </Text>
               )
             )}
@@ -104,4 +112,5 @@ const makeS = (C: any) => StyleSheet.create({
   itemTxt: { fontSize: 14, fontWeight: '700', color: C.petrol, flexShrink: 1 },
   itemTxtOn: { color: '#fff' },
   empty: { fontSize: 13, color: C.muted, textAlign: 'center', marginTop: 18, lineHeight: 19 },
+  warnTxt: { fontSize: 12, color: C.orange, marginTop: 7, lineHeight: 17, fontWeight: '600' },
 });

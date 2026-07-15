@@ -4397,11 +4397,13 @@ function _knownAddrs(){
   var list = (typeof missions !== 'undefined' ? missions : []);
   list.forEach(function(m){ add(m.kmFrom, m.kmFromLng, m.kmFromLat); });
   list.forEach(function(m){ add(m.kmTo, m.kmToLng, m.kmToLat); });
-  // Les LIEUX de mission : déjà enregistrés depuis toujours, ils rendent la liste utile dès la 1re
-  // ouverture au lieu d'attendre que l'utilisateur ait tout ressaisi.
-  list.forEach(function(m){ add(m.lieu, null, null); });
+  // On ne propose QUE des adresses réellement géolocalisées : une entrée sans coordonnées est
+  // inutilisable pour le calcul de distance (il faudrait la re-géocoder, et ça échoue sur un nom
+  // inventé). C'est pourquoi les « lieux » de mission (« Studio 130 »…) ne sont PAS ajoutés ici :
+  // ce sont des noms libres, pas des adresses — ils polluaient la liste. Retour Yohan.
   return Object.keys(counts).sort(function(a,b){ return counts[b] - counts[a]; })
-    .map(function(label){ return { label: label, coords: coords[label] || null }; });
+    .map(function(label){ return { label: label, coords: coords[label] || null }; })
+    .filter(function(a){ return a.coords != null; });
 }
 // Véhicule mémorisé dans « Mes informations » → pré-remplit les frais km (retour JB).
 // Reste modifiable mission par mission : on ne fait que remplir la valeur par défaut.
@@ -4441,6 +4443,9 @@ function _renderAddrPicker(ov){
   // le pop-up à chaque frappe (ça détruirait la liste de suggestions de l'API Adresse), donc s'il
   // n'était pas créé ici il n'existerait jamais — et taper une adresse ne produisait aucun effet.
   html += '<button type="button" class="pf-create" id="addrUseBtn" style="' + (q.trim() ? '' : 'display:none;') + '">Ajouter « <span id="addrUseTxt">' + escapeHtml(q.trim()) + '</span> »</button>';
+  // Sans coordonnées, l'adresse ne sera ni mémorisée (la liste ne garde que les vraies adresses) ni
+  // utilisable pour la distance. Le dire évite qu'on se demande pourquoi elle ne revient jamais.
+  html += '<div id="addrNoGeo" style="display:none;font-size:12px;color:var(--orange,#F97316);font-weight:600;line-height:1.4;margin-top:7px;">Choisis plutôt une suggestion ci-dessus : sans elle, la distance ne pourra pas être calculée et l\'adresse ne sera pas mémorisée pour tes prochaines missions.</div>';
   if(list.length){
     html += '<div class="pf-label">' + (query ? 'Correspondances' : 'Tes adresses · de la plus utilisée à la moins utilisée') + '</div>';
     html += '<div class="pf-prodlist">' + list.map(function(a){
@@ -4448,7 +4453,7 @@ function _renderAddrPicker(ov){
         + (a.coords ? ' data-lng="' + a.coords[0] + '" data-lat="' + a.coords[1] + '"' : '') + '>' + escapeHtml(a.label) + '</button>';
     }).join('') + '</div>';
   } else if(!q.trim()){
-    html += '<div class="pf-label" style="text-align:center;line-height:1.5;">Aucune adresse enregistrée pour l\'instant. Tape-la ci-dessus : elle sera proposée automatiquement les prochaines fois.</div>';
+    html += '<div class="pf-label" style="text-align:center;line-height:1.5;">Aucune adresse enregistrée pour l\'instant. Tape la tienne ci-dessus et choisis-la dans les suggestions : elle te sera proposée automatiquement les prochaines fois.</div>';
   }
   html += '<div class="pf-actions"><button type="button" class="pf-cancel" id="addrPickClose">Fermer</button></div></div>';
   ov.innerHTML = html;
@@ -4468,6 +4473,11 @@ function _refreshAddrPickerUI(ov, value){
   var ut = document.getElementById('addrUseTxt');
   if(ut) ut.textContent = raw;
   if(ub) ub.style.display = raw ? '' : 'none';
+  // Avertissement tant qu'aucune suggestion de la carte n'a été choisie (pas de coordonnées).
+  var si = document.getElementById('addrSearchInput');
+  var geo = si && si.dataset.lon && si.dataset.lat;
+  var ng = document.getElementById('addrNoGeo');
+  if(ng) ng.style.display = (raw && !geo) ? 'block' : 'none';
 }
 function _openAddrPicker(which){
   _addrPickerWhich = which;
