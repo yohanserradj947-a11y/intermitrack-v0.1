@@ -2,73 +2,276 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Télécharger Intermitrack</title>
-<meta name="description" content="Télécharge Intermitrack : suivi des 507 h, estimation France Travail, missions, fiscalité. Pour les intermittents du spectacle." />
-<meta name="robots" content="noindex" />
-<link rel="icon" href="favicon.ico" />
-<style>
-  :root{ --petrol:#1F4E5F; --orange:#F97316; --bg:#F5F7F6; --card:#FFFFFF; --text:#2D3748; --muted:#718096; --line:#E2E8F0; }
-  *{box-sizing:border-box}
-  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
-    background:var(--bg);color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:34px 26px;max-width:400px;width:100%;
-    text-align:center;box-shadow:0 12px 40px rgba(31,78,95,.10);}
-  .logo{font-size:26px;font-weight:900;color:var(--petrol);letter-spacing:-.02em;margin:0 0 6px;}
-  .tag{font-size:14.5px;color:var(--muted);line-height:1.5;margin:0 0 22px;}
-  .status{font-size:13px;color:var(--muted);margin:0 0 18px;min-height:18px;}
-  .btns{display:flex;flex-direction:column;gap:10px;}
-  .btn{display:flex;align-items:center;justify-content:center;gap:9px;padding:14px 18px;border-radius:13px;
-    text-decoration:none;font-weight:800;font-size:15px;border:1.5px solid var(--petrol);
-    background:var(--petrol);color:#fff;transition:transform .12s ease,opacity .12s ease;}
-  .btn.alt{background:transparent;color:var(--petrol);}
-  .btn:hover{transform:translateY(-1px);opacity:.94;}
-  .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px;}
-  .foot{margin-top:20px;font-size:12px;color:var(--muted);}
-  .foot a{color:var(--petrol);}
-  svg{flex:0 0 auto}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Télécharger Intermitrack — l'application des intermittents du spectacle</title>
+<meta name="description" content="Importe tes missions en un clic depuis ton agenda ou un Excel. Suivi des 507 heures, estimation France Travail, fiscalité. Gratuit, iPhone et Android." />
+<meta name="theme-color" content="#1F4E5F" />
+<link rel="icon" href="favicon-32.png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<meta property="og:title" content="Intermitrack — le suivi complet de ton intermittence" />
+<meta property="og:description" content="Tes 507 heures, ton allocation France Travail, tes missions et ta fiscalité." />
+<meta property="og:image" content="https://intermitrack.fr/screen-dashboard.png" />
+<meta property="og:url" content="https://intermitrack.fr/app.html" />
 </head>
 <body>
-  <main class="card">
-    <p class="logo">Intermitrack</p>
-    <p class="tag">Le tableau de bord des intermittents du spectacle : tes <strong>507 h</strong>, ton estimation <strong>France&nbsp;Travail</strong>, tes missions et ta fiscalité.</p>
-    <p class="status" id="status">Choisis ton store&nbsp;:</p>
-    <div class="btns" id="btns">
-      <a class="btn" id="ios" href="https://apps.apple.com/fr/app/intermitrack/id6781755113">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.8c0-2.4 2-3.6 2.1-3.6-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.1-.8-1.6 0-3.1.9-3.9 2.4-1.7 2.9-.4 7.2 1.2 9.5.8 1.1 1.7 2.4 3 2.4 1.2 0 1.7-.8 3.1-.8 1.4 0 1.9.8 3.1.8 1.3 0 2.1-1.2 2.9-2.3.9-1.3 1.3-2.6 1.3-2.7 0 0-2.5-1-2.5-3.9zM14.2 5.3c.7-.8 1.1-2 1-3.3-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3.1 1.1.1 2.2-.6 2.9-1.3z"/></svg>
-        Télécharger sur l'App Store
-      </a>
-      <a class="btn alt" id="android" href="https://play.google.com/store/apps/details?id=fr.intermitrack.app">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.6 2.3a1 1 0 0 0-.5.9v17.6a1 1 0 0 0 .5.9l9.3-9.7L3.6 2.3zm10.7 8.1 2.6-2.7-9.6-5.4 7 8.1zm0 3.2-7 8.1 9.6-5.4-2.6-2.7zm4-1.6 2.4-2.5c.7-.4.7-1.4 0-1.8l-2.4-1.3-2.8 2.9 2.8 2.7z"/></svg>
-        Télécharger sur Google Play
-      </a>
+<style>
+  :root{
+    --petrol:#1F4E5F; --petrol-d:#153744; --orange:#F97316; --orange-s:#FFF1E6;
+    --bg:#F5F7F6; --card:#FFFFFF; --text:#2D3748; --muted:#6B7C89; --line:#E4EAE8;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55;-webkit-font-smoothing:antialiased;padding-bottom:104px;}
+  .wrap{max-width:560px;margin:0 auto;padding:0 20px;}
+
+  /* ---------- EN-TÊTE ---------- */
+  .top{background:linear-gradient(165deg,var(--petrol),var(--petrol-d));color:#fff;
+    padding:32px 20px 26px;text-align:center;position:relative;overflow:hidden;}
+  .top::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(circle at 50% -8%,rgba(249,115,22,.5),rgba(249,115,22,0) 60%);}
+  .top>*{position:relative;z-index:1}
+  .appicon{width:72px;height:72px;border-radius:18px;display:block;margin:0 auto 13px;
+    box-shadow:0 10px 26px rgba(0,0,0,.34);}
+  .name{font-size:27px;font-weight:900;letter-spacing:-.02em;margin:0 0 6px;}
+  .claim{font-size:15.5px;color:#CFE2EA;margin:0 auto;max-width:34ch;}
+  .claim b{color:#fff}
+  .badge{display:inline-flex;align-items:center;gap:7px;margin-top:15px;
+    background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);
+    padding:7px 14px;border-radius:99px;font-size:13px;font-weight:700;}
+
+  /* ---------- TÉLÉPHONE ---------- */
+  .stage{background:linear-gradient(180deg,var(--petrol-d) 0%,var(--petrol-d) 42%,var(--bg) 42%);
+    padding:6px 20px 0;}
+  .phone{width:222px;margin:0 auto;position:relative;}
+  .body{background:#0B1418;border-radius:30px;padding:7px;
+    box-shadow:0 22px 50px rgba(11,20,24,.42), inset 0 0 0 1.5px #2C3A41;}
+  .screen{position:relative;width:100%;aspect-ratio:540/1174;border-radius:23px;overflow:hidden;
+    background:#F5F7F6;}
+  /* Défilement "vidéo" : les captures glissent horizontalement, comme si on swipait les onglets */
+  .track{display:flex;width:100%;height:100%;
+    transition:transform .45s cubic-bezier(.4,.02,.2,1);}
+  .slide{flex:0 0 100%;width:100%;height:100%;object-fit:cover;display:block;}
+  .notch{position:absolute;top:7px;left:50%;transform:translateX(-50%);z-index:3;
+    width:74px;height:19px;background:#0B1418;border-radius:11px;}
+  .tabname{text-align:center;margin:13px 0 0;font-size:13px;font-weight:800;color:var(--petrol);
+    min-height:19px;}
+  .dots{display:flex;gap:5px;justify-content:center;margin-top:7px;}
+  .pip{width:5px;height:5px;border-radius:50%;background:#C6D2D3;transition:all .3s ease;}
+  .pip.on{background:var(--orange);width:15px;border-radius:3px;}
+  .stagecap{text-align:center;font-size:12.5px;color:var(--muted);margin:9px 0 0;}
+
+  /* ---------- SECTIONS ---------- */
+  h2{font-size:20px;font-weight:850;letter-spacing:-.015em;margin:30px 0 4px;text-align:center;}
+  .sub{text-align:center;font-size:14px;color:var(--muted);margin:0 0 18px;}
+
+  .feats{display:grid;gap:10px;}
+  .feat{display:flex;gap:13px;align-items:flex-start;background:var(--card);
+    border:1px solid var(--line);border-radius:14px;padding:14px 15px;}
+  .feat.hero{border-color:var(--orange);background:linear-gradient(180deg,#FFF8F2,#fff);
+    box-shadow:0 6px 20px rgba(249,115,22,.13);}
+  .fi{width:38px;height:38px;border-radius:11px;flex:0 0 auto;display:flex;
+    align-items:center;justify-content:center;background:var(--orange-s);}
+  .feat.hero .fi{background:var(--orange);}
+  .fi svg{width:19px;height:19px;stroke:var(--orange);fill:none;stroke-width:2;
+    stroke-linecap:round;stroke-linejoin:round;}
+  .feat.hero .fi svg{stroke:#fff;}
+  .ft{font-size:14.5px;font-weight:800;margin:0 0 2px;}
+  .tagnew{display:inline-block;font-size:10px;font-weight:900;letter-spacing:.06em;
+    background:var(--orange);color:#fff;padding:2px 7px;border-radius:20px;margin-left:6px;
+    vertical-align:1px;}
+  .fd{font-size:13.5px;color:var(--muted);margin:0;line-height:1.45;}
+
+  /* ---------- CONFIANCE ---------- */
+  .trust{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:18px 16px;margin-top:22px;}
+  .trust p{margin:0;font-size:14px;color:var(--muted);line-height:1.6;}
+  .trust b{color:var(--text)}
+  .sig{display:flex;align-items:center;gap:10px;margin-top:13px;padding-top:13px;
+    border-top:1px solid var(--line);}
+  .sigav{width:34px;height:34px;border-radius:50%;background:var(--petrol);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;flex:0 0 auto;}
+  .signm{font-size:13px;font-weight:800;margin:0;line-height:1.3}
+  .sigrole{font-size:12px;color:var(--muted);margin:0;line-height:1.3}
+  .facts{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;justify-content:center;}
+  .fact{font-size:12px;font-weight:700;color:var(--petrol);background:#EAF1F0;
+    border:1px solid var(--line);padding:6px 11px;border-radius:99px;}
+  footer{text-align:center;font-size:12px;color:var(--muted);padding:24px 20px 10px;}
+  footer a{color:var(--petrol);}
+
+  /* ---------- BARRE FIXE ---------- */
+  .bar{position:fixed;left:0;right:0;bottom:0;z-index:50;
+    background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+    border-top:1px solid var(--line);padding:11px 16px calc(11px + env(safe-area-inset-bottom));
+    box-shadow:0 -6px 22px rgba(23,60,73,.09);}
+  .barin{max-width:560px;margin:0 auto;display:flex;gap:9px;}
+  .btn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+    padding:13px 10px;border-radius:13px;text-decoration:none;font-weight:800;font-size:14px;
+    border:1.5px solid var(--petrol);background:var(--petrol);color:#fff;
+    transition:transform .12s ease;}
+  .btn.alt{background:#fff;color:var(--petrol);}
+  .btn:active{transform:scale(.97)}
+  .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+  .btn svg{width:17px;height:17px;fill:currentColor;flex:0 0 auto}
+  .barnote{max-width:560px;margin:7px auto 0;text-align:center;font-size:11px;color:var(--muted);}
+  @media (max-width:380px){ .btn{font-size:12.5px;padding:12px 6px;gap:6px} }
+  @media (prefers-reduced-motion:reduce){ .slide{transition:none} }
+</style>
+
+<header class="top">
+  <img class="appicon" src="icon-512.png" alt="Icône Intermitrack" width="72" height="72"/>
+  <h1 class="name">Intermitrack</h1>
+  <p class="claim">Le suivi complet de ton <b>intermittence</b> : tes <b>507 heures</b>, ton allocation
+    <b>France&nbsp;Travail</b>, tes missions et ta fiscalité, réunis en une seule application.</p>
+  <span class="badge">Conçue par un intermittent du spectacle</span>
+</header>
+
+<div class="stage">
+  <div class="phone">
+    <div class="body">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="track" id="track">
+          <img class="slide" src="app-dashboard.webp" alt="Tableau de bord : compteur des 507 heures et récap du mois" width="540" height="1174"/>
+          <img class="slide" src="app-calendrier.webp" alt="Calendrier des missions du mois" width="540" height="1174"/>
+          <img class="slide" src="app-missions.webp" alt="Liste des missions" width="540" height="1174"/>
+          <img class="slide" src="app-actualisation.webp" alt="Actualisation France Travail" width="540" height="1174"/>
+          <img class="slide" src="app-previsions.webp" alt="Prévisions et simulations" width="540" height="1174"/>
+          <img class="slide" src="app-documents.webp" alt="Documents et factures" width="540" height="1174"/>
+        </div>
+      </div>
     </div>
-    <p class="foot">Déjà installée ? <a href="https://intermitrack.fr">Ouvrir le site</a></p>
-  </main>
+  </div>
+  <p class="tabname" id="tabname">Tableau de bord</p>
+  <div class="dots" id="dots"></div>
+  <p class="stagecap">Captures réelles de l'application.</p>
+</div>
+
+<main class="wrap">
+  <h2>Une seule saisie. Tous les calculs suivent.</h2>
+  <p class="sub">Et le plus souvent, aucune saisie n'est même nécessaire.</p>
+
+  <div class="feats">
+    <div class="feat hero">
+      <div class="fi"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"/></svg></div>
+      <div><p class="ft">Tes missions importées en un clic<span class="tagnew">ESSENTIEL</span></p>
+        <p class="fd">Depuis le <b>calendrier de ton téléphone</b> ou un <b>fichier Excel</b>. Intermitrack reconnaît
+          tes dates, tes productions, tes heures et tes montants, puis renseigne l'ensemble. Il ne te reste
+          qu'à vérifier et valider.</p></div>
+    </div>
+    <div class="feat">
+      <div class="fi"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+      <div><p class="ft">Tes 507 heures, actualisées en continu</p>
+        <p class="fd">Chaque mission met le compteur à jour. Tu sais en permanence où tu en es, et ce qu'il te reste avant ta date anniversaire.</p></div>
+    </div>
+    <div class="feat">
+      <div class="fi"><svg viewBox="0 0 24 24"><path d="M17 7a6 6 0 1 0 0 10"/><line x1="4" y1="10.5" x2="13" y2="10.5"/><line x1="4" y1="13.5" x2="13" y2="13.5"/></svg></div>
+      <div><p class="ft">L'estimation de ton allocation</p>
+        <p class="fd">Le montant que France Travail devrait te verser ce mois-ci, calculé selon ton annexe 8 ou 10.</p></div>
+    </div>
+    <div class="feat">
+      <div class="fi"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8"/></svg></div>
+      <div><p class="ft">Actualisation, fiscalité et facturation</p>
+        <p class="fd">Les montants exacts, au centime, pour ta déclaration mensuelle. Ainsi que tes devis et factures si tu exerces aussi en auto-entrepreneur.</p></div>
+    </div>
+  </div>
+
+  <div class="trust">
+    <p><b>Pourquoi cette application existe.</b> Je suis <b>technicien intermittent</b>. Comme beaucoup, je ne savais
+      jamais précisément où j'en étais dans mes heures, ni ce que j'allais percevoir en fin de mois. J'ai conçu
+      Intermitrack pour y voir clair, puis je l'ai ouverte à la profession. Elle évolue chaque semaine, guidée par
+      les retours de celles et ceux qui l'utilisent.</p>
+    <div class="sig">
+      <div class="sigav">Y</div>
+      <div><p class="signm">Yohan</p><p class="sigrole">Créateur d'Intermitrack · intermittent du spectacle</p></div>
+    </div>
+  </div>
+
+  <div class="facts">
+    <span class="fact">Gratuit</span>
+    <span class="fact">Conçue en France</span>
+    <span class="fact">Par un intermittent</span>
+    <span class="fact">Tes données t'appartiennent</span>
+  </div>
+
+  <footer>
+    <a href="https://intermitrack.fr">intermitrack.fr</a> ·
+    <a href="https://intermitrack.fr/confidentialite.html">Confidentialité</a> ·
+    <a href="https://intermitrack.fr/cgu.html">CGU</a>
+  </footer>
+</main>
+
+<nav class="bar" aria-label="Télécharger l'application">
+  <div class="barin" id="btns">
+    <a class="btn" id="ios" href="https://apps.apple.com/fr/app/intermitrack/id6781755113">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.4 12.8c0-2.4 2-3.6 2.1-3.6-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.1-.8-1.6 0-3.1.9-3.9 2.4-1.7 2.9-.4 7.2 1.2 9.5.8 1.1 1.7 2.4 3 2.4 1.2 0 1.7-.8 3.1-.8 1.4 0 1.9.8 3.1.8 1.3 0 2.1-1.2 2.9-2.3.9-1.3 1.3-2.6 1.3-2.7 0 0-2.5-1-2.5-3.9zM14.2 5.3c.7-.8 1.1-2 1-3.3-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3.1 1.1.1 2.2-.6 2.9-1.3z"/></svg>
+      App Store
+    </a>
+    <a class="btn alt" id="android" href="https://play.google.com/store/apps/details?id=fr.intermitrack.app">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.6 2.3a1 1 0 0 0-.5.9v17.6a1 1 0 0 0 .5.9l9.3-9.7L3.6 2.3zm10.7 8.1 2.6-2.7-9.6-5.4 7 8.1zm0 3.2-7 8.1 9.6-5.4-2.6-2.7zm4-1.6 2.4-2.5c.7-.4.7-1.4 0-1.8l-2.4-1.3-2.8 2.9 2.8 2.7z"/></svg>
+      Google Play
+    </a>
+  </div>
+  <p class="barnote" id="barnote">Gratuit · iPhone et Android</p>
+</nav>
+
 <script>
-  // PAS de redirection auto : on laisse TOUJOURS le choix entre les deux stores.
-  // On se sert juste de la détection pour mettre en avant (et placer en premier)
-  // le store qui correspond au téléphone. L'autre reste accessible juste en dessous.
+  // ---- Téléphone : les onglets défilent en boucle, 3 s chacun, comme une vidéo ----
+  (function () {
+    var NAMES = ['Tableau de bord','Calendrier','Missions','Actualisation','Prévisions','Documents'];
+    var track = document.getElementById('track');
+    var dots = document.getElementById('dots');
+    var tabname = document.getElementById('tabname');
+    if (!track || !dots) return;
+    var slides = track.querySelectorAll('.slide');
+    if (slides.length < 2) return;
+    var i = 0, timer = null;
+    for (var k = 0; k < slides.length; k++) {
+      var p = document.createElement('span');
+      p.className = 'pip' + (k === 0 ? ' on' : '');
+      dots.appendChild(p);
+    }
+    var pips = dots.querySelectorAll('.pip');
+    function go(n) {
+      pips[i].classList.remove('on');
+      i = n % slides.length;
+      pips[i].classList.add('on');
+      track.style.transform = 'translateX(-' + (i * 100) + '%)';
+      tabname.textContent = NAMES[i];
+    }
+    function play() { if (!timer) timer = setInterval(function () { go(i + 1); }, 1500); }
+    function stop() { clearInterval(timer); timer = null; }
+    // "Réduire les animations" : on garde le défilement (sinon on ne verrait qu'un seul
+    // onglet) mais on enlève le glissement → passage net d'une capture à l'autre.
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) track.style.transition = 'none';
+    play();
+    // Pause quand la page n'est pas visible (batterie)
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) stop(); else play();
+    });
+  })();
+
+  // ---- Stores : jamais de redirection auto, on laisse le choix ----
   (function () {
     var ua = navigator.userAgent || '';
     var isIOS = /iPad|iPhone|iPod/.test(ua) ||
-                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPad iPadOS 13+
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     var isAndroid = /Android/i.test(ua);
     var ios = document.getElementById('ios');
     var android = document.getElementById('android');
     var btns = document.getElementById('btns');
-    var st = document.getElementById('status');
+    var note = document.getElementById('barnote');
+    // Les deux stores restent toujours proposés : on ne fait que mettre en avant
+    // celui du téléphone détecté.
     if (isAndroid) {
-      btns.insertBefore(android, ios);           // Android en premier
-      android.classList.remove('alt');
-      ios.classList.add('alt');
-      st.textContent = 'Android détecté — à toi de choisir :';
-    } else if (isIOS) {
-      st.textContent = 'iPhone détecté — à toi de choisir :';  // l'App Store est déjà en premier
+      btns.insertBefore(android, ios);
+      android.classList.remove('alt'); ios.classList.add('alt');
     }
+    if (note && (isAndroid || isIOS)) note.textContent = 'Gratuit · Les deux stores restent à ta disposition';
   })();
 </script>
+
 </body>
 </html>
