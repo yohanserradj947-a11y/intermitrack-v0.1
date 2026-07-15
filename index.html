@@ -649,8 +649,11 @@ z-index: 500 !important;
             <!-- Encadré « régime général / enseignement » : rempli par _renderRegimeBox(), masqué pour une mission d'intermittence classique. -->
             <div id="regimeBox" style="display:none;"></div>
             <label for="production">Nom de la production <span id="prodNameDot" class="prod-name-dot" style="display:none;"></span></label>
-            <input id="production" list="productionsList" autocomplete="off" placeholder="Ex : Production " required />
-            <datalist id="productionsList"></datalist>
+            <!-- Le champ reste la source de vérité (lu par addMission, editMission, la couleur de prod…),
+                 mais il est masqué : on passe par le pop-up ci-dessous. Pas de "required" ici — un champ
+                 masqué et requis bloque l'envoi du formulaire SANS message visible. Contrôle fait dans addMission(). -->
+            <input id="production" autocomplete="off" style="display:none;" />
+            <button type="button" id="prodBtn" style="display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--text);font-weight:400;font-size:14px;font-family:inherit;cursor:pointer;"><span id="prodBtnLabel">Choisir ou créer…</span><span style="opacity:.45;">▾</span></button>
             <div id="prodColorRow" class="prod-color-row">
               <div class="prod-color-head">Couleur de la production <span>· mémorisée, s'applique partout</span></div>
               <div class="prod-color-swatches" id="prodColorSwatches"></div>
@@ -670,7 +673,7 @@ z-index: 500 !important;
             <select id="type" style="display:none;"><optgroup label="Technique"><option>Montage</option><option>Tournage</option><option>Démontage</option><option>Régie</option><option>Son</option><option>Lumière</option><option>Image / Vidéo</option><option>Machiniste</option><option>Électricien</option><option>Poursuiteur</option><option>Plateau</option><option>Décor</option><option>HMC</option></optgroup><optgroup label="Artiste"><option>Comédien</option><option>Chanteur</option><option>Musicien</option><option>Danseur</option><option>Choriste</option></optgroup><option>Autres</option></select><button type="button" id="typeBtn" style="display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--text);font-weight:400;font-size:14px;font-family:inherit;cursor:pointer;"><span id="typeBtnLabel">Montage</span><span style="opacity:.45;">▾</span></button>
             <!-- Plusieurs types sur une même mission (« Rec + MIX ») : pastilles supprimables + lien d'ajout. Remplis par _syncTypeBtn(). -->
             <div id="typeChipsRow" style="display:none;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
-            <button type="button" id="typeAddLink" style="display:none;background:none;border:none;padding:6px 0 0;color:var(--petrol);font-weight:700;font-size:12px;text-decoration:underline;cursor:pointer;font-family:inherit;">+ Ajouter un type de mission</button>
+            <button type="button" id="typeAddLink" style="display:none;background:none;border:none;padding:6px 0 0;color:var(--petrol);font-weight:700;font-size:12px;text-decoration:underline;cursor:pointer;font-family:inherit;">+ Ajouter un type de mission (ex. Son + Light)</button>
             <label for="date">Date début</label><input id="date" type="date" required />
             <label for="endDate">Date fin</label><input id="endDate" type="date" required />
             <div id="missionModeRow" style="display:none;gap:8px;margin:2px 0 12px;">
@@ -1389,7 +1392,7 @@ z-index: 500 !important;
   </main>
 
   <script src="document-parser.js?v=5"></script>
-  <script src="app.js?v=51"></script>
+  <script src="app.js?v=52"></script>
 
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>

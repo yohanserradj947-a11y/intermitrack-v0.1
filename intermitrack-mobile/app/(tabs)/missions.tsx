@@ -16,6 +16,7 @@ import { useTheme, useThemeControls } from '../../lib/theme';
 import { useProdColors, PROD_PRESETS } from '../../lib/prodColors';
 import { useAnnexe, modeForEdit, computeHoursVac, extraHoursOf, CACHET_H } from '../../lib/annexe';
 import { typeParts, addType, removeType } from '../../lib/missionType';
+import ProductionPickerModal from '../../components/ProductionPickerModal';
 import { usePostes } from '../../lib/postes';
 import { LinearGradient } from 'expo-linear-gradient';
 import ColorPickerModal from '../../components/ColorPickerModal';
@@ -86,6 +87,7 @@ export default function Missions(){
   const [showEndPicker,setShowEndPicker]=useState(false);
   const [saving,setSaving]=useState(false);
   const [showSuggest,setShowSuggest]=useState(false);
+  const [showProdPicker,setShowProdPicker]=useState(false);
   const [showEmSuggest,setShowEmSuggest]=useState(false);
 
   useEffect(()=>{loadMissions();},[]);
@@ -272,19 +274,20 @@ export default function Missions(){
               </View>
               <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
+                {/* Un appui ouvre le POP-UP listant toutes les productions, de la plus utilisée à la moins
+                    utilisée : choix direct ou création. Même composant que le calendrier et le dashboard. */}
                 <Text style={s.label}>Nom de la production</Text>
-                <TextInput style={s.input} value={fProduction} onChangeText={(t:string)=>{setFProduction(t);setShowSuggest(true);}} onFocus={()=>setShowSuggest(true)} placeholderTextColor={C.muted} autoCapitalize="characters"/>
-                {/* Au clic sur le champ (vide) : liste directe des productions, du plus fréquent au moins fréquent. */}
-                {showSuggest&&prodSuggestions.length>0&&(
-                  <View style={s.suggestBox}>
-                    <Text style={s.suggestHead}>{prodQuery?'Productions correspondantes':'Tes productions · touche pour choisir, ou tape un nouveau nom'}</Text>
-                    {prodSuggestions.map(p=>(
-                      <TouchableOpacity key={p} style={s.suggestItem} onPress={()=>{setFProduction(p);setShowSuggest(false);}}>
-                        <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="repeat" size={13} color={C.petrol} /><Text style={s.suggestTxt}>{p}</Text></View>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
+                <TouchableOpacity style={s.typeBtn} onPress={()=>setShowProdPicker(true)}>
+                  <Text style={[s.typeBtnTxt,!fProduction&&{color:C.muted,fontWeight:'400'}]} numberOfLines={1}>{fProduction||'Choisir ou créer…'}</Text>
+                  <Text style={s.typeBtnChevron}>▾</Text>
+                </TouchableOpacity>
+                <ProductionPickerModal
+                  visible={showProdPicker}
+                  productions={knownProductions}
+                  current={fProduction}
+                  onPick={(p)=>{setFProduction(p);setShowProdPicker(false);}}
+                  onClose={()=>setShowProdPicker(false)}
+                />
 
                 {fProduction.trim().length>0 && (
                   <>
@@ -347,12 +350,20 @@ export default function Missions(){
                 )}
                 {!showTypePicker && !!fType && (
                   <TouchableOpacity onPress={()=>{setTypeAddMode(true);setShowTypePicker(true);}}>
-                    <Text style={s.typeAddLink}>+ Ajouter un type de mission</Text>
+                    <Text style={s.typeAddLink}>+ Ajouter un type de mission (ex. Son + Light)</Text>
                   </TouchableOpacity>
                 )}
                 {showTypePicker && (
                   <View style={s.typePickerInline}>
-                    {typeAddMode && <Text style={s.typeGroupLbl}>Ajouter un 2e type à « {fType} »</Text>}
+                    {/* Annuler : un appui par erreur sur « + Ajouter un type » ne doit pas obliger a choisir. */}
+                    {typeAddMode && (
+                      <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:10}}>
+                        <Text style={[s.typeGroupLbl,{flexShrink:1}]} numberOfLines={1}>Ajouter un 2e type à « {fType} »</Text>
+                        <TouchableOpacity onPress={()=>{setShowTypePicker(false);setTypeAddMode(false);}} hitSlop={8}>
+                          <Text style={s.typeCancelTxt}>Annuler</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                     <View style={s.typeWrap}>
                       {['Montage','Tournage','Démontage'].map(p=>(
                         <TouchableOpacity key={p} style={[s.typeChip,typeParts(fType).includes(p)&&s.typeChipActive]} onPress={()=>{setFType(typeAddMode?addType(fType,p):p);setShowTypePicker(false);setTypeAddMode(false);}}>
@@ -598,6 +609,7 @@ const makeS=(C:any)=>StyleSheet.create({
   mmOptTxt:{fontSize:13,fontWeight:'800',color:C.petrol},
   // Lien discret « + Ajouter un type de mission » : ne doit pas concurrencer le bouton principal.
   typeAddLink:{fontSize:12,fontWeight:'700',color:C.petrol,marginTop:8,textDecorationLine:'underline'},
+  typeCancelTxt:{fontSize:12,fontWeight:'800',color:C.muted,textDecorationLine:'underline'},
   inputTxt:{fontSize:15,color:C.text},
   suggestBox:{backgroundColor:C.card,borderWidth:1,borderColor:C.line,borderRadius:14,marginTop:6,overflow:'hidden'},
   // En-tête de la liste déroulante : dit qu'on peut choisir OU taper un nouveau nom (idem onglet calendrier).

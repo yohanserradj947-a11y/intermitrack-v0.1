@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useProdColors, PROD_PRESETS, prodGradient, textOn } from '../../lib/prodColors';
 import { useAnnexe, modeForNew, modeForEdit, computeHoursVac, extraHoursOf, CACHET_H } from '../../lib/annexe';
 import { typeParts, addType, removeType } from '../../lib/missionType';
+import ProductionPickerModal from '../../components/ProductionPickerModal';
 import ColorPickerModal from '../../components/ColorPickerModal';
 import ProdColorManager from '../../components/ProdColorManager';
 import NoteFormModal from '../../components/NoteFormModal';
@@ -117,6 +118,7 @@ export default function Calendar(){
   const [showEndPicker,setShowEndPicker]=useState(false);
   const [saving,setSaving]=useState(false);
   const [showSuggest,setShowSuggest]=useState(false);
+  const [showProdPicker,setShowProdPicker]=useState(false);
   const [showEmSuggest,setShowEmSuggest]=useState(false);
 
   const [kmOpen,setKmOpen]=useState(false);
@@ -666,21 +668,21 @@ export default function Calendar(){
                 </View>
               )}
 
+              {/* Un appui sur le champ ouvre le POP-UP listant toutes les productions, de la plus utilisee a la
+                  moins utilisee : on choisit directement, ou on en cree une nouvelle. Retour Damien. */}
               <Text style={s.label}>{fRegime==='intermittence'?'Nom de la production':'Nom de l\'employeur'}</Text>
-              <TxtInput style={s.input} value={fProduction} onChangeText={(t:string)=>{setFProduction(t);setShowSuggest(true);}} onFocus={()=>setShowSuggest(true)} placeholder="Ex : ENDEMOL" placeholderTextColor={C.muted} autoCapitalize="characters"/>
-              {/* Au clic sur le champ (vide), on deroule directement les productions deja enregistrees, du plus
-                  frequent au moins frequent : un seul appui suffit. Des qu'on tape, la liste filtre — et si le nom
-                  n'existe pas encore, il suffit de le taper, il sera cree a l'enregistrement. Retour Damien. */}
-              {showSuggest&&prodSuggestions.length>0&&(
-                <View style={s.suggestBox}>
-                  <Text style={s.suggestHead}>{prodQuery?'Productions correspondantes':'Tes productions · touche pour choisir, ou tape un nouveau nom'}</Text>
-                  {prodSuggestions.map(p=>(
-                    <TouchableOpacity key={p} style={s.suggestItem} onPress={()=>{setFProduction(p);setShowSuggest(false);}}>
-                      <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="repeat" size={13} color={C.petrol} /><Text style={s.suggestTxt}>{p}</Text></View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
+              <TouchableOpacity style={s.typeBtn} onPress={()=>setShowProdPicker(true)}>
+                <Text style={[s.typeBtnTxt,!fProduction&&{color:C.muted,fontWeight:'400'}]} numberOfLines={1}>{fProduction||'Choisir ou créer…'}</Text>
+                <Text style={s.typeBtnChevron}>▾</Text>
+              </TouchableOpacity>
+              <ProductionPickerModal
+                visible={showProdPicker}
+                productions={knownProductions}
+                current={fProduction}
+                label={fRegime==='intermittence'?'Production':'Employeur'}
+                onPick={(p)=>{setFProduction(p);setShowProdPicker(false);}}
+                onClose={()=>setShowProdPicker(false)}
+              />
 
               {fProduction.trim().length>0 && (
                 <>
@@ -744,12 +746,21 @@ export default function Calendar(){
               )}
               {!showTypePicker && !!fType && (
                 <TouchableOpacity onPress={()=>{setTypeAddMode(true);setShowTypePicker(true);}}>
-                  <Text style={s.typeAddLink}>+ Ajouter un type de mission</Text>
+                  <Text style={s.typeAddLink}>+ Ajouter un type de mission (ex. Son + Light)</Text>
                 </TouchableOpacity>
               )}
               {showTypePicker && (
                 <View style={s.typePickerInline}>
-                  {typeAddMode && <Text style={s.typeGroupLbl}>Ajouter un 2e type à « {fType} »</Text>}
+                  {/* Annuler : sans ca, un appui par erreur sur « + Ajouter un type » obligeait a choisir
+                      quelque chose (ou a quitter la mission). Retour Yohan. */}
+                  {typeAddMode && (
+                    <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:10}}>
+                      <Text style={[s.typeGroupLbl,{flexShrink:1}]} numberOfLines={1}>Ajouter un 2e type à « {fType} »</Text>
+                      <TouchableOpacity onPress={()=>{setShowTypePicker(false);setTypeAddMode(false);}} hitSlop={8}>
+                        <Text style={s.typeCancelTxt}>Annuler</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                   <View style={s.typeWrap}>
                     {['Montage','Tournage','Démontage'].map(p=>(
                       <TouchableOpacity key={p} style={[s.typeChip,typeParts(fType).includes(p)&&s.typeChipActive]} onPress={()=>{setFType(typeAddMode?addType(fType,p):p);setShowTypePicker(false);setTypeAddMode(false);}}>
@@ -1136,6 +1147,7 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   mmOptTxt:{fontSize:13,fontWeight:'800',color:C.petrol},
   // Lien discret « + Ajouter un type de mission » : ne doit pas concurrencer le bouton principal.
   typeAddLink:{fontSize:12,fontWeight:'700',color:C.petrol,marginTop:8,textDecorationLine:'underline'},
+  typeCancelTxt:{fontSize:12,fontWeight:'800',color:C.muted,textDecorationLine:'underline'},
   mdpFill:{flexDirection:'row',alignItems:'center',gap:8,backgroundColor:C.soft,borderRadius:11,padding:10,marginBottom:14},
   mdpFillLbl:{fontSize:13,fontWeight:'700',color:C.petrol},
   mdpFillInput:{width:60,backgroundColor:C.card,borderWidth:1,borderColor:C.line,borderRadius:9,paddingVertical:6,paddingHorizontal:8,textAlign:'center',fontSize:14,color:C.text},

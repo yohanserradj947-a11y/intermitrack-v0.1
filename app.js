@@ -1277,6 +1277,9 @@ function _confirmClose(val){
 async function addMission(event) {
   event.preventDefault();
   if (!currentUser) { toast("Connecte-toi avant d'ajouter une mission."); return; }
+  // Le champ production est masqué (on passe par le pop-up) : le navigateur ne peut plus le valider,
+  // c'est donc ici qu'on le contrôle. Sans ça, on enregistrerait une mission sans production.
+  if (!String($("production").value || "").trim()) { toast("Indique la production."); return; }
   if ($("endDate").value < $("date").value) { toast("La date de fin ne peut pas être avant la date de début."); return; }
 
   // Jours travaillés déjà choisis via le pop-up pour cette période → enregistrement réparti
@@ -1325,6 +1328,7 @@ async function _afterMissionSave(firstDate) {
   _mdpData = null;
   var _hl = document.querySelector('label[for="hours"]'); if (_hl) _hl.textContent = "Nombre d'heures cumulées sur la période";
   $("missionForm").reset();
+  _syncProdBtn(); // reset() vide le champ masqué : sans ça le bouton afficherait encore l'ancienne production
   editingMissionId = null;
   _setMissionRegime("intermittence"); // sinon le formulaire resterait bloqué en « régime général » pour la mission suivante
   const submitBtn = document.querySelector("#missionForm button[type='submit']");
@@ -1486,7 +1490,7 @@ function editMission(id) {
   if (typeof switchAddTab === 'function') switchAddTab('mission');
   editingMissionId = mission.id;
   _setMissionRegime(mission.regime || "intermittence");
-  $("production").value = mission.production || ""; if (typeof syncProdColorPicker === 'function') syncProdColorPicker();
+  _setProdValue(mission.production || "");
   if ($("emission")) $("emission").value = mission.emission || "";
   if ($("lieu")) $("lieu").value = mission.lieu || "";
   _setTypeValue(mission.type || "Autres");
@@ -3308,7 +3312,7 @@ function resetMissionFormForDate(dateStr, regime) {
   _setMissionRegime(regime || "intermittence");
   if (typeof switchAddTab === 'function') switchAddTab('mission');
   if ($("missionForm")) $("missionForm").reset();
-  if ($("production")) $("production").value = ""; if (typeof syncProdColorPicker === 'function') syncProdColorPicker();
+  if ($("production")) _setProdValue("");
   if ($("type")) _setTypeValue((getCustomPostes()[0]) || "Montage");
   if ($("date")) $("date").value = dateStr;
   if ($("endDate")) $("endDate").value = dateStr;
@@ -4282,6 +4286,100 @@ function initProfilFeature(){
   ['date','endDate'].forEach(function(idd){ var el=document.getElementById(idd); if(el && !el.dataset.mdptrig){ el.dataset.mdptrig='1'; el.addEventListener('change', _maybeOpenMdp); } });
 }
 // ===== Sélecteur de type de mission (pop-up à boutons, comme les jours) =====
+// ===== Pop-up de choix de la production / employeur =====
+// Un appui sur le bouton ouvre la liste de TOUTES les productions déjà saisies, de la plus utilisée à
+// la moins utilisée : on choisit directement, ou on en crée une nouvelle. Avant, il fallait taper une
+// lettre pour voir quoi que ce soit. Retour Damien. Même comportement que ProductionPickerModal (appli).
+function _knownProds(){
+  var counts = {};
+  (typeof missions !== 'undefined' ? missions : []).forEach(function(m){
+    var p = String(m.production || '').toUpperCase().trim();
+    if (p) counts[p] = (counts[p] || 0) + 1;
+  });
+  return Object.keys(counts).sort(function(a,b){ return counts[b] - counts[a]; });
+}
+function _syncProdBtn(){
+  var l = document.getElementById('prodBtnLabel');
+  var i = document.getElementById('production');
+  if (l && i) { l.textContent = i.value || 'Choisir ou créer…'; l.style.opacity = i.value ? '1' : '.45'; }
+}
+function _setProdValue(v){
+  var i = document.getElementById('production'); if(!i) return;
+  i.value = v || '';
+  if (typeof syncProdColorPicker === 'function') syncProdColorPicker();
+  _syncProdBtn();
+}
+function _renderProdPicker(ov){
+  var q = (document.getElementById('prodSearchInput') || {}).value || '';
+  var query = q.trim().toUpperCase();
+  var all = _knownProds();
+  var list = query ? all.filter(function(p){ return p.indexOf(query) >= 0; }) : all;
+  var canCreate = !!query && all.indexOf(query) < 0;
+  var cur = (document.getElementById('production') || {}).value || '';
+  var html = '<div class="pf-box"><div class="pf-title">Production / employeur</div>';
+  html += '<div class="pf-addrow"><input type="text" id="prodSearchInput" placeholder="Chercher ou créer…" autocomplete="off" value="'+escapeHtml(q)+'"></div>';
+  if (canCreate) html += '<button type="button" class="pf-create" id="prodCreateBtn">+ Créer « '+escapeHtml(query)+' »</button>';
+  if (list.length) {
+    html += '<div class="pf-label">' + (query ? 'Correspondances' : 'Tes productions · de la plus utilisée à la moins utilisée') + '</div>';
+    html += '<div class="pf-prodlist">' + list.map(function(p){
+      return '<button type="button" class="pf-opt'+(p===cur?' on':'')+'" data-prod="'+escapeHtml(p)+'">'+escapeHtml(p)+'</button>';
+    }).join('') + '</div>';
+  } else if (!canCreate) {
+    html += '<div class="pf-label" style="text-align:center;">Aucune production enregistrée. Tape un nom pour la créer.</div>';
+  }
+  html += '<div class="pf-actions"><button type="button" class="pf-cancel" id="prodPickClose">Fermer</button></div></div>';
+  ov.innerHTML = html;
+}
+function _openProdPicker(){
+  _profilEnsureDom(); // garantit les styles .pf-*
+  var ov = document.getElementById('prodPickerOverlay');
+  if(!ov){
+    var st = document.createElement('style');
+    st.textContent = ".pf-prodlist{display:flex;flex-direction:column;gap:6px;max-height:38vh;overflow-y:auto;}.pf-prodlist .pf-opt{text-align:left;}.pf-create{width:100%;margin-top:8px;padding:11px;border:none;border-radius:10px;background:var(--petrol);color:#fff;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;}";
+    document.head.appendChild(st);
+    ov = document.createElement('div');
+    ov.id = 'prodPickerOverlay';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:100003;padding:16px;';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function(e){
+      if(e.target===ov || e.target.id==='prodPickClose'){ ov.style.display='none'; return; }
+      if(e.target.id==='prodCreateBtn'){
+        var v=(document.getElementById('prodSearchInput').value||'').trim().toUpperCase();
+        if(v){ _setProdValue(v); ov.style.display='none'; }
+        return;
+      }
+      var b = e.target.closest && e.target.closest('[data-prod]');
+      if(b){ _setProdValue(b.dataset.prod); ov.style.display='none'; }
+    });
+    // Filtrage au fil de la frappe. On re-rend et on redonne le focus + le curseur en fin de champ.
+    ov.addEventListener('input', function(e){
+      if(e.target.id==='prodSearchInput'){
+        var v=e.target.value;
+        _renderProdPicker(ov);
+        var i=document.getElementById('prodSearchInput');
+        if(i){ i.focus(); i.setSelectionRange(v.length, v.length); }
+      }
+    });
+    ov.addEventListener('keydown', function(e){
+      if(e.key==='Enter' && e.target.id==='prodSearchInput'){
+        e.preventDefault();
+        var v=(e.target.value||'').trim().toUpperCase();
+        if(v){ _setProdValue(v); ov.style.display='none'; }
+      }
+    });
+  }
+  _renderProdPicker(ov);
+  ov.style.display='flex';
+  var si=document.getElementById('prodSearchInput'); if(si) si.focus();
+}
+(function(){
+  function wireProd(){
+    var pb=document.getElementById('prodBtn');
+    if(pb && !pb.dataset.init){ pb.dataset.init='1'; pb.addEventListener('click', _openProdPicker); _syncProdBtn(); }
+  }
+  if (document.readyState !== "loading") wireProd(); else document.addEventListener("DOMContentLoaded", wireProd);
+})();
+
 // ===== Plusieurs types sur une même mission (« Rec + MIX ») =====
 // Un même contrat, un même jour, peut porter 2 activités (retour Damien, ingé son doublage).
 // Les types sont joints par « + » dans missions.mission_type : aucune modif de base, le type n'est
@@ -4336,7 +4434,8 @@ function _renderTypePicker(ov){
   html += '<div class="pf-seg">' + base.map(function(p){ return '<button type="button" class="pf-opt" data-type="'+escapeHtml(p)+'">'+escapeHtml(p)+'</button>'; }).join('') + '</div>';
   if(customs.length){ html += '<div class="pf-label">Mes postes</div><div class="pf-seg">' + customs.map(function(p){ return '<button type="button" class="pf-opt pf-opt-custom" data-type="'+escapeHtml(p)+'">'+escapeHtml(p)+'<span class="pf-opt-del" data-delposte="'+escapeHtml(p)+'">×</span></button>'; }).join('') + '</div>'; }
   html += '<div class="pf-label">Ajouter un poste</div><div class="pf-addrow"><input type="text" id="newPosteInput" placeholder="Ex : Clown, Cascadeur…" autocomplete="off"><button type="button" id="addPosteBtn">Ajouter</button></div>';
-  html += '<div class="pf-actions"><button type="button" class="pf-cancel" id="typePickClose">Fermer</button></div></div>';
+  // « Annuler » en mode ajout : un appui par erreur sur « + Ajouter un type » ne doit pas obliger a choisir.
+  html += '<div class="pf-actions"><button type="button" class="pf-cancel" id="typePickClose">' + (_typeAddMode ? 'Annuler' : 'Fermer') + '</button></div></div>';
   ov.innerHTML = html;
   // Un type combiné (« Rec + MIX ») doit allumer SES DEUX pastilles, pas zéro : on compare par partie.
   var cur = document.getElementById('type') ? document.getElementById('type').value : '';
@@ -4364,7 +4463,7 @@ function _openTypePicker(){
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:100003;padding:16px;';
     document.body.appendChild(ov);
     ov.addEventListener('click', function(e){
-      if(e.target===ov || e.target.id==='typePickClose'){ ov.style.display='none'; return; }
+      if(e.target===ov || e.target.id==='typePickClose'){ _typeAddMode=false; ov.style.display='none'; return; }
       var del = e.target.closest && e.target.closest('[data-delposte]');
       if(del){ e.stopPropagation(); removeCustomPoste(del.dataset.delposte); _renderTypePicker(ov); return; }
       if(e.target.id==='addPosteBtn'){ _typePickerAddFromInput(ov); return; }

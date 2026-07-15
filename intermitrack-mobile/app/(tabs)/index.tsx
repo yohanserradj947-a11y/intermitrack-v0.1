@@ -15,6 +15,7 @@ import TxtInput from '../../components/TxtInput';
 import { GradientButton } from '../../components/GradientButton';
 import { openMesInfos, onProfilChanged } from '../../components/AccountMenu';
 import { typeParts, addType, removeType } from '../../lib/missionType';
+import ProductionPickerModal from '../../components/ProductionPickerModal';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemeControls } from '../../lib/theme';
 import { useNotes } from '../../lib/notes';
@@ -71,6 +72,7 @@ export default function HomeScreen(){
   const [showTypePicker,setShowTypePicker]=useState(false);
   // true = le choix s'AJOUTE au type courant (« Rec + MIX ») ; false = il le remplace (cas courant).
   const [typeAddMode,setTypeAddMode]=useState(false);
+  const [showProdPicker,setShowProdPicker]=useState(false);
   const [fVacations,setFVacations]=useState('');
   const [fStart,setFStart]=useState(new Date());
   const [fEnd,setFEnd]=useState(new Date());
@@ -148,6 +150,12 @@ export default function HomeScreen(){
       }},
     ]);
   }
+
+  // Employeurs deja saisis, classes du PLUS UTILISE au moins utilise (idem calendrier et missions).
+  const knownProductions=useMemo(()=>{
+    const counts=missions.reduce((acc:Record<string,number>,m:any)=>{const p=(m.production||'').toUpperCase().trim();if(p)acc[p]=(acc[p]||0)+1;return acc;},{});
+    return Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+  },[missions]);
 
   const stats=useMemo(()=>{
     const today=new Date();today.setHours(0,0,0,0);
@@ -450,8 +458,20 @@ export default function HomeScreen(){
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text style={s.modalTitle}>Modifier la mission</Text>
 
+              {/* Un appui ouvre le POP-UP listant toutes les productions, de la plus utilisée à la moins
+                  utilisée : choix direct ou création. Même composant que le calendrier et les missions. */}
               <Text style={s.label}>Nom de la production</Text>
-              <TxtInput style={s.input} value={fProduction} onChangeText={setFProduction} placeholderTextColor={C.muted} autoCapitalize="characters"/>
+              <TouchableOpacity style={s.typeBtn} onPress={()=>setShowProdPicker(true)}>
+                <Text style={[s.typeBtnTxt,!fProduction&&{color:C.muted,fontWeight:'400'}]} numberOfLines={1}>{fProduction||'Choisir ou créer…'}</Text>
+                <Text style={s.typeBtnChevron}>▾</Text>
+              </TouchableOpacity>
+              <ProductionPickerModal
+                visible={showProdPicker}
+                productions={knownProductions}
+                current={fProduction}
+                onPick={(p)=>{setFProduction(p);setShowProdPicker(false);}}
+                onClose={()=>setShowProdPicker(false)}
+              />
 
               <Text style={s.label}>Nom de l'émission (facultatif)</Text>
               <TxtInput style={s.input} value={fEmission} onChangeText={setFEmission} placeholder="Ex : Koh-Lanta" placeholderTextColor={C.muted}/>
@@ -475,12 +495,20 @@ export default function HomeScreen(){
               )}
               {!showTypePicker && !!fType && (
                 <TouchableOpacity onPress={()=>{setTypeAddMode(true);setShowTypePicker(true);}}>
-                  <Text style={s.typeAddLink}>+ Ajouter un type de mission</Text>
+                  <Text style={s.typeAddLink}>+ Ajouter un type de mission (ex. Son + Light)</Text>
                 </TouchableOpacity>
               )}
               {showTypePicker && (
                 <View style={s.typePickerInline}>
-                  {typeAddMode && <Text style={s.typeGroupLbl}>Ajouter un 2e type à « {fType} »</Text>}
+                  {/* Annuler : un appui par erreur sur « + Ajouter un type » ne doit pas obliger a choisir. */}
+                  {typeAddMode && (
+                    <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:10}}>
+                      <Text style={[s.typeGroupLbl,{flexShrink:1}]} numberOfLines={1}>Ajouter un 2e type à « {fType} »</Text>
+                      <TouchableOpacity onPress={()=>{setShowTypePicker(false);setTypeAddMode(false);}} hitSlop={8}>
+                        <Text style={s.typeCancelTxt}>Annuler</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                   {([['Technique',POSTES_TECH],['Artiste',POSTES_ARTISTE],['Musique / scène',POSTES_MUSIQUE],['Autre',POSTES_AUTRE]] as [string,string[]][]).map(([grp,list])=>(
                     <View key={grp}>
                       <Text style={s.typeGroupLbl}>{grp}</Text>
@@ -666,6 +694,7 @@ const makeS=(C:any)=>StyleSheet.create({
   typeBtn:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingVertical:12,paddingHorizontal:14,borderRadius:12,backgroundColor:C.card,borderWidth:1,borderColor:C.line},
   // Lien discret « + Ajouter un type de mission » : ne doit pas concurrencer le bouton principal.
   typeAddLink:{fontSize:12,fontWeight:'700',color:C.petrol,marginTop:8,textDecorationLine:'underline'},
+  typeCancelTxt:{fontSize:12,fontWeight:'800',color:C.muted,textDecorationLine:'underline'},
   typeBtnTxt:{fontSize:14,fontWeight:'700',color:C.text},
   typeBtnChevron:{fontSize:13,color:C.muted},
   typeGroupLbl:{fontSize:11.5,fontWeight:'800',color:C.muted,marginTop:14,marginBottom:8,textTransform:'uppercase',letterSpacing:0.5},
