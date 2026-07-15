@@ -1,13 +1,13 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { paletteFor, ThemeId, CustomSettings } from './theme';
+import { paletteFor, ThemeId, CustomTheme } from './theme';
 
 const GROUP = 'group.fr.intermitrack.app';
 
 // Palette envoyée aux widgets. Une seule définition, utilisée par syncWidgets() ET syncWidgetTheme() :
 // deux copies auraient fini par diverger.
-function paletteForWidget(themeId: ThemeId, customTheme: CustomSettings | null) {
-  const C = paletteFor(themeId, customTheme);
+function paletteForWidget(themeId: ThemeId, customs: CustomTheme[] | null) {
+  const C = paletteFor(themeId, customs);
   return { bg: C.card, text: C.text, muted: C.muted, petrol: C.petrol, green: C.green, orange: C.orange, line: C.line, track: C.track };
 }
 
@@ -20,9 +20,9 @@ function paletteForWidget(themeId: ThemeId, customTheme: CustomSettings | null) 
 //
 // On reçoit themeId/custom en paramètres plutôt que de les relire : l'appelant vient de les changer,
 // et l'écriture AsyncStorage est asynchrone — on relirait l'ANCIENNE valeur.
-export async function syncWidgetTheme(themeId: ThemeId, customTheme: CustomSettings | null) {
+export async function syncWidgetTheme(themeId: ThemeId, customs: CustomTheme[] | null) {
   try {
-    const themePalette = paletteForWidget(themeId, customTheme);
+    const themePalette = paletteForWidget(themeId, customs);
 
     if (Platform.OS === 'ios') {
       let ExtensionStorage: any;
@@ -91,14 +91,16 @@ export async function syncWidgets(missions: any[], getColor: (name: string) => s
 
     // --- Thème actif → les widgets adoptent le thème choisi dans l'app (Rock, Noir & Or, etc.) ---
     const themeId = ((await AsyncStorage.getItem('intermitrack_theme')) as ThemeId) || 'light';
-    let customTheme: CustomSettings | null = null;
-    try { const cv = await AsyncStorage.getItem('intermitrack_theme_custom'); if (cv) customTheme = JSON.parse(cv); } catch (e) {}
-    const C = paletteFor(themeId, customTheme);
+    // La BIBLIOTHÈQUE des thèmes perso nommés, et non plus l'ancienne clé unique : sans ça, un thème
+    // perso n'atteindrait jamais les widgets (paletteFor ne saurait pas résoudre `custom:<id>`).
+    let customs: CustomTheme[] | null = null;
+    try { const cv = await AsyncStorage.getItem('intermitrack_themes_custom'); if (cv) { const p = JSON.parse(cv); if (Array.isArray(p)) customs = p; } } catch (e) {}
+    const C = paletteFor(themeId, customs);
     // (palette widget calculée plus bas via paletteForWidget — même source que syncWidgetTheme)
     // Dégradés par défaut = ceux de l'app pour CE thème (passé pétrole→vert, futur orange du thème).
     const GRAD_PAST = [C.petrol, C.green];
     const GRAD_FUTURE = prodGradient(C.orange);
-    const themePalette = paletteForWidget(themeId, customTheme);
+    const themePalette = paletteForWidget(themeId, customs);
 
     // --- Heures / 507h : DEPUIS la date ARE (période de droits France Travail), comme l'app ---
     let done = 0, planned = 0;

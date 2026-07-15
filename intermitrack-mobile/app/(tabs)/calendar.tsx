@@ -381,7 +381,6 @@ export default function Calendar(){
   const visible=monthMissions.slice(page*perPage,(page+1)*perPage);
   const monthNotes=notes.filter((n)=>{const d=new Date(n.date+'T00:00:00');return d.getMonth()===month&&d.getFullYear()===year;}).sort((a,b)=>a.date<b.date?-1:1);
 
-  const allProds=Array.from(new Set(missions.map((m:any)=>(m.production||'').toUpperCase().trim()).filter(Boolean))).sort();
 
   function moveMonth(n:number){const d=new Date(current);d.setMonth(d.getMonth()+n);d.setDate(1);setCurrent(d);setPage(0);}
   function _showExcelInfo(){
@@ -404,6 +403,10 @@ export default function Calendar(){
   // Employeurs deja saisis, classes du PLUS FREQUENT au moins frequent : les recurrents remontent d'eux-memes.
   const prodCounts=missions.reduce((acc:Record<string,number>,m:any)=>{const p=(m.production||'').toUpperCase().trim();if(p)acc[p]=(acc[p]||0)+1;return acc;},{});
   const knownProductions=Object.keys(prodCounts).sort((a,b)=>prodCounts[b]-prodCounts[a]);
+  // « Personnaliser les couleurs » : les plus utilisées d'abord, et non par ordre alphabétique.
+  // Retour Yohan : « je tombe sur une liste énorme et je dois fouiller ». On réutilise le tri par
+  // fréquence du pop-up de production plutôt que d'entretenir deux listes qui finiraient par diverger.
+  const allProds=knownProductions;
 
   // Suggestions d'émission : on propose d'abord les émissions déjà utilisées pour la
   // production choisie, puis les autres. Insensible à la casse, casse d'origine conservée.
