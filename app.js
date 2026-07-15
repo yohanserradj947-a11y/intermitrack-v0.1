@@ -868,6 +868,10 @@ function attachAddressAutocomplete(input) {
             input.dataset.lon = f.geometry.coordinates[0];
             input.dataset.lat = f.geometry.coordinates[1];
             close();
+            // Remplir .value ne déclenche AUCUN événement, et on ne peut pas simuler une frappe :
+            // le gestionnaire "input" ci-dessus effacerait les coordonnées qu'on vient de recevoir.
+            // On émet donc un signal dédié, que le pop-up d'adresses écoute pour se rafraîchir.
+            input.dispatchEvent(new CustomEvent("address-picked", { bubbles: true }));
           });
           box.appendChild(item);
         });
@@ -4391,8 +4395,11 @@ function _renderAddrPicker(ov){
   var html = '<div class="pf-box"><div class="pf-title">' + (_addrPickerWhich === 'from' ? 'Lieu de départ' : "Lieu d'arrivée") + '</div>';
   // Le champ de recherche sert AUSSI à saisir une nouvelle adresse : attachAddressAutocomplete()
   // y branche les suggestions de l'API Adresse et dépose les coordonnées dans dataset.lon/lat.
-  html += '<div class="pf-addrow" style="position:relative;"><input type="text" id="addrSearchInput" placeholder="Chercher une nouvelle adresse…" autocomplete="off" value="' + escapeHtml(q) + '"></div>';
-  if(q.trim()) html += '<button type="button" class="pf-create" id="addrUseBtn">Utiliser « ' + escapeHtml(q.trim()) + ' »</button>';
+  html += '<div class="pf-addrow" style="position:relative;"><input type="text" id="addrSearchInput" placeholder="Saisir une nouvelle adresse…" autocomplete="off" value="' + escapeHtml(q) + '"></div>';
+  // Le bouton est TOUJOURS présent, simplement masqué tant que le champ est vide : on ne re-rend pas
+  // le pop-up à chaque frappe (ça détruirait la liste de suggestions de l'API Adresse), donc s'il
+  // n'était pas créé ici il n'existerait jamais — et taper une adresse ne produisait aucun effet.
+  html += '<button type="button" class="pf-create" id="addrUseBtn" style="' + (q.trim() ? '' : 'display:none;') + '">Ajouter « <span id="addrUseTxt">' + escapeHtml(q.trim()) + '</span> »</button>';
   if(list.length){
     html += '<div class="pf-label">' + (query ? 'Correspondances' : 'Tes adresses · de la plus utilisée à la moins utilisée') + '</div>';
     html += '<div class="pf-prodlist">' + list.map(function(a){
@@ -4406,6 +4413,20 @@ function _renderAddrPicker(ov){
   ov.innerHTML = html;
   var ni = document.getElementById('addrSearchInput');
   if(ni && typeof attachAddressAutocomplete === 'function') attachAddressAutocomplete(ni);
+}
+// Filtre la liste connue et met à jour le bouton « Ajouter » en direct. C'est le seul retour visuel
+// qui confirme à l'utilisateur que sa saisie est prise en compte : sans lui, taper une adresse ne
+// produisait rien à l'écran.
+function _refreshAddrPickerUI(ov, value){
+  var raw = String(value || '').trim();
+  var q = raw.toLowerCase();
+  [].forEach.call(ov.querySelectorAll('[data-addr]'), function(el){
+    el.style.display = (!q || el.dataset.addr.toLowerCase().indexOf(q) >= 0) ? '' : 'none';
+  });
+  var ub = document.getElementById('addrUseBtn');
+  var ut = document.getElementById('addrUseTxt');
+  if(ut) ut.textContent = raw;
+  if(ub) ub.style.display = raw ? '' : 'none';
 }
 function _openAddrPicker(which){
   _addrPickerWhich = which;
@@ -4423,23 +4444,30 @@ function _openAddrPicker(which){
       if(e.target.id==='addrUseBtn'){
         var si=document.getElementById('addrSearchInput');
         var v=(si.value||'').trim();
-        if(v){ _setAddrValue(_addrPickerWhich, v, si.dataset.lon||null, si.dataset.lat||null); ov.style.display='none'; }
+        if(v){
+          _setAddrValue(_addrPickerWhich, v, si.dataset.lon||null, si.dataset.lat||null);
+          ov.style.display='none';
+          // Confirmation explicite : sans elle, on ne savait pas si la saisie avait été prise en compte.
+          if(typeof toast==='function') toast((_addrPickerWhich==='from'?'Départ':'Arrivée')+' : '+v, 'success');
+        }
         return;
       }
       var b = e.target.closest && e.target.closest('[data-addr]');
-      if(b){ _setAddrValue(_addrPickerWhich, b.dataset.addr, b.dataset.lng||null, b.dataset.lat||null); ov.style.display='none'; }
+      if(b){
+        _setAddrValue(_addrPickerWhich, b.dataset.addr, b.dataset.lng||null, b.dataset.lat||null);
+        ov.style.display='none';
+        if(typeof toast==='function') toast((_addrPickerWhich==='from'?'Départ':'Arrivée')+' : '+b.dataset.addr, 'success');
+      }
+    });
+    // Rafraîchit le bouton « Ajouter » + le filtre, que l'adresse vienne de la frappe ou d'un clic
+    // sur une suggestion de l'API Adresse (qui, lui, n'émet pas d'événement "input").
+    ov.addEventListener('address-picked', function(e){
+      if(e.target.id==='addrSearchInput') _refreshAddrPickerUI(ov, e.target.value||'');
     });
     ov.addEventListener('input', function(e){
       // On ne re-rend PAS à chaque frappe ici : attachAddressAutocomplete affiche sa propre liste
       // de suggestions sous le champ, et un re-rendu la détruirait. On filtre juste la liste connue.
-      if(e.target.id==='addrSearchInput'){
-        var q=(e.target.value||'').trim().toLowerCase();
-        [].forEach.call(ov.querySelectorAll('[data-addr]'), function(el){
-          el.style.display = (!q || el.dataset.addr.toLowerCase().indexOf(q)>=0) ? '' : 'none';
-        });
-        var ub=document.getElementById('addrUseBtn');
-        if(ub) ub.style.display = q ? '' : 'none';
-      }
+      if(e.target.id==='addrSearchInput') _refreshAddrPickerUI(ov, e.target.value||'');
     });
   }
   _renderAddrPicker(ov);
