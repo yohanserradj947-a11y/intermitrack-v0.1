@@ -43,9 +43,10 @@ const KmSection = forwardRef<KmHandle, {
   nbDays: number; initialDistance?: number; initialRate?: number;
   initialFrom?: string; initialTo?: string;
   initialFromCoords?: number[] | null; initialToCoords?: number[] | null;
-  knownFrom?: Addr[]; knownTo?: Addr[];
+  // Une seule réserve d'adresses pour le départ ET l'arrivée (retour Yohan).
+  addresses?: Addr[];
 }>(
-  ({ nbDays, initialDistance, initialRate, initialFrom, initialTo, initialFromCoords, initialToCoords, knownFrom = [], knownTo = [] }, ref) => {
+  ({ nbDays, initialDistance, initialRate, initialFrom, initialTo, initialFromCoords, initialToCoords, addresses = [] }, ref) => {
     const C = useTheme();
     const s = useMemo(() => makeS(C), [C]);
     const [open, setOpen] = useState(!!(initialDistance));
@@ -117,7 +118,7 @@ const KmSection = forwardRef<KmHandle, {
               <Text style={[s.pickTxt, !from && { color: C.muted, fontWeight: '400' }]} numberOfLines={1}>{from || 'Choisir ou saisir…'}</Text>
               <Text style={s.pickChevron}>▾</Text>
             </TouchableOpacity>
-            <AddressPickerModal visible={showFromPicker} addresses={knownFrom} current={from} title="Lieu de départ"
+            <AddressPickerModal visible={showFromPicker} addresses={addresses} current={from} title="Lieu de départ"
               onPick={(l, c) => { setFrom(l); setFromC(c); setShowFromPicker(false); }} onClose={() => setShowFromPicker(false)} />
 
             <Text style={s.label}>Lieu d'arrivée</Text>
@@ -125,7 +126,7 @@ const KmSection = forwardRef<KmHandle, {
               <Text style={[s.pickTxt, !to && { color: C.muted, fontWeight: '400' }]} numberOfLines={1}>{to || 'Choisir ou saisir…'}</Text>
               <Text style={s.pickChevron}>▾</Text>
             </TouchableOpacity>
-            <AddressPickerModal visible={showToPicker} addresses={knownTo} current={to} title="Lieu d'arrivée"
+            <AddressPickerModal visible={showToPicker} addresses={addresses} current={to} title="Lieu d'arrivée"
               onPick={(l, c) => { setTo(l); setToC(c); setShowToPicker(false); }} onClose={() => setShowToPicker(false)} />
             <TouchableOpacity style={s.check} onPress={() => setRt((v) => !v)}>
               <View style={[s.box, rt && s.boxOn]}>{rt && <Text style={s.boxTxt}>✓</Text>}</View>

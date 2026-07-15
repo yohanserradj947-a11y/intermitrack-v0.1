@@ -27,17 +27,23 @@ function build(rows: { label: any; lat: any; lng: any }[]): Addr[] {
     .map(label => ({ label, coords: coords[label] ?? null }));
 }
 
-export function knownFrom(missions: any[]): Addr[] {
-  return build(missions.map(m => ({ label: m.km_from, lat: m.km_from_lat, lng: m.km_from_lng })));
-}
-
-// Pour l'arrivée on ajoute les LIEUX de mission déjà saisis : ce champ, lui, était déjà
-// enregistré depuis toujours. La liste est donc utile dès la première ouverture, sans attendre.
-export function knownTo(missions: any[]): Addr[] {
-  const fromKm = build(missions.map(m => ({ label: m.km_to, lat: m.km_to_lat, lng: m.km_to_lng })));
-  const fromLieu = build(missions.map(m => ({ label: m.lieu, lat: null, lng: null })));
-  const seen = new Set(fromKm.map(a => a.label.toLowerCase()));
-  return [...fromKm, ...fromLieu.filter(a => !seen.has(a.label.toLowerCase()))];
+// UNE SEULE réserve d'adresses, partagée par le départ ET l'arrivée.
+// Retour Yohan : « il faudrait que j'aie le choix de toutes les adresses que j'ai entrées ».
+// Séparer les deux listes n'avait aucun sens pratique : une adresse d'arrivée d'hier est souvent
+// le départ de demain, et surtout la liste des départs était vide au démarrage (rien n'a jamais
+// été stocké), alors que celle des arrivées héritait des LIEUX de mission — d'où un décalage
+// incompréhensible entre les deux champs.
+//
+// Le tri par fréquence suffit à faire remonter le domicile en tête du départ : il apparaît dans
+// toutes les missions, donc il est le plus fréquent. Pas besoin de le déclarer.
+export function knownAddresses(missions: any[]): Addr[] {
+  return build([
+    ...missions.map(m => ({ label: m.km_from, lat: m.km_from_lat, lng: m.km_from_lng })),
+    ...missions.map(m => ({ label: m.km_to, lat: m.km_to_lat, lng: m.km_to_lng })),
+    // Les LIEUX de mission : ce champ était déjà enregistré depuis toujours, il rend la liste
+    // utile dès la 1re ouverture au lieu d'attendre que l'utilisateur ait tout ressaisi.
+    ...missions.map(m => ({ label: m.lieu, lat: null, lng: null })),
+  ]);
 }
 
 // ── Véhicule mémorisé (profil) ─────────────────────────────────────────────

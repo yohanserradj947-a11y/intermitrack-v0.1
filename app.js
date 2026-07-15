@@ -18,6 +18,60 @@ let areAdmissionDate = "";
 let aiYearOffset = 0; // navigation dans l'historique des années d'intermittence (0 = année en cours)
 let _missionMode = 'heures';   // 'heures' (technicien) | 'cachet' (artiste) — pour la saisie de mission
 const CACHET_H = 12;           // 1 cachet = 12 h pour le comptage des 507 h (cachet isolé ; ajustable via le champ heures)
+
+// ════════════════════════════════════════════════════════════════════════════
+// DÉDUCTIONS PROFESSIONNELLES — revenus 2025, déclaration 2026
+// Copie conforme de intermitrack-mobile/lib/calcul.ts : ne pas diverger.
+// Vérifié sur sources primaires (recherche du 15/07/2026, 18 sources, vote contradictoire).
+//
+// Forfait 10 % — CGI art. 83, 3°, al. 2 : « limitée à 14 555 € pour l'imposition des rémunérations
+// perçues en 2025 » et « ne peut être inférieur à 509 € ». Le plancher est lui-même borné par la
+// rémunération (impots.gouv.fr : « au minimum 509 € — sauf si la rémunération déclarée est
+// inférieure ») : un salaire de 400 € ouvre 400 € de déduction, pas 509 €.
+// ════════════════════════════════════════════════════════════════════════════
+const FORFAIT_10_PLANCHER = 509;
+const FORFAIT_10_PLAFOND = 14555;
+// Le BOFiP (§ 440/460) plafonne l'ASSIETTE du 14 %, pas la déduction : « la partie de la rémunération
+// qui n'excède pas le montant de la rémunération CORRESPONDANT AU plafond […] de 10 % » = 145 550 €.
+const ASSIETTE_14_MAX = FORFAIT_10_PLAFOND / 0.10;
+function _forfait10(net){
+  return Math.min(Math.max(Math.min(net * 0.10, FORFAIT_10_PLAFOND), FORFAIT_10_PLANCHER), Math.max(0, net));
+}
+// 14 % : musiciens (§ 440), chorégraphiques / lyriques / choristes (§ 460).
+//  5 % : tous les artistes, chefs d'orchestre et régisseurs (§ 480) — sur-ensemble strict du 14 %.
+// « Indépendantes l'une de l'autre » (§ 490) → cumulables (19 %) pour qui a droit aux deux.
+function _fraisReelsSpec(net, a14, a5){
+  return (a14 ? Math.min(Math.max(0, net), ASSIETTE_14_MAX) * 0.14 : 0) + (a5 ? Math.max(0, net) * 0.05 : 0);
+}
+// Les 14 %/5 % sont des FRAIS RÉELS : ils REMPLACENT le forfait de 10 %, ils ne s'y ajoutent jamais
+// (impots.gouv.fr : « La déduction de 10 % ne peut jamais être appliquée en même temps que la
+// déduction des frais réels »). D'où max(forfait ; frais réels) et non un taux figé par métier.
+const PROFILS_FISCAUX_SITE = {
+  technicien: { label: "Forfait 10 % standard", netCoeff: 0.775,
+    hint: "Forfait de 10 % du net imposable — au minimum 509 €, au maximum 14 555 € (revenus 2025).",
+    forfait: (net) => Math.max(_forfait10(net), _fraisReelsSpec(net, false, false)) },
+  musicien: { label: "14 % + 5 % (ou forfait 10 % si plus avantageux)", netCoeff: 0.775,
+    hint: "Musicien / choriste : 14 % (instruments, formation) + 5 % (représentation) — cumulables. Le forfait de 10 % s'applique s'il est plus avantageux (petites années).",
+    forfait: (net) => Math.max(_forfait10(net), _fraisReelsSpec(net, true, true)) },
+  lyrique: { label: "14 % + 5 % (ou forfait 10 % si plus avantageux)", netCoeff: 0.79,
+    hint: "Artiste lyrique : 14 % (formation, frais médicaux) + 5 % (représentation) — cumulables (BOFiP § 460 et § 480).",
+    forfait: (net) => Math.max(_forfait10(net), _fraisReelsSpec(net, true, true)) },
+  danseur: { label: "14 % + 5 % (ou forfait 10 % si plus avantageux)", netCoeff: 0.79,
+    hint: "Danseur (artiste chorégraphique) : 14 % (cours de danse, frais médicaux) + 5 % (représentation) — cumulables (BOFiP § 460 et § 480).",
+    forfait: (net) => Math.max(_forfait10(net), _fraisReelsSpec(net, true, true)) },
+  // Artiste dramatique : 5 % seulement (§ 480), pas de 14 % — il n'a pas d'instrument. Son 5 % étant
+  // toujours inférieur au forfait de 10 %, c'est ce dernier qui gagne en pratique.
+  comedien: { label: "Forfait 10 % (5 % artiste moins avantageux)", netCoeff: 0.79,
+    hint: "Comédien (artiste dramatique) : la déduction de 14 % ne le concerne pas (BOFiP § 480). Son 5 % étant inférieur au forfait de 10 %, c'est ce dernier qui s'applique.",
+    forfait: (net) => Math.max(_forfait10(net), _fraisReelsSpec(net, false, true)) }
+};
+// 'artiste' était l'ancienne clé, étiquetée « Artiste dramatique / lyrique » — deux métiers que le
+// BOFiP traite différemment. On la migre vers 'comedien' : c'est le seul choix qui ne change AUCUN
+// chiffre pour ceux qui l'avaient sélectionnée (10 % dans les deux cas).
+function migrerProfilFiscalSite(v){
+  if (v === 'artiste') return 'comedien';
+  return PROFILS_FISCAUX_SITE[v] ? v : 'technicien';
+}
 const HISTORY_PER_PAGE = 6;
 let documentsPage = 1;
 const DOCS_PER_PAGE_DESKTOP = 9;
@@ -500,7 +554,9 @@ function getCongesSpectaclesInput() { return localStorage.getItem(storageKey("co
 function setCongesSpectaclesInput(v) { localStorage.setItem(storageKey("conges_spec"), String(v)); }
 function getAutresFraisReels() { return Number(localStorage.getItem(storageKey("autres_frais")) || 0); }
 function setAutresFraisReels(v) { localStorage.setItem(storageKey("autres_frais"), String(Number(v || 0))); }
-function getProfileType() { return localStorage.getItem(storageKey("profile_type")) || "technicien"; }
+// migrerProfilFiscalSite : l'ancienne clé 'artiste' devient 'comedien' (même résultat qu'avant, donc
+// aucun chiffre ne bouge). Un lyrique ou un danseur devra se re-sélectionner — et y gagnera.
+function getProfileType() { return migrerProfilFiscalSite(localStorage.getItem(storageKey("profile_type")) || "technicien"); }
 function setProfileType(v) { localStorage.setItem(storageKey("profile_type"), v || "technicien"); }
 
 function getTaxRate() { return Number(localStorage.getItem(storageKey("tax_rate")) || 0); }
@@ -2334,28 +2390,9 @@ function renderFiscalite(yearGross, yearMissions) {
     $("autresFraisReels").dataset.init = "1";
   }
 
-  // Profil info + abattement spécifique
-  const profileInfos = {
-    technicien: {
-      hint: "Abattement forfaitaire standard : 10% du net imposable (plafonné à 14 555 €).",
-      forfait: (net) => Math.min(net * 0.10, 14555),
-      label: "Forfait 10% standard",
-      netCoeff: 0.775 // 22.5% cotisations salariales
-    },
-    musicien: {
-      hint: "Artiste musicien : forfait 14% (instruments, plafonné 14 555 €) + 5% (représentation) — cumulables.",
-      forfait: (net) => Math.min(net * 0.14, 14555) + (net * 0.05),
-      label: "Forfait 14% + 5% musicien",
-      netCoeff: 0.775
-    },
-    artiste: {
-      hint: "Artiste dramatique/lyrique/chorégraphique : abattement 18% sur cotisations (déjà inclus dans le net imposable de votre fiche de paie). Abattement déclaration : 10% standard.",
-      forfait: (net) => Math.min(net * 0.10, 14555),
-      label: "Forfait 10% (abattement 18% déjà dans fiche de paie)",
-      netCoeff: 0.79 // abattement 18% sur cotisations déjà appliqué
-    }
-  };
-  const profil = profileInfos[profileType] || profileInfos.technicien;
+  // Profils fiscaux — IDENTIQUES à lib/calcul.ts de l'appli. Ne pas diverger.
+  // Règles vérifiées sur sources primaires (CGI art. 83, 3° + BOI-RSA-BASE-30-50-30-30), revenus 2025.
+  const profil = PROFILS_FISCAUX_SITE[migrerProfilFiscalSite(profileType)];
 
   if ($("profileHint")) $("profileHint").textContent = profil.hint;
   if ($("profileAbattementInfo")) {
@@ -4341,7 +4378,15 @@ function initProfilFeature(){
 // Retours JB et second utilisateur : « la tâche est surtout redondante pour le lieu de départ,
 // qui est généralement le domicile de l'intermittent ».
 // Identique à AddressPickerModal (appli) : ne pas diverger.
-function _knownAddrs(which){
+// UNE SEULE réserve d'adresses, partagée par le départ ET l'arrivée.
+// Retour Yohan : « il faudrait que j'aie le choix de toutes les adresses que j'ai entrées ».
+// Séparer les deux listes n'avait aucun sens pratique : une adresse d'arrivée d'hier est souvent le
+// départ de demain, et surtout la liste des départs était vide au démarrage (aucune adresse n'avait
+// jamais été stockée) alors que celle des arrivées héritait des LIEUX de mission — d'où un décalage
+// incompréhensible entre les deux champs.
+// Le tri par fréquence suffit à faire remonter le domicile en tête au départ : il apparaît dans
+// toutes les missions, donc il est le plus fréquent. Rien à déclarer.
+function _knownAddrs(){
   var counts = {}, coords = {};
   var add = function(label, lng, lat){
     label = String(label || '').trim();
@@ -4350,15 +4395,11 @@ function _knownAddrs(which){
     if(coords[label] == null && lng != null && lat != null) coords[label] = [Number(lng), Number(lat)];
   };
   var list = (typeof missions !== 'undefined' ? missions : []);
-  if(which === 'from'){
-    list.forEach(function(m){ add(m.kmFrom, m.kmFromLng, m.kmFromLat); });
-  } else {
-    list.forEach(function(m){ add(m.kmTo, m.kmToLng, m.kmToLat); });
-    // L'arrivée propose aussi les LIEUX de mission : ce champ était déjà enregistré depuis toujours,
-    // la liste est donc utile dès la 1re ouverture (contrairement au départ, vide au démarrage).
-    var seen = {}; Object.keys(counts).forEach(function(k){ seen[k.toLowerCase()] = 1; });
-    list.forEach(function(m){ var l = String(m.lieu || '').trim(); if(l && !seen[l.toLowerCase()]) add(l, null, null); });
-  }
+  list.forEach(function(m){ add(m.kmFrom, m.kmFromLng, m.kmFromLat); });
+  list.forEach(function(m){ add(m.kmTo, m.kmToLng, m.kmToLat); });
+  // Les LIEUX de mission : déjà enregistrés depuis toujours, ils rendent la liste utile dès la 1re
+  // ouverture au lieu d'attendre que l'utilisateur ait tout ressaisi.
+  list.forEach(function(m){ add(m.lieu, null, null); });
   return Object.keys(counts).sort(function(a,b){ return counts[b] - counts[a]; })
     .map(function(label){ return { label: label, coords: coords[label] || null }; });
 }
@@ -4389,7 +4430,7 @@ function _renderAddrPicker(ov){
   var si = document.getElementById('addrSearchInput');
   var q = (si && si.value) || '';
   var query = q.trim().toLowerCase();
-  var all = _knownAddrs(_addrPickerWhich);
+  var all = _knownAddrs();
   var list = query ? all.filter(function(a){ return a.label.toLowerCase().indexOf(query) >= 0; }) : all;
   var cur = (document.getElementById(_addrPickerWhich === 'from' ? 'kmFrom' : 'kmTo') || {}).value || '';
   var html = '<div class="pf-box"><div class="pf-title">' + (_addrPickerWhich === 'from' ? 'Lieu de départ' : "Lieu d'arrivée") + '</div>';

@@ -17,7 +17,7 @@ import { useProdColors, PROD_PRESETS } from '../../lib/prodColors';
 import { useAnnexe, modeForEdit, computeHoursVac, extraHoursOf, CACHET_H } from '../../lib/annexe';
 import { typeParts, addType, removeType } from '../../lib/missionType';
 import ProductionPickerModal from '../../components/ProductionPickerModal';
-import { knownFrom, knownTo } from '../../lib/kmAddresses';
+import { knownAddresses } from '../../lib/kmAddresses';
 import { usePostes } from '../../lib/postes';
 import { LinearGradient } from 'expo-linear-gradient';
 import ColorPickerModal from '../../components/ColorPickerModal';
@@ -454,7 +454,7 @@ export default function Missions(){
                   initialDistance={editKmDist} initialRate={editKmRate}
                   initialFrom={editKmFrom} initialTo={editKmTo}
                   initialFromCoords={editKmFromCoords} initialToCoords={editKmToCoords}
-                  knownFrom={knownFrom(missions)} knownTo={knownTo(missions)} />
+                  addresses={knownAddresses(missions)} />
 
                 <GradientButton onPress={saveEdit} disabled={saving} style={s.saveBtn} textStyle={s.saveBtnTxt} label={saving?'Enregistrement…':'Mettre à jour'} />
                 <TouchableOpacity style={s.deleteBtn} onPress={deleteEdit}>

@@ -18,7 +18,7 @@ import { useAnnexe, modeForNew, modeForEdit, computeHoursVac, extraHoursOf, CACH
 import { typeParts, addType, removeType } from '../../lib/missionType';
 import ProductionPickerModal from '../../components/ProductionPickerModal';
 import AddressPickerModal from '../../components/AddressPickerModal';
-import { knownFrom, knownTo, useKmDefaults } from '../../lib/kmAddresses';
+import { knownAddresses, useKmDefaults } from '../../lib/kmAddresses';
 import ColorPickerModal from '../../components/ColorPickerModal';
 import ProdColorManager from '../../components/ProdColorManager';
 import NoteFormModal from '../../components/NoteFormModal';
@@ -892,7 +892,7 @@ export default function Calendar(){
                   </TouchableOpacity>
                   <AddressPickerModal
                     visible={showFromPicker}
-                    addresses={knownFrom(missions)}
+                    addresses={knownAddresses(missions)}
                     current={kmFrom}
                     title="Lieu de départ"
                     onPick={(l,c)=>{setKmFrom(l);setKmFromCoords(c);setShowFromPicker(false);}}
@@ -907,7 +907,7 @@ export default function Calendar(){
                   </TouchableOpacity>
                   <AddressPickerModal
                     visible={showToPicker}
-                    addresses={knownTo(missions)}
+                    addresses={knownAddresses(missions)}
                     current={kmTo}
                     title="Lieu d'arrivée"
                     onPick={(l,c)=>{setKmTo(l);setKmToCoords(c);setShowToPicker(false);}}

@@ -898,10 +898,16 @@ z-index: 500 !important;
               <h3>Vos revenus imposables</h3>
               <p>Tous les revenus à déclarer en traitements et salaires.</p>
               <label for="profileType">Votre statut</label>
+              <!-- 5 statuts et non 3 : le BOFiP ne range pas les artistes par annexe mais par déduction.
+                   Le 14 % est ouvert aux musiciens, choristes, lyriques et danseurs (§ 440/460), pas aux
+                   comédiens (§ 480). L'ancien « Artiste dramatique / lyrique / chorégraphique » mélangeait
+                   trois métiers aux droits différents et les sous-déduisait tous sauf le comédien. -->
               <select id="profileType">
                 <option value="technicien">Technicien du spectacle</option>
-                <option value="musicien">Artiste musicien / choriste</option>
-                <option value="artiste">Artiste dramatique / lyrique / chorégraphique</option>
+                <option value="musicien">Musicien / choriste</option>
+                <option value="lyrique">Artiste lyrique</option>
+                <option value="danseur">Danseur (artiste chorégraphique)</option>
+                <option value="comedien">Comédien (artiste dramatique)</option>
               </select>
               <div class="fi-result-row fi-highlight" style="margin-top:14px;">
                 <span class="fi-label">Brut annuel (missions) <span class="fi-auto">✓ auto</span></span>
@@ -1400,7 +1406,7 @@ z-index: 500 !important;
   </main>
 
   <script src="document-parser.js?v=5"></script>
-  <script src="app.js?v=55"></script>
+  <script src="app.js?v=56"></script>
 
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>
