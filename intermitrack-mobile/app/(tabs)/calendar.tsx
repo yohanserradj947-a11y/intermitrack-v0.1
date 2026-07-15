@@ -600,7 +600,11 @@ export default function Calendar(){
       )}
 
       <Modal visible={showForm} animationType="slide" transparent onRequestClose={()=>setShowForm(false)}>
-        <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
+        {/* iOS : le ScrollView ci-dessous utilise automaticallyAdjustKeyboardInsets, qui remonte DEJA le contenu
+            et fait defiler jusqu'au champ vise. Y ajouter un behavior="padding" fait compenser le clavier DEUX fois
+            → le champ saute / part de travers (ex. « ajouter un poste »). On laisse donc iOS au ScrollView seul.
+            Android ignore automaticallyAdjustKeyboardInsets : lui garde behavior="height". */}
+        <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?undefined:'height'}>
         <View style={s.modalOverlay}>
           <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
             <View style={s.modalHeader}>

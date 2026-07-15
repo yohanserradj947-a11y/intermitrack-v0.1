@@ -113,7 +113,10 @@ export default function NoteFormModal({ visible, editNote, defaultDate, mode = '
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      {/* iOS : le ScrollView utilise automaticallyAdjustKeyboardInsets, qui remonte deja le contenu au-dessus du
+          clavier. Cumuler behavior="padding" faisait compenser deux fois → champ mal cadre. iOS = ScrollView seul,
+          Android (qui ignore cette prop) garde behavior="height". */}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? undefined : 'height'}>
         <View style={s.overlay}>
           <View style={[s.card, { paddingBottom: 22 + insets.bottom }]}>
             <View style={s.header}>
