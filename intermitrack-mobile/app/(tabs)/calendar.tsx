@@ -599,17 +599,37 @@ export default function Calendar(){
 
               {fRegime!=='intermittence'&&(
                 <View style={s.rgBox}>
-                  <TouchableOpacity style={s.rgRow} activeOpacity={0.8}
-                    onPress={()=>setFRegime(fRegime==='enseignement'?'general':'enseignement')}>
-                    <View style={[s.rgCheck,fRegime==='enseignement'&&s.rgCheckOn]}>
-                      {fRegime==='enseignement'?<Ionicons name="checkmark" size={13} color="#fff"/>:null}
+                  <Text style={s.rgTitle}>De quoi s'agit-il ?</Text>
+                  <Text style={s.rgLead}>Les deux ne comptent pas pareil dans tes 507 h. Choisis ton cas :</Text>
+
+                  <TouchableOpacity style={[s.rgOpt,fRegime==='general'&&s.rgOptOn]} activeOpacity={0.85}
+                    onPress={()=>setFRegime('general')}>
+                    <View style={s.rgOptHead}>
+                      <View style={[s.rgRadio,fRegime==='general'&&s.rgRadioOn]}>
+                        {fRegime==='general'?<View style={s.rgRadioDot}/>:null}
+                      </View>
+                      <Text style={s.rgOptTitle}>Un travail hors spectacle</Text>
                     </View>
-                    <Text style={s.rgRowTxt}>C'est de l'<Text style={{fontWeight:'900'}}>enseignement</Text>, dans un établissement <Text style={{fontWeight:'900'}}>agréé</Text>, en lien avec mon métier</Text>
+                    <Text style={s.rgOptEx}>Pub en tant que mannequin, restauration, bureau, vente… Tout emploi salarié qui ne relève pas des annexes 8 ou 10.</Text>
+                    <Text style={[s.rgOptTag,{color:'#9A3412',backgroundColor:'#FFEDD5'}]}>Ne compte PAS dans les 507 h</Text>
                   </TouchableOpacity>
+
+                  <TouchableOpacity style={[s.rgOpt,fRegime==='enseignement'&&s.rgOptOn]} activeOpacity={0.85}
+                    onPress={()=>setFRegime('enseignement')}>
+                    <View style={s.rgOptHead}>
+                      <View style={[s.rgRadio,fRegime==='enseignement'&&s.rgRadioOn]}>
+                        {fRegime==='enseignement'?<View style={s.rgRadioDot}/>:null}
+                      </View>
+                      <Text style={s.rgOptTitle}>De l'enseignement</Text>
+                    </View>
+                    <Text style={s.rgOptEx}>Tu donnes des cours (chant, technique, danse…) dans un établissement <Text style={{fontWeight:'800'}}>agréé</Text>, sur une matière <Text style={{fontWeight:'800'}}>en lien avec ton métier</Text>, avec un vrai contrat de travail. Les 3 conditions sont obligatoires.</Text>
+                    <Text style={[s.rgOptTag,{color:'#075985',backgroundColor:'#E0F2FE'}]}>COMPTE dans les 507 h</Text>
+                  </TouchableOpacity>
+
                   <Text style={s.rgInfo}>
                     {fRegime==='enseignement'
-                      ? "Ces heures COMPTENT dans tes 507 h, dans la limite de 70 h — ou 120 h si tu as 50 ans ou plus à la fin du contrat. L'appli plafonne à 120 h : ne saisis que les heures qui te concernent. Ce plafond est partagé avec tes heures de formation (338 h au total)."
-                      : "Ces heures ne comptent pas dans tes 507 h. Elles entrent malgré tout dans l'estimation France Travail du mois : toute heure travaillée, quel que soit le régime, réduit tes jours indemnisables."}
+                      ? "Plafond : 70 h — ou 120 h si tu as 50 ans ou plus à la fin du contrat. L'appli retient jusqu'à 120 h pour ne léser personne : ne saisis que les heures qui te concernent vraiment. Ce plafond est partagé avec tes heures de formation (338 h au total)."
+                      : "Ces heures entrent quand même dans l'estimation France Travail du mois : toute heure travaillée, quel que soit le régime, réduit tes jours indemnisables. C'est pour ça qu'il vaut le coup de les saisir."}
                   </Text>
                 </View>
               )}
@@ -1058,14 +1078,22 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   calTabOn:{backgroundColor:C.card,shadowColor:'#000',shadowOpacity:0.08,shadowRadius:6,elevation:2},
   calTabTxt:{fontSize:12.5,fontWeight:'800',color:C.muted},
   calTabTxtOn:{fontSize:12.5,fontWeight:'800',color:C.petrol},
-  // Encadré "activité hors intermittence" (régime général / enseignement)
-  rgBox:{backgroundColor:'#E8F6FD',borderWidth:1,borderColor:'#0EA5E9',borderRadius:14,padding:13,marginBottom:4},
-  rgRow:{flexDirection:'row',alignItems:'flex-start',gap:10},
-  rgCheck:{width:21,height:21,borderRadius:6,borderWidth:1.5,borderColor:'#0EA5E9',backgroundColor:'#fff',
-    alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:1},
-  rgCheckOn:{backgroundColor:'#0EA5E9'},
-  rgRowTxt:{flex:1,fontSize:13,fontWeight:'700',color:'#0B4A5F',lineHeight:18},
-  rgInfo:{fontSize:12,color:'#3B6C80',lineHeight:17,marginTop:9},
+  // Encadré "activité hors intermittence" : 2 cas exposés côte à côte, on choisit en connaissance de cause
+  rgBox:{backgroundColor:'#F0F9FF',borderWidth:1,borderColor:'#BAE6FD',borderRadius:14,padding:13,marginBottom:6},
+  rgTitle:{fontSize:14,fontWeight:'900',color:'#0B4A5F'},
+  rgLead:{fontSize:12.5,color:'#3B6C80',lineHeight:17,marginTop:3,marginBottom:10},
+  rgOpt:{backgroundColor:'#fff',borderWidth:1.5,borderColor:'#D8E6EC',borderRadius:12,padding:11,marginBottom:8},
+  rgOptOn:{borderColor:'#0EA5E9',backgroundColor:'#F7FCFF'},
+  rgOptHead:{flexDirection:'row',alignItems:'center',gap:9},
+  rgRadio:{width:19,height:19,borderRadius:10,borderWidth:1.5,borderColor:'#9FBECB',backgroundColor:'#fff',
+    alignItems:'center',justifyContent:'center',flexShrink:0},
+  rgRadioOn:{borderColor:'#0EA5E9'},
+  rgRadioDot:{width:9,height:9,borderRadius:5,backgroundColor:'#0EA5E9'},
+  rgOptTitle:{flex:1,fontSize:13.5,fontWeight:'900',color:'#0B4A5F'},
+  rgOptEx:{fontSize:12,color:'#5A7A88',lineHeight:16.5,marginTop:6},
+  rgOptTag:{alignSelf:'flex-start',fontSize:10.5,fontWeight:'900',letterSpacing:0.2,
+    paddingVertical:3,paddingHorizontal:8,borderRadius:20,marginTop:8,overflow:'hidden'},
+  rgInfo:{fontSize:12,color:'#3B6C80',lineHeight:17,marginTop:2},
   dmActs:{flexDirection:'row',flexWrap:'wrap',gap:10,marginTop:10,marginBottom:4},
   dmAct:{flexGrow:1,flexBasis:'46%',alignItems:'center',justifyContent:'center',gap:8,paddingVertical:16,paddingHorizontal:8,borderRadius:14,borderWidth:1.5,backgroundColor:C.card},
   dmActTxt:{fontSize:13,fontWeight:'800',textAlign:'center'},
