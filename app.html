@@ -34,8 +34,8 @@
   <main class="card">
     <p class="logo">Intermitrack</p>
     <p class="tag">Le tableau de bord des intermittents du spectacle : tes <strong>507 h</strong>, ton estimation <strong>France&nbsp;Travail</strong>, tes missions et ta fiscalité.</p>
-    <p class="status" id="status">Choisis ton téléphone&nbsp;:</p>
-    <div class="btns">
+    <p class="status" id="status">Choisis ton store&nbsp;:</p>
+    <div class="btns" id="btns">
       <a class="btn" id="ios" href="https://apps.apple.com/fr/app/intermitrack/id6781755113">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.8c0-2.4 2-3.6 2.1-3.6-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.1-.8-1.6 0-3.1.9-3.9 2.4-1.7 2.9-.4 7.2 1.2 9.5.8 1.1 1.7 2.4 3 2.4 1.2 0 1.7-.8 3.1-.8 1.4 0 1.9.8 3.1.8 1.3 0 2.1-1.2 2.9-2.3.9-1.3 1.3-2.6 1.3-2.7 0 0-2.5-1-2.5-3.9zM14.2 5.3c.7-.8 1.1-2 1-3.3-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3.1 1.1.1 2.2-.6 2.9-1.3z"/></svg>
         Télécharger sur l'App Store
@@ -48,21 +48,25 @@
     <p class="foot">Déjà installée ? <a href="https://intermitrack.fr">Ouvrir le site</a></p>
   </main>
 <script>
-  // Redirection auto vers le bon store selon le téléphone. Les deux boutons restent
-  // visibles (ordinateur, navigateur exotique, ou si la redirection est bloquée).
+  // PAS de redirection auto : on laisse TOUJOURS le choix entre les deux stores.
+  // On se sert juste de la détection pour mettre en avant (et placer en premier)
+  // le store qui correspond au téléphone. L'autre reste accessible juste en dessous.
   (function () {
     var ua = navigator.userAgent || '';
-    var IOS = 'https://apps.apple.com/fr/app/intermitrack/id6781755113';
-    var PLAY = 'https://play.google.com/store/apps/details?id=fr.intermitrack.app';
     var isIOS = /iPad|iPhone|iPod/.test(ua) ||
                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPad iPadOS 13+
     var isAndroid = /Android/i.test(ua);
-    var target = isIOS ? IOS : (isAndroid ? PLAY : null);
+    var ios = document.getElementById('ios');
+    var android = document.getElementById('android');
+    var btns = document.getElementById('btns');
     var st = document.getElementById('status');
-    if (target) {
-      st.textContent = 'Redirection vers le store…';
-      // replace() → le bouton "retour" ne repasse pas par cette page
-      setTimeout(function () { window.location.replace(target); }, 250);
+    if (isAndroid) {
+      btns.insertBefore(android, ios);           // Android en premier
+      android.classList.remove('alt');
+      ios.classList.add('alt');
+      st.textContent = 'Android détecté — à toi de choisir :';
+    } else if (isIOS) {
+      st.textContent = 'iPhone détecté — à toi de choisir :';  // l'App Store est déjà en premier
     }
   })();
 </script>
