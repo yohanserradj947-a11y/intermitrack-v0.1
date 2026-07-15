@@ -14,6 +14,7 @@ import AddressInput from '../../components/AddressInput';
 import { GradientButton } from '../../components/GradientButton';
 import { Ionicons } from '@expo/vector-icons';
 import { useProdColors, PROD_PRESETS, prodGradient, textOn } from '../../lib/prodColors';
+import { useAnnexe, modeForNew, modeForEdit, computeHoursVac, extraHoursOf, CACHET_H } from '../../lib/annexe';
 import ColorPickerModal from '../../components/ColorPickerModal';
 import ProdColorManager from '../../components/ProdColorManager';
 import NoteFormModal from '../../components/NoteFormModal';
@@ -103,6 +104,10 @@ export default function Calendar(){
   const [fStart,setFStart]=useState(new Date());
   const [fEnd,setFEnd]=useState(new Date());
   const [fRegime,setFRegime]=useState<'intermittence'|'general'|'enseignement'>('intermittence');
+  // Saisie heures vs cachets, pilotée par l'annexe du profil (parite avec le site).
+  const annexe=useAnnexe();
+  const [fMode,setFMode]=useState<'heures'|'cachet'>('heures');
+  const [fCachets,setFCachets]=useState('');
   const [fHours,setFHours]=useState('');
   const [fGross,setFGross]=useState('');
   const [showStartPicker,setShowStartPicker]=useState(false);
@@ -147,6 +152,7 @@ export default function Calendar(){
     setEditId(null);
     setFRegime(regime);
     setFProduction(''); setFEmission(''); setFLieu(''); setShowLieuSuggest(false); setNewPoste(''); setFType('Montage'); setFStart(day); setFEnd(day);
+    setFMode(modeForNew(annexe)); setFCachets('');
     setFHours(''); setFGross(''); setFVacations(''); setMdpDays([]);
     setKmOpen(false); setKmFrom(''); setKmTo(''); setKmFromCoords(null); setKmToCoords(null); setKmRT(false); setKmEveryDay(false); setKmJustify(false); setKmCv(''); setKmTranche('1'); setKmDistance(''); setKmRate('');
     setShowSuggest(false); setShowEmSuggest(false);
@@ -158,7 +164,13 @@ export default function Calendar(){
     setFProduction(m.production||''); setFEmission(m.emission||''); setFLieu(m.lieu||''); setShowLieuSuggest(false); setNewPoste(''); setFType(m.mission_type||'Montage');
     setFStart(new Date((m.mission_date)+'T00:00:00'));
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
-    setFHours(String(m.hours||'')); setFGross(String(m.gross_amount||'')); setFVacations(String(m.vacations||''));
+    // Relecture selon le mode : en cachet, le champ heures ne contient que les heures EN PLUS des cachets.
+    const _h=Number(m.hours||0), _v=Number(m.vacations||0);
+    const _mode=modeForEdit(annexe,_h,_v);
+    setFMode(_mode);
+    if(_mode==='cachet'){ setFCachets(String(_v||'')); setFHours(String(extraHoursOf(_h,_v)||'')); }
+    else { setFCachets(''); setFHours(String(m.hours||'')); }
+    setFGross(String(m.gross_amount||'')); setFVacations(String(m.vacations||''));
     setKmFrom(''); setKmTo(''); setKmFromCoords(null); setKmToCoords(null); setKmRT(false); setKmEveryDay(false); setKmJustify(false); setKmCv(''); setKmTranche('1');
     setKmDistance(m.km_distance?String(m.km_distance):''); setKmRate(m.km_rate?String(m.km_rate):'');
     setKmOpen(!!(m.km_distance||m.km_amount));
@@ -193,11 +205,13 @@ export default function Calendar(){
     const { data:{ user } } = await supabase.auth.getUser();
     if(!user){ showAlert('Erreur','Tu n\'es plus connecté.'); setSaving(false); return; }
     const startISO=iso(fStart), endISO=iso(fEnd);
+    // En cachet : heures = cachets x 12 + heures payées en heures ; vacations = nb de cachets.
+    const hv=computeHoursVac(fMode,Number(fCachets)||0,Number(fHours)||0,Number(fVacations)||0);
     const payload={
       user_id:user.id, production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, lieu:fLieu.trim()||null, mission_type:fType,
       mission_date:startISO, end_date:endISO!==startISO?endISO:null,
       regime:fRegime,
-      hours:Number(fHours)||0, vacations:Number(fVacations)||Math.round((Number(fHours)||0)/8),
+      hours:hv.hours, vacations:hv.vacations,
       gross_amount:Number(fGross)||0, status:'effectue',
       km_distance:Math.round(kmEff(kmWorkedDays)), km_rate:pf(kmRate),
       km_amount:Math.round(kmFraisFor(kmWorkedDays)*100)/100,
@@ -212,9 +226,12 @@ export default function Calendar(){
 
   function handleSave(){
     if(!fProduction.trim()){ showAlert('Production manquante','Indique le nom de la production.'); return; }
-    if(!fHours.trim()){ showAlert('Heures manquantes','Indique le nombre d\'heures.'); return; }
+    if(fMode==='cachet'){
+      if(!fCachets.trim()||Number(fCachets)<=0){ showAlert('Cachets manquants','Indique le nombre de cachets.'); return; }
+    } else if(!fHours.trim()){ showAlert('Heures manquantes','Indique le nombre d\'heures.'); return; }
     const nb=daysInclusive(fStart,fEnd);
-    if(!editId && nb>=2){
+    // Le sélecteur de jours répartit des HEURES par jour : il n'a pas de sens en saisie au cachet.
+    if(!editId && nb>=2 && fMode!=='cachet'){
       if(mdpDays.length===0){ openDayPicker(fStart,fEnd); return; }
       commitMultiDay();
     }else{
@@ -743,11 +760,33 @@ export default function Calendar(){
               )}
               {showEndPicker&&(
                 <DateTimePicker value={fEnd} mode="date" locale="fr-FR" themeVariant={scheme} display={Platform.OS==='ios'?'spinner':'default'}
-                  onChange={(_e,date)=>{setShowEndPicker(false);if(date){setFEnd(date); if(!editId && mdpDays.length===0 && daysInclusive(fStart,date)>=2){ openDayPicker(fStart,date); }}}}/>
+                  onChange={(_e,date)=>{setShowEndPicker(false);if(date){setFEnd(date); if(!editId && fMode!=='cachet' && mdpDays.length===0 && daysInclusive(fStart,date)>=2){ openDayPicker(fStart,date); }}}}/>
               )}
 
-              <Text style={s.label}>Heures cumulées</Text>
-              <NumInput style={s.input} value={fHours} onChangeText={setFHours} placeholder="8" placeholderTextColor={C.muted}/>
+              {/* « Les deux » : c'est l'utilisateur qui dit, mission par mission, s'il saisit en heures ou en cachets.
+                  En technicien / artiste, le mode est imposé par l'annexe et ce sélecteur reste caché. */}
+              {annexe==='les_deux' && (
+                <View style={{flexDirection:'row',gap:8,marginTop:4,marginBottom:4}}>
+                  {([['heures','Heures'],['cachet','Cachets']] as ['heures'|'cachet',string][]).map(([val,lbl])=>(
+                    <TouchableOpacity key={val} style={[s.mmOpt, fMode===val&&{backgroundColor:C.petrol,borderColor:C.petrol}]} onPress={()=>setFMode(val)}>
+                      <Text style={[s.mmOptTxt, fMode===val&&{color:'#fff'}]}>{lbl}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {fMode==='cachet' && (
+                <>
+                  <Text style={s.label}>Nombre de cachets</Text>
+                  <NumInput style={s.input} value={fCachets} onChangeText={setFCachets} placeholder="Ex : 2" placeholderTextColor={C.muted}/>
+                  <Text style={s.miniHint}>1 cachet = {CACHET_H} h pour le comptage des 507 h. Indique le nombre de cachets tel qu'il figure sur ton AEM.</Text>
+                </>
+              )}
+
+              <Text style={s.label}>{fMode==='cachet'?'Heures payées en heures (facultatif)':'Heures cumulées'}</Text>
+              <NumInput style={s.input} value={fHours} onChangeText={setFHours} placeholder={fMode==='cachet'?'0':'8'} placeholderTextColor={C.muted}/>
+              {fMode==='cachet' && <Text style={s.miniHint}>Répétitions, ateliers… payés en heures et non en cachets, sur ce même contrat. Elles s'ajoutent aux cachets.</Text>}
+              {fMode!=='cachet' && (
               <View style={{flexDirection:'row',flexWrap:'wrap',gap:8,marginTop:8}}>
                 {[4,8,12].map(h=>(
                   <TouchableOpacity key={h} style={[s.mdpTool, fHours===String(h)&&{backgroundColor:C.petrol}]} onPressIn={()=>setFHours(String(h))}>
@@ -755,15 +794,19 @@ export default function Calendar(){
                   </TouchableOpacity>
                 ))}
               </View>
-              {(!editId && daysInclusive(fStart,fEnd)>=2) ? (
+              )}
+              {(!editId && fMode!=='cachet' && daysInclusive(fStart,fEnd)>=2) ? (
                 <TouchableOpacity style={s.kmCalcBtn} onPress={()=>openDayPicker(fStart,fEnd)}>
                   <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6}}><Ionicons name="calendar-outline" size={14} color={C.petrol} /><Text style={s.kmCalcTxt}>{mdpChecked.length>0?`${mdpChecked.length} jour(s) travaillé(s) · modifier`:'Choisir les jours travaillés'}</Text></View>
                 </TouchableOpacity>
               ) : null}
 
-              <Text style={s.label}>Nombre de vacations / cachets</Text>
+              {/* En cachet, le nombre de vacations EST le nombre de cachets : on ne le redemande pas. */}
+              {fMode!=='cachet' && (<>
+              <Text style={s.label}>Nombre de vacations</Text>
               <NumInput style={s.input} value={fVacations} onChangeText={setFVacations} placeholder="Ex : 1" placeholderTextColor={C.muted}/>
-              <Text style={s.miniHint}>Nombre de jours / cachets. Se remplit tout seul depuis le sélecteur de jours. 1 vacation = 1 jour (technicien) · 1 cachet (artiste / musicien).</Text>
+              <Text style={s.miniHint}>1 vacation = 1 journée de travail. Se remplit tout seul depuis le sélecteur de jours.</Text>
+              </>)}
 
               <Text style={s.label}>Montant brut (€)</Text>
               <NumInput style={s.input} value={fGross} onChangeText={setFGross} placeholder="0" placeholderTextColor={C.muted}/>
@@ -1048,6 +1091,9 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   mdpTools:{flexDirection:'row',gap:8,marginBottom:10},
   mdpTool:{paddingVertical:8,paddingHorizontal:12,borderRadius:10,backgroundColor:C.soft},
   mdpToolTxt:{fontSize:12,fontWeight:'800',color:C.petrol},
+  // Sélecteur Heures / Cachets (annexe « les deux ») — couleurs du thème, comme le reste du formulaire.
+  mmOpt:{flex:1,paddingVertical:10,borderRadius:11,borderWidth:1.5,borderColor:C.line,backgroundColor:C.card,alignItems:'center'},
+  mmOptTxt:{fontSize:13,fontWeight:'800',color:C.petrol},
   mdpFill:{flexDirection:'row',alignItems:'center',gap:8,backgroundColor:C.soft,borderRadius:11,padding:10,marginBottom:14},
   mdpFillLbl:{fontSize:13,fontWeight:'700',color:C.petrol},
   mdpFillInput:{width:60,backgroundColor:C.card,borderWidth:1,borderColor:C.line,borderRadius:9,paddingVertical:6,paddingHorizontal:8,textAlign:'center',fontSize:14,color:C.text},

@@ -14,6 +14,7 @@ import { GradientButton } from '../../components/GradientButton';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemeControls } from '../../lib/theme';
 import { useProdColors, PROD_PRESETS } from '../../lib/prodColors';
+import { useAnnexe, modeForEdit, computeHoursVac, extraHoursOf, CACHET_H } from '../../lib/annexe';
 import { usePostes } from '../../lib/postes';
 import { LinearGradient } from 'expo-linear-gradient';
 import ColorPickerModal from '../../components/ColorPickerModal';
@@ -72,6 +73,10 @@ export default function Missions(){
   const [fVacations,setFVacations]=useState('');
   const [fStart,setFStart]=useState(new Date());
   const [fEnd,setFEnd]=useState(new Date());
+  // Saisie heures vs cachets, pilotée par l'annexe du profil (parite avec le site et l'onglet calendrier).
+  const annexe=useAnnexe();
+  const [fMode,setFMode]=useState<'heures'|'cachet'>('heures');
+  const [fCachets,setFCachets]=useState('');
   const [fHours,setFHours]=useState('');
   const [fGross,setFGross]=useState('');
   const [showStartPicker,setShowStartPicker]=useState(false);
@@ -93,7 +98,13 @@ export default function Missions(){
     setFProduction(m.production||''); setFEmission(m.emission||''); setFLieu(m.lieu||''); setNewPoste(''); setShowLieuSuggest(false); setFType(m.mission_type||'Montage');
     setFStart(new Date(m.mission_date+'T00:00:00'));
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
-    setFHours(String(m.hours||'')); setFGross(String(m.gross_amount||'')); setFVacations(String(m.vacations||''));
+    // Relecture selon le mode : en cachet, le champ heures ne contient que les heures EN PLUS des cachets.
+    const _h=Number(m.hours||0), _v=Number(m.vacations||0);
+    const _mode=modeForEdit(annexe,_h,_v);
+    setFMode(_mode);
+    if(_mode==='cachet'){ setFCachets(String(_v||'')); setFHours(String(extraHoursOf(_h,_v)||'')); }
+    else { setFCachets(''); setFHours(String(m.hours||'')); }
+    setFGross(String(m.gross_amount||'')); setFVacations(String(m.vacations||''));
     setEditKmDist(Number(m.km_distance) || 0); setEditKmRate(Number(m.km_rate) || 0);
     setShowSuggest(false); setShowEmSuggest(false); setShowTypePicker(false);
   }
@@ -101,14 +112,17 @@ export default function Missions(){
   async function saveEdit(){
     if(!editId)return;
     if(!fProduction.trim()){ showAlert('Production manquante','Indique la production.'); return; }
+    if(fMode==='cachet' && (!fCachets.trim()||Number(fCachets)<=0)){ showAlert('Cachets manquants','Indique le nombre de cachets.'); return; }
     setSaving(true);
     const startISO=iso(fStart), endISO=iso(fEnd);
-    const nbDays=Math.max(1,Math.min(Math.round((fEnd.getTime()-fStart.getTime())/86400000)+1,Math.round((Number(fHours)||0)/8)));
+    // En cachet : heures = cachets x 12 + heures payées en heures ; vacations = nb de cachets.
+    const hv=computeHoursVac(fMode,Number(fCachets)||0,Number(fHours)||0,Number(fVacations)||0);
+    const nbDays=Math.max(1,Math.min(Math.round((fEnd.getTime()-fStart.getTime())/86400000)+1,Math.round(hv.hours/8)));
     const km=kmRef.current?.values(nbDays)||{};
     const { error }=await supabase.from('missions').update({
       production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, lieu:fLieu.trim()||null, mission_type:fType,
       mission_date:startISO, end_date:endISO!==startISO?endISO:null,
-      hours:Number(fHours)||0, vacations:Number(fVacations)||Math.round((Number(fHours)||0)/8), gross_amount:Number(fGross)||0,
+      hours:hv.hours, vacations:hv.vacations, gross_amount:Number(fGross)||0,
       ...km,
     }).eq('id',editId);
     setSaving(false);
@@ -362,12 +376,33 @@ export default function Missions(){
                     onChange={(_e,date)=>{setShowEndPicker(false);if(date)setFEnd(date);}}/>
                 )}
 
-                <Text style={s.label}>Heures cumulées</Text>
-                <NumInput style={s.input} value={fHours} onChangeText={setFHours}/>
+                {/* « Les deux » : l'utilisateur choisit mission par mission. En technicien / artiste, l'annexe impose le mode. */}
+                {annexe==='les_deux' && (
+                  <View style={{flexDirection:'row',gap:8,marginTop:10}}>
+                    {([['heures','Heures'],['cachet','Cachets']] as ['heures'|'cachet',string][]).map(([val,lbl])=>(
+                      <TouchableOpacity key={val} style={[s.mmOpt, fMode===val&&{backgroundColor:C.petrol,borderColor:C.petrol}]} onPress={()=>setFMode(val)}>
+                        <Text style={[s.mmOptTxt, fMode===val&&{color:'#fff'}]}>{lbl}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
 
-                <Text style={s.label}>Nombre de vacations / cachets</Text>
+                {fMode==='cachet' && (<>
+                  <Text style={s.label}>Nombre de cachets</Text>
+                  <NumInput style={s.input} value={fCachets} onChangeText={setFCachets} placeholder="Ex : 2" placeholderTextColor={C.muted}/>
+                  <Text style={{fontSize:11,color:C.muted,marginTop:4}}>1 cachet = {CACHET_H} h pour le comptage des 507 h. Indique le nombre de cachets tel qu'il figure sur ton AEM.</Text>
+                </>)}
+
+                <Text style={s.label}>{fMode==='cachet'?'Heures payées en heures (facultatif)':'Heures cumulées'}</Text>
+                <NumInput style={s.input} value={fHours} onChangeText={setFHours}/>
+                {fMode==='cachet' && <Text style={{fontSize:11,color:C.muted,marginTop:4}}>Répétitions, ateliers… payés en heures et non en cachets, sur ce même contrat. Elles s'ajoutent aux cachets.</Text>}
+
+                {/* En cachet, le nombre de vacations EST le nombre de cachets : on ne le redemande pas. */}
+                {fMode!=='cachet' && (<>
+                <Text style={s.label}>Nombre de vacations</Text>
                 <NumInput style={s.input} value={fVacations} onChangeText={setFVacations} placeholder="Ex : 1" placeholderTextColor={C.muted}/>
-                <Text style={{fontSize:11,color:C.muted,marginTop:4}}>1 vacation = 1 jour (technicien) · 1 cachet (artiste / musicien).</Text>
+                <Text style={{fontSize:11,color:C.muted,marginTop:4}}>1 vacation = 1 journée de travail.</Text>
+                </>)}
 
                 <Text style={s.label}>Montant brut (€)</Text>
                 <NumInput style={s.input} value={fGross} onChangeText={setFGross}/>
@@ -530,6 +565,9 @@ const makeS=(C:any)=>StyleSheet.create({
   modalTitle:{fontSize:20,fontWeight:'900',color:C.petrol,marginBottom:12,textAlign:'center'},
   label:{fontSize:13,fontWeight:'700',color:C.text,marginTop:12,marginBottom:6},
   input:{borderWidth:1,borderColor:C.line,borderRadius:14,paddingVertical:13,paddingHorizontal:14,fontSize:15,color:C.text,backgroundColor:C.card},
+  // Sélecteur Heures / Cachets (annexe « les deux ») — couleurs du thème, comme dans l'onglet calendrier.
+  mmOpt:{flex:1,paddingVertical:10,borderRadius:11,borderWidth:1.5,borderColor:C.line,backgroundColor:C.card,alignItems:'center'},
+  mmOptTxt:{fontSize:13,fontWeight:'800',color:C.petrol},
   inputTxt:{fontSize:15,color:C.text},
   suggestBox:{backgroundColor:C.card,borderWidth:1,borderColor:C.line,borderRadius:14,marginTop:6,overflow:'hidden'},
   suggestItem:{paddingVertical:12,paddingHorizontal:14,borderBottomWidth:1,borderBottomColor:C.soft},
