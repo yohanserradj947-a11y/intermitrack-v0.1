@@ -83,7 +83,8 @@ export default function LoginScreen() {
     <View style={s.flex}>
       <LinearGradient colors={['#1F4E5F', '#155E54', '#12754A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       <Image source={require('../assets/images/icon.png')} style={s.watermark} resizeMode="contain" />
-      <StatusBar barStyle="light-content" backgroundColor={C.bg} />
+      {/* backgroundColor retiré : sans effet en edge-to-edge + API dépréciée (Android 15) signalée par le Play Console. */}
+      <StatusBar barStyle="light-content" />
       <KeyboardAwareScrollView
         style={s.scroll}
         contentContainerStyle={[s.page, { paddingTop: insets.top + 28, paddingBottom: insets.bottom + 28 }]}

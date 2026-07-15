@@ -1334,3 +1334,26 @@ body.theme-dark .contact-body a { color: #6EC6E0 !important; }
   .fly-card { padding: 22px 18px; }
   .fly-stores { flex-direction: column; }
 }
+
+/* ===== Régime général / enseignement (formulaire mission) =====
+   Couleurs 100 % via variables de thème (--card/--text/--muted/--line) : le mode sombre suit tout seul.
+   Les accents restent en rgba translucide → lisibles sur fond clair ET sombre.
+   Flex simple, pas de grid à hauteur libre : évite le bug de débordement Firefox déjà rencontré sur la jauge. */
+.rg-box { border: 1.5px solid rgba(14,165,233,.45); background: rgba(14,165,233,.06); border-radius: 14px; padding: 14px; margin-bottom: 16px; }
+.rg-title { font-size: 14px; font-weight: 900; color: var(--text); margin-bottom: 3px; }
+.rg-lead { font-size: 12.5px; color: var(--muted); line-height: 1.45; margin-bottom: 11px; }
+.rg-opt { display: block; width: 100%; box-sizing: border-box; text-align: left; margin-bottom: 9px; padding: 12px; border-radius: 11px; border: 1.5px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; font-family: inherit; transition: border-color .15s, background .15s; }
+.rg-opt:hover { border-color: rgba(14,165,233,.5); }
+.rg-opt.on { border-color: #0EA5E9; background: rgba(14,165,233,.1); }
+.rg-head { display: flex; align-items: center; gap: 9px; margin-bottom: 5px; }
+.rg-head b { font-size: 13.5px; font-weight: 800; color: var(--text); }
+.rg-radio { width: 17px; height: 17px; border-radius: 50%; border: 2px solid var(--line-2); flex: 0 0 auto; box-sizing: border-box; }
+.rg-radio.on { border-color: #0EA5E9; border-width: 5px; }
+.rg-ex { display: block; font-size: 12px; color: var(--muted); line-height: 1.45; margin-bottom: 8px; }
+.rg-tag { display: inline-block; padding: 4px 9px; border-radius: 7px; font-size: 11px; font-weight: 800; }
+.rg-tag.warn { background: rgba(245,158,11,.16); color: #B45309; }
+.rg-tag.ok { background: rgba(18,117,74,.14); color: #12754A; }
+.rg-info { font-size: 12px; color: var(--muted); line-height: 1.5; padding-top: 10px; border-top: 1px solid var(--line); }
+/* Sur fond sombre, les deux couleurs de tag ci-dessus tirent trop vers le brun/vert foncé → on les éclaircit. */
+body.theme-dark .rg-tag.warn { background: rgba(245,158,11,.2); color: #FBBF24; }
+body.theme-dark .rg-tag.ok { background: rgba(92,184,126,.18); color: #5CB87E; }

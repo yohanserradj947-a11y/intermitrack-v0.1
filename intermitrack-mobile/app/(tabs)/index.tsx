@@ -251,7 +251,9 @@ export default function HomeScreen(){
   return(
     <>
     <ScrollView style={s.container} contentContainerStyle={{paddingBottom:40}}>
-      <StatusBar barStyle={scheme==='dark'?'light-content':'dark-content'} backgroundColor={C.card}/>
+      {/* Pas de backgroundColor : sans effet en edge-to-edge (barre transparente) et API dépréciée depuis Android 15
+          → signalé par le Play Console. barStyle suffit pour la lisibilité des icônes système. */}
+      <StatusBar barStyle={scheme==='dark'?'light-content':'dark-content'}/>
 
       <View style={s.header}>
         <View style={s.headerBrand}>

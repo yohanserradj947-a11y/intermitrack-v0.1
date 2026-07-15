@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemeControls, THEME_META } from '../lib/theme';
 import { usePostes } from '../lib/postes';
 import ThemeModal from './ThemeModal';
+import { usePathname } from 'expo-router';
 
 // palette via useTheme()
 
@@ -141,11 +142,19 @@ export function AccountMenu(){
 
   const initials=(session?.user.email||'??').slice(0,2).toUpperCase();
 
+  // Sur le calendrier, la pastille flottante recouvrait la flèche de changement de mois (elle est en position
+  // absolue au-dessus de tous les onglets). On la masque là, et seulement là : le composant reste monté pour
+  // que les modales (« Mes informations », thèmes…) restent ouvrables depuis le dashboard.
+  const pathname = usePathname();
+  const onCalendar = /(^|\/)calendar$/.test(pathname || '');
+
   return(
     <>
+      {!onCalendar && (
       <TouchableOpacity style={[s.avatarBtn,{top:insets.top+8}]} onPress={()=>setShowAccount(true)} activeOpacity={0.85}>
         <Text style={s.avatarTxt}>{initials}</Text>
       </TouchableOpacity>
+      )}
 
       <Modal visible={showAccount} animationType="fade" transparent onRequestClose={()=>setShowAccount(false)}>
         <TouchableOpacity style={s.accountOverlay} activeOpacity={1} onPress={()=>setShowAccount(false)}>

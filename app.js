@@ -1058,7 +1058,8 @@ async function loadMissions() {
     hours: Number(x.hours || 0), gross: Number(x.gross_amount || 0),
     kmDistance: Number(x.km_distance || 0), kmRate: Number(x.km_rate || 0), kmAmount: Number(x.km_amount || 0),
     vacations: Number(x.vacations || Math.round((x.hours || 0) / 8)),
-    emission: x.emission || "", lieu: x.lieu || ""
+    emission: x.emission || "", lieu: x.lieu || "",
+    regime: x.regime || "intermittence"
   }));
   render();
 }
@@ -1307,7 +1308,7 @@ async function addMission(event) {
     emission: $("emission")?.value || "", lieu: $("lieu")?.value || "",
     mission_type: $("type").value, mission_date: $("date").value, end_date: $("endDate").value,
     hours: _hours, gross_amount: Number($("gross").value),
-    vacations: _vac,
+    vacations: _vac, regime: _missionRegime,
     km_distance: kmEffectiveDistance(), km_rate: kmRateUsed(), km_amount: calculateKmAmount()
   };
   setProductionColorHex(payload.production, selectedProdColor === 'default' ? null : selectedProdColor);
@@ -1325,6 +1326,7 @@ async function _afterMissionSave(firstDate) {
   var _hl = document.querySelector('label[for="hours"]'); if (_hl) _hl.textContent = "Nombre d'heures cumulées sur la période";
   $("missionForm").reset();
   editingMissionId = null;
+  _setMissionRegime("intermittence"); // sinon le formulaire resterait bloqué en « régime général » pour la mission suivante
   const submitBtn = document.querySelector("#missionForm button[type='submit']");
   if (submitBtn) submitBtn.textContent = "Enregistrer la mission";
   setDefaultDates(); updateKmPreview();
@@ -1483,6 +1485,7 @@ function editMission(id) {
   if (!mission) { toast("Mission introuvable."); return; }
   if (typeof switchAddTab === 'function') switchAddTab('mission');
   editingMissionId = mission.id;
+  _setMissionRegime(mission.regime || "intermittence");
   $("production").value = mission.production || ""; if (typeof syncProdColorPicker === 'function') syncProdColorPicker();
   if ($("emission")) $("emission").value = mission.emission || "";
   if ($("lieu")) $("lieu").value = mission.lieu || "";
@@ -2532,18 +2535,26 @@ function render() {
     }
   }
   const selectedMonthMissions = monthMissions(current);
-  const yearHours = Math.round(sumDone(yearMissions) * 10) / 10;
-  const plannedHours = Math.round(sumPlanned(yearMissions) * 10) / 10;
+  // Régime de la mission (colonne Supabase, défaut 'intermittence' → les missions déjà saisies ne bougent pas).
+  const _regOf = (m) => m.regime || "intermittence";
+  // Seules les missions d'intermittence (annexes 8/10) alimentent les heures effectuées / prévues.
+  const _interMissions = yearMissions.filter((m) => _regOf(m) === "intermittence");
+  const yearHours = Math.round(sumDone(_interMissions) * 10) / 10;
+  const plannedHours = Math.round(sumPlanned(_interMissions) * 10) / 10;
   // Heures de formation dans la période de droits (plafonnées à 338 h pour les 507 h).
   const formationRaw = Math.round((typeof getNotes === "function" ? getNotes() : []).filter((n) => n.kind === "formation" && inWin(n.date)).reduce((a, n) => a + (Number(n.hours) || 0), 0) * 10) / 10;
   const formationHours = Math.min(formationRaw, FORM_CAP);
+  // Enseignement dispensé : compte dans les 507 h, plafonné à ENS_CAP *et* dans les 338 h GLOBALES
+  // qu'il partage avec la formation suivie (règle France Travail). Le régime général « pur » n'y entre pas.
+  const enseignementRaw = Math.round(yearMissions.filter((m) => _regOf(m) === "enseignement").reduce((a, m) => a + (Number(m.hours) || 0), 0) * 10) / 10;
+  const enseignementHours = Math.round(Math.min(enseignementRaw, ENS_CAP, Math.max(0, FORM_CAP - formationHours)) * 10) / 10;
   // Prorata : une mission à cheval sur 2 mois ne compte que sa part de jours DANS le mois affiché (heures ET brut suivent les vacations).
   const monthFrac = (m) => missionDaysInMonth(m, current) / missionDayCount(m);
   const monthHours = Math.round(selectedMonthMissions.reduce((total, m) => total + Number(m.hours || 0) * monthFrac(m), 0) * 10) / 10;
   const yearGross = yearMissions.reduce((a, x) => a + Number(x.gross || 0), 0);
   const monthGross = Math.round(selectedMonthMissions.reduce((a, x) => a + Number(x.gross || 0) * monthFrac(x), 0));
   const percent = Math.round((yearHours / OBJECTIVE_HOURS) * 100);
-  const remaining = Math.max(0, Math.round((OBJECTIVE_HOURS - yearHours - plannedHours - formationHours) * 10) / 10);
+  const remaining = Math.max(0, Math.round((OBJECTIVE_HOURS - yearHours - plannedHours - formationHours - enseignementHours) * 10) / 10);
 
   if ($("yearHours")) $("yearHours").textContent = yearHours;
   if ($("monthHours")) $("monthHours").textContent = monthHours + "h";
@@ -2568,7 +2579,7 @@ function render() {
   if ($("progressText")) $("progressText").textContent = percent + "% de ton objectif intermittent";
   renderFiscalite(yearGross, yearMissions);
 
-  renderChart(yearHours, plannedHours, formationHours);
+  renderChart(yearHours, plannedHours, formationHours, enseignementHours);
   ;
   renderAllMissions();
   renderCalendar();
@@ -2750,41 +2761,64 @@ function checkAndShowNotification(remaining, yearHours) {
     }
   }
 
-function renderChart(doneHours, plannedHours = 0, formationHours = 0) {
+function renderChart(doneHours, plannedHours = 0, formationHours = 0, enseignementHours = 0) {
   const total = OBJECTIVE_HOURS;
   const doneRaw = Math.max(0, Number(doneHours) || 0);
   const plannedRaw = Math.max(0, Number(plannedHours) || 0);
   const formRaw = Math.max(0, Number(formationHours) || 0);
   const formCapped = Math.min(formRaw, FORM_CAP);
+  const ensRaw = Math.max(0, Number(enseignementHours) || 0);
   // Même calcul que la jauge de l'appli : on borne, et on arrondit la SOMME (pas chaque part).
   // Pourcentages AFFICHÉS : non plafonnés (peuvent dépasser 100%, comme l'appli).
   const donePercent = Math.round((doneRaw / total) * 100);
   const plannedPercent = Math.round((plannedRaw / total) * 100);
-  const totalPercent = Math.round(((doneRaw + formCapped + plannedRaw) / total) * 100);
-  // Remplissage de l'arc : effectué → formation → prévu, borné au demi-cercle.
+  const totalPercent = Math.round(((doneRaw + formCapped + ensRaw + plannedRaw) / total) * 100);
+  // Remplissage de l'arc : effectué → formation → enseignement → prévu, borné au demi-cercle.
   const doneFrac = Math.min(doneRaw / total, 1);
   const formFrac = Math.min(formCapped / total, 1 - doneFrac);
-  const plannedFrac = Math.min(plannedRaw / total, 1 - doneFrac - formFrac);
+  const ensFrac = Math.min(ensRaw / total, 1 - doneFrac - formFrac);
+  const plannedFrac = Math.min(plannedRaw / total, 1 - doneFrac - formFrac - ensFrac);
   const CIRC = 377;
   const doneDash = Math.min(doneFrac * CIRC, CIRC);
   const formDash = Math.min(formFrac * CIRC, CIRC - doneDash);
-  const plannedDash = Math.min(plannedFrac * CIRC, CIRC - doneDash - formDash);
+  const ensDash = Math.min(ensFrac * CIRC, CIRC - doneDash - formDash);
+  const plannedDash = Math.min(plannedFrac * CIRC, CIRC - doneDash - formDash - ensDash);
   if (!$("chart")) return;
  const isDark = document.body.classList.contains('theme-dark');
   const FORM_HEX = '#7C3AED';
-  // Légende dynamique (Formation ajoutée seulement si des heures existent)
+  const ENS_HEX = '#0EA5E9'; // enseignement — même bleu que la jauge de l'appli
+  // Légende dynamique (Formation / Enseignement ajoutés seulement si des heures existent)
   const legend = [{ c: isDark ? '#7ACCE0' : '#1F4E5F', t: `Effectué · ${donePercent}%` }];
   if (formRaw > 0) legend.push({ c: FORM_HEX, t: 'Formation' });
+  if (ensRaw > 0) legend.push({ c: ENS_HEX, t: 'Enseignement' });
   legend.push({ c: '#F97316', t: `Prévu · ${plannedPercent}%` });
   legend.push({ c: isDark ? 'rgba(255,255,255,.08)' : '#D8E4DF', t: 'Restant', muted: true });
-  const step = 340 / legend.length;
-  const legendSvg = legend.map(function (it, i) {
-    const x = -16 + i * step;
-    const tc = it.muted ? (isDark ? 'rgba(255,255,255,.4)' : '#718096') : (isDark ? '#E0F4FF' : '#2D3748');
-    return `<rect x="${x}" y="188" width="10" height="10" rx="3" fill="${it.c}"/><text x="${x + 14}" y="197" font-size="9.5" font-weight="700" fill="${tc}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${it.t}</text>`;
+  // Légende : 3 à 5 entrées selon les cas. À pas fixe, 5 entrées se chevauchaient et débordaient du cadre.
+  // → on estime la largeur de chaque entrée, on remplit des lignes de 340 max, et on centre chaque ligne.
+  // Le SVG s'agrandit d'autant : rien ne sort jamais du viewBox (identique sur Chrome, Firefox et Safari).
+  const LEG_W = function (t) { return 14 + t.length * 5.4 + 12; }; // pastille + texte (~5,4 px/caractère à 9,5 px gras) + espace
+  const rows = [[]];
+  legend.forEach(function (it) {
+    const w = LEG_W(it.t);
+    const cur = rows[rows.length - 1];
+    const used = cur.reduce(function (a, x) { return a + LEG_W(x.t); }, 0);
+    if (cur.length && used + w > 340) rows.push([it]); else cur.push(it);
+  });
+  const LEG_Y = 188, ROW_H = 15;
+  const legendSvg = rows.map(function (row, ri) {
+    const rowW = row.reduce(function (a, x) { return a + LEG_W(x.t); }, 0);
+    let x = -20 + (340 - rowW) / 2; // centrage de la ligne dans le viewBox
+    const y = LEG_Y + ri * ROW_H;
+    return row.map(function (it) {
+      const tc = it.muted ? (isDark ? 'rgba(255,255,255,.4)' : '#718096') : (isDark ? '#E0F4FF' : '#2D3748');
+      const s = `<rect x="${x}" y="${y}" width="10" height="10" rx="3" fill="${it.c}"/><text x="${x + 14}" y="${y + 9}" font-size="9.5" font-weight="700" fill="${tc}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${it.t}</text>`;
+      x += LEG_W(it.t);
+      return s;
+    }).join('');
   }).join('');
+  const vbH = 210 + (rows.length - 1) * ROW_H;
   $("chart").innerHTML = `
- <svg viewBox="-20 0 340 210" width="100%" style="max-height:300px;display:block;" role="img" aria-label="Arc progression heures">
+ <svg viewBox="-20 0 340 ${vbH}" width="100%" style="max-height:${300 + (vbH - 210)}px;display:block;" role="img" aria-label="Arc progression heures">
       <defs>
         <linearGradient id="g3done" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stop-color="${isDark ? '#1F6E8F' : '#1F4E5F'}"/>
@@ -2799,7 +2833,8 @@ function renderChart(doneHours, plannedHours = 0, formationHours = 0) {
       <path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="${isDark ? 'rgba(255,255,255,.12)' : '#EEF4F1'}" stroke-width="30" stroke-linecap="butt"/>
       ${doneDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3done)" stroke-width="30" stroke-linecap="butt" stroke-dasharray="${doneDash} ${CIRC}"/>` : ""}
       ${formDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="${FORM_HEX}" stroke-width="30" stroke-linecap="butt" stroke-dasharray="${formDash} ${CIRC}" stroke-dashoffset="${-doneDash}"/>` : ""}
-      ${plannedDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3plan)" stroke-width="30" stroke-linecap="butt" stroke-dasharray="${plannedDash} ${CIRC}" stroke-dashoffset="${-(doneDash + formDash)}"/>` : ""}
+      ${ensDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="${ENS_HEX}" stroke-width="30" stroke-linecap="butt" stroke-dasharray="${ensDash} ${CIRC}" stroke-dashoffset="${-(doneDash + formDash)}"/>` : ""}
+      ${plannedDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3plan)" stroke-width="30" stroke-linecap="butt" stroke-dasharray="${plannedDash} ${CIRC}" stroke-dashoffset="${-(doneDash + formDash + ensDash)}"/>` : ""}
       <text x="150" y="132" text-anchor="middle" font-size="44" font-weight="900" fill="${isDark ? '#7ACCE0' : '#1F4E5F'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${totalPercent}%</text>
       <text x="150" y="155" text-anchor="middle" font-size="13" fill="${isDark ? 'rgba(255,255,255,.4)' : '#718096'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">potentiel total</text>
       ${legendSvg}
@@ -3268,8 +3303,9 @@ function renderCalendarDayPanel(dateStr) {
   `;
 }
 
-function resetMissionFormForDate(dateStr) {
+function resetMissionFormForDate(dateStr, regime) {
   editingMissionId = null;
+  _setMissionRegime(regime || "intermittence");
   if (typeof switchAddTab === 'function') switchAddTab('mission');
   if ($("missionForm")) $("missionForm").reset();
   if ($("production")) $("production").value = ""; if (typeof syncProdColorPicker === 'function') syncProdColorPicker();
@@ -3379,7 +3415,7 @@ function switchAddTab(tab){
   const mf=$("missionForm"), nf=$("noteForm");
   if(mf) mf.style.display = tab==='note' ? 'none' : '';
   if(nf) nf.style.display = tab==='note' ? '' : 'none';
-  const t=$("addMissionTitle"); if(t) t.textContent = tab==='note' ? 'Ajouter une note' : 'Ajouter une mission';
+  const t=$("addMissionTitle"); if(t) t.textContent = tab==='note' ? 'Ajouter une note' : _missionTitleTxt();
   if(tab==='note' && typeof _renderNoteColors==='function') _renderNoteColors();
 }
 var NOTE_PRESETS = ['#1E6FE0','#F0552B','#15B86B','#F59E0B','#7C3AED'];
@@ -3393,10 +3429,63 @@ function _renderNoteColors(){
   html+='<button type="button" class="note-color-add" title="Ajouter une couleur perso">+</button>';
   wrap.innerHTML=html;
 }
+// ===== Régime de la mission : intermittence (défaut) | general (hors 507 h) | enseignement (compte, plafonné) =====
+// Le formulaire mission est réutilisé tel quel ; seul cet encadré s'ajoute et le titre change.
+var _missionRegime = "intermittence";
+function _setMissionRegime(r) {
+  _missionRegime = (r === "general" || r === "enseignement") ? r : "intermittence";
+  _renderRegimeBox();
+}
+function _missionTitleTxt() {
+  if (_missionRegime === "enseignement") return "Ajouter de l'enseignement";
+  if (_missionRegime === "general") return "Ajouter un travail au régime général";
+  return "Ajouter une mission";
+}
+function _renderRegimeBox() {
+  // Le titre suit le régime, y compris si on fait un aller-retour par l'onglet « Note perso ».
+  var _t = document.getElementById("addMissionTitle");
+  var _nf = document.getElementById("noteForm");
+  if (_t && !(_nf && _nf.style.display !== "none")) _t.textContent = _missionTitleTxt();
+  var box = document.getElementById("regimeBox");
+  if (!box) return;
+  if (_missionRegime === "intermittence") { box.innerHTML = ""; box.style.display = "none"; return; }
+  box.style.display = "block";
+  var isEns = _missionRegime === "enseignement";
+  var opt = function (val, on, title, ex, tag, tagCls) {
+    return '<button type="button" class="rg-opt' + (on ? ' on' : '') + '" data-regime="' + val + '">' +
+      '<span class="rg-head"><span class="rg-radio' + (on ? ' on' : '') + '"></span><b>' + title + '</b></span>' +
+      '<span class="rg-ex">' + ex + '</span>' +
+      '<span class="rg-tag ' + tagCls + '">' + tag + '</span></button>';
+  };
+  box.innerHTML =
+    '<div class="rg-box">' +
+      '<div class="rg-title">De quoi s\'agit-il ?</div>' +
+      '<div class="rg-lead">Les deux ne comptent pas pareil dans tes 507 h. Choisis ton cas :</div>' +
+      opt("general", !isEns, "Un travail hors spectacle",
+          "Pub en tant que mannequin, restauration, bureau, vente… Tout emploi salarié qui ne relève pas des annexes 8 ou 10.",
+          "Ne compte PAS dans les 507 h", "warn") +
+      opt("enseignement", isEns, "De l'enseignement",
+          "Tu donnes des cours (chant, technique, danse…) dans un établissement <b>agréé</b>, sur une matière <b>en lien avec ton métier</b>, avec un vrai contrat de travail. Les 3 conditions sont obligatoires.",
+          "COMPTE dans les 507 h", "ok") +
+      '<div class="rg-info">' + (isEns
+        ? "Plafond : 70 h — ou 120 h si tu as 50 ans ou plus à la fin du contrat. Le site retient jusqu'à 120 h pour ne léser personne : ne saisis que les heures qui te concernent vraiment. Ce plafond est partagé avec tes heures de formation (338 h au total)."
+        : "Ces heures entrent quand même dans l'estimation France Travail du mois : toute heure travaillée, quel que soit le régime, réduit tes jours indemnisables. C'est pour ça qu'il vaut le coup de les saisir.") + '</div>' +
+    '</div>';
+}
+document.addEventListener("click", function (e) {
+  var b = e.target.closest && e.target.closest("#regimeBox [data-regime]");
+  if (b) { e.preventDefault(); _setMissionRegime(b.dataset.regime); }
+});
+
 // Une formation = une note avec des heures (kind:'formation'). Le formulaire de note
 // s'adapte : label « Organisme », champ heures + encart conditions. Aucune modif base (JSON profiles.notes).
 var _noteFormMode = 'note';
 var FORM_CAP = 338; // heures de formation prises en compte pour les 507 h (plafond 2/3)
+// Enseignement dispensé (contrat régime général avec un établissement AGRÉÉ, en lien avec le métier) :
+// compte dans les 507 h, plafonné à 70 h — ou 120 h à partir de 50 ans à la fin du contrat.
+// On retient le MAXIMUM légal pour ne léser personne ; le formulaire explique la règle.
+// ⚠️ Le plafond de 338 h est GLOBAL : formation suivie + enseignement dispensé réunis (guide France Travail).
+var ENS_CAP = 120;
 function _applyNoteFormMode(mode){
   _noteFormMode = (mode === 'formation') ? 'formation' : 'note';
   var isForm = _noteFormMode === 'formation';
@@ -3484,7 +3573,7 @@ function deleteNote(id){
 function _ensureDayModal(){
   if(document.getElementById('dayModalOverlay')) return;
   const st=document.createElement('style');
-  st.textContent="#dayModalOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:100040;}#dayModalOverlay.open{display:flex;}.dm-box{background:var(--card);color:var(--text);border-radius:22px 22px 0 0;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-sizing:border-box;padding:22px 22px 30px;box-shadow:0 -10px 40px rgba(0,0,0,.3);}@media(min-width:600px){#dayModalOverlay{align-items:center;padding:18px;}.dm-box{border-radius:20px;max-width:440px;max-height:88vh;}}.dm-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}.dm-date{font-size:17px;font-weight:900;color:var(--petrol);text-transform:capitalize;}.dm-x{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;}.dm-acts{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;}.dm-act{flex:1 1 46%;display:flex;flex-direction:column;align-items:center;gap:6px;padding:15px 8px;border-radius:14px;border:1.5px solid var(--line);background:var(--card);cursor:pointer;font-weight:800;font-size:13px;color:var(--text);}.dm-act .ic{font-size:24px;}.dm-act.mission{border-color:rgba(31,78,95,.35);}.dm-act.note{border-color:rgba(245,158,11,.45);}.dm-act.fast{border-color:rgba(18,117,74,.5);color:#12754A;}.dm-sec-t{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:16px 0 8px;}.dm-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-left-width:4px;border-radius:10px;margin-bottom:8px;}.dm-item .nm{flex:1;min-width:0;}.dm-item .nm strong{font-size:13px;color:var(--petrol);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.dm-item .nm span{font-size:11.5px;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}.dm-item .acts{display:flex;gap:6px;flex-shrink:0;}.dm-item button{border:none;background:var(--soft);color:var(--petrol);border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;cursor:pointer;}.dm-item button.del{background:rgba(220,38,38,.12);color:#DC2626;}";
+  st.textContent="#dayModalOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:100040;}#dayModalOverlay.open{display:flex;}.dm-box{background:var(--card);color:var(--text);border-radius:22px 22px 0 0;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-sizing:border-box;padding:22px 22px 30px;box-shadow:0 -10px 40px rgba(0,0,0,.3);}@media(min-width:600px){#dayModalOverlay{align-items:center;padding:18px;}.dm-box{border-radius:20px;max-width:440px;max-height:88vh;}}.dm-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}.dm-date{font-size:17px;font-weight:900;color:var(--petrol);text-transform:capitalize;}.dm-x{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;}.dm-acts{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;}.dm-act{flex:1 1 46%;display:flex;flex-direction:column;align-items:center;gap:6px;padding:15px 8px;border-radius:14px;border:1.5px solid var(--line);background:var(--card);cursor:pointer;font-weight:800;font-size:13px;color:var(--text);}.dm-act .ic{font-size:24px;}.dm-act.mission{border-color:rgba(31,78,95,.35);}.dm-act.note{border-color:rgba(245,158,11,.45);}.dm-act.fast{border-color:rgba(18,117,74,.5);color:#12754A;}.dm-act.regime{border-color:rgba(14,165,233,.5);color:#0EA5E9;}.dm-sec-t{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:16px 0 8px;}.dm-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-left-width:4px;border-radius:10px;margin-bottom:8px;}.dm-item .nm{flex:1;min-width:0;}.dm-item .nm strong{font-size:13px;color:var(--petrol);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.dm-item .nm span{font-size:11.5px;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}.dm-item .acts{display:flex;gap:6px;flex-shrink:0;}.dm-item button{border:none;background:var(--soft);color:var(--petrol);border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;cursor:pointer;}.dm-item button.del{background:rgba(220,38,38,.12);color:#DC2626;}";
   document.head.appendChild(st);
   const ov=document.createElement('div');
   ov.id='dayModalOverlay';
@@ -3495,6 +3584,7 @@ function _ensureDayModal(){
     if(e.target.closest && e.target.closest('#dmAddMission')){ ov.classList.remove('open'); addMissionReturnView='calendar'; activateView('add-mission'); switchAddTab('mission'); resetMissionFormForDate(_dayModalDate); window.scrollTo({top:0,behavior:'smooth'}); return; }
     if(e.target.closest && e.target.closest('#dmAddNote')){ ov.classList.remove('open'); addMissionReturnView='calendar'; activateView('add-mission'); switchAddTab('note'); resetNoteFormForDate(_dayModalDate,'note'); window.scrollTo({top:0,behavior:'smooth'}); return; }
     if(e.target.closest && e.target.closest('#dmAddFormation')){ ov.classList.remove('open'); addMissionReturnView='calendar'; activateView('add-mission'); switchAddTab('note'); resetNoteFormForDate(_dayModalDate,'formation'); window.scrollTo({top:0,behavior:'smooth'}); return; }
+    if(e.target.closest && e.target.closest('#dmAddRegime')){ ov.classList.remove('open'); addMissionReturnView='calendar'; activateView('add-mission'); switchAddTab('mission'); resetMissionFormForDate(_dayModalDate,'general'); window.scrollTo({top:0,behavior:'smooth'}); return; }
     if(e.target.closest && e.target.closest('#dmAddQuick')){ ov.classList.remove('open'); openQuickEntry(_dayModalDate); return; }
     const me=e.target.closest && e.target.closest('[data-dm-edit]'); if(me){ ov.classList.remove('open'); switchAddTab('mission'); editMission(me.dataset.dmEdit); return; }
     const md=e.target.closest && e.target.closest('[data-dm-del]'); if(md){ ov.classList.remove('open'); deleteMission(md.dataset.dmDel); return; }
@@ -3508,7 +3598,7 @@ function _refreshDayModal(){
   const ms=missions.filter(function(m){return isDateInPeriod(dateStr,m);}).sort(function(a,b){return new Date(a.date)-new Date(b.date);});
   const ns=notesForDate(dateStr);
   let html="<div class=\"dm-head\"><span class=\"dm-date\">"+escapeHtml(formatDate(dateStr))+"</span><button class=\"dm-x\" id=\"dmClose\" type=\"button\">✕</button></div>";
-  html+="<div class=\"dm-acts\"><button class=\"dm-act mission\" id=\"dmAddMission\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2\" y=\"7\" width=\"20\" height=\"14\" rx=\"2\"/><path d=\"M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\"/></svg></span>Ajouter une mission</button><button class=\"dm-act note\" id=\"dmAddNote\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 3h9l5 5v13H5z\"/><path d=\"M14 3v5h5\"/><path d=\"M8 13.5h7M8 17h5\"/></svg></span>Note perso</button><button class=\"dm-act formation\" id=\"dmAddFormation\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M22 10L12 5 2 10l10 5 10-5z\"/><path d=\"M6 12v5c0 1 2.5 3 6 3s6-2 6-3v-5\"/></svg></span>Formation</button><button class=\"dm-act fast\" id=\"dmAddQuick\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M13 2L3 14h7l-1 8 10-12h-7z\"/></svg></span>Saisie rapide</button></div>";
+  html+="<div class=\"dm-acts\"><button class=\"dm-act mission\" id=\"dmAddMission\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2\" y=\"7\" width=\"20\" height=\"14\" rx=\"2\"/><path d=\"M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\"/></svg></span>Ajouter une mission</button><button class=\"dm-act note\" id=\"dmAddNote\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 3h9l5 5v13H5z\"/><path d=\"M14 3v5h5\"/><path d=\"M8 13.5h7M8 17h5\"/></svg></span>Note perso</button><button class=\"dm-act formation\" id=\"dmAddFormation\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M22 10L12 5 2 10l10 5 10-5z\"/><path d=\"M6 12v5c0 1 2.5 3 6 3s6-2 6-3v-5\"/></svg></span>Formation</button><button class=\"dm-act regime\" id=\"dmAddRegime\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"12\" rx=\"1\"/><path d=\"M7 20h10M12 16v4\"/></svg></span>Régime général</button><button class=\"dm-act fast\" id=\"dmAddQuick\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M13 2L3 14h7l-1 8 10-12h-7z\"/></svg></span>Saisie rapide</button></div>";
   if(ms.length){ html+="<div class=\"dm-sec-t\">Missions du jour</div>"; ms.forEach(function(m){ var col=getProductionColorHex(normalizeProductionName(m.production))||'#1F4E5F'; var nb=missionDayCount(m); html+="<div class=\"dm-item\" style=\"border-left-color:"+col+"\"><div class=\"nm\"><strong>"+escapeHtml((m.production||'').toUpperCase())+"</strong><span>"+escapeHtml(m.type)+" · "+(Math.round((Number(m.hours||0)/nb)*10)/10)+"h · "+money(Math.round(Number(m.gross||0)/nb))+"</span></div><div class=\"acts\"><button data-dm-edit=\""+escapeHtml(m.id)+"\" type=\"button\">Modifier</button><button class=\"del\" data-dm-del=\""+escapeHtml(m.id)+"\" type=\"button\">✕</button></div></div>"; }); }
   if(ns.length){ html+="<div class=\"dm-sec-t\">Notes</div>"; ns.forEach(function(n){ html+="<div class=\"dm-item\" data-note-detail=\""+escapeHtml(n.id)+"\" style=\"cursor:pointer;border-left-color:"+(n.color||'#1E6FE0')+"\"><div class=\"nm\"><strong>"+escapeHtml(n.title||'Note')+"</strong><span>"+escapeHtml((n.text||'').slice(0,90))+"</span></div><div class=\"acts\"><span style=\"color:var(--muted);font-size:18px;\">›</span></div></div>"; }); }
   box.innerHTML=html;
