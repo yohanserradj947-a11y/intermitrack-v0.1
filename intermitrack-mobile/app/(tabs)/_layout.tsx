@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { createMaterialTopTabNavigator, MaterialTopTabBar } from '@react-navigation/material-top-tabs';
 import { withLayoutContext } from 'expo-router';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabDots } from '@/components/tab-dots';
 import { SwipeHint } from '@/components/swipe-hint';
@@ -24,9 +24,21 @@ const ICON = 22;
 // deux fois. Décision : on remplit, comme l'écran de connexion qui le faisait déjà.
 // Si un écran s'étire mal sur grand écran, il faudra le traiter LUI, pas brider toute l'appli.
 
+// Largeur des onglets quand la barre défile (téléphone). 8 onglets x 86 pt = 688 pt : au-delà de ce
+// seuil, tout tient à l'écran et le défilement n'a plus lieu d'être.
+const TAB_W = 86;
+const TABS_TOTAL = 8 * TAB_W;
+
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const C = useTheme();
+  const { width } = useWindowDimensions();
+  // Sur un grand écran, on COUPE le défilement au lieu de centrer une barre défilante à la main.
+  // Ma première tentative centrait le contenu du ScrollView : l'indicateur (le trait sous l'onglet
+  // actif) calcule sa position à partir des offsets d'origine et ignorait ce décalage — il atterrissait
+  // donc dans le vide. Sans défilement, les onglets se répartissent nativement sur toute la largeur et
+  // l'indicateur retombe juste, sans rustine. Retour Yohan (iPad).
+  const scrollTabs = width < TABS_TOTAL + 20;
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
     <ThemeBackdrop />
@@ -42,19 +54,15 @@ export default function TabLayout() {
         sceneStyle: { backgroundColor: 'transparent' },
         swipeEnabled: true,
         lazy: true,
-        tabBarScrollEnabled: true,
-        // La barre d'onglets défile (8 onglets x 86 pt = 688 pt) : sur un téléphone elle est plus large
-        // que l'écran et défile, sur un iPad elle tient largement et restait collée à GAUCHE, laissant
-        // un grand vide à droite (retour Yohan). flexGrow permet au contenu d'occuper toute la largeur
-        // disponible, justifyContent le centre alors quand il y a de la place — sans rien changer sur
-        // téléphone, où le contenu déborde de toute façon.
-        tabBarContentContainerStyle: { flexGrow: 1, justifyContent: 'center' },
+        tabBarScrollEnabled: scrollTabs,
         tabBarActiveTintColor: C.petrol,
         tabBarInactiveTintColor: C.muted,
         tabBarShowIcon: true,
         tabBarShowLabel: true,
         tabBarLabelStyle: { fontSize: 10, fontWeight: '700', textTransform: 'none', marginTop: 2 },
-        tabBarItemStyle: { width: 86, paddingVertical: 6, paddingHorizontal: 0 },
+        // Largeur fixe uniquement quand la barre défile. Sans défilement, on laisse les onglets se
+        // répartir eux-mêmes sur toute la largeur : une largeur imposée les tasserait à gauche.
+        tabBarItemStyle: scrollTabs ? { width: TAB_W, paddingVertical: 6, paddingHorizontal: 0 } : { paddingVertical: 6, paddingHorizontal: 0 },
         tabBarStyle: {
           backgroundColor: C.card,
           borderTopColor: C.line,
@@ -63,7 +71,11 @@ export default function TabLayout() {
           elevation: 0,
           shadowOpacity: 0,
         },
-        tabBarIndicatorStyle: { backgroundColor: C.petrol, height: 3, top: 0 },
+        // Indicateur SUPPRIMÉ (retour Yohan, iPad) : il n'était jamais au-dessus du bon onglet.
+        // Il calcule sa position à partir des offsets de la barre défilante et se décalait dès que
+        // celle-ci ne défilait pas de la même façon. Il était de toute façon redondant : les points
+        // (TabDots, juste au-dessus) indiquent déjà la page active, et eux sont fiables.
+        tabBarIndicatorStyle: { height: 0 },
       }}
     >
       <MaterialTopTabs.Screen

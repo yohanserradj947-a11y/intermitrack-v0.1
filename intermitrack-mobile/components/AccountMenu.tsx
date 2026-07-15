@@ -11,6 +11,7 @@ import { useTheme, useThemeControls, THEME_META } from '../lib/theme';
 import { usePostes } from '../lib/postes';
 import ThemeModal from './ThemeModal';
 import { usePathname } from 'expo-router';
+import { VEHICLES, CAR_CV, MOTO_CV, migrerVehicule, fraisAnnuels, type VehicleKind } from '../lib/kmBareme';
 
 // palette via useTheme()
 
@@ -70,8 +71,13 @@ export function AccountMenu(){
   const [miDroits,setMiDroits]=useState<boolean|null>(null);
   // Vehicule memorise : « je ne change pas ma voiture, et mon nombre de kilometres annuel ne change
   // pas d'une mission a l'autre ainsi que ma puissance fiscale » (retour JB).
+  // Depuis le 16/07/2026 : type de vehicule + puissance + kilometrage annuel REEL (et non une
+  // tranche) — le bareme officiel a des tranches differentes selon le vehicule et un montant fixe
+  // qu'on ne peut restituer qu'a partir du kilometrage exact. Voir lib/kmBareme.
+  const [miKmKind,setMiKmKind]=useState<VehicleKind>('car');
   const [miKmCv,setMiKmCv]=useState('');
-  const [miKmTranche,setMiKmTranche]=useState('1');
+  const [miKmAnnual,setMiKmAnnual]=useState('');
+  const [miKmElec,setMiKmElec]=useState(false);
   const [miAj,setMiAj]=useState('');
   const [miImpot,setMiImpot]=useState('');
 
@@ -79,7 +85,7 @@ export function AccountMenu(){
 
   async function loadProfil(){
     const { data:{ user } }=await supabase.auth.getUser();
-    if(user){ const { data }=await supabase.from('profiles').select('annexe,droits_ouverts,taux_journalier,taux_impot,km_cv,km_tranche').eq('id',user.id).maybeSingle(); setProfil(data||null); }
+    if(user){ const { data }=await supabase.from('profiles').select('annexe,droits_ouverts,taux_journalier,taux_impot,km_cv,km_tranche,km_vehicle,km_annual,km_electric').eq('id',user.id).maybeSingle(); setProfil(data||null); }
   }
 
   function openMesInfosModal(){
@@ -87,8 +93,18 @@ export function AccountMenu(){
     setMiDroits(profil?profil.droits_ouverts:null);
     setMiAj(profil?.taux_journalier!=null?String(profil.taux_journalier):'');
     setMiImpot(profil?.taux_impot!=null?String(profil.taux_impot):'');
-    setMiKmCv(profil?.km_cv||'');
-    setMiKmTranche(profil?.km_tranche||'1');
+    // Nouveau format si present, sinon on MIGRE l'ancien (km_cv '3'..'7'|'moto' + km_tranche '1'|'2'|'3').
+    if(profil?.km_vehicle){
+      setMiKmKind(profil.km_vehicle as VehicleKind);
+      setMiKmCv(profil?.km_cv||'');
+      setMiKmAnnual(profil?.km_annual!=null?String(profil.km_annual):'');
+    } else {
+      const m=migrerVehicule(profil?.km_cv, profil?.km_tranche);
+      setMiKmKind(m.kind); setMiKmCv(m.cv);
+      // Kilometrage seulement s'il y avait un vehicule : sinon on inventerait un chiffre.
+      setMiKmAnnual(profil?.km_cv ? String(m.kmAnnuel) : '');
+    }
+    setMiKmElec(!!profil?.km_electric);
     setShowMesInfos(true);
   }
 
@@ -102,7 +118,7 @@ export function AccountMenu(){
     const { data:{ user } }=await supabase.auth.getUser();
     if(!user)return;
     const droits=miDroits===true;
-    const { error }=await supabase.from('profiles').upsert({ id:user.id, annexe:miAnnexe||null, droits_ouverts:miDroits, taux_journalier:droits?(Number(miAj)||null):null, taux_impot:droits?(Number(miImpot)||null):null, km_cv:miKmCv||null, km_tranche:miKmTranche||null },{onConflict:'id'});
+    const { error }=await supabase.from('profiles').upsert({ id:user.id, annexe:miAnnexe||null, droits_ouverts:miDroits, taux_journalier:droits?(Number(miAj)||null):null, taux_impot:droits?(Number(miImpot)||null):null, km_vehicle:miKmKind||null, km_cv:miKmCv||null, km_annual:Number(miKmAnnual)||null, km_electric:miKmElec },{onConflict:'id'});
     if(error){ showAlert('Erreur',error.message); return; }
     setShowMesInfos(false); loadProfil(); _emitProfilChanged();
   }
@@ -280,22 +296,45 @@ export function AccountMenu(){
               {/* Vehicule memorise -> pre-remplit les frais km de chaque mission (retour JB).
                   Les cles sont celles du bareme, identiques a l'appli ET au site : ne pas diverger. */}
               <Text style={s.label}>Ton véhicule <Text style={{fontWeight:'400',color:C.muted,fontSize:12}}>— pré-remplit tes frais kilométriques</Text></Text>
-              <Text style={{fontSize:12,color:C.muted,marginBottom:8,lineHeight:17}}>Puissance fiscale (carte grise, case P.6). Tu n'auras plus qu'à saisir tes kilomètres.</Text>
               <View style={s.typeWrap}>
-                {([['3','3 CV'],['4','4 CV'],['5','5 CV'],['6','6 CV'],['7','7+ CV'],['moto','Moto']] as [string,string][]).map(([val,lbl])=>(
-                  <TouchableOpacity key={val} style={[s.typeChip,miKmCv===val&&s.typeChipActive]} onPress={()=>setMiKmCv(c=>c===val?'':val)}>
-                    <Text style={miKmCv===val?s.typeChipTxtActive:s.typeChipTxt}>{lbl}</Text>
+                {VEHICLES.map(v=>(
+                  <TouchableOpacity key={v.key} style={[s.typeChip,miKmKind===v.key&&s.typeChipActive]} onPress={()=>{setMiKmKind(v.key);setMiKmCv('');}}>
+                    <Text style={miKmKind===v.key?s.typeChipTxtActive:s.typeChipTxt}>{v.label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
-              <Text style={[s.label,{marginTop:10}]}>Kilomètres parcourus par an</Text>
-              <View style={s.typeWrap}>
-                {([['1','≤ 5 000'],['2','5 001–20 000'],['3','> 20 000']] as [string,string][]).map(([val,lbl])=>(
-                  <TouchableOpacity key={val} style={[s.typeChip,miKmTranche===val&&s.typeChipActive]} onPress={()=>setMiKmTranche(val)}>
-                    <Text style={miKmTranche===val?s.typeChipTxtActive:s.typeChipTxt}>{lbl}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <Text style={{fontSize:12,color:C.muted,marginTop:6,marginBottom:8,lineHeight:17}}>{VEHICLES.find(v=>v.key===miKmKind)?.hint}</Text>
+
+              {/* Le cyclomoteur n'a pas de puissance : un seul barème. */}
+              {miKmKind!=='cyclo' && (
+                <View style={s.typeWrap}>
+                  {(miKmKind==='moto'?MOTO_CV:CAR_CV).map(o=>(
+                    <TouchableOpacity key={o.key} style={[s.typeChip,miKmCv===o.key&&s.typeChipActive]} onPress={()=>setMiKmCv(c=>c===o.key?'':o.key)}>
+                      <Text style={miKmCv===o.key?s.typeChipTxtActive:s.typeChipTxt}>{o.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {/* Le kilométrage RÉEL, et non une tranche : le barème comporte un montant fixe par
+                  tranche qu'on ne peut restituer qu'à partir du chiffre exact. */}
+              <Text style={[s.label,{marginTop:10}]}>Kilomètres parcourus par an <Text style={{fontWeight:'400',color:C.muted,fontSize:12}}>— tous trajets confondus</Text></Text>
+              <NumInput style={s.input} value={miKmAnnual} onChangeText={setMiKmAnnual} placeholder="Ex : 12000" placeholderTextColor={C.muted}/>
+
+              <TouchableOpacity style={{flexDirection:'row',alignItems:'center',gap:9,marginTop:10}} onPress={()=>setMiKmElec(v=>!v)}>
+                <View style={[s.typeChip,miKmElec&&s.typeChipActive,{paddingHorizontal:12}]}>
+                  <Text style={miKmElec?s.typeChipTxtActive:s.typeChipTxt}>{miKmElec?'✓ ':''}100 % électrique</Text>
+                </View>
+                <Text style={{fontSize:12,color:C.muted,flexShrink:1}}>Barème majoré de 20 %.</Text>
+              </TouchableOpacity>
+
+              {/* Aperçu : rend le barème concret, et permet de voir tout de suite si un réglage est faux. */}
+              {(!!miKmCv||miKmKind==='cyclo') && Number(miKmAnnual)>0 && (
+                <Text style={{fontSize:12.5,color:C.petrol,fontWeight:'700',marginTop:10,lineHeight:18}}>
+                  Barème {new Date().getFullYear()-1} : {Math.round(fraisAnnuels(miKmKind,miKmCv,Number(miKmAnnual),miKmElec)).toLocaleString('fr-FR')} € pour {Number(miKmAnnual).toLocaleString('fr-FR')} km,
+                  soit {(fraisAnnuels(miKmKind,miKmCv,Number(miKmAnnual),miKmElec)/Number(miKmAnnual)).toFixed(3).replace('.',',')} €/km appliqués à tes missions.
+                </Text>
+              )}
 
               <Text style={s.label}>Tes postes <Text style={{fontWeight:'400',color:C.muted,fontSize:12}}>— ils apparaissent dans tes missions</Text></Text>
               {postes.length===0 ? <Text style={{fontSize:12,color:C.muted,marginBottom:4}}>Aucun poste — ajoute le tien ci-dessous.</Text> : (

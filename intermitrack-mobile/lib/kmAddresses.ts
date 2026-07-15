@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase';
 import { onProfilChanged } from '../components/AccountMenu';
+import { tauxEffectif, migrerVehicule, type VehicleKind } from './kmBareme';
 
 // ── Adresses déjà utilisées ────────────────────────────────────────────────
 // Les adresses n'étaient enregistrées NULLE PART : on ne stockait que distance/taux/montant.
@@ -54,17 +55,34 @@ export function knownAddresses(missions: any[]): Addr[] {
 // ── Véhicule mémorisé (profil) ─────────────────────────────────────────────
 // « Je ne change pas ma voiture, et mon nombre de kilomètres annuel ne change pas d'une
 //   mission à l'autre ainsi que ma puissance fiscale. » (retour JB)
-// Valeurs identiques à l'appli ET au site : km_cv '3'|'4'|'5'|'6'|'7'|'moto', km_tranche '1'|'2'|'3'.
-export function useKmDefaults() {
-  const [cv, setCv] = useState('');
-  const [tranche, setTranche] = useState('1');
+//
+// Renvoie directement le TAUX RÉEL en €/km, calculé par le barème officiel à partir du véhicule et
+// du kilométrage annuel (voir lib/kmBareme). Les écrans n'ont plus à connaître le barème : ils
+// multiplient les km de la mission par ce taux.
+export type KmDefaults = { kind: VehicleKind; cv: string; kmAnnuel: number; electrique: boolean; taux: number; pret: boolean };
+
+export function useKmDefaults(): KmDefaults {
+  const [v, setV] = useState<KmDefaults>({ kind: 'car', cv: '', kmAnnuel: 0, electrique: false, taux: 0, pret: false });
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data } = await supabase.from('profiles').select('km_cv,km_tranche').eq('id', user.id).maybeSingle();
-    setCv(data?.km_cv || '');
-    setTranche(data?.km_tranche || '1');
+    const { data } = await supabase.from('profiles')
+      .select('km_vehicle,km_cv,km_annual,km_electric,km_tranche').eq('id', user.id).maybeSingle();
+
+    // Nouveau format si présent, sinon migration de l'ancien (km_cv '3'..'7'|'moto' + km_tranche).
+    let kind: VehicleKind, cv: string, kmAnnuel: number;
+    if (data?.km_vehicle) {
+      kind = data.km_vehicle as VehicleKind;
+      cv = data.km_cv || '';
+      kmAnnuel = Number(data.km_annual) || 0;
+    } else {
+      const m = migrerVehicule(data?.km_cv, data?.km_tranche);
+      kind = m.kind; cv = m.cv;
+      kmAnnuel = data?.km_cv ? m.kmAnnuel : 0; // pas de véhicule renseigné → on n'invente pas de km
+    }
+    const electrique = !!data?.km_electric;
+    setV({ kind, cv, kmAnnuel, electrique, taux: tauxEffectif(kind, cv, kmAnnuel, electrique), pret: true });
   }
 
   useEffect(() => { load(); }, []);
@@ -72,5 +90,5 @@ export function useKmDefaults() {
   // le formulaire garderait l'ancien véhicule jusqu'au prochain redémarrage.
   useEffect(() => onProfilChanged(load), []);
 
-  return { cv, tranche };
+  return v;
 }

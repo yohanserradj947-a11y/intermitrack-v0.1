@@ -19,6 +19,8 @@ import { typeParts, addType, removeType } from '../../lib/missionType';
 import ProductionPickerModal from '../../components/ProductionPickerModal';
 import AddressPickerModal from '../../components/AddressPickerModal';
 import { knownAddresses, useKmDefaults } from '../../lib/kmAddresses';
+import type { KmDefaults } from '../../lib/kmAddresses';
+import { VEHICLES, CAR_CV, MOTO_CV } from '../../lib/kmBareme';
 import ColorPickerModal from '../../components/ColorPickerModal';
 import ProdColorManager from '../../components/ProdColorManager';
 import NoteFormModal from '../../components/NoteFormModal';
@@ -32,20 +34,17 @@ import Svg, { Line } from 'react-native-svg';
 
 // Barème kilométrique officiel : coefficient par tranche de km annuels.
 // t1/t2 = seuils des tranches ; c1 (≤t1) · c2·km + add2 (t1→t2) · c3 (>t2).
-const BAREME = [
-  { key: '3', label: '3 CV', t1: 5000, t2: 20000, c1: 0.529, c2: 0.316, add2: 1065, c3: 0.370 },
-  { key: '4', label: '4 CV', t1: 5000, t2: 20000, c1: 0.606, c2: 0.340, add2: 1330, c3: 0.407 },
-  { key: '5', label: '5 CV', t1: 5000, t2: 20000, c1: 0.636, c2: 0.357, add2: 1395, c3: 0.427 },
-  { key: '6', label: '6 CV', t1: 5000, t2: 20000, c1: 0.665, c2: 0.374, add2: 1457, c3: 0.447 },
-  { key: '7', label: '7+ CV', t1: 5000, t2: 20000, c1: 0.697, c2: 0.394, add2: 1515, c3: 0.470 },
-  { key: 'moto', label: 'Moto', t1: 3000, t2: 6000, c1: 0.395, c2: 0.099, add2: 891, c3: 0.234 },
-];
-// La personne choisit sa tranche de km annuels (elle connaît son kilométrage).
-const TRANCHE_OPTIONS = [{ key: '1', label: '≤5 000 km/an' }, { key: '2', label: '5 001–20 000' }, { key: '3', label: '>20 000' }];
+// Le barème vit dans lib/kmBareme (vérifié sur sources officielles). Celui qui était ici portait bien
+// les montants fixes (add2) et les vraies tranches moto — mais kmCoef les ignorait tous les deux, et
+// traitait toutes les motos comme des 1-2 CV avec un 3ᵉ coefficient erroné (0,234 au lieu de 0,248).
 function pf(v: string) { const n = Number(String(v ?? '').replace(',', '.').replace(/\s/g, '')); return isFinite(n) ? n : 0; }
-// Coefficient €/km selon la tranche choisie (le forfait annuel des tranches 2/3 n'est pas appliqué par mission).
-function kmCoef(cvKey: string, tranche: string) { const b = BAREME.find((x) => x.key === cvKey); if (!b) return 0; return tranche === '2' ? b.c2 : tranche === '3' ? b.c3 : b.c1; }
-function trancheLabel(tranche: string) { return tranche === '2' ? '5 001–20 000 km/an' : tranche === '3' ? '> 20 000 km/an' : '≤ 5 000 km/an'; }
+
+// Rappel court du véhicule retenu, pour qu'on comprenne d'où sort le taux affiché.
+function vehiculeLabel(d: KmDefaults) {
+  const v = VEHICLES.find((x) => x.key === d.kind)?.label ?? '';
+  const cv = d.kind === 'cyclo' ? '' : ((d.kind === 'moto' ? MOTO_CV : CAR_CV).find((x) => x.key === d.cv)?.label ?? '');
+  return [v, cv, d.kmAnnuel ? `${d.kmAnnuel.toLocaleString('fr-FR')} km/an` : '', d.electrique ? 'électrique' : ''].filter(Boolean).join(' · ');
+}
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) { const R = 6371, tr = (d: number) => d * Math.PI / 180; const dLat = tr(lat2 - lat1), dLon = tr(lon2 - lon1); const x = Math.sin(dLat / 2) ** 2 + Math.cos(tr(lat1)) * Math.cos(tr(lat2)) * Math.sin(dLon / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); }
 
 // La palette vient du thème (lib/theme) → const C = useTheme() dans le composant.
@@ -130,8 +129,6 @@ export default function Calendar(){
   const [kmRT,setKmRT]=useState(false);
   const [kmEveryDay,setKmEveryDay]=useState(false);
   const [kmJustify,setKmJustify]=useState(false);
-  const [kmCv,setKmCv]=useState('');
-  const [kmTranche,setKmTranche]=useState('1');
   const [showFromPicker,setShowFromPicker]=useState(false);
   const [showToPicker,setShowToPicker]=useState(false);
   // Vehicule memorise dans « Mes informations » : pre-remplit chaque mission, reste modifiable ici.
@@ -166,8 +163,7 @@ export default function Calendar(){
     setFMode(modeForNew(annexe)); setFCachets('');
     setFHours(''); setFGross(''); setFVacations(''); setMdpDays([]);
     setKmOpen(false); setKmFrom(''); setKmTo(''); setKmFromCoords(null); setKmToCoords(null); setKmRT(false); setKmEveryDay(false); setKmJustify(false); setKmDistance(''); setKmRate('');
-    // Vehicule pre-rempli depuis « Mes informations » : « je ne change pas ma voiture » (JB). Reste modifiable.
-    setKmCv(kmDefaults.cv); setKmTranche(kmDefaults.tranche);
+    // Plus rien à pré-remplir ici : le taux vient directement de « Mes informations » (kmDefaults.taux).
     setShowFromPicker(false); setShowToPicker(false);
     setShowEmSuggest(false);
     setShowForm(true);
@@ -192,9 +188,8 @@ export default function Calendar(){
     setKmFromCoords(m.km_from_lat!=null&&m.km_from_lng!=null?[Number(m.km_from_lng),Number(m.km_from_lat)]:null);
     setKmToCoords(m.km_to_lat!=null&&m.km_to_lng!=null?[Number(m.km_to_lng),Number(m.km_to_lat)]:null);
     setKmRT(false); setKmEveryDay(false); setKmJustify(false);
-    // Le CV n'est pas stocke par mission (seul le taux l'est) : on reprend celui du profil, sinon
-    // l'estimation affichee retombait a 0 a la reouverture d'une mission saisie au bareme.
-    setKmCv(kmDefaults.cv); setKmTranche(kmDefaults.tranche);
+    // Le taux vient de « Mes informations » : rouvrir une mission saisie au barème réaffiche donc la
+    // bonne estimation, alors qu'avant elle retombait à 0 (le CV n'étant pas stocké par mission).
     setShowFromPicker(false); setShowToPicker(false);
     setKmDistance(m.km_distance?String(m.km_distance):''); setKmRate(m.km_rate?String(m.km_rate):'');
     setKmOpen(!!(m.km_distance||m.km_amount));
@@ -222,7 +217,8 @@ export default function Calendar(){
   // Jours travaillés = heures ÷ 8, plafonné à la durée de la période (pas la durée calendaire seule).
   const kmWorkedDays = Math.max(1, Math.min(daysInclusive(fStart,fEnd), Math.round(pf(fHours)/8)));
   // Frais : barème officiel si une puissance est choisie (s'adapte à la tranche de km), sinon taux manuel.
-  function kmFraisFor(nbDays:number){ const e=kmEff(nbDays); return kmCv ? e*kmCoef(kmCv,kmTranche) : pf(kmRate)*e; }
+  // Le taux saisi à la main l'emporte ; sinon, le taux réel issu du barème et du profil.
+  function kmFraisFor(nbDays:number){ const e=kmEff(nbDays); return e * (pf(kmRate)>0 ? pf(kmRate) : kmDefaults.taux); }
 
   async function saveSimple(){
     setSaving(true);
@@ -936,28 +932,26 @@ export default function Calendar(){
                     </View>
                     <View style={{flex:1}}>
                       <Text style={s.label}>Taux €/km (manuel)</Text>
-                      <NumInput style={[s.input,kmCv?{opacity:0.5}:null]} value={kmRate} onChangeText={(t:string)=>{setKmRate(t);if(t)setKmCv('');}} placeholder="sinon choisis CV" placeholderTextColor={C.muted}/>
+                      <NumInput style={s.input} value={kmRate} onChangeText={setKmRate} placeholder="sinon barème" placeholderTextColor={C.muted}/>
                     </View>
                   </View>
-                  <Text style={s.label}>Puissance fiscale</Text>
-                  <View style={s.cvWrap}>
-                    {BAREME.map(o=>(
-                      <TouchableOpacity key={o.key} style={[s.cvChip,kmCv===o.key&&s.cvChipOn]} onPress={()=>setKmCv(c=>c===o.key?'':o.key)}><Text style={kmCv===o.key?s.cvChipTxtOn:s.cvChipTxt}>{o.label}</Text></TouchableOpacity>
-                    ))}
-                  </View>
-                  <Text style={s.label}>Tes km parcourus par an (environ)</Text>
-                  <View style={s.cvWrap}>
-                    {TRANCHE_OPTIONS.map(o=>(
-                      <TouchableOpacity key={o.key} style={[s.cvChip,kmTranche===o.key&&s.cvChipOn]} onPress={()=>setKmTranche(o.key)}><Text style={kmTranche===o.key?s.cvChipTxtOn:s.cvChipTxt}>{o.label}</Text></TouchableOpacity>
-                    ))}
-                  </View>
-                  {(kmEff(kmWorkedDays)>0 && !kmCv && pf(kmRate)<=0)
-                    ? <Text style={[s.miniHint,{color:C.orange,fontWeight:'700'}]}>Choisis ta puissance fiscale ci-dessus (ou entre un taux €/km) pour estimer les frais.</Text>
+                  {/* Plus de pastilles « puissance fiscale » ni de tranche ici : le barème dépend du type de
+                      véhicule ET du kilométrage annuel réel, qui vivent dans « Mes informations ». Les
+                      redemander à chaque mission serait redondant (retour JB), et le montant fixe du barème
+                      ne peut pas se calculer sans le kilométrage annuel. */}
+                  {kmDefaults.pret && kmDefaults.taux>0 && pf(kmRate)<=0 ? (
+                    <Text style={s.miniHint}>
+                      Barème appliqué : <Text style={{fontWeight:'900',color:C.petrol}}>{kmDefaults.taux.toFixed(3).replace('.',',')} €/km</Text>
+                      {'  ·  '}{vehiculeLabel(kmDefaults)} — modifiable dans « Mes informations ».
+                    </Text>
+                  ) : null}
+                  {(kmEff(kmWorkedDays)>0 && kmDefaults.pret && kmDefaults.taux<=0 && pf(kmRate)<=0)
+                    ? <Text style={[s.miniHint,{color:C.orange,fontWeight:'700'}]}>Renseigne ton véhicule et tes kilomètres annuels dans « Mes informations » (ou entre un taux €/km) pour estimer les frais.</Text>
                     : <View style={s.kmResult}>
                         <Text style={s.kmResultLine}>Distance comptée : <Text style={{fontWeight:'900'}}>{Math.round(kmEff(kmWorkedDays))} km</Text>{(kmRT||kmEveryDay||(!kmJustify&&pf(kmDistance)>40))?`  =  ${Math.round(kmBase())} km${(!kmJustify&&pf(kmDistance)>40)?' (plafond 40)':''}${kmRT?' × 2 (A/R)':''}${kmEveryDay?` × ${kmWorkedDays} j`:''}`:''}</Text>
-                        <Text style={s.kmResultFrais}>Frais estimés : {money(Math.round(kmFraisFor(kmWorkedDays)))}{kmCv?`  ·  ${trancheLabel(kmTranche)}`:''}</Text>
+                        <Text style={s.kmResultFrais}>Frais estimés : {money(Math.round(kmFraisFor(kmWorkedDays)))}</Text>
                       </View>}
-                  <Text style={s.miniHint}>Tu choisis ta tranche selon ton kilométrage annuel : le coefficient €/km correspondant s&apos;applique (ex. 7 CV : 0,697 si ≤5 000 · 0,394 si 5 001–20 000 · 0,470 si &gt;20 000).</Text>
+                  <Text style={s.miniHint}>Le barème officiel dépend de ton véhicule et de ton kilométrage annuel — les deux se règlent une fois pour toutes dans « Mes informations », et l&apos;appli en déduit ton taux réel au km.</Text>
                 </View>
               )}
 

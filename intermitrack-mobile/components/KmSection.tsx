@@ -6,23 +6,22 @@ import NumInput from './NumInput';
 import AddressPickerModal from './AddressPickerModal';
 import { useTheme } from '../lib/theme';
 import { useKmDefaults } from '../lib/kmAddresses';
-import type { Addr } from '../lib/kmAddresses';
+import type { Addr, KmDefaults } from '../lib/kmAddresses';
+import { VEHICLES, CAR_CV, MOTO_CV } from '../lib/kmBareme';
 
 // La palette vient du thème (lib/theme) → const C = useTheme() dans le composant.
 
-// Barème kilométrique officiel (coefficient €/km par tranche de km annuels).
-const BAREME = [
-  { key: '3', label: '3 CV', c1: 0.529, c2: 0.316, c3: 0.370 },
-  { key: '4', label: '4 CV', c1: 0.606, c2: 0.340, c3: 0.407 },
-  { key: '5', label: '5 CV', c1: 0.636, c2: 0.357, c3: 0.427 },
-  { key: '6', label: '6 CV', c1: 0.665, c2: 0.374, c3: 0.447 },
-  { key: '7', label: '7+ CV', c1: 0.697, c2: 0.394, c3: 0.470 },
-  { key: 'moto', label: 'Moto', c1: 0.395, c2: 0.099, c3: 0.234 },
-];
-const TRANCHE_OPTIONS = [{ key: '1', label: '≤5 000 km/an' }, { key: '2', label: '5 001–20 000' }, { key: '3', label: '>20 000' }];
+// Le barème vit désormais dans lib/kmBareme (vérifié sur sources officielles). Celui qui était ici
+// était faux : une seule catégorie « Moto » traitée comme une 1-2 CV, les tranches voiture appliquées
+// aux motos, et le montant fixe de la tranche intermédiaire purement ignoré.
 export function pf(v: string) { const n = Number(String(v ?? '').replace(',', '.').replace(/\s/g, '')); return isFinite(n) ? n : 0; }
-function kmCoef(cvKey: string, tranche: string) { const b = BAREME.find((x) => x.key === cvKey); if (!b) return 0; return tranche === '2' ? b.c2 : tranche === '3' ? b.c3 : b.c1; }
-function trancheLabel(t: string) { return t === '2' ? '5 001–20 000 km/an' : t === '3' ? '> 20 000 km/an' : '≤ 5 000 km/an'; }
+
+// Rappel court du véhicule retenu, pour qu'on comprenne d'où sort le taux affiché.
+function vehiculeLabel(d: KmDefaults) {
+  const v = VEHICLES.find((x) => x.key === d.kind)?.label ?? '';
+  const cv = d.kind === 'cyclo' ? '' : ((d.kind === 'moto' ? MOTO_CV : CAR_CV).find((x) => x.key === d.cv)?.label ?? '');
+  return [v, cv, d.kmAnnuel ? `${d.kmAnnuel.toLocaleString('fr-FR')} km/an` : '', d.electrique ? 'électrique' : ''].filter(Boolean).join(' · ');
+}
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) { const R = 6371, tr = (d: number) => d * Math.PI / 180; const dLat = tr(lat2 - lat1), dLon = tr(lon2 - lon1); const x = Math.sin(dLat / 2) ** 2 + Math.cos(tr(lat1)) * Math.cos(tr(lat2)) * Math.sin(dLon / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); }
 const money = (n: number) => (n ?? 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 
@@ -59,15 +58,10 @@ const KmSection = forwardRef<KmHandle, {
     const [rt, setRt] = useState(false);
     const [everyDay, setEveryDay] = useState(false);
     const [justify, setJustify] = useState(false);
-    // Véhicule pré-rempli depuis « Mes informations » (retour JB) — modifiable ici mission par mission.
+    // Véhicule mémorisé dans « Mes informations » (retour JB) : il fournit directement le taux réel
+    // en €/km, calculé par le barème officiel. Le champ « Taux €/km » ci-dessous reste prioritaire
+    // pour qui veut forcer une valeur sur une mission précise.
     const kmDefaults = useKmDefaults();
-    const [cv, setCv] = useState('');
-    const [tranche, setTranche] = useState('1');
-    // Le profil arrive de façon asynchrone : on l'applique quand il est là, sans écraser un choix déjà fait.
-    const [cvTouched, setCvTouched] = useState(false);
-    useEffect(() => {
-      if (!cvTouched && kmDefaults.cv) { setCv(kmDefaults.cv); setTranche(kmDefaults.tranche); }
-    }, [kmDefaults.cv, kmDefaults.tranche, cvTouched]);
     const [distance, setDistance] = useState(initialDistance ? String(initialDistance) : '');
     const [rate, setRate] = useState(initialRate ? String(initialRate) : '');
     const [calc, setCalc] = useState(false);
@@ -76,7 +70,8 @@ const KmSection = forwardRef<KmHandle, {
     const kmBase = () => justify ? pf(distance) : Math.min(pf(distance), 40);
     function valuesFor(nb: number): KmValues {
       const eff = kmBase() * (rt ? 2 : 1) * (everyDay ? Math.max(1, nb) : 1);
-      const frais = cv ? eff * kmCoef(cv, tranche) : pf(rate) * eff;
+      // Le taux saisi à la main l'emporte ; sinon, le taux réel issu du barème et du profil.
+      const frais = eff * (pf(rate) > 0 ? pf(rate) : kmDefaults.taux);
       return {
         km_distance: Math.round(eff), km_rate: pf(rate), km_amount: Math.round(frais * 100) / 100,
         km_from: from.trim() || null, km_to: to.trim() || null,
@@ -87,7 +82,7 @@ const KmSection = forwardRef<KmHandle, {
     useImperativeHandle(ref, () => ({ values: valuesFor }));
 
     const eff = kmBase() * (rt ? 2 : 1) * (everyDay ? Math.max(1, nbDays) : 1);
-    const frais = cv ? eff * kmCoef(cv, tranche) : pf(rate) * eff;
+    const frais = eff * (pf(rate) > 0 ? pf(rate) : kmDefaults.taux);
 
     async function doCalc() {
       if (!from.trim() || !to.trim()) { showAlert('Adresses manquantes', "Indique le lieu de départ et d'arrivée."); return; }
@@ -151,26 +146,24 @@ const KmSection = forwardRef<KmHandle, {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={s.label}>Taux €/km (manuel)</Text>
-                <NumInput style={[s.input, cv ? { opacity: 0.5 } : null]} value={rate} onChangeText={(t: string) => { setRate(t); setCvTouched(true); if (t) setCv(''); }} placeholder="sinon choisis CV" placeholderTextColor={C.muted} />
+                <NumInput style={s.input} value={rate} onChangeText={setRate} placeholder="sinon barème" placeholderTextColor={C.muted} />
               </View>
             </View>
-            <Text style={s.label}>Puissance fiscale</Text>
-            <View style={s.chips}>
-              {BAREME.map((o) => (
-                <TouchableOpacity key={o.key} style={[s.chip, cv === o.key && s.chipOn]} onPress={() => { setCvTouched(true); setCv((c) => c === o.key ? '' : o.key); }}><Text style={cv === o.key ? s.chipTxtOn : s.chipTxt}>{o.label}</Text></TouchableOpacity>
-              ))}
-            </View>
-            <Text style={s.label}>Tes km parcourus par an (environ)</Text>
-            <View style={s.chips}>
-              {TRANCHE_OPTIONS.map((o) => (
-                <TouchableOpacity key={o.key} style={[s.chip, tranche === o.key && s.chipOn]} onPress={() => setTranche(o.key)}><Text style={tranche === o.key ? s.chipTxtOn : s.chipTxt}>{o.label}</Text></TouchableOpacity>
-              ))}
-            </View>
-            {(eff > 0 && !cv && pf(rate) <= 0)
-              ? <Text style={[s.hint, { color: C.orange, fontWeight: '700' }]}>Choisis ta puissance fiscale (ou un taux €/km) pour estimer les frais.</Text>
+            {/* Plus de pastilles « puissance fiscale » ni de tranche ici : le barème dépend du type de
+                véhicule ET du kilométrage annuel réel, qui vivent dans « Mes informations ». Les
+                redemander à chaque mission serait redondant (retour JB) et surtout on ne peut pas
+                calculer le montant fixe du barème sans le kilométrage annuel. */}
+            {kmDefaults.pret && kmDefaults.taux > 0 && pf(rate) <= 0 ? (
+              <Text style={s.hint}>
+                Barème appliqué : <Text style={{ fontWeight: '900', color: C.petrol }}>{kmDefaults.taux.toFixed(3).replace('.', ',')} €/km</Text>
+                {'  ·  '}{vehiculeLabel(kmDefaults)} — modifiable dans « Mes informations ».
+              </Text>
+            ) : null}
+            {(eff > 0 && kmDefaults.pret && kmDefaults.taux <= 0 && pf(rate) <= 0)
+              ? <Text style={[s.hint, { color: C.orange, fontWeight: '700' }]}>Renseigne ton véhicule et tes kilomètres annuels dans « Mes informations » (ou saisis un taux €/km ci-dessus) pour estimer les frais.</Text>
               : <View style={s.result}>
                   <Text style={s.resultLine}>Distance comptée : <Text style={{ fontWeight: '900' }}>{Math.round(eff)} km</Text>{(rt || everyDay || (!justify && pf(distance) > 40)) ? `  =  ${Math.round(kmBase())} km${(!justify && pf(distance) > 40) ? ' (plafond 40)' : ''}${rt ? ' × 2 (A/R)' : ''}${everyDay ? ` × ${nbDays} j` : ''}` : ''}</Text>
-                  <Text style={s.resultFrais}>Frais estimés : {money(Math.round(frais))}{cv ? `  ·  ${trancheLabel(tranche)}` : ''}</Text>
+                  <Text style={s.resultFrais}>Frais estimés : {money(Math.round(frais))}</Text>
                 </View>}
           </View>
         )}
