@@ -43,6 +43,12 @@ export default function TabLayout() {
         swipeEnabled: true,
         lazy: true,
         tabBarScrollEnabled: true,
+        // La barre d'onglets défile (8 onglets x 86 pt = 688 pt) : sur un téléphone elle est plus large
+        // que l'écran et défile, sur un iPad elle tient largement et restait collée à GAUCHE, laissant
+        // un grand vide à droite (retour Yohan). flexGrow permet au contenu d'occuper toute la largeur
+        // disponible, justifyContent le centre alors quand il y a de la place — sans rien changer sur
+        // téléphone, où le contenu déborde de toute façon.
+        tabBarContentContainerStyle: { flexGrow: 1, justifyContent: 'center' },
         tabBarActiveTintColor: C.petrol,
         tabBarInactiveTintColor: C.muted,
         tabBarShowIcon: true,
