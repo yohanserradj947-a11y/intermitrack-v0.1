@@ -197,8 +197,13 @@ export default function Missions(){
   // Suggestions de production : productions déjà saisies (dans `missions`),
   // sans doublons, insensible à la casse, filtrées sur le texte tapé.
   const prodQuery=fProduction.trim().toUpperCase();
-  const knownProductions=Array.from(new Set(missions.map((m:any)=>(m.production||'').toUpperCase().trim()).filter(Boolean)));
-  const prodSuggestions=prodQuery?knownProductions.filter(p=>p.includes(prodQuery)&&p!==prodQuery).slice(0,5):[];
+  // Employeurs deja saisis, classes du PLUS FREQUENT au moins frequent (idem onglet calendrier).
+  const prodCounts=missions.reduce((acc:Record<string,number>,m:any)=>{const p=(m.production||'').toUpperCase().trim();if(p)acc[p]=(acc[p]||0)+1;return acc;},{});
+  const knownProductions=Object.keys(prodCounts).sort((a,b)=>prodCounts[b]-prodCounts[a]);
+  // Champ vide (au focus) -> employeurs recurrents proposes directement, sans rien taper. Retour Damien.
+  const prodSuggestions=prodQuery
+    ? knownProductions.filter(p=>p.includes(prodQuery)&&p!==prodQuery).slice(0,5)
+    : knownProductions.slice(0,8);
 
   // Suggestions d'émission : d'abord celles déjà utilisées pour la production choisie,
   // puis les autres. Insensible à la casse, casse d'origine conservée.
@@ -266,8 +271,10 @@ export default function Missions(){
 
                 <Text style={s.label}>Nom de la production</Text>
                 <TextInput style={s.input} value={fProduction} onChangeText={(t:string)=>{setFProduction(t);setShowSuggest(true);}} onFocus={()=>setShowSuggest(true)} placeholderTextColor={C.muted} autoCapitalize="characters"/>
+                {/* Au clic sur le champ (vide) : liste directe des productions, du plus fréquent au moins fréquent. */}
                 {showSuggest&&prodSuggestions.length>0&&(
                   <View style={s.suggestBox}>
+                    <Text style={s.suggestHead}>{prodQuery?'Productions correspondantes':'Tes productions · touche pour choisir, ou tape un nouveau nom'}</Text>
                     {prodSuggestions.map(p=>(
                       <TouchableOpacity key={p} style={s.suggestItem} onPress={()=>{setFProduction(p);setShowSuggest(false);}}>
                         <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="repeat" size={13} color={C.petrol} /><Text style={s.suggestTxt}>{p}</Text></View>
@@ -570,6 +577,8 @@ const makeS=(C:any)=>StyleSheet.create({
   mmOptTxt:{fontSize:13,fontWeight:'800',color:C.petrol},
   inputTxt:{fontSize:15,color:C.text},
   suggestBox:{backgroundColor:C.card,borderWidth:1,borderColor:C.line,borderRadius:14,marginTop:6,overflow:'hidden'},
+  // En-tête de la liste déroulante : dit qu'on peut choisir OU taper un nouveau nom (idem onglet calendrier).
+  suggestHead:{fontSize:11,fontWeight:'800',color:C.muted,paddingHorizontal:14,paddingTop:10,paddingBottom:6},
   suggestItem:{paddingVertical:12,paddingHorizontal:14,borderBottomWidth:1,borderBottomColor:C.soft},
   suggestTxt:{fontSize:15,fontWeight:'700',color:C.petrol},
   row:{flexDirection:'row',gap:10},

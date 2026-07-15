@@ -376,8 +376,14 @@ export default function Calendar(){
   // Suggestions de production : on prend les productions déjà saisies (dans `missions`),
   // sans doublons, insensible à la casse, et on garde celles qui contiennent le texte tapé.
   const prodQuery=fProduction.trim().toUpperCase();
-  const knownProductions=Array.from(new Set(missions.map((m:any)=>(m.production||'').toUpperCase().trim()).filter(Boolean)));
-  const prodSuggestions=prodQuery?knownProductions.filter(p=>p.includes(prodQuery)&&p!==prodQuery).slice(0,5):[];
+  // Employeurs deja saisis, classes du PLUS FREQUENT au moins frequent : les recurrents remontent d'eux-memes.
+  const prodCounts=missions.reduce((acc:Record<string,number>,m:any)=>{const p=(m.production||'').toUpperCase().trim();if(p)acc[p]=(acc[p]||0)+1;return acc;},{});
+  const knownProductions=Object.keys(prodCounts).sort((a,b)=>prodCounts[b]-prodCounts[a]);
+  // Champ vide (au focus) -> on propose directement les employeurs recurrents, sans rien avoir a taper.
+  // Champ rempli -> on filtre. Retour Damien : avant, il fallait taper une lettre pour voir quoi que ce soit.
+  const prodSuggestions=prodQuery
+    ? knownProductions.filter(p=>p.includes(prodQuery)&&p!==prodQuery).slice(0,5)
+    : knownProductions.slice(0,8);
 
   // Suggestions d'émission : on propose d'abord les émissions déjà utilisées pour la
   // production choisie, puis les autres. Insensible à la casse, casse d'origine conservée.
@@ -657,8 +663,12 @@ export default function Calendar(){
 
               <Text style={s.label}>{fRegime==='intermittence'?'Nom de la production':'Nom de l\'employeur'}</Text>
               <TxtInput style={s.input} value={fProduction} onChangeText={(t:string)=>{setFProduction(t);setShowSuggest(true);}} onFocus={()=>setShowSuggest(true)} placeholder="Ex : ENDEMOL" placeholderTextColor={C.muted} autoCapitalize="characters"/>
+              {/* Au clic sur le champ (vide), on deroule directement les productions deja enregistrees, du plus
+                  frequent au moins frequent : un seul appui suffit. Des qu'on tape, la liste filtre — et si le nom
+                  n'existe pas encore, il suffit de le taper, il sera cree a l'enregistrement. Retour Damien. */}
               {showSuggest&&prodSuggestions.length>0&&(
                 <View style={s.suggestBox}>
+                  <Text style={s.suggestHead}>{prodQuery?'Productions correspondantes':'Tes productions · touche pour choisir, ou tape un nouveau nom'}</Text>
                   {prodSuggestions.map(p=>(
                     <TouchableOpacity key={p} style={s.suggestItem} onPress={()=>{setFProduction(p);setShowSuggest(false);}}>
                       <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="repeat" size={13} color={C.petrol} /><Text style={s.suggestTxt}>{p}</Text></View>
@@ -1045,6 +1055,8 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   input:{borderWidth:1,borderColor:C.line,borderRadius:14,paddingVertical:13,paddingHorizontal:14,fontSize:15,color:C.text,backgroundColor:C.card},
   inputTxt:{fontSize:15,color:C.text},
   suggestBox:{backgroundColor:C.card,borderWidth:1,borderColor:C.line,borderRadius:14,marginTop:6,overflow:'hidden'},
+  // En-tête de la liste déroulante : dit qu'on peut choisir OU taper un nouveau nom (sinon on ne devine pas).
+  suggestHead:{fontSize:11,fontWeight:'800',color:C.muted,paddingHorizontal:14,paddingTop:10,paddingBottom:6},
   suggestItem:{paddingVertical:12,paddingHorizontal:14,borderBottomWidth:1,borderBottomColor:C.soft},
   suggestTxt:{fontSize:15,fontWeight:'700',color:C.petrol},
   row:{flexDirection:'row',gap:10},
