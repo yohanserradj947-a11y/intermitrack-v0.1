@@ -1059,7 +1059,12 @@ async function loadMissions() {
     kmDistance: Number(x.km_distance || 0), kmRate: Number(x.km_rate || 0), kmAmount: Number(x.km_amount || 0),
     vacations: Number(x.vacations || Math.round((x.hours || 0) / 8)),
     emission: x.emission || "", lieu: x.lieu || "",
-    regime: x.regime || "intermittence"
+    regime: x.regime || "intermittence",
+    // Adresses des frais km : enregistrées depuis le 15/07/2026 seulement. Avant, seuls
+    // distance/taux/montant l'étaient — d'où « les adresses n'apparaissent pas à l'édition ».
+    kmFrom: x.km_from || "", kmTo: x.km_to || "",
+    kmFromLat: x.km_from_lat, kmFromLng: x.km_from_lng,
+    kmToLat: x.km_to_lat, kmToLng: x.km_to_lng
   }));
   render();
 }
@@ -1312,7 +1317,13 @@ async function addMission(event) {
     mission_type: $("type").value, mission_date: $("date").value, end_date: $("endDate").value,
     hours: _hours, gross_amount: Number($("gross").value),
     vacations: _vac, regime: _missionRegime,
-    km_distance: kmEffectiveDistance(), km_rate: kmRateUsed(), km_amount: calculateKmAmount()
+    km_distance: kmEffectiveDistance(), km_rate: kmRateUsed(), km_amount: calculateKmAmount(),
+    // Adresses enfin enregistrées (+ coords) : elles alimentent le pop-up des prochaines missions
+    // et réapparaissent à l'édition. Avant, seuls distance/taux/montant étaient sauvegardés.
+    km_from: ($("kmFrom").value || "").trim() || null,
+    km_to: ($("kmTo").value || "").trim() || null,
+    km_from_lat: Number($("kmFrom").dataset.lat) || null, km_from_lng: Number($("kmFrom").dataset.lon) || null,
+    km_to_lat: Number($("kmTo").dataset.lat) || null, km_to_lng: Number($("kmTo").dataset.lon) || null
   };
   setProductionColorHex(payload.production, selectedProdColor === 'default' ? null : selectedProdColor);
   let result;
@@ -1510,8 +1521,14 @@ function editMission(id) {
   }
   if ($("kmDistance")) $("kmDistance").value = mission.kmDistance || "";
   if ($("kmRate")) $("kmRate").value = mission.kmRate || "";
+  // Les adresses sont enfin relues : elles n'étaient enregistrées nulle part avant le 15/07/2026,
+  // d'où « les adresses n'apparaissent pas quand je modifie une mission ».
+  _setAddrValue('from', mission.kmFrom || "", mission.kmFromLng, mission.kmFromLat);
+  _setAddrValue('to', mission.kmTo || "", mission.kmToLng, mission.kmToLat);
   // La distance stockée est déjà la distance finale comptée : on évite de la re-plafonner / re-multiplier
-  if ($("kmCv")) $("kmCv").value = "";
+  // Le CV n'est pas stocké par mission (seul le taux l'est, et il vaut 0 pour une mission saisie au
+  // barème) : rouvrir une telle mission affichait une estimation à 0. On reprend le véhicule du profil.
+  _applyKmProfil();
   if ($("kmRoundTrip")) $("kmRoundTrip").checked = false;
   if ($("kmEveryDay")) $("kmEveryDay").checked = false;
   if ($("kmJustify")) $("kmJustify").checked = Number(mission.kmDistance || 0) > 0;
@@ -3313,6 +3330,8 @@ function resetMissionFormForDate(dateStr, regime) {
   if (typeof switchAddTab === 'function') switchAddTab('mission');
   if ($("missionForm")) $("missionForm").reset();
   if ($("production")) _setProdValue("");
+  _setAddrValue('from', ''); _setAddrValue('to', '');
+  _applyKmProfil(); // véhicule pré-rempli depuis « Mes informations » (retour JB)
   if ($("type")) _setTypeValue((getCustomPostes()[0]) || "Montage");
   if ($("date")) $("date").value = dateStr;
   if ($("endDate")) $("endDate").value = dateStr;
@@ -3917,8 +3936,8 @@ function setupEvents() {
   if ($("saveTaxSettingsBtn")) $("saveTaxSettingsBtn").addEventListener("click", () => { render(); toast("Calcul mis à jour ✓", "success"); });
 
   if ($("kmCalcBtn")) $("kmCalcBtn").addEventListener("click", calcKmFromAddresses);
-  attachAddressAutocomplete($("kmFrom"));
-  attachAddressAutocomplete($("kmTo"));
+  // kmFrom / kmTo sont désormais masqués : la saisie passe par le pop-up, qui branche lui-même
+  // l'autocomplétion sur son champ de recherche. Rien à attacher ici.
   attachAddressAutocomplete($("aeProfAdresse"));
   attachAddressAutocomplete($("aeClientAddress"));
   attachAddressAutocomplete($("societeAdresse"));
@@ -4095,7 +4114,7 @@ var POSTES_MUSIQUE = ['Concert','Répétition','Session studio','Atelier / Péda
 async function loadProfil(){
   if(!currentUser) return;
   try{
-    const { data } = await sb.from('profiles').select('annexe,postes,droits_ouverts,taux_journalier,taux_impot,are_date,production_colors,notes,ae_custom_presta,custom_postes').eq('id', currentUser.id).maybeSingle();
+    const { data } = await sb.from('profiles').select('annexe,postes,droits_ouverts,taux_journalier,taux_impot,are_date,production_colors,notes,ae_custom_presta,custom_postes,km_cv,km_tranche').eq('id', currentUser.id).maybeSingle();
     _profil = data || null;
     // Date ARE : la base de données fait foi (synchro multi-appareils).
     // Sinon, on migre la valeur locale (ancienne) vers la base.
@@ -4191,6 +4210,20 @@ function _profilEnsureDom(){
     + '<div class="pf-label">Tes postes <span style="font-weight:400;color:#9AA5B1;">— le 1er = défaut sur tes missions</span></div>'
     + '<div class="pf-seg" id="pfPostes"></div>'
     + '<div style="display:flex;gap:8px;margin-top:8px;"><input type="text" id="pfNewPoste" class="pf-input" placeholder="Ex : Clown, Cascadeur…" style="flex:1;"/><button type="button" class="pf-ok" id="pfAddPoste" style="flex:0 0 auto;padding:11px 16px;">Ajouter</button></div>'
+    // Véhicule mémorisé → pré-remplit les frais km de chaque mission (retour JB : « je ne change pas
+    // ma voiture, et mon nombre de kilomètres annuel ne change pas d'une mission à l'autre »).
+    // Clés identiques au barème de l'appli ET du site : ne pas diverger.
+    + '<div class="pf-label">Ton véhicule <span style="font-weight:400;opacity:.65;">— pré-remplit tes frais kilométriques</span></div>'
+    + '<div class="pf-hint">Puissance fiscale (carte grise, case P.6). Tu n\'auras plus qu\'à saisir tes kilomètres.</div>'
+    + '<div class="pf-seg" id="pfKmCv">'
+      + [['3','3 CV'],['4','4 CV'],['5','5 CV'],['6','6 CV'],['7','7+ CV'],['moto','Moto']].map(function(o){
+          return '<button type="button" class="pf-opt" data-kmcv="'+o[0]+'">'+o[1]+'</button>'; }).join('')
+    + '</div>'
+    + '<div class="pf-label">Kilomètres parcourus par an</div>'
+    + '<div class="pf-seg" id="pfKmTranche">'
+      + [['1','≤ 5 000'],['2','5 001–20 000'],['3','> 20 000']].map(function(o){
+          return '<button type="button" class="pf-opt" data-kmtranche="'+o[0]+'">'+o[1]+'</button>'; }).join('')
+    + '</div>'
     + '<div class="pf-label">As-tu déjà ouvert tes droits ?</div>'
     + '<div class="pf-seg" id="pfDroits"><button type="button" class="pf-opt" data-droits="oui">Oui</button><button type="button" class="pf-opt" data-droits="non">Pas encore</button></div>'
     + '<div id="pfAjWrap" style="display:none;"><div class="pf-label">Ton taux journalier (AJ)</div><input type="number" id="pfAj" class="pf-input" placeholder="Ex : 67.60" min="0" step="0.01"/><div class="pf-hint">L\'allocation journalière nette de ta notification France Travail. Sert au calcul du revenu mensuel.</div><div class="pf-label">Ton taux d\'imposition (prélèvement à la source)</div><input type="number" id="pfImpot" class="pf-input" placeholder="Ex : 8.6" min="0" max="100" step="0.1"/><div class="pf-hint">En %, celui de ta notification / tes paies. Pour estimer ton allocation nette d\'impôt. Optionnel.</div></div>'
@@ -4210,6 +4243,9 @@ function _profilEnsureDom(){
   document.body.appendChild(intro);
 
   ov.querySelector('#pfAnnexe').addEventListener('click', function(e){ var b=e.target.closest('[data-annexe]'); if(!b)return; ov.querySelectorAll('#pfAnnexe .pf-opt').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); _profilRenderPostes(b.dataset.annexe); });
+  // Véhicule mémorisé : le CV se dé-sélectionne au 2e clic (on peut ne pas vouloir de barème), la tranche non.
+  ov.querySelector('#pfKmCv').addEventListener('click', function(e){ var b=e.target.closest('[data-kmcv]'); if(!b)return; var was=b.classList.contains('on'); ov.querySelectorAll('#pfKmCv .pf-opt').forEach(function(x){x.classList.remove('on');}); if(!was) b.classList.add('on'); });
+  ov.querySelector('#pfKmTranche').addEventListener('click', function(e){ var b=e.target.closest('[data-kmtranche]'); if(!b)return; ov.querySelectorAll('#pfKmTranche .pf-opt').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); });
   ov.querySelector('#pfDroits').addEventListener('click', function(e){ var b=e.target.closest('[data-droits]'); if(!b)return; ov.querySelectorAll('#pfDroits .pf-opt').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); document.getElementById('pfAjWrap').style.display = b.dataset.droits==='oui'?'block':'none'; });
   document.getElementById('pfCancel').addEventListener('click', function(){ ov.classList.remove('open'); });
   document.getElementById('pfSave').addEventListener('click', _profilSave);
@@ -4242,6 +4278,11 @@ function openProfilModal(){
   else if(dr===false){ ov.querySelector('[data-droits="non"]').classList.add('on'); document.getElementById('pfAjWrap').style.display='none'; }
   document.getElementById('pfAj').value = (_profil && _profil.taux_journalier!=null) ? _profil.taux_journalier : '';
   document.getElementById('pfImpot').value = (_profil && _profil.taux_impot!=null) ? _profil.taux_impot : '';
+  // Véhicule mémorisé (retour JB)
+  var _kcv = (_profil && _profil.km_cv) || '';
+  var _ktr = (_profil && _profil.km_tranche) || '1';
+  ov.querySelectorAll('#pfKmCv .pf-opt').forEach(function(x){ x.classList.toggle('on', x.dataset.kmcv===_kcv); });
+  ov.querySelectorAll('#pfKmTranche .pf-opt').forEach(function(x){ x.classList.toggle('on', x.dataset.kmtranche===_ktr); });
   ov.classList.add('open');
 }
 
@@ -4251,12 +4292,16 @@ async function _profilSave(){
   var aBtn = ov.querySelector('#pfAnnexe .pf-opt.on');
   var dBtn = ov.querySelector('#pfDroits .pf-opt.on');
   var droits = dBtn ? (dBtn.dataset.droits==='oui') : null;
+  var cvBtn = ov.querySelector('#pfKmCv .pf-opt.on');
+  var trBtn = ov.querySelector('#pfKmTranche .pf-opt.on');
   var p = {
     annexe: aBtn ? aBtn.dataset.annexe : null,
     postes: getCustomPostes(),
     droits_ouverts: droits,
     taux_journalier: droits===true ? (Number(document.getElementById('pfAj').value)||null) : null,
-    taux_impot: droits===true ? (Number(document.getElementById('pfImpot').value)||null) : null
+    taux_impot: droits===true ? (Number(document.getElementById('pfImpot').value)||null) : null,
+    km_cv: cvBtn ? cvBtn.dataset.kmcv : null,
+    km_tranche: trBtn ? trBtn.dataset.kmtranche : null
   };
   var res = await sb.from('profiles').upsert(Object.assign({ id: currentUser.id }, p), { onConflict:'id' });
   if(res.error){ if(typeof toast==='function') toast('Erreur : '+res.error.message); return; }
@@ -4286,6 +4331,131 @@ function initProfilFeature(){
   ['date','endDate'].forEach(function(idd){ var el=document.getElementById(idd); if(el && !el.dataset.mdptrig){ el.dataset.mdptrig='1'; el.addEventListener('change', _maybeOpenMdp); } });
 }
 // ===== Sélecteur de type de mission (pop-up à boutons, comme les jours) =====
+// ===== Pop-up de choix d'adresse (frais kilométriques) =====
+// Les adresses déjà saisies sont proposées, de la plus utilisée à la moins utilisée : le domicile
+// remonte donc tout seul en tête pour le départ, sans rien demander à l'utilisateur.
+// Retours JB et second utilisateur : « la tâche est surtout redondante pour le lieu de départ,
+// qui est généralement le domicile de l'intermittent ».
+// Identique à AddressPickerModal (appli) : ne pas diverger.
+function _knownAddrs(which){
+  var counts = {}, coords = {};
+  var add = function(label, lng, lat){
+    label = String(label || '').trim();
+    if(!label) return;
+    counts[label] = (counts[label] || 0) + 1;
+    if(coords[label] == null && lng != null && lat != null) coords[label] = [Number(lng), Number(lat)];
+  };
+  var list = (typeof missions !== 'undefined' ? missions : []);
+  if(which === 'from'){
+    list.forEach(function(m){ add(m.kmFrom, m.kmFromLng, m.kmFromLat); });
+  } else {
+    list.forEach(function(m){ add(m.kmTo, m.kmToLng, m.kmToLat); });
+    // L'arrivée propose aussi les LIEUX de mission : ce champ était déjà enregistré depuis toujours,
+    // la liste est donc utile dès la 1re ouverture (contrairement au départ, vide au démarrage).
+    var seen = {}; Object.keys(counts).forEach(function(k){ seen[k.toLowerCase()] = 1; });
+    list.forEach(function(m){ var l = String(m.lieu || '').trim(); if(l && !seen[l.toLowerCase()]) add(l, null, null); });
+  }
+  return Object.keys(counts).sort(function(a,b){ return counts[b] - counts[a]; })
+    .map(function(label){ return { label: label, coords: coords[label] || null }; });
+}
+// Véhicule mémorisé dans « Mes informations » → pré-remplit les frais km (retour JB).
+// Reste modifiable mission par mission : on ne fait que remplir la valeur par défaut.
+function _applyKmProfil(){
+  var cv = (typeof _profil !== 'undefined' && _profil && _profil.km_cv) || '';
+  var tr = (typeof _profil !== 'undefined' && _profil && _profil.km_tranche) || '1';
+  if ($("kmCv")) $("kmCv").value = cv;
+  if ($("kmTranche")) $("kmTranche").value = tr;
+  if (typeof updateKmPreview === 'function') updateKmPreview();
+}
+function _syncAddrBtn(which){
+  var i = document.getElementById(which === 'from' ? 'kmFrom' : 'kmTo');
+  var l = document.getElementById(which === 'from' ? 'kmFromBtnLabel' : 'kmToBtnLabel');
+  if(i && l){ l.textContent = i.value || 'Choisir ou saisir…'; l.style.opacity = i.value ? '1' : '.45'; }
+}
+function _setAddrValue(which, label, lng, lat){
+  var i = document.getElementById(which === 'from' ? 'kmFrom' : 'kmTo'); if(!i) return;
+  i.value = label || '';
+  i.dataset.lon = (lng != null ? lng : '');
+  i.dataset.lat = (lat != null ? lat : '');
+  _syncAddrBtn(which);
+  if(typeof updateKmPreview === 'function') updateKmPreview();
+}
+var _addrPickerWhich = 'from';
+function _renderAddrPicker(ov){
+  var si = document.getElementById('addrSearchInput');
+  var q = (si && si.value) || '';
+  var query = q.trim().toLowerCase();
+  var all = _knownAddrs(_addrPickerWhich);
+  var list = query ? all.filter(function(a){ return a.label.toLowerCase().indexOf(query) >= 0; }) : all;
+  var cur = (document.getElementById(_addrPickerWhich === 'from' ? 'kmFrom' : 'kmTo') || {}).value || '';
+  var html = '<div class="pf-box"><div class="pf-title">' + (_addrPickerWhich === 'from' ? 'Lieu de départ' : "Lieu d'arrivée") + '</div>';
+  // Le champ de recherche sert AUSSI à saisir une nouvelle adresse : attachAddressAutocomplete()
+  // y branche les suggestions de l'API Adresse et dépose les coordonnées dans dataset.lon/lat.
+  html += '<div class="pf-addrow" style="position:relative;"><input type="text" id="addrSearchInput" placeholder="Chercher une nouvelle adresse…" autocomplete="off" value="' + escapeHtml(q) + '"></div>';
+  if(q.trim()) html += '<button type="button" class="pf-create" id="addrUseBtn">Utiliser « ' + escapeHtml(q.trim()) + ' »</button>';
+  if(list.length){
+    html += '<div class="pf-label">' + (query ? 'Correspondances' : 'Tes adresses · de la plus utilisée à la moins utilisée') + '</div>';
+    html += '<div class="pf-prodlist">' + list.map(function(a){
+      return '<button type="button" class="pf-opt' + (a.label === cur ? ' on' : '') + '" data-addr="' + escapeHtml(a.label) + '"'
+        + (a.coords ? ' data-lng="' + a.coords[0] + '" data-lat="' + a.coords[1] + '"' : '') + '>' + escapeHtml(a.label) + '</button>';
+    }).join('') + '</div>';
+  } else if(!q.trim()){
+    html += '<div class="pf-label" style="text-align:center;line-height:1.5;">Aucune adresse enregistrée pour l\'instant. Tape-la ci-dessus : elle sera proposée automatiquement les prochaines fois.</div>';
+  }
+  html += '<div class="pf-actions"><button type="button" class="pf-cancel" id="addrPickClose">Fermer</button></div></div>';
+  ov.innerHTML = html;
+  var ni = document.getElementById('addrSearchInput');
+  if(ni && typeof attachAddressAutocomplete === 'function') attachAddressAutocomplete(ni);
+}
+function _openAddrPicker(which){
+  _addrPickerWhich = which;
+  _profilEnsureDom(); // garantit les styles .pf-*
+  var ov = document.getElementById('addrPickerOverlay');
+  if(!ov){
+    ov = document.createElement('div');
+    ov.id = 'addrPickerOverlay';
+    // Ancré en haut : sur mobile le clavier ne redimensionne pas une page en position:fixed,
+    // une fenêtre centrée aurait son bas (la liste) recouvert dès qu'on tape.
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-start;justify-content:center;z-index:100003;padding:6vh 16px 16px;overflow-y:auto;';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function(e){
+      if(e.target===ov || e.target.id==='addrPickClose'){ ov.style.display='none'; return; }
+      if(e.target.id==='addrUseBtn'){
+        var si=document.getElementById('addrSearchInput');
+        var v=(si.value||'').trim();
+        if(v){ _setAddrValue(_addrPickerWhich, v, si.dataset.lon||null, si.dataset.lat||null); ov.style.display='none'; }
+        return;
+      }
+      var b = e.target.closest && e.target.closest('[data-addr]');
+      if(b){ _setAddrValue(_addrPickerWhich, b.dataset.addr, b.dataset.lng||null, b.dataset.lat||null); ov.style.display='none'; }
+    });
+    ov.addEventListener('input', function(e){
+      // On ne re-rend PAS à chaque frappe ici : attachAddressAutocomplete affiche sa propre liste
+      // de suggestions sous le champ, et un re-rendu la détruirait. On filtre juste la liste connue.
+      if(e.target.id==='addrSearchInput'){
+        var q=(e.target.value||'').trim().toLowerCase();
+        [].forEach.call(ov.querySelectorAll('[data-addr]'), function(el){
+          el.style.display = (!q || el.dataset.addr.toLowerCase().indexOf(q)>=0) ? '' : 'none';
+        });
+        var ub=document.getElementById('addrUseBtn');
+        if(ub) ub.style.display = q ? '' : 'none';
+      }
+    });
+  }
+  _renderAddrPicker(ov);
+  ov.style.display='flex';
+  var si=document.getElementById('addrSearchInput'); if(si) si.focus();
+}
+(function(){
+  function wireAddr(){
+    [['from','kmFromBtn'],['to','kmToBtn']].forEach(function(p){
+      var b=document.getElementById(p[1]);
+      if(b && !b.dataset.init){ b.dataset.init='1'; b.addEventListener('click', function(){ _openAddrPicker(p[0]); }); _syncAddrBtn(p[0]); }
+    });
+  }
+  if (document.readyState !== "loading") wireAddr(); else document.addEventListener("DOMContentLoaded", wireAddr);
+})();
+
 // ===== Pop-up de choix de la production / employeur =====
 // Un appui sur le bouton ouvre la liste de TOUTES les productions déjà saisies, de la plus utilisée à
 // la moins utilisée : on choisit directement, ou on en crée une nouvelle. Avant, il fallait taper une

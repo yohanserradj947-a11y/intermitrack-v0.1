@@ -15,7 +15,7 @@
       "url": "https://u.expo.dev/6affbaa2-75e9-46bd-88e8-1b73f675cc70"
     },
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "fr.intermitrack.app",
       "appleTeamId": "8RHAK6PW39",
       "entitlements": {

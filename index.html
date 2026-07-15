@@ -698,8 +698,16 @@ z-index: 500 !important;
               <summary style="cursor:pointer;font-weight:700;font-size:17px;color:var(--petrol);">🚗 Frais kilométriques <span style="font-weight:400;font-size:13px;color:#9AA5B1;">(optionnel)</span></summary>
               <p class="hint" style="margin-top:10px;">Indique tes lieux de départ et d'arrivée, la distance (aller simple) se calcule automatiquement.</p>
               <div class="document-grid">
-                <div><label for="kmFrom">Lieu de départ</label><input id="kmFrom" autocomplete="off" placeholder="Ex : 12 rue de Paris, Lyon" /></div>
-                <div><label for="kmTo">Lieu d'arrivée</label><input id="kmTo" autocomplete="off" placeholder="Ex : Studio, Saint-Denis" /></div>
+                <!-- Champs masqués = source de vérité (valeur + coordonnées dans dataset.lon/lat).
+                     La saisie passe par le pop-up, qui propose les adresses déjà utilisées. -->
+                <div><label for="kmFrom">Lieu de départ</label>
+                  <input id="kmFrom" autocomplete="off" style="display:none;" />
+                  <button type="button" id="kmFromBtn" style="display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--text);font-weight:400;font-size:14px;font-family:inherit;cursor:pointer;"><span id="kmFromBtnLabel">Choisir ou saisir…</span><span style="opacity:.45;">▾</span></button>
+                </div>
+                <div><label for="kmTo">Lieu d'arrivée</label>
+                  <input id="kmTo" autocomplete="off" style="display:none;" />
+                  <button type="button" id="kmToBtn" style="display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--text);font-weight:400;font-size:14px;font-family:inherit;cursor:pointer;"><span id="kmToBtnLabel">Choisir ou saisir…</span><span style="opacity:.45;">▾</span></button>
+                </div>
               </div>
               <label style="display:flex;align-items:center;gap:8px;margin:8px 0;font-weight:400;"><input type="checkbox" id="kmRoundTrip" style="width:auto;" /> Aller-retour (×2)</label>
               <label style="display:flex;align-items:center;gap:8px;margin:8px 0;font-weight:400;"><input type="checkbox" id="kmEveryDay" style="width:auto;" /> Trajet chaque jour travaillé (× nb jours)</label>
@@ -1392,7 +1400,7 @@ z-index: 500 !important;
   </main>
 
   <script src="document-parser.js?v=5"></script>
-  <script src="app.js?v=53"></script>
+  <script src="app.js?v=54"></script>
 
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>

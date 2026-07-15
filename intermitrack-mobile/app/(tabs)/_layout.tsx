@@ -18,12 +18,20 @@ const MaterialTopTabs = withLayoutContext(Navigator);
 
 const ICON = 22;
 
+// Largeur maximale du contenu. Toutes les mises en page sont pensées pour un téléphone : sur un
+// grand écran (iPad, ou l'appli iOS lancée sur un Mac Apple Silicon), les étirer donnerait des
+// cartes démesurées et des textes qui traversent l'écran. On borne donc la largeur et on centre :
+// aucun changement sur téléphone (toujours plus étroit que cette limite), et un rendu présentable
+// au-delà. Le fond du thème continue de remplir tout l'écran derrière.
+const MAX_W = 620;
+
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const C = useTheme();
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
     <ThemeBackdrop />
+    <View style={{ flex: 1, width: '100%', maxWidth: MAX_W, alignSelf: 'center' }}>
     <MaterialTopTabs
       tabBarPosition="bottom"
       tabBar={(props) => (
@@ -91,10 +99,13 @@ export default function TabLayout() {
         options={{ title: 'Contacts', tabBarIcon: ({ color }: { color: string }) => <Ionicons name="call-outline" size={ICON} color={color} /> }}
       />
     </MaterialTopTabs>
+    {/* Dans le conteneur borné : la pastille du compte (position absolue) se cale ainsi sur le bord
+        du contenu, et non sur celui de l'écran — sinon elle flotterait seule dans le vide sur iPad. */}
     <SwipeHint />
     <AccountMenu />
     <WhatsNewModal />
     <OnboardingTour />
+    </View>
     </View>
   );
 }
