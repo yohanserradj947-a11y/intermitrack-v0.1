@@ -17,7 +17,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=19" />
+  <link rel="stylesheet" href="style.css?v=20" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js" integrity="sha384-wgi7s9Y2xefdDru3II6Xb11y/YNoKVbuydTikWejwId9z2xRd8SveCTrJjj/QAnH" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
   <style>
@@ -668,6 +668,9 @@ z-index: 500 !important;
             <datalist id="lieuxList"></datalist>
             <label for="type">Type de mission</label>
             <select id="type" style="display:none;"><optgroup label="Technique"><option>Montage</option><option>Tournage</option><option>Démontage</option><option>Régie</option><option>Son</option><option>Lumière</option><option>Image / Vidéo</option><option>Machiniste</option><option>Électricien</option><option>Poursuiteur</option><option>Plateau</option><option>Décor</option><option>HMC</option></optgroup><optgroup label="Artiste"><option>Comédien</option><option>Chanteur</option><option>Musicien</option><option>Danseur</option><option>Choriste</option></optgroup><option>Autres</option></select><button type="button" id="typeBtn" style="display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--text);font-weight:400;font-size:14px;font-family:inherit;cursor:pointer;"><span id="typeBtnLabel">Montage</span><span style="opacity:.45;">▾</span></button>
+            <!-- Plusieurs types sur une même mission (« Rec + MIX ») : pastilles supprimables + lien d'ajout. Remplis par _syncTypeBtn(). -->
+            <div id="typeChipsRow" style="display:none;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+            <button type="button" id="typeAddLink" style="display:none;background:none;border:none;padding:6px 0 0;color:var(--petrol);font-weight:700;font-size:12px;text-decoration:underline;cursor:pointer;font-family:inherit;">+ Ajouter un type de mission</button>
             <label for="date">Date début</label><input id="date" type="date" required />
             <label for="endDate">Date fin</label><input id="endDate" type="date" required />
             <div id="missionModeRow" style="display:none;gap:8px;margin:2px 0 12px;">
@@ -1386,7 +1389,7 @@ z-index: 500 !important;
   </main>
 
   <script src="document-parser.js?v=5"></script>
-  <script src="app.js?v=50"></script>
+  <script src="app.js?v=51"></script>
 
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>

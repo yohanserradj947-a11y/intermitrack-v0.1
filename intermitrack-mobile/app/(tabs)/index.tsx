@@ -14,6 +14,7 @@ import KmSection, { KmHandle } from '../../components/KmSection';
 import TxtInput from '../../components/TxtInput';
 import { GradientButton } from '../../components/GradientButton';
 import { openMesInfos, onProfilChanged } from '../../components/AccountMenu';
+import { typeParts, addType, removeType } from '../../lib/missionType';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemeControls } from '../../lib/theme';
 import { useNotes } from '../../lib/notes';
@@ -68,6 +69,8 @@ export default function HomeScreen(){
   const [fEmission,setFEmission]=useState('');
   const [fType,setFType]=useState('Montage');
   const [showTypePicker,setShowTypePicker]=useState(false);
+  // true = le choix s'AJOUTE au type courant (« Rec + MIX ») ; false = il le remplace (cas courant).
+  const [typeAddMode,setTypeAddMode]=useState(false);
   const [fVacations,setFVacations]=useState('');
   const [fStart,setFStart]=useState(new Date());
   const [fEnd,setFEnd]=useState(new Date());
@@ -454,19 +457,37 @@ export default function HomeScreen(){
               <TxtInput style={s.input} value={fEmission} onChangeText={setFEmission} placeholder="Ex : Koh-Lanta" placeholderTextColor={C.muted}/>
 
               <Text style={s.label}>Type de mission</Text>
-              <TouchableOpacity style={s.typeBtn} onPress={()=>setShowTypePicker(v=>!v)}>
+              <TouchableOpacity style={s.typeBtn} onPress={()=>{setTypeAddMode(false);setShowTypePicker(v=>!v);}}>
                 <Text style={s.typeBtnTxt}>{fType}</Text>
                 <Text style={s.typeBtnChevron}>{showTypePicker?'▴':'▾'}</Text>
               </TouchableOpacity>
+              {/* Plusieurs types le meme jour pour le meme employeur (ex. « Rec + MIX »). Appui unique conserve
+                  pour le cas courant, lien discret pour en cumuler un 2e. Idem calendrier / missions / site. */}
+              {typeParts(fType).length>1 && (
+                <View style={s.typeWrap}>
+                  {typeParts(fType).map(t=>(
+                    <View key={t} style={[s.typeChip,s.typeChipActive,{flexDirection:'row',alignItems:'center',gap:6}]}>
+                      <Text style={s.typeChipTxtActive}>{t}</Text>
+                      <TouchableOpacity onPress={()=>setFType(removeType(fType,t))} hitSlop={8}><Text style={{color:'#fff',fontWeight:'900',fontSize:13}}>×</Text></TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+              {!showTypePicker && !!fType && (
+                <TouchableOpacity onPress={()=>{setTypeAddMode(true);setShowTypePicker(true);}}>
+                  <Text style={s.typeAddLink}>+ Ajouter un type de mission</Text>
+                </TouchableOpacity>
+              )}
               {showTypePicker && (
                 <View style={s.typePickerInline}>
+                  {typeAddMode && <Text style={s.typeGroupLbl}>Ajouter un 2e type à « {fType} »</Text>}
                   {([['Technique',POSTES_TECH],['Artiste',POSTES_ARTISTE],['Musique / scène',POSTES_MUSIQUE],['Autre',POSTES_AUTRE]] as [string,string[]][]).map(([grp,list])=>(
                     <View key={grp}>
                       <Text style={s.typeGroupLbl}>{grp}</Text>
                       <View style={s.typeWrap}>
                         {list.map(p=>(
-                          <TouchableOpacity key={p} style={[s.typeChip,fType===p&&s.typeChipActive]} onPress={()=>{setFType(p);setShowTypePicker(false);}}>
-                            <Text style={fType===p?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text>
+                          <TouchableOpacity key={p} style={[s.typeChip,typeParts(fType).includes(p)&&s.typeChipActive]} onPress={()=>{setFType(typeAddMode?addType(fType,p):p);setShowTypePicker(false);setTypeAddMode(false);}}>
+                            <Text style={typeParts(fType).includes(p)?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text>
                           </TouchableOpacity>
                         ))}
                       </View>
@@ -643,6 +664,8 @@ const makeS=(C:any)=>StyleSheet.create({
   typeChipTxt:{fontSize:13,fontWeight:'700',color:C.petrol},
   typeChipTxtActive:{fontSize:13,fontWeight:'700',color:'white'},
   typeBtn:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingVertical:12,paddingHorizontal:14,borderRadius:12,backgroundColor:C.card,borderWidth:1,borderColor:C.line},
+  // Lien discret « + Ajouter un type de mission » : ne doit pas concurrencer le bouton principal.
+  typeAddLink:{fontSize:12,fontWeight:'700',color:C.petrol,marginTop:8,textDecorationLine:'underline'},
   typeBtnTxt:{fontSize:14,fontWeight:'700',color:C.text},
   typeBtnChevron:{fontSize:13,color:C.muted},
   typeGroupLbl:{fontSize:11.5,fontWeight:'800',color:C.muted,marginTop:14,marginBottom:8,textTransform:'uppercase',letterSpacing:0.5},

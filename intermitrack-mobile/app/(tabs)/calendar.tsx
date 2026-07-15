@@ -15,6 +15,7 @@ import { GradientButton } from '../../components/GradientButton';
 import { Ionicons } from '@expo/vector-icons';
 import { useProdColors, PROD_PRESETS, prodGradient, textOn } from '../../lib/prodColors';
 import { useAnnexe, modeForNew, modeForEdit, computeHoursVac, extraHoursOf, CACHET_H } from '../../lib/annexe';
+import { typeParts, addType, removeType } from '../../lib/missionType';
 import ColorPickerModal from '../../components/ColorPickerModal';
 import ProdColorManager from '../../components/ProdColorManager';
 import NoteFormModal from '../../components/NoteFormModal';
@@ -99,6 +100,8 @@ export default function Calendar(){
   const [fEmission,setFEmission]=useState('');
   const [fType,setFType]=useState('Montage');
   const [showTypePicker,setShowTypePicker]=useState(false);
+  // true = le choix s'AJOUTE au type courant (« Rec + MIX ») ; false = il le remplace (cas courant).
+  const [typeAddMode,setTypeAddMode]=useState(false);
   const [fVacations,setFVacations]=useState('');
   const [dayMenu,setDayMenu]=useState<{date:Date;missions:any[]}|null>(null);
   const [fStart,setFStart]=useState(new Date());
@@ -152,6 +155,7 @@ export default function Calendar(){
     setEditId(null);
     setFRegime(regime);
     setFProduction(''); setFEmission(''); setFLieu(''); setShowLieuSuggest(false); setNewPoste(''); setFType('Montage'); setFStart(day); setFEnd(day);
+    setShowTypePicker(false); setTypeAddMode(false);
     setFMode(modeForNew(annexe)); setFCachets('');
     setFHours(''); setFGross(''); setFVacations(''); setMdpDays([]);
     setKmOpen(false); setKmFrom(''); setKmTo(''); setKmFromCoords(null); setKmToCoords(null); setKmRT(false); setKmEveryDay(false); setKmJustify(false); setKmCv(''); setKmTranche('1'); setKmDistance(''); setKmRate('');
@@ -162,6 +166,7 @@ export default function Calendar(){
     setEditId(m.id);
     setFRegime(m.regime||'intermittence');
     setFProduction(m.production||''); setFEmission(m.emission||''); setFLieu(m.lieu||''); setShowLieuSuggest(false); setNewPoste(''); setFType(m.mission_type||'Montage');
+    setShowTypePicker(false); setTypeAddMode(false);
     setFStart(new Date((m.mission_date)+'T00:00:00'));
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
     // Relecture selon le mode : en cachet, le champ heures ne contient que les heures EN PLUS des cachets.
@@ -720,16 +725,35 @@ export default function Calendar(){
               )}
 
               <Text style={s.label}>Type de mission</Text>
-              <TouchableOpacity style={s.typeBtn} onPress={()=>setShowTypePicker(v=>!v)}>
+              <TouchableOpacity style={s.typeBtn} onPress={()=>{setTypeAddMode(false);setShowTypePicker(v=>!v);}}>
                 <Text style={s.typeBtnTxt}>{fType}</Text>
                 <Text style={s.typeBtnChevron}>{showTypePicker?'▴':'▾'}</Text>
               </TouchableOpacity>
+              {/* Plusieurs types le meme jour pour le meme employeur (ex. « Rec + MIX » en doublage) : on garde
+                  l'appui UNIQUE pour le cas courant, et on ajoute un lien discret pour en cumuler un 2e.
+                  Retour Damien. */}
+              {typeParts(fType).length>1 && (
+                <View style={s.typeWrap}>
+                  {typeParts(fType).map(t=>(
+                    <View key={t} style={[s.typeChip,s.typeChipActive,{flexDirection:'row',alignItems:'center',gap:6}]}>
+                      <Text style={s.typeChipTxtActive}>{t}</Text>
+                      <TouchableOpacity onPress={()=>setFType(removeType(fType,t))} hitSlop={8}><Text style={{color:'#fff',fontWeight:'900',fontSize:13}}>×</Text></TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+              {!showTypePicker && !!fType && (
+                <TouchableOpacity onPress={()=>{setTypeAddMode(true);setShowTypePicker(true);}}>
+                  <Text style={s.typeAddLink}>+ Ajouter un type de mission</Text>
+                </TouchableOpacity>
+              )}
               {showTypePicker && (
                 <View style={s.typePickerInline}>
+                  {typeAddMode && <Text style={s.typeGroupLbl}>Ajouter un 2e type à « {fType} »</Text>}
                   <View style={s.typeWrap}>
                     {['Montage','Tournage','Démontage'].map(p=>(
-                      <TouchableOpacity key={p} style={[s.typeChip,fType===p&&s.typeChipActive]} onPress={()=>{setFType(p);setShowTypePicker(false);}}>
-                        <Text style={fType===p?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text>
+                      <TouchableOpacity key={p} style={[s.typeChip,typeParts(fType).includes(p)&&s.typeChipActive]} onPress={()=>{setFType(typeAddMode?addType(fType,p):p);setShowTypePicker(false);setTypeAddMode(false);}}>
+                        <Text style={typeParts(fType).includes(p)?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -738,9 +762,9 @@ export default function Calendar(){
                       <Text style={s.typeGroupLbl}>Mes postes</Text>
                       <View style={s.typeWrap}>
                         {postes.map(p=>(
-                          <View key={p} style={[s.typeChip,fType===p&&s.typeChipActive,{flexDirection:'row',alignItems:'center',gap:6}]}>
-                            <TouchableOpacity onPress={()=>{setFType(p);setShowTypePicker(false);}}><Text style={fType===p?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text></TouchableOpacity>
-                            <TouchableOpacity onPress={()=>removePoste(p)} hitSlop={8}><Text style={{color:fType===p?'#fff':C.muted,fontWeight:'900',fontSize:13}}>×</Text></TouchableOpacity>
+                          <View key={p} style={[s.typeChip,typeParts(fType).includes(p)&&s.typeChipActive,{flexDirection:'row',alignItems:'center',gap:6}]}>
+                            <TouchableOpacity onPress={()=>{setFType(typeAddMode?addType(fType,p):p);setShowTypePicker(false);setTypeAddMode(false);}}><Text style={typeParts(fType).includes(p)?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text></TouchableOpacity>
+                            <TouchableOpacity onPress={()=>removePoste(p)} hitSlop={8}><Text style={{color:typeParts(fType).includes(p)?'#fff':C.muted,fontWeight:'900',fontSize:13}}>×</Text></TouchableOpacity>
                           </View>
                         ))}
                       </View>
@@ -749,7 +773,7 @@ export default function Calendar(){
                   <Text style={s.typeGroupLbl}>Ajouter un poste</Text>
                   <View style={{flexDirection:'row',gap:8}}>
                     <TxtInput style={[s.input,{flex:1}]} value={newPoste} onChangeText={setNewPoste} placeholder="Ex : Clown, Cascadeur…" placeholderTextColor={C.muted}/>
-                    <TouchableOpacity style={s.addPosteBtn} onPress={()=>{const v=newPoste.trim();if(v){addPoste(v);setFType(v);setNewPoste('');setShowTypePicker(false);}}}><Text style={s.addPosteTxt}>Ajouter</Text></TouchableOpacity>
+                    <TouchableOpacity style={s.addPosteBtn} onPress={()=>{const v=newPoste.trim();if(v){addPoste(v);setFType(typeAddMode?addType(fType,v):v);setNewPoste('');setShowTypePicker(false);setTypeAddMode(false);}}}><Text style={s.addPosteTxt}>Ajouter</Text></TouchableOpacity>
                   </View>
                 </View>
               )}
@@ -1110,6 +1134,8 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   // Sélecteur Heures / Cachets (annexe « les deux ») — couleurs du thème, comme le reste du formulaire.
   mmOpt:{flex:1,paddingVertical:10,borderRadius:11,borderWidth:1.5,borderColor:C.line,backgroundColor:C.card,alignItems:'center'},
   mmOptTxt:{fontSize:13,fontWeight:'800',color:C.petrol},
+  // Lien discret « + Ajouter un type de mission » : ne doit pas concurrencer le bouton principal.
+  typeAddLink:{fontSize:12,fontWeight:'700',color:C.petrol,marginTop:8,textDecorationLine:'underline'},
   mdpFill:{flexDirection:'row',alignItems:'center',gap:8,backgroundColor:C.soft,borderRadius:11,padding:10,marginBottom:14},
   mdpFillLbl:{fontSize:13,fontWeight:'700',color:C.petrol},
   mdpFillInput:{width:60,backgroundColor:C.card,borderWidth:1,borderColor:C.line,borderRadius:9,paddingVertical:6,paddingHorizontal:8,textAlign:'center',fontSize:14,color:C.text},

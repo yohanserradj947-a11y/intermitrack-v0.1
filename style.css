@@ -1357,3 +1357,9 @@ body.theme-dark .contact-body a { color: #6EC6E0 !important; }
 /* Sur fond sombre, les deux couleurs de tag ci-dessus tirent trop vers le brun/vert foncé → on les éclaircit. */
 body.theme-dark .rg-tag.warn { background: rgba(245,158,11,.2); color: #FBBF24; }
 body.theme-dark .rg-tag.ok { background: rgba(92,184,126,.18); color: #5CB87E; }
+
+/* Pastilles des types cumulés sur une même mission (« Rec + MIX ») — retour Damien.
+   Variables de thème uniquement : suit le mode sombre et les thèmes perso. */
+.type-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 9px; background: var(--petrol); color: #fff; font-size: 12px; font-weight: 800; }
+.type-chip-x { border: none; background: rgba(255,255,255,.25); color: #fff; width: 17px; height: 17px; border-radius: 50%; font-size: 12px; line-height: 1; cursor: pointer; font-family: inherit; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.type-chip-x:hover { background: rgba(255,255,255,.45); }

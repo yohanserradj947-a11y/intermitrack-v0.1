@@ -4282,7 +4282,40 @@ function initProfilFeature(){
   ['date','endDate'].forEach(function(idd){ var el=document.getElementById(idd); if(el && !el.dataset.mdptrig){ el.dataset.mdptrig='1'; el.addEventListener('change', _maybeOpenMdp); } });
 }
 // ===== Sélecteur de type de mission (pop-up à boutons, comme les jours) =====
-function _syncTypeBtn(){ var l=document.getElementById('typeBtnLabel'); var t=document.getElementById('type'); if(l && t) l.textContent = t.value || 'Choisir…'; }
+// ===== Plusieurs types sur une même mission (« Rec + MIX ») =====
+// Un même contrat, un même jour, peut porter 2 activités (retour Damien, ingé son doublage).
+// Les types sont joints par « + » dans missions.mission_type : aucune modif de base, le type n'est
+// jamais utilisé pour regrouper ou calculer, il est seulement affiché.
+// Identique à lib/missionType.ts de l'appli : ne pas diverger.
+var TYPE_SEP = ' + ';
+var _typeAddMode = false; // true = le choix S'AJOUTE au type courant ; false = il le remplace (cas courant)
+function _typeParts(v){ return String(v||'').split(TYPE_SEP).map(function(s){return s.trim();}).filter(Boolean); }
+function _typeAdd(v,t){ var p=_typeParts(v); if(!t || p.indexOf(t)>=0) return v; p.push(t); return p.join(TYPE_SEP); }
+function _typeRemove(v,t){ return _typeParts(v).filter(function(x){return x!==t;}).join(TYPE_SEP); }
+
+function _syncTypeBtn(){
+  var l=document.getElementById('typeBtnLabel'); var t=document.getElementById('type');
+  if(l && t) l.textContent = t.value || 'Choisir…';
+  var v = t ? (t.value||'') : '';
+  // Lien « + Ajouter un type de mission » : seulement une fois un type choisi.
+  var link = document.getElementById('typeAddLink');
+  if(link) link.style.display = v ? 'inline-block' : 'none';
+  // Pastilles supprimables, uniquement quand il y a réellement plusieurs types.
+  var row = document.getElementById('typeChipsRow');
+  if(row){
+    var parts = _typeParts(v);
+    if(parts.length>1){
+      row.style.display='flex';
+      row.innerHTML = parts.map(function(p){
+        return '<span class="type-chip">'+escapeHtml(p)+'<button type="button" class="type-chip-x" data-deltype="'+escapeHtml(p)+'" aria-label="Retirer '+escapeHtml(p)+'">×</button></span>';
+      }).join('');
+    } else { row.style.display='none'; row.innerHTML=''; }
+  }
+}
+document.addEventListener('click', function(e){
+  var d = e.target.closest && e.target.closest('[data-deltype]');
+  if(d){ e.preventDefault(); var t=document.getElementById('type'); _setTypeValue(_typeRemove(t?t.value:'', d.dataset.deltype)); }
+});
 // Le <select id="type"> a une liste d'<option> FIXE. Une valeur hors liste (ex. un poste
 // perso "Chorégraphe") est REFUSÉE par le navigateur et remise à vide → "ça ne se sélectionne pas".
 // On crée donc l'<option> manquante avant d'affecter la valeur.
@@ -4298,20 +4331,25 @@ function _setTypeValue(v){
 function _renderTypePicker(ov){
   var base = ['Montage','Tournage','Démontage'];
   var customs = getCustomPostes();
-  var html = '<div class="pf-box"><div class="pf-title">Type de mission</div>';
+  var _curT = document.getElementById('type') ? (document.getElementById('type').value||'') : '';
+  var html = '<div class="pf-box"><div class="pf-title">' + (_typeAddMode ? 'Ajouter un 2e type à « '+escapeHtml(_curT)+' »' : 'Type de mission') + '</div>';
   html += '<div class="pf-seg">' + base.map(function(p){ return '<button type="button" class="pf-opt" data-type="'+escapeHtml(p)+'">'+escapeHtml(p)+'</button>'; }).join('') + '</div>';
   if(customs.length){ html += '<div class="pf-label">Mes postes</div><div class="pf-seg">' + customs.map(function(p){ return '<button type="button" class="pf-opt pf-opt-custom" data-type="'+escapeHtml(p)+'">'+escapeHtml(p)+'<span class="pf-opt-del" data-delposte="'+escapeHtml(p)+'">×</span></button>'; }).join('') + '</div>'; }
   html += '<div class="pf-label">Ajouter un poste</div><div class="pf-addrow"><input type="text" id="newPosteInput" placeholder="Ex : Clown, Cascadeur…" autocomplete="off"><button type="button" id="addPosteBtn">Ajouter</button></div>';
   html += '<div class="pf-actions"><button type="button" class="pf-cancel" id="typePickClose">Fermer</button></div></div>';
   ov.innerHTML = html;
+  // Un type combiné (« Rec + MIX ») doit allumer SES DEUX pastilles, pas zéro : on compare par partie.
   var cur = document.getElementById('type') ? document.getElementById('type').value : '';
-  ov.querySelectorAll('.pf-opt').forEach(function(x){ x.classList.toggle('on', x.dataset.type===cur); });
+  var curParts = _typeParts(cur);
+  ov.querySelectorAll('.pf-opt').forEach(function(x){ x.classList.toggle('on', curParts.indexOf(x.dataset.type)>=0); });
 }
 function _typePickerAddFromInput(ov){
   var inp = document.getElementById('newPosteInput'); var v = (inp && inp.value || '').trim();
   if(!v) return;
   addCustomPoste(v);
-  _setTypeValue(v);
+  var t = document.getElementById('type');
+  _setTypeValue(_typeAddMode ? _typeAdd(t?t.value:'', v) : v);
+  _typeAddMode = false;
   ov.style.display='none';
 }
 function _openTypePicker(){
@@ -4331,7 +4369,12 @@ function _openTypePicker(){
       if(del){ e.stopPropagation(); removeCustomPoste(del.dataset.delposte); _renderTypePicker(ov); return; }
       if(e.target.id==='addPosteBtn'){ _typePickerAddFromInput(ov); return; }
       var b = e.target.closest('[data-type]');
-      if(b){ _setTypeValue(b.dataset.type); ov.style.display='none'; }
+      if(b){
+        var t = document.getElementById('type');
+        _setTypeValue(_typeAddMode ? _typeAdd(t?t.value:'', b.dataset.type) : b.dataset.type);
+        _typeAddMode = false;
+        ov.style.display='none';
+      }
     });
     ov.addEventListener('keydown', function(e){ if(e.key==='Enter' && e.target.id==='newPosteInput'){ e.preventDefault(); _typePickerAddFromInput(ov); } });
   }
@@ -4339,7 +4382,12 @@ function _openTypePicker(){
   ov.style.display='flex';
 }
 (function(){
-  function wire(){ var tb=document.getElementById('typeBtn'); if(tb && !tb.dataset.init){ tb.dataset.init='1'; tb.addEventListener('click', _openTypePicker); _syncTypeBtn(); } }
+  function wire(){
+    var tb=document.getElementById('typeBtn');
+    if(tb && !tb.dataset.init){ tb.dataset.init='1'; tb.addEventListener('click', function(){ _typeAddMode=false; _openTypePicker(); }); _syncTypeBtn(); }
+    var al=document.getElementById('typeAddLink');
+    if(al && !al.dataset.init){ al.dataset.init='1'; al.addEventListener('click', function(){ _typeAddMode=true; _openTypePicker(); }); }
+  }
   if (document.readyState !== "loading") wire(); else document.addEventListener("DOMContentLoaded", wire);
 })();
 

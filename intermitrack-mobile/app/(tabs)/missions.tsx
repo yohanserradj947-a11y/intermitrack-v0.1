@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemeControls } from '../../lib/theme';
 import { useProdColors, PROD_PRESETS } from '../../lib/prodColors';
 import { useAnnexe, modeForEdit, computeHoursVac, extraHoursOf, CACHET_H } from '../../lib/annexe';
+import { typeParts, addType, removeType } from '../../lib/missionType';
 import { usePostes } from '../../lib/postes';
 import { LinearGradient } from 'expo-linear-gradient';
 import ColorPickerModal from '../../components/ColorPickerModal';
@@ -70,6 +71,8 @@ export default function Missions(){
   const [fEmission,setFEmission]=useState('');
   const [fType,setFType]=useState('Montage');
   const [showTypePicker,setShowTypePicker]=useState(false);
+  // true = le choix s'AJOUTE au type courant (« Rec + MIX ») ; false = il le remplace (cas courant).
+  const [typeAddMode,setTypeAddMode]=useState(false);
   const [fVacations,setFVacations]=useState('');
   const [fStart,setFStart]=useState(new Date());
   const [fEnd,setFEnd]=useState(new Date());
@@ -326,16 +329,34 @@ export default function Missions(){
                 )}
 
                 <Text style={s.label}>Type de mission</Text>
-                <TouchableOpacity style={s.typeBtn} onPress={()=>setShowTypePicker(v=>!v)}>
+                <TouchableOpacity style={s.typeBtn} onPress={()=>{setTypeAddMode(false);setShowTypePicker(v=>!v);}}>
                   <Text style={s.typeBtnTxt}>{fType}</Text>
                   <Text style={s.typeBtnChevron}>{showTypePicker?'▴':'▾'}</Text>
                 </TouchableOpacity>
+                {/* Plusieurs types le meme jour pour le meme employeur (ex. « Rec + MIX »). Appui unique conserve
+                    pour le cas courant, lien discret pour en cumuler un 2e. Idem onglet calendrier. */}
+                {typeParts(fType).length>1 && (
+                  <View style={s.typeWrap}>
+                    {typeParts(fType).map(t=>(
+                      <View key={t} style={[s.typeChip,s.typeChipActive,{flexDirection:'row',alignItems:'center',gap:6}]}>
+                        <Text style={s.typeChipTxtActive}>{t}</Text>
+                        <TouchableOpacity onPress={()=>setFType(removeType(fType,t))} hitSlop={8}><Text style={{color:'#fff',fontWeight:'900',fontSize:13}}>×</Text></TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
+                {!showTypePicker && !!fType && (
+                  <TouchableOpacity onPress={()=>{setTypeAddMode(true);setShowTypePicker(true);}}>
+                    <Text style={s.typeAddLink}>+ Ajouter un type de mission</Text>
+                  </TouchableOpacity>
+                )}
                 {showTypePicker && (
                   <View style={s.typePickerInline}>
+                    {typeAddMode && <Text style={s.typeGroupLbl}>Ajouter un 2e type à « {fType} »</Text>}
                     <View style={s.typeWrap}>
                       {['Montage','Tournage','Démontage'].map(p=>(
-                        <TouchableOpacity key={p} style={[s.typeChip,fType===p&&s.typeChipActive]} onPress={()=>{setFType(p);setShowTypePicker(false);}}>
-                          <Text style={fType===p?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text>
+                        <TouchableOpacity key={p} style={[s.typeChip,typeParts(fType).includes(p)&&s.typeChipActive]} onPress={()=>{setFType(typeAddMode?addType(fType,p):p);setShowTypePicker(false);setTypeAddMode(false);}}>
+                          <Text style={typeParts(fType).includes(p)?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -344,9 +365,9 @@ export default function Missions(){
                         <Text style={s.typeGroupLbl}>Mes postes</Text>
                         <View style={s.typeWrap}>
                           {postes.map(p=>(
-                            <View key={p} style={[s.typeChip,fType===p&&s.typeChipActive,{flexDirection:'row',alignItems:'center',gap:6}]}>
-                              <TouchableOpacity onPress={()=>{setFType(p);setShowTypePicker(false);}}><Text style={fType===p?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text></TouchableOpacity>
-                              <TouchableOpacity onPress={()=>removePoste(p)} hitSlop={8}><Text style={{color:fType===p?'#fff':C.muted,fontWeight:'900',fontSize:13}}>×</Text></TouchableOpacity>
+                            <View key={p} style={[s.typeChip,typeParts(fType).includes(p)&&s.typeChipActive,{flexDirection:'row',alignItems:'center',gap:6}]}>
+                              <TouchableOpacity onPress={()=>{setFType(typeAddMode?addType(fType,p):p);setShowTypePicker(false);setTypeAddMode(false);}}><Text style={typeParts(fType).includes(p)?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text></TouchableOpacity>
+                              <TouchableOpacity onPress={()=>removePoste(p)} hitSlop={8}><Text style={{color:typeParts(fType).includes(p)?'#fff':C.muted,fontWeight:'900',fontSize:13}}>×</Text></TouchableOpacity>
                             </View>
                           ))}
                         </View>
@@ -355,7 +376,7 @@ export default function Missions(){
                     <Text style={s.typeGroupLbl}>Ajouter un poste</Text>
                     <View style={{flexDirection:'row',gap:8}}>
                       <TextInput style={[s.input,{flex:1}]} value={newPoste} onChangeText={setNewPoste} placeholder="Ex : Clown, Cascadeur…" placeholderTextColor={C.muted}/>
-                      <TouchableOpacity style={s.addPosteBtn} onPress={()=>{const v=newPoste.trim();if(v){addPoste(v);setFType(v);setNewPoste('');setShowTypePicker(false);}}}><Text style={s.addPosteTxt}>Ajouter</Text></TouchableOpacity>
+                      <TouchableOpacity style={s.addPosteBtn} onPress={()=>{const v=newPoste.trim();if(v){addPoste(v);setFType(typeAddMode?addType(fType,v):v);setNewPoste('');setShowTypePicker(false);setTypeAddMode(false);}}}><Text style={s.addPosteTxt}>Ajouter</Text></TouchableOpacity>
                     </View>
                   </View>
                 )}
@@ -575,6 +596,8 @@ const makeS=(C:any)=>StyleSheet.create({
   // Sélecteur Heures / Cachets (annexe « les deux ») — couleurs du thème, comme dans l'onglet calendrier.
   mmOpt:{flex:1,paddingVertical:10,borderRadius:11,borderWidth:1.5,borderColor:C.line,backgroundColor:C.card,alignItems:'center'},
   mmOptTxt:{fontSize:13,fontWeight:'800',color:C.petrol},
+  // Lien discret « + Ajouter un type de mission » : ne doit pas concurrencer le bouton principal.
+  typeAddLink:{fontSize:12,fontWeight:'700',color:C.petrol,marginTop:8,textDecorationLine:'underline'},
   inputTxt:{fontSize:15,color:C.text},
   suggestBox:{backgroundColor:C.card,borderWidth:1,borderColor:C.line,borderRadius:14,marginTop:6,overflow:'hidden'},
   // En-tête de la liste déroulante : dit qu'on peut choisir OU taper un nouveau nom (idem onglet calendrier).
