@@ -100,11 +100,62 @@ export function calculateProgressiveTax(taxableIncome:number, parts:number){
   return {estimatedTax,averageRate,marginalRate:marginalRate*100,incomePerPart};
 }
 
-export type ProfilFiscal='technicien'|'musicien'|'artiste';
-export const PROFILS_FISCAUX:Record<ProfilFiscal,{label:string;forfaitLabel:string;netCoeff:number;forfait:(net:number)=>number}>={
-  technicien:{label:'Technicien du spectacle',forfaitLabel:'Forfait 10% standard',netCoeff:0.775,forfait:(net)=>Math.min(net*0.10,14555)},
-  musicien:{label:'Artiste musicien / choriste',forfaitLabel:'Forfait 14% + 5% musicien',netCoeff:0.775,forfait:(net)=>Math.min(net*0.14,14555)+net*0.05},
-  artiste:{label:'Artiste dramatique / lyrique',forfaitLabel:'Forfait 10% (abattement 18% en paie)',netCoeff:0.79,forfait:(net)=>Math.min(net*0.10,14555)},
+// ════════════════════════════════════════════════════════════════════════════
+// DÉDUCTIONS PROFESSIONNELLES — revenus 2025, déclaration 2026
+// Règles vérifiées sur sources primaires (CGI + BOFiP), voir les références ci-dessous.
+// ════════════════════════════════════════════════════════════════════════════
+
+// Forfait de 10 % — CGI art. 83, 3°, al. 2 (revenus 2025) :
+// « Elle est fixée à 10 % du montant de ce revenu. Elle est limitée à 14 555 € pour l'imposition
+//   des rémunérations perçues en 2025 » et « ne peut être inférieur à 509 € ».
+// Le plancher est lui-même borné par la rémunération : un salaire de 400 € ouvre 400 € de
+// déduction, pas 509 € (impots.gouv.fr : « au minimum 509 € — sauf si la rémunération déclarée
+// est inférieure »). Sans cette borne, on sur-déduirait les employeurs marginaux.
+export const FORFAIT_10_PLANCHER = 509;
+export const FORFAIT_10_PLAFOND = 14555;
+// Assiette maximale du 14 % : le BOFiP (§ 440/460) plafonne l'ASSIETTE, et non la déduction —
+// « la partie de la rémunération […] qui n'excède pas le montant de la rémunération CORRESPONDANT
+// AU plafond de la déduction forfaitaire […] de 10 % ». Soit 14 555 / 0,10 = 145 550 € pour 2025.
+// L'ancien code plafonnait la DÉDUCTION à 14 555 € : facteur 10 d'écart sur l'assiette (sans effet
+// aux revenus d'un intermittent, mais faux).
+const ASSIETTE_14_MAX = FORFAIT_10_PLAFOND / 0.10;
+
+function forfait10(net:number){
+  return Math.min(Math.max(Math.min(net*0.10, FORFAIT_10_PLAFOND), FORFAIT_10_PLANCHER), Math.max(0, net));
+}
+// Frais réels spécifiques des artistes — BOI-RSA-BASE-30-50-30-30 (en vigueur depuis le 21/06/2017).
+// 14 % : artistes MUSICIENS (§ 440) ; artistes CHORÉGRAPHIQUES, LYRIQUES et CHORISTES (§ 460).
+//  5 % : artistes dramatiques, lyriques, cinématographiques, chorégraphiques, musiciens, choristes,
+//        chefs d'orchestre et régisseurs de théâtre (§ 480) — sur-ensemble strict du 14 %.
+// Les deux options sont « indépendantes l'une de l'autre » (§ 490) → cumulables (19 % au total)
+// pour les seules professions éligibles aux deux.
+function fraisReelsSpec(net:number, a14:boolean, a5:boolean){
+  return (a14 ? Math.min(Math.max(0,net), ASSIETTE_14_MAX)*0.14 : 0) + (a5 ? Math.max(0,net)*0.05 : 0);
+}
+
+// 'artiste' était l'ancienne clé, étiquetée « Artiste dramatique / lyrique » — deux métiers que le
+// BOFiP traite DIFFÉREMMENT (le lyrique a droit au 14 %, le dramatique non). On la migre vers
+// 'comedien' : c'est le seul choix qui ne change PAS le résultat de ceux qui l'avaient sélectionnée
+// (10 % dans les deux cas). Un artiste lyrique devra se re-sélectionner — et y gagnera.
+export type ProfilFiscal='technicien'|'musicien'|'lyrique'|'danseur'|'comedien';
+export function migrerProfilFiscal(v:string|null|undefined):ProfilFiscal{
+  if(v==='artiste') return 'comedien';
+  return (v==='technicien'||v==='musicien'||v==='lyrique'||v==='danseur'||v==='comedien') ? v : 'technicien';
+}
+
+export const PROFILS_FISCAUX:Record<ProfilFiscal,{label:string;forfaitLabel:string;netCoeff:number;a14:boolean;a5:boolean;forfait:(net:number)=>number}>={
+  technicien:{label:'Technicien du spectacle',forfaitLabel:'Forfait 10 % standard',netCoeff:0.775,a14:false,a5:false,
+    forfait:(net)=>Math.max(forfait10(net), fraisReelsSpec(net,false,false))},
+  musicien:{label:'Musicien / choriste',forfaitLabel:'14 % + 5 % (ou forfait 10 % si plus avantageux)',netCoeff:0.775,a14:true,a5:true,
+    forfait:(net)=>Math.max(forfait10(net), fraisReelsSpec(net,true,true))},
+  lyrique:{label:'Artiste lyrique',forfaitLabel:'14 % + 5 % (ou forfait 10 % si plus avantageux)',netCoeff:0.79,a14:true,a5:true,
+    forfait:(net)=>Math.max(forfait10(net), fraisReelsSpec(net,true,true))},
+  danseur:{label:'Danseur (artiste chorégraphique)',forfaitLabel:'14 % + 5 % (ou forfait 10 % si plus avantageux)',netCoeff:0.79,a14:true,a5:true,
+    forfait:(net)=>Math.max(forfait10(net), fraisReelsSpec(net,true,true))},
+  // Artiste dramatique : 5 % seulement (§ 480), pas de 14 % — il n'a pas d'instrument. Son 5 % étant
+  // toujours inférieur au forfait de 10 %, c'est ce dernier qui gagne en pratique.
+  comedien:{label:'Comédien (artiste dramatique)',forfaitLabel:'Forfait 10 % (5 % artiste moins avantageux)',netCoeff:0.79,a14:false,a5:true,
+    forfait:(net)=>Math.max(forfait10(net), fraisReelsSpec(net,false,true))},
 };
 
 export function fiscalite(i:{profil:ProfilFiscal;yearGross:number;arePercue:number;congesSpec:number;otherIncome:number;taxParts:number;totalKmAmount:number;autresFrais:number;fraisSaisis:number;}){

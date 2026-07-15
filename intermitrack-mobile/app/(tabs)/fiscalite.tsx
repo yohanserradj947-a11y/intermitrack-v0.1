@@ -10,12 +10,21 @@ import { GradientButton } from '../../components/GradientButton';
 import NumInput from '../../components/NumInput';
 import { useTrackView } from '../../lib/analytics';
 import { useSession } from '../../lib/auth';
-import { fiscalite, PROFILS_FISCAUX, type ProfilFiscal } from '../../lib/calcul';
+import { fiscalite, PROFILS_FISCAUX, migrerProfilFiscal, type ProfilFiscal } from '../../lib/calcul';
 import { supabase } from '../../lib/supabase';
 import { useTheme, useThemeControls } from '../../lib/theme';
 
 // La palette vient maintenant du thème (lib/theme) → const C = useTheme() dans le composant.
-const PROFILS: { key: ProfilFiscal; label: string }[] = [{ key: 'technicien', label: 'Technicien' }, { key: 'musicien', label: 'Musicien' }, { key: 'artiste', label: 'Artiste' }];
+// Le BOFiP ne range pas les artistes par annexe mais par déduction : le 14 % est ouvert aux
+// musiciens, choristes, lyriques et danseurs (§ 440/460), pas aux comédiens (§ 480). D'où 5 cas
+// et non 3. « Artiste dramatique / lyrique » mélangeait deux métiers aux droits différents.
+const PROFILS: { key: ProfilFiscal; label: string }[] = [
+  { key: 'technicien', label: 'Technicien' },
+  { key: 'musicien', label: 'Musicien / choriste' },
+  { key: 'lyrique', label: 'Artiste lyrique' },
+  { key: 'danseur', label: 'Danseur' },
+  { key: 'comedien', label: 'Comédien' },
+];
 const CATS = ['Matériel / Achat', 'Repas', 'Transport', 'Hébergement', 'Formation', 'Vêtements pro', 'Téléphone / Internet', 'Cotisations pro', 'Documentation', 'Autres'];
 const num = (v: string) => { const n = Number(String(v).replace(',', '.')); return isFinite(n) ? n : 0; };
 const money2 = (n: number) => (n ?? 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -75,7 +84,10 @@ export default function Fiscalite() {
     const keys = ['fisc_profil', 'fisc_are', 'fisc_conges', 'fisc_other', 'fisc_parts', 'fisc_autresfrais'];
     const v = await AsyncStorage.multiGet(keys);
     const map = Object.fromEntries(v);
-    if (map.fisc_profil) setProfil(map.fisc_profil as ProfilFiscal);
+    // migrerProfilFiscal : l'ancienne clé 'artiste' devient 'comedien' (même résultat qu'avant,
+    // donc aucun chiffre ne bouge sous les pieds de l'utilisateur). Un lyrique ou un danseur
+    // devra se re-sélectionner — et y gagnera.
+    if (map.fisc_profil) setProfil(migrerProfilFiscal(map.fisc_profil));
     if (map.fisc_are) setAre(map.fisc_are);
     if (map.fisc_conges) setConges(map.fisc_conges);
     if (map.fisc_other) setOther(map.fisc_other);
