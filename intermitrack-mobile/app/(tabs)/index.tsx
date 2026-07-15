@@ -19,6 +19,11 @@ import { useTheme, useThemeControls } from '../../lib/theme';
 import { useNotes } from '../../lib/notes';
 
 const FORM_CAP = 338; // heures de formation prises en compte pour les 507 h : plafond 2/3
+// Enseignement dispensé (contrat régime général avec un établissement AGRÉÉ, en lien avec le métier) :
+// il compte dans les 507 h, plafonné à 70 h — ou 120 h à partir de 50 ans à la fin du contrat.
+// On retient le MAXIMUM légal pour ne léser personne ; le formulaire explique la règle.
+// ⚠️ Le plafond de 338 h est GLOBAL : formation suivie + enseignement dispensé réunis (guide France Travail).
+const ENS_CAP = 120;
 
 // La palette vient maintenant du thème (lib/theme) → const C = useTheme() dans le composant.
 const POSTES_TECH = ['Montage','Tournage','Démontage','Régie','Son','Lumière','Image / Vidéo','Machiniste','Électricien','Poursuiteur','Plateau','Décor','HMC'];
@@ -176,12 +181,21 @@ export default function HomeScreen(){
       return{done,planned:Math.max(0,Math.round((tot-done)*10)/10)};
     };
     const upcoming=missions.filter((m:any)=>new Date((m.end_date||m.mission_date)+'T00:00:00')>=today);
-    const doneH=Math.round(yearM.reduce((a:number,m:any)=>a+splitT(m).done,0)*10)/10;
-    const planH=Math.round(yearM.reduce((a:number,m:any)=>a+splitT(m).planned,0)*10)/10;
+    // Régime de la mission (colonne Supabase, défaut 'intermittence' → les missions déjà saisies ne bougent pas).
+    const regOf=(m:any)=>m.regime||'intermittence';
+    // Seules les missions d'intermittence (annexes 8/10) alimentent les heures effectuées / prévues.
+    const interM=yearM.filter((m:any)=>regOf(m)==='intermittence');
+    const doneH=Math.round(interM.reduce((a:number,m:any)=>a+splitT(m).done,0)*10)/10;
+    const planH=Math.round(interM.reduce((a:number,m:any)=>a+splitT(m).planned,0)*10)/10;
     // Heures de formation dans la période de droits (plafonnées à 338 h pour le calcul des 507 h).
     const formRaw=Math.round((notes||[]).filter((n:any)=>n.kind==='formation'&&inWin(n.date)).reduce((a:number,n:any)=>a+(Number(n.hours)||0),0)*10)/10;
     const formH=Math.min(formRaw,FORM_CAP);
-    const remaining=Math.max(0,Math.round((507-doneH-planH-formH)*10)/10);
+    // Enseignement dispensé : compte dans les 507 h, mais plafonné à ENS_CAP *et* dans les 338 h
+    // GLOBALES qu'il partage avec la formation suivie (règle France Travail).
+    const ensRaw=Math.round(yearM.filter((m:any)=>regOf(m)==='enseignement').reduce((a:number,m:any)=>a+(Number(m.hours)||0),0)*10)/10;
+    const ensH=Math.round(Math.min(ensRaw,ENS_CAP,Math.max(0,FORM_CAP-formH))*10)/10;
+    // Le régime général « pur » n'entre PAS dans les 507 h — mais bien dans l'estimation mensuelle (monthH plus bas).
+    const remaining=Math.max(0,Math.round((507-doneH-planH-formH-ensH)*10)/10);
     // Tout le récap du mois suit la MÊME logique : la part de chaque mission qui tombe DANS le mois (au prorata des jours).
     const _mvS=new Date(current.getFullYear(),current.getMonth(),1).getTime(), _mvE=new Date(current.getFullYear(),current.getMonth()+1,0).getTime();
     const monthDays=(m:any)=>{const s=new Date(m.mission_date+'T00:00:00').getTime(),e=new Date((m.end_date||m.mission_date)+'T00:00:00').getTime();const tot=Math.max(1,Math.round((e-s)/86400000)+1);const p=Math.max(s,_mvS),q=Math.min(e,_mvE);const inM=q<p?0:Math.round((q-p)/86400000)+1;return {inM,frac:inM/tot};};
@@ -192,10 +206,10 @@ export default function HomeScreen(){
     // Net à payer estimé = brut − charges salariales − prélèvement à la source
     const monthNet=Math.round(monthG*(1-chargeRate/100)*(1-pasRate/100));
     const monthRateNet=monthH>0?Math.round(monthNet/monthH):0;
-    return { doneH, planH, remaining, formH, formRaw, monthH, monthG, monthNet, monthVac, monthRate, monthRateNet, upcoming, winStart, winEnd, hasARE };
+    return { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, monthH, monthG, monthNet, monthVac, monthRate, monthRateNet, upcoming, winStart, winEnd, hasARE };
   },[missions,notes,areDate,yearOffset,current,chargeRate,pasRate]);
 
-  const { doneH, planH, remaining, formH, formRaw, monthH, monthG, monthNet, monthVac, monthRate, monthRateNet, upcoming, winStart, winEnd, hasARE } = stats;
+  const { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, monthH, monthG, monthNet, monthVac, monthRate, monthRateNet, upcoming, winStart, winEnd, hasARE } = stats;
 
   const ft=useMemo(()=>{
     const aj=(profil&&Number(profil.taux_journalier))||0;
@@ -310,11 +324,17 @@ export default function HomeScreen(){
       </View>
 
       <View style={s.chartCard}>
-        <Gauge done={doneH} planned={planH} total={507} formation={formH}/>
+        <Gauge done={doneH} planned={planH} total={507} formation={formH} enseignement={ensH}/>
         {formRaw>0&&(
           <View style={s.formNote}>
             <Ionicons name="school-outline" size={14} color="#7C3AED"/>
             <Text style={s.formNoteTxt}>Formation comptée : <Text style={{fontWeight:'800',color:C.text}}>{formH} h / {FORM_CAP} h max</Text>{formRaw>FORM_CAP?` (${formRaw} h saisies, plafonnées)`:''}. Uniquement si tu n'es pas indemnisé pendant la formation.</Text>
+          </View>
+        )}
+        {ensRaw>0&&(
+          <View style={s.formNote}>
+            <Ionicons name="easel-outline" size={14} color="#0EA5E9"/>
+            <Text style={s.formNoteTxt}>Enseignement compté : <Text style={{fontWeight:'800',color:C.text}}>{ensH} h</Text>{ensRaw>ensH?` (${ensRaw} h saisies, plafonnées)`:''}. Plafond 70 h — 120 h à partir de 50 ans. Ce plafond est partagé avec la formation ({FORM_CAP} h au total).</Text>
           </View>
         )}
       </View>

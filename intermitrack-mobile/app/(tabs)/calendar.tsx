@@ -102,6 +102,7 @@ export default function Calendar(){
   const [dayMenu,setDayMenu]=useState<{date:Date;missions:any[]}|null>(null);
   const [fStart,setFStart]=useState(new Date());
   const [fEnd,setFEnd]=useState(new Date());
+  const [fRegime,setFRegime]=useState<'intermittence'|'general'|'enseignement'>('intermittence');
   const [fHours,setFHours]=useState('');
   const [fGross,setFGross]=useState('');
   const [showStartPicker,setShowStartPicker]=useState(false);
@@ -141,8 +142,10 @@ export default function Calendar(){
     if(!silent)setLoading(false);
   }
 
-  function openCreate(day:Date){
+  // regime : 'intermittence' (défaut) | 'general' (hors 507 h) | 'enseignement' (compte, plafonné)
+  function openCreate(day:Date, regime:'intermittence'|'general'='intermittence'){
     setEditId(null);
+    setFRegime(regime);
     setFProduction(''); setFEmission(''); setFLieu(''); setShowLieuSuggest(false); setNewPoste(''); setFType('Montage'); setFStart(day); setFEnd(day);
     setFHours(''); setFGross(''); setFVacations(''); setMdpDays([]);
     setKmOpen(false); setKmFrom(''); setKmTo(''); setKmFromCoords(null); setKmToCoords(null); setKmRT(false); setKmEveryDay(false); setKmJustify(false); setKmCv(''); setKmTranche('1'); setKmDistance(''); setKmRate('');
@@ -151,6 +154,7 @@ export default function Calendar(){
   }
   function openEdit(m:any){
     setEditId(m.id);
+    setFRegime(m.regime||'intermittence');
     setFProduction(m.production||''); setFEmission(m.emission||''); setFLieu(m.lieu||''); setShowLieuSuggest(false); setNewPoste(''); setFType(m.mission_type||'Montage');
     setFStart(new Date((m.mission_date)+'T00:00:00'));
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
@@ -192,6 +196,7 @@ export default function Calendar(){
     const payload={
       user_id:user.id, production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, lieu:fLieu.trim()||null, mission_type:fType,
       mission_date:startISO, end_date:endISO!==startISO?endISO:null,
+      regime:fRegime,
       hours:Number(fHours)||0, vacations:Number(fVacations)||Math.round((Number(fHours)||0)/8),
       gross_amount:Number(fGross)||0, status:'effectue',
       km_distance:Math.round(kmEff(kmWorkedDays)), km_rate:pf(kmRate),
@@ -296,6 +301,7 @@ export default function Calendar(){
       const runHours=r.hours*r.days;
       const gross=sumHours>0?Math.round(totalGross*(runHours/sumHours)):Math.round(totalGross/runs.length);
       return { user_id:user.id, production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, lieu:fLieu.trim()||null, mission_type:fType,
+        regime:fRegime,
         mission_date:r.start, end_date:r.end!==r.start?r.end:null,
         hours:runHours, vacations:r.days, gross_amount:gross, status:'effectue',
         km_distance:0, km_rate:0, km_amount:0 };
@@ -581,14 +587,34 @@ export default function Calendar(){
         <View style={s.modalOverlay}>
           <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
             <View style={s.modalHeader}>
-              <Text style={[s.modalTitle,{marginBottom:0,flex:1,textAlign:'left'}]}>{editId?'Modifier la mission':'Ajouter une mission'}</Text>
+              <Text style={[s.modalTitle,{marginBottom:0,flex:1,textAlign:'left'}]}>
+                {fRegime==='intermittence' ? (editId?'Modifier la mission':'Ajouter une mission')
+                                          : (editId?'Modifier l\'activité':'Activité régime général')}
+              </Text>
               <TouchableOpacity style={s.modalClose} onPress={()=>{setShowForm(false);setEditId(null);}} hitSlop={8}>
                 <Ionicons name="close" size={22} color={C.muted}/>
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets={true}>
 
-              <Text style={s.label}>Nom de la production</Text>
+              {fRegime!=='intermittence'&&(
+                <View style={s.rgBox}>
+                  <TouchableOpacity style={s.rgRow} activeOpacity={0.8}
+                    onPress={()=>setFRegime(fRegime==='enseignement'?'general':'enseignement')}>
+                    <View style={[s.rgCheck,fRegime==='enseignement'&&s.rgCheckOn]}>
+                      {fRegime==='enseignement'?<Ionicons name="checkmark" size={13} color="#fff"/>:null}
+                    </View>
+                    <Text style={s.rgRowTxt}>C'est de l'<Text style={{fontWeight:'900'}}>enseignement</Text>, dans un établissement <Text style={{fontWeight:'900'}}>agréé</Text>, en lien avec mon métier</Text>
+                  </TouchableOpacity>
+                  <Text style={s.rgInfo}>
+                    {fRegime==='enseignement'
+                      ? "Ces heures COMPTENT dans tes 507 h, dans la limite de 70 h — ou 120 h si tu as 50 ans ou plus à la fin du contrat. L'appli plafonne à 120 h : ne saisis que les heures qui te concernent. Ce plafond est partagé avec tes heures de formation (338 h au total)."
+                      : "Ces heures ne comptent pas dans tes 507 h. Elles entrent malgré tout dans l'estimation France Travail du mois : toute heure travaillée, quel que soit le régime, réduit tes jours indemnisables."}
+                  </Text>
+                </View>
+              )}
+
+              <Text style={s.label}>{fRegime==='intermittence'?'Nom de la production':'Nom de l\'employeur'}</Text>
               <TxtInput style={s.input} value={fProduction} onChangeText={(t:string)=>{setFProduction(t);setShowSuggest(true);}} onFocus={()=>setShowSuggest(true)} placeholder="Ex : ENDEMOL" placeholderTextColor={C.muted} autoCapitalize="characters"/>
               {showSuggest&&prodSuggestions.length>0&&(
                 <View style={s.suggestBox}>
@@ -882,6 +908,10 @@ export default function Calendar(){
                   <Ionicons name="school-outline" size={22} color={C.petrol}/>
                   <Text style={[s.dmActTxt,{color:C.petrol}]}>Formation</Text>
                 </TouchableOpacity>
+                <TouchableOpacity style={[s.dmAct,{borderColor:'#0EA5E9'}]} activeOpacity={0.8} onPress={()=>{const dd=dayMenu?.date;setDayMenu(null);if(dd)openCreate(dd,'general');}}>
+                  <Ionicons name="easel-outline" size={20} color="#0EA5E9"/>
+                  <Text style={[s.dmActTxt,{color:'#0EA5E9'}]}>Régime général</Text>
+                </TouchableOpacity>
                 <TouchableOpacity style={[s.dmAct,{borderColor:C.green}]} activeOpacity={0.8} onPress={()=>{const dd=dayMenu?.date;setDayMenu(null);if(dd){setQuickDate(iso(dd));setQuickOpen(true);}}}>
                   <Ionicons name="flash-outline" size={22} color={C.green}/>
                   <Text style={[s.dmActTxt,{color:C.green}]}>Saisie rapide</Text>
@@ -1028,6 +1058,14 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   calTabOn:{backgroundColor:C.card,shadowColor:'#000',shadowOpacity:0.08,shadowRadius:6,elevation:2},
   calTabTxt:{fontSize:12.5,fontWeight:'800',color:C.muted},
   calTabTxtOn:{fontSize:12.5,fontWeight:'800',color:C.petrol},
+  // Encadré "activité hors intermittence" (régime général / enseignement)
+  rgBox:{backgroundColor:'#E8F6FD',borderWidth:1,borderColor:'#0EA5E9',borderRadius:14,padding:13,marginBottom:4},
+  rgRow:{flexDirection:'row',alignItems:'flex-start',gap:10},
+  rgCheck:{width:21,height:21,borderRadius:6,borderWidth:1.5,borderColor:'#0EA5E9',backgroundColor:'#fff',
+    alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:1},
+  rgCheckOn:{backgroundColor:'#0EA5E9'},
+  rgRowTxt:{flex:1,fontSize:13,fontWeight:'700',color:'#0B4A5F',lineHeight:18},
+  rgInfo:{fontSize:12,color:'#3B6C80',lineHeight:17,marginTop:9},
   dmActs:{flexDirection:'row',flexWrap:'wrap',gap:10,marginTop:10,marginBottom:4},
   dmAct:{flexGrow:1,flexBasis:'46%',alignItems:'center',justifyContent:'center',gap:8,paddingVertical:16,paddingHorizontal:8,borderRadius:14,borderWidth:1.5,backgroundColor:C.card},
   dmActTxt:{fontSize:13,fontWeight:'800',textAlign:'center'},
