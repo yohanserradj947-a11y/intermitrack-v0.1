@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Télécharger Intermitrack</title>
+<meta name="description" content="Télécharge Intermitrack : suivi des 507 h, estimation France Travail, missions, fiscalité. Pour les intermittents du spectacle." />
+<meta name="robots" content="noindex" />
+<link rel="icon" href="favicon.ico" />
+<style>
+  :root{ --petrol:#1F4E5F; --orange:#F97316; --bg:#F5F7F6; --card:#FFFFFF; --text:#2D3748; --muted:#718096; --line:#E2E8F0; }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+    background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:34px 26px;max-width:400px;width:100%;
+    text-align:center;box-shadow:0 12px 40px rgba(31,78,95,.10);}
+  .logo{font-size:26px;font-weight:900;color:var(--petrol);letter-spacing:-.02em;margin:0 0 6px;}
+  .tag{font-size:14.5px;color:var(--muted);line-height:1.5;margin:0 0 22px;}
+  .status{font-size:13px;color:var(--muted);margin:0 0 18px;min-height:18px;}
+  .btns{display:flex;flex-direction:column;gap:10px;}
+  .btn{display:flex;align-items:center;justify-content:center;gap:9px;padding:14px 18px;border-radius:13px;
+    text-decoration:none;font-weight:800;font-size:15px;border:1.5px solid var(--petrol);
+    background:var(--petrol);color:#fff;transition:transform .12s ease,opacity .12s ease;}
+  .btn.alt{background:transparent;color:var(--petrol);}
+  .btn:hover{transform:translateY(-1px);opacity:.94;}
+  .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px;}
+  .foot{margin-top:20px;font-size:12px;color:var(--muted);}
+  .foot a{color:var(--petrol);}
+  svg{flex:0 0 auto}
+</style>
+</head>
+<body>
+  <main class="card">
+    <p class="logo">Intermitrack</p>
+    <p class="tag">Le tableau de bord des intermittents du spectacle : tes <strong>507 h</strong>, ton estimation <strong>France&nbsp;Travail</strong>, tes missions et ta fiscalité.</p>
+    <p class="status" id="status">Choisis ton téléphone&nbsp;:</p>
+    <div class="btns">
+      <a class="btn" id="ios" href="https://apps.apple.com/fr/app/intermitrack/id6781755113">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.8c0-2.4 2-3.6 2.1-3.6-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.1-.8-1.6 0-3.1.9-3.9 2.4-1.7 2.9-.4 7.2 1.2 9.5.8 1.1 1.7 2.4 3 2.4 1.2 0 1.7-.8 3.1-.8 1.4 0 1.9.8 3.1.8 1.3 0 2.1-1.2 2.9-2.3.9-1.3 1.3-2.6 1.3-2.7 0 0-2.5-1-2.5-3.9zM14.2 5.3c.7-.8 1.1-2 1-3.3-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3.1 1.1.1 2.2-.6 2.9-1.3z"/></svg>
+        Télécharger sur l'App Store
+      </a>
+      <a class="btn alt" id="android" href="https://play.google.com/store/apps/details?id=fr.intermitrack.app">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.6 2.3a1 1 0 0 0-.5.9v17.6a1 1 0 0 0 .5.9l9.3-9.7L3.6 2.3zm10.7 8.1 2.6-2.7-9.6-5.4 7 8.1zm0 3.2-7 8.1 9.6-5.4-2.6-2.7zm4-1.6 2.4-2.5c.7-.4.7-1.4 0-1.8l-2.4-1.3-2.8 2.9 2.8 2.7z"/></svg>
+        Télécharger sur Google Play
+      </a>
+    </div>
+    <p class="foot">Déjà installée ? <a href="https://intermitrack.fr">Ouvrir le site</a></p>
+  </main>
+<script>
+  // Redirection auto vers le bon store selon le téléphone. Les deux boutons restent
+  // visibles (ordinateur, navigateur exotique, ou si la redirection est bloquée).
+  (function () {
+    var ua = navigator.userAgent || '';
+    var IOS = 'https://apps.apple.com/fr/app/intermitrack/id6781755113';
+    var PLAY = 'https://play.google.com/store/apps/details?id=fr.intermitrack.app';
+    var isIOS = /iPad|iPhone|iPod/.test(ua) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPad iPadOS 13+
+    var isAndroid = /Android/i.test(ua);
+    var target = isIOS ? IOS : (isAndroid ? PLAY : null);
+    var st = document.getElementById('status');
+    if (target) {
+      st.textContent = 'Redirection vers le store…';
+      // replace() → le bouton "retour" ne repasse pas par cette page
+      setTimeout(function () { window.location.replace(target); }, 250);
+    }
+  })();
+</script>
+</body>
+</html>
