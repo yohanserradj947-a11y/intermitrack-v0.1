@@ -804,18 +804,94 @@ async function classerDocumentAnalyseIa(file, data) {
   if (insertError) { await sb.storage.from("documents").remove([filePath]); throw new Error("Erreur sauvegarde document : " + insertError.message); }
 }
 
-// ===== Barème kilométrique officiel (coefficient €/km par tranche de km annuels) =====
-const KM_BAREME = {
-  "3":    { c1: 0.529, c2: 0.316, c3: 0.370 }, // 3 CV ou moins
-  "4":    { c1: 0.606, c2: 0.340, c3: 0.407 },
-  "5":    { c1: 0.636, c2: 0.357, c3: 0.427 },
-  "6":    { c1: 0.665, c2: 0.374, c3: 0.447 },
-  "7":    { c1: 0.697, c2: 0.394, c3: 0.470 }, // 7 CV et plus
-  "moto": { c1: 0.395, c2: 0.099, c3: 0.234 },
+// ════════════════════════════════════════════════════════════════════════════
+// BARÈME KILOMÉTRIQUE — revenus 2025. Copie conforme de intermitrack-mobile/lib/kmBareme.ts.
+// NE PAS DIVERGER de l'appli.
+//
+// Vérifié sur deux sources primaires concordantes (16/07/2026) :
+//   • BOFiP BOI-BAREME-000001 : https://bofip.impots.gouv.fr/bofip/2185-PGP.html
+//   • Aide du simulateur DGFiP 2026 : https://simulateur-ir-ifi.impots.gouv.fr/calcul_impot/2026/aides/frais.htm
+//
+// L'ancien barème d'ici était faux : une seule option « Moto » appliquant le tarif des 1-2 CV à
+// TOUTES les motos (3ᵉ coefficient en prime erroné, 0,234 au lieu de 0,248), les tranches VOITURE
+// (5 000/20 000) plaquées sur des motos dont les tranches sont 3 000/6 000, et le MONTANT FIXE de la
+// tranche intermédiaire purement ignoré — plus de 1 000 € oubliés pour une voiture entre 5 001 et
+// 20 000 km, soit le cas le plus courant.
+// ════════════════════════════════════════════════════════════════════════════
+const KM_CAR = {
+  "3": [{ upTo: 5000, coef: 0.529, add: 0 }, { upTo: 20000, coef: 0.316, add: 1065 }, { upTo: Infinity, coef: 0.370, add: 0 }],
+  "4": [{ upTo: 5000, coef: 0.606, add: 0 }, { upTo: 20000, coef: 0.340, add: 1330 }, { upTo: Infinity, coef: 0.407, add: 0 }],
+  "5": [{ upTo: 5000, coef: 0.636, add: 0 }, { upTo: 20000, coef: 0.357, add: 1395 }, { upTo: Infinity, coef: 0.427, add: 0 }],
+  "6": [{ upTo: 5000, coef: 0.665, add: 0 }, { upTo: 20000, coef: 0.374, add: 1457 }, { upTo: Infinity, coef: 0.447, add: 0 }],
+  "7": [{ upTo: 5000, coef: 0.697, add: 0 }, { upTo: 20000, coef: 0.394, add: 1515 }, { upTo: Infinity, coef: 0.470, add: 0 }],
 };
+// Motos de plus de 50 cm³ : tranches 3 000 / 6 000, et NON celles des voitures.
+const KM_MOTO = {
+  "1": [{ upTo: 3000, coef: 0.395, add: 0 }, { upTo: 6000, coef: 0.099, add: 891 }, { upTo: Infinity, coef: 0.248, add: 0 }],
+  "3": [{ upTo: 3000, coef: 0.468, add: 0 }, { upTo: 6000, coef: 0.082, add: 1158 }, { upTo: Infinity, coef: 0.275, add: 0 }],
+  "5": [{ upTo: 3000, coef: 0.606, add: 0 }, { upTo: 6000, coef: 0.079, add: 1583 }, { upTo: Infinity, coef: 0.343, add: 0 }],
+};
+const KM_CYCLO = [{ upTo: 3000, coef: 0.315, add: 0 }, { upTo: 6000, coef: 0.079, add: 711 }, { upTo: Infinity, coef: 0.198, add: 0 }];
+
+const KM_VEHICLES = [
+  { key: "car", label: "Voiture", hint: "Puissance fiscale : carte grise, case P.6." },
+  { key: "moto", label: "Moto (+ de 50 cm³)", hint: "Puissance fiscale : carte grise, case P.6. Le barème moto a ses propres tranches." },
+  { key: "cyclo", label: "Cyclomoteur (- de 50 cm³)", hint: "Moins de 50 cm³ : barème unique, pas de puissance à indiquer." },
+];
+const KM_CAR_CV = [{ key: "3", label: "3 CV et moins" }, { key: "4", label: "4 CV" }, { key: "5", label: "5 CV" }, { key: "6", label: "6 CV" }, { key: "7", label: "7 CV et plus" }];
+const KM_MOTO_CV = [{ key: "1", label: "1 ou 2 CV" }, { key: "3", label: "3, 4 ou 5 CV" }, { key: "5", label: "Plus de 5 CV" }];
+
 function kmPf(v) { const n = Number(String(v ?? "").replace(",", ".").replace(/\s/g, "")); return isFinite(n) ? n : 0; }
-function kmCoef(cvKey, tranche) { const b = KM_BAREME[cvKey]; if (!b) return 0; return tranche === "2" ? b.c2 : tranche === "3" ? b.c3 : b.c1; }
-function kmTrancheLabel(t) { return t === "2" ? "5 001–20 000 km/an" : t === "3" ? "> 20 000 km/an" : "≤ 5 000 km/an"; }
+function kmTranchesFor(kind, cv) {
+  if (kind === "cyclo") return KM_CYCLO;
+  if (kind === "moto") return KM_MOTO[cv] || null;
+  return KM_CAR[cv] || null;
+}
+// Frais ANNUELS selon le barème, majoration électrique comprise (+20 % depuis les revenus 2020).
+function kmFraisAnnuels(kind, cv, kmAnnuel, electrique) {
+  const t = kmTranchesFor(kind, cv);
+  const km = Math.max(0, Number(kmAnnuel) || 0);
+  if (!t || km <= 0) return 0;
+  const tr = t.find(function (x) { return km <= x.upTo; }) || t[t.length - 1];
+  const base = km * tr.coef + tr.add;
+  return electrique ? base * 1.2 : base;
+}
+// Taux réel en €/km. Le barème est ANNUEL (montant fixe par tranche) alors qu'on calcule PAR MISSION :
+// on ne peut pas ajouter ce montant à chaque mission. On applique donc barème(km annuels)/km annuels,
+// ce qui fait retomber le total de l'année exactement sur le barème.
+function kmTauxEffectif(kind, cv, kmAnnuel, electrique) {
+  const km = Math.max(0, Number(kmAnnuel) || 0);
+  if (km <= 0) return 0;
+  return kmFraisAnnuels(kind, cv, km, electrique) / km;
+}
+// Migration des réglages d'avant le 16/07/2026 (km_cv '3'..'7'|'moto' + km_tranche '1'|'2'|'3').
+// 'moto' devenait le barème 1-2 CV : on conserve ce comportement pour ne modifier les chiffres de
+// personne sans qu'il le sache. La tranche devient un kilométrage au MILIEU de celle-ci — la seule
+// valeur qui n'invente pas d'information.
+function kmMigrerVehicule(oldCv, oldTranche) {
+  const kind = oldCv === "moto" ? "moto" : "car";
+  const cv = oldCv === "moto" ? "1" : (KM_CAR[String(oldCv || "")] ? String(oldCv) : "");
+  const t = String(oldTranche || "1");
+  const kmAnnuel = kind === "moto"
+    ? (t === "2" ? 4500 : t === "3" ? 9000 : 1500)
+    : (t === "2" ? 12500 : t === "3" ? 25000 : 2500);
+  return { kind: kind, cv: cv, kmAnnuel: kmAnnuel };
+}
+// Libellé court du véhicule retenu, pour qu'on comprenne d'où sort le taux affiché.
+function kmVehiculeLabel(kind, cv, kmAnnuel, electrique) {
+  var v = (KM_VEHICLES.find(function (x) { return x.key === kind; }) || {}).label || "";
+  var c = kind === "cyclo" ? "" : (((kind === "moto" ? KM_MOTO_CV : KM_CAR_CV).find(function (x) { return x.key === cv; }) || {}).label || "");
+  return [v, c, kmAnnuel ? kmAnnuel.toLocaleString("fr-FR") + " km/an" : "", electrique ? "électrique" : ""].filter(Boolean).join(" · ");
+}
+// Véhicule du profil → taux réel. Une seule source pour tout le site.
+function kmProfilTaux() {
+  var p = (typeof _profil !== "undefined" && _profil) || {};
+  var kind, cv, kmAnnuel;
+  if (p.km_vehicle) { kind = p.km_vehicle; cv = p.km_cv || ""; kmAnnuel = Number(p.km_annual) || 0; }
+  else { var m = kmMigrerVehicule(p.km_cv, p.km_tranche); kind = m.kind; cv = m.cv; kmAnnuel = p.km_cv ? m.kmAnnuel : 0; }
+  var elec = !!p.km_electric;
+  return { kind: kind, cv: cv, kmAnnuel: kmAnnuel, electrique: elec, taux: kmTauxEffectif(kind, cv, kmAnnuel, elec) };
+}
 
 // Nombre de jours travaillés (pour l'option "trajet chaque jour travaillé")
 function kmNbDays() {
@@ -840,10 +916,10 @@ function kmEffectiveDistance() {
 }
 
 // Taux €/km réellement utilisé : barème CV (selon tranche) sinon taux manuel
+// Le taux saisi à la main l'emporte ; sinon, le taux réel issu du barème et du véhicule du profil.
 function kmRateUsed() {
-  const cv = $("kmCv")?.value || "";
-  const tranche = $("kmTranche")?.value || "1";
-  return cv ? kmCoef(cv, tranche) : kmPf($("kmRate")?.value);
+  const manuel = kmPf($("kmRate")?.value);
+  return manuel > 0 ? manuel : kmProfilTaux().taux;
 }
 
 function calculateKmAmount() {
@@ -855,31 +931,33 @@ function updateKmPreview() {
   if (!preview) return;
   const base = kmBaseDistance();
   const eff = kmEffectiveDistance();
-  const cv = $("kmCv")?.value || "";
-  const tranche = $("kmTranche")?.value || "1";
   const rt = $("kmRoundTrip")?.checked;
   const everyDay = $("kmEveryDay")?.checked;
   const justify = $("kmJustify")?.checked;
   const capped = !justify && kmPf($("kmDistance")?.value) > 40;
   const nbDays = kmNbDays();
+  const manuel = kmPf($("kmRate")?.value);
+  const veh = kmProfilTaux();
 
   // Avertissement plafond 40 km
   const warn = $("kmCapWarn");
   if (warn) warn.style.display = capped ? "block" : "none";
 
-  // Le taux manuel et le barème CV s'excluent : choisir un CV désactive le taux saisi
-  if ($("kmRate")) $("kmRate").style.opacity = cv ? "0.5" : "1";
-
-  if (eff > 0 && !cv && kmPf($("kmRate")?.value) <= 0) {
-    preview.innerHTML = "👉 Choisis ta puissance fiscale (ou un taux €/km) pour estimer les frais.";
+  // Le barème dépend du véhicule ET du kilométrage annuel, qui vivent dans « Mes informations » :
+  // on ne les redemande plus ici, on rappelle seulement le taux retenu et d'où il vient.
+  if (eff > 0 && manuel <= 0 && veh.taux <= 0) {
+    preview.innerHTML = "👉 Renseigne ton véhicule et tes kilomètres annuels dans « Mes informations » (ou saisis un taux €/km) pour estimer les frais.";
     return;
   }
   let detail = "";
   if (rt || everyDay || capped) {
     detail = " = " + Math.round(base) + " km" + (capped ? " (plafond 40)" : "") + (rt ? " × 2 (A/R)" : "") + (everyDay ? " × " + nbDays + " j" : "");
   }
+  const source = manuel > 0
+    ? " · taux saisi à la main"
+    : (veh.taux > 0 ? "<br><small style='opacity:.75;'>Barème : <strong>" + veh.taux.toFixed(3).replace(".", ",") + " €/km</strong> · " + escapeHtml(kmVehiculeLabel(veh.kind, veh.cv, veh.kmAnnuel, veh.electrique)) + " — modifiable dans « Mes informations ».</small>" : "");
   preview.innerHTML = "Distance comptée : <strong>" + eff + " km</strong>" + detail +
-    "<br>Frais estimés : <strong>" + money(calculateKmAmount()) + "</strong>" + (cv ? " · " + kmTrancheLabel(tranche) : "");
+    "<br>Frais estimés : <strong>" + money(calculateKmAmount()) + "</strong>" + source;
 }
 
 // Autocomplétion d'adresse (API Adresse data.gouv.fr) avec suggestions cliquables + département
@@ -3888,7 +3966,7 @@ function setupEvents() {
   document.addEventListener('input', function(e){ if(e.target && e.target.id==='noteText'){ const c=$("noteCount"); if(c) c.textContent=(e.target.value||'').length+" / 200"; } });
   if ($("addMissionBackBtn")) $("addMissionBackBtn").addEventListener("click", () => activateView(addMissionReturnView));
   if ($("kmDistance")) $("kmDistance").addEventListener("input", updateKmPreview);
-  if ($("kmRate")) $("kmRate").addEventListener("input", () => { if ($("kmRate").value && $("kmCv")) $("kmCv").value = ""; updateKmPreview(); });
+  if ($("kmRate")) $("kmRate").addEventListener("input", updateKmPreview);
   if ($("saveAreAdmissionDateBtn")) {
     $("saveAreAdmissionDateBtn").addEventListener("click", async () => {
       const value = $("areAdmissionDate").value;
@@ -3983,8 +4061,8 @@ function setupEvents() {
   attachAddressAutocomplete($("aeClientAddress"));
   attachAddressAutocomplete($("societeAdresse"));
   // Choisir une puissance fiscale prime le taux manuel
-  if ($("kmCv")) $("kmCv").addEventListener("change", updateKmPreview);
-  if ($("kmTranche")) $("kmTranche").addEventListener("change", updateKmPreview);
+  // Les sélecteurs de puissance et de tranche n'existent plus dans le formulaire : le taux vient de
+  // « Mes informations » via kmProfilTaux().
   if ($("kmRoundTrip")) $("kmRoundTrip").addEventListener("change", updateKmPreview);
   if ($("kmEveryDay")) $("kmEveryDay").addEventListener("change", updateKmPreview);
   if ($("kmJustify")) $("kmJustify").addEventListener("change", updateKmPreview);
@@ -4155,7 +4233,7 @@ var POSTES_MUSIQUE = ['Concert','Répétition','Session studio','Atelier / Péda
 async function loadProfil(){
   if(!currentUser) return;
   try{
-    const { data } = await sb.from('profiles').select('annexe,postes,droits_ouverts,taux_journalier,taux_impot,are_date,production_colors,notes,ae_custom_presta,custom_postes,km_cv,km_tranche').eq('id', currentUser.id).maybeSingle();
+    const { data } = await sb.from('profiles').select('annexe,postes,droits_ouverts,taux_journalier,taux_impot,are_date,production_colors,notes,ae_custom_presta,custom_postes,km_cv,km_tranche,km_vehicle,km_annual,km_electric').eq('id', currentUser.id).maybeSingle();
     _profil = data || null;
     // Date ARE : la base de données fait foi (synchro multi-appareils).
     // Sinon, on migre la valeur locale (ancienne) vers la base.
@@ -4255,16 +4333,15 @@ function _profilEnsureDom(){
     // ma voiture, et mon nombre de kilomètres annuel ne change pas d'une mission à l'autre »).
     // Clés identiques au barème de l'appli ET du site : ne pas diverger.
     + '<div class="pf-label">Ton véhicule <span style="font-weight:400;opacity:.65;">— pré-remplit tes frais kilométriques</span></div>'
-    + '<div class="pf-hint">Puissance fiscale (carte grise, case P.6). Tu n\'auras plus qu\'à saisir tes kilomètres.</div>'
-    + '<div class="pf-seg" id="pfKmCv">'
-      + [['3','3 CV'],['4','4 CV'],['5','5 CV'],['6','6 CV'],['7','7+ CV'],['moto','Moto']].map(function(o){
-          return '<button type="button" class="pf-opt" data-kmcv="'+o[0]+'">'+o[1]+'</button>'; }).join('')
+    + '<div class="pf-seg" id="pfKmKind">'
+      + KM_VEHICLES.map(function(v){ return '<button type="button" class="pf-opt" data-kmkind="'+v.key+'">'+escapeHtml(v.label)+'</button>'; }).join('')
     + '</div>'
-    + '<div class="pf-label">Kilomètres parcourus par an</div>'
-    + '<div class="pf-seg" id="pfKmTranche">'
-      + [['1','≤ 5 000'],['2','5 001–20 000'],['3','> 20 000']].map(function(o){
-          return '<button type="button" class="pf-opt" data-kmtranche="'+o[0]+'">'+o[1]+'</button>'; }).join('')
-    + '</div>'
+    + '<div class="pf-hint" id="pfKmHint"></div>'
+    + '<div class="pf-seg" id="pfKmCv"></div>'
+    + '<div class="pf-label">Kilomètres parcourus par an <span style="font-weight:400;opacity:.65;">— tous trajets confondus</span></div>'
+    + '<input type="number" id="pfKmAnnual" class="pf-input" placeholder="Ex : 12000" min="0" step="100"/>'
+    + '<div class="pf-seg" id="pfKmElec" style="margin-top:8px;"><button type="button" class="pf-opt" data-kmelec="1">100 % électrique <span style="opacity:.7;">(barème +20 %)</span></button></div>'
+    + '<div class="pf-hint" id="pfKmApercu" style="display:none;"></div>'
     + '<div class="pf-label">As-tu déjà ouvert tes droits ?</div>'
     + '<div class="pf-seg" id="pfDroits"><button type="button" class="pf-opt" data-droits="oui">Oui</button><button type="button" class="pf-opt" data-droits="non">Pas encore</button></div>'
     + '<div id="pfAjWrap" style="display:none;"><div class="pf-label">Ton taux journalier (AJ)</div><input type="number" id="pfAj" class="pf-input" placeholder="Ex : 67.60" min="0" step="0.01"/><div class="pf-hint">L\'allocation journalière nette de ta notification France Travail. Sert au calcul du revenu mensuel.</div><div class="pf-label">Ton taux d\'imposition (prélèvement à la source)</div><input type="number" id="pfImpot" class="pf-input" placeholder="Ex : 8.6" min="0" max="100" step="0.1"/><div class="pf-hint">En %, celui de ta notification / tes paies. Pour estimer ton allocation nette d\'impôt. Optionnel.</div></div>'
@@ -4284,9 +4361,24 @@ function _profilEnsureDom(){
   document.body.appendChild(intro);
 
   ov.querySelector('#pfAnnexe').addEventListener('click', function(e){ var b=e.target.closest('[data-annexe]'); if(!b)return; ov.querySelectorAll('#pfAnnexe .pf-opt').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); _profilRenderPostes(b.dataset.annexe); });
-  // Véhicule mémorisé : le CV se dé-sélectionne au 2e clic (on peut ne pas vouloir de barème), la tranche non.
-  ov.querySelector('#pfKmCv').addEventListener('click', function(e){ var b=e.target.closest('[data-kmcv]'); if(!b)return; var was=b.classList.contains('on'); ov.querySelectorAll('#pfKmCv .pf-opt').forEach(function(x){x.classList.remove('on');}); if(!was) b.classList.add('on'); });
-  ov.querySelector('#pfKmTranche').addEventListener('click', function(e){ var b=e.target.closest('[data-kmtranche]'); if(!b)return; ov.querySelectorAll('#pfKmTranche .pf-opt').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); });
+  // Véhicule mémorisé. Le type pilote la liste des puissances : un cyclomoteur n'en a pas, et les
+  // catégories moto ne sont pas celles des voitures.
+  ov.querySelector('#pfKmKind').addEventListener('click', function(e){
+    var b=e.target.closest('[data-kmkind]'); if(!b)return;
+    ov.querySelectorAll('#pfKmKind .pf-opt').forEach(function(x){x.classList.remove('on');}); b.classList.add('on');
+    _pfRenderKmCv(b.dataset.kmkind, ''); _pfKmApercu();
+  });
+  ov.querySelector('#pfKmCv').addEventListener('click', function(e){
+    var b=e.target.closest('[data-kmcv]'); if(!b)return;
+    var was=b.classList.contains('on');
+    ov.querySelectorAll('#pfKmCv .pf-opt').forEach(function(x){x.classList.remove('on');});
+    if(!was) b.classList.add('on'); // 2e clic = désélection : on peut ne pas vouloir de barème
+    _pfKmApercu();
+  });
+  ov.querySelector('#pfKmElec').addEventListener('click', function(e){
+    var b=e.target.closest('[data-kmelec]'); if(!b)return; b.classList.toggle('on'); _pfKmApercu();
+  });
+  ov.querySelector('#pfKmAnnual').addEventListener('input', _pfKmApercu);
   ov.querySelector('#pfDroits').addEventListener('click', function(e){ var b=e.target.closest('[data-droits]'); if(!b)return; ov.querySelectorAll('#pfDroits .pf-opt').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); document.getElementById('pfAjWrap').style.display = b.dataset.droits==='oui'?'block':'none'; });
   document.getElementById('pfCancel').addEventListener('click', function(){ ov.classList.remove('open'); });
   document.getElementById('pfSave').addEventListener('click', _profilSave);
@@ -4319,11 +4411,13 @@ function openProfilModal(){
   else if(dr===false){ ov.querySelector('[data-droits="non"]').classList.add('on'); document.getElementById('pfAjWrap').style.display='none'; }
   document.getElementById('pfAj').value = (_profil && _profil.taux_journalier!=null) ? _profil.taux_journalier : '';
   document.getElementById('pfImpot').value = (_profil && _profil.taux_impot!=null) ? _profil.taux_impot : '';
-  // Véhicule mémorisé (retour JB)
-  var _kcv = (_profil && _profil.km_cv) || '';
-  var _ktr = (_profil && _profil.km_tranche) || '1';
-  ov.querySelectorAll('#pfKmCv .pf-opt').forEach(function(x){ x.classList.toggle('on', x.dataset.kmcv===_kcv); });
-  ov.querySelectorAll('#pfKmTranche .pf-opt').forEach(function(x){ x.classList.toggle('on', x.dataset.kmtranche===_ktr); });
+  // Véhicule mémorisé (retour JB). Nouveau format si présent, sinon migration de l'ancien.
+  var _v = kmProfilTaux();
+  ov.querySelectorAll('#pfKmKind .pf-opt').forEach(function(x){ x.classList.toggle('on', x.dataset.kmkind===_v.kind); });
+  _pfRenderKmCv(_v.kind, _v.cv);
+  document.getElementById('pfKmAnnual').value = _v.kmAnnuel || '';
+  ov.querySelectorAll('#pfKmElec .pf-opt').forEach(function(x){ x.classList.toggle('on', _v.electrique); });
+  _pfKmApercu();
   ov.classList.add('open');
 }
 
@@ -4333,16 +4427,18 @@ async function _profilSave(){
   var aBtn = ov.querySelector('#pfAnnexe .pf-opt.on');
   var dBtn = ov.querySelector('#pfDroits .pf-opt.on');
   var droits = dBtn ? (dBtn.dataset.droits==='oui') : null;
+  var kindBtn = ov.querySelector('#pfKmKind .pf-opt.on');
   var cvBtn = ov.querySelector('#pfKmCv .pf-opt.on');
-  var trBtn = ov.querySelector('#pfKmTranche .pf-opt.on');
   var p = {
     annexe: aBtn ? aBtn.dataset.annexe : null,
     postes: getCustomPostes(),
     droits_ouverts: droits,
     taux_journalier: droits===true ? (Number(document.getElementById('pfAj').value)||null) : null,
     taux_impot: droits===true ? (Number(document.getElementById('pfImpot').value)||null) : null,
+    km_vehicle: kindBtn ? kindBtn.dataset.kmkind : null,
     km_cv: cvBtn ? cvBtn.dataset.kmcv : null,
-    km_tranche: trBtn ? trBtn.dataset.kmtranche : null
+    km_annual: Number(document.getElementById('pfKmAnnual').value) || null,
+    km_electric: !!ov.querySelector('#pfKmElec .pf-opt.on')
   };
   var res = await sb.from('profiles').upsert(Object.assign({ id: currentUser.id }, p), { onConflict:'id' });
   if(res.error){ if(typeof toast==='function') toast('Erreur : '+res.error.message); return; }
@@ -4405,14 +4501,39 @@ function _knownAddrs(){
     .map(function(label){ return { label: label, coords: coords[label] || null }; })
     .filter(function(a){ return a.coords != null; });
 }
-// Véhicule mémorisé dans « Mes informations » → pré-remplit les frais km (retour JB).
-// Reste modifiable mission par mission : on ne fait que remplir la valeur par défaut.
-function _applyKmProfil(){
-  var cv = (typeof _profil !== 'undefined' && _profil && _profil.km_cv) || '';
-  var tr = (typeof _profil !== 'undefined' && _profil && _profil.km_tranche) || '1';
-  if ($("kmCv")) $("kmCv").value = cv;
-  if ($("kmTranche")) $("kmTranche").value = tr;
-  if (typeof updateKmPreview === 'function') updateKmPreview();
+// Le formulaire ne porte plus ni puissance ni tranche : le taux vient de kmProfilTaux(). On se
+// contente donc de rafraîchir l'aperçu, qui affiche le taux retenu et son origine.
+function _applyKmProfil(){ if (typeof updateKmPreview === 'function') updateKmPreview(); }
+
+// Puissances proposées selon le type de véhicule (le cyclomoteur n'en a pas).
+function _pfRenderKmCv(kind, current){
+  var box = document.getElementById('pfKmCv'); if(!box) return;
+  var hint = document.getElementById('pfKmHint');
+  var meta = KM_VEHICLES.find(function(v){ return v.key === kind; });
+  if(hint) hint.textContent = (meta && meta.hint) || '';
+  if(kind === 'cyclo'){ box.innerHTML = ''; box.style.display = 'none'; return; }
+  box.style.display = 'flex';
+  var list = kind === 'moto' ? KM_MOTO_CV : KM_CAR_CV;
+  box.innerHTML = list.map(function(o){
+    return '<button type="button" class="pf-opt' + (o.key === current ? ' on' : '') + '" data-kmcv="' + o.key + '">' + escapeHtml(o.label) + '</button>';
+  }).join('');
+}
+// Aperçu chiffré : rend le barème concret, et laisse voir tout de suite si un réglage est faux.
+function _pfKmApercu(){
+  var out = document.getElementById('pfKmApercu'); if(!out) return;
+  var ov = document.getElementById('profilOverlay'); if(!ov) return;
+  var kindBtn = ov.querySelector('#pfKmKind .pf-opt.on');
+  var kind = kindBtn ? kindBtn.dataset.kmkind : 'car';
+  var cvBtn = ov.querySelector('#pfKmCv .pf-opt.on');
+  var cv = cvBtn ? cvBtn.dataset.kmcv : '';
+  var km = Number((document.getElementById('pfKmAnnual') || {}).value) || 0;
+  var elec = !!ov.querySelector('#pfKmElec .pf-opt.on');
+  if((!cv && kind !== 'cyclo') || km <= 0){ out.style.display = 'none'; return; }
+  var frais = kmFraisAnnuels(kind, cv, km, elec);
+  if(frais <= 0){ out.style.display = 'none'; return; }
+  out.style.display = 'block';
+  out.innerHTML = 'Barème : <strong>' + Math.round(frais).toLocaleString('fr-FR') + ' €</strong> pour ' + km.toLocaleString('fr-FR')
+    + ' km, soit <strong>' + (frais / km).toFixed(3).replace('.', ',') + ' €/km</strong> appliqués à tes missions.';
 }
 function _syncAddrBtn(which){
   var i = document.getElementById(which === 'from' ? 'kmFrom' : 'kmTo');
