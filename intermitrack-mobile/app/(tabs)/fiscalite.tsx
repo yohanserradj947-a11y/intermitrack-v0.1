@@ -140,8 +140,12 @@ export default function Fiscalite() {
           <Text style={s.autoVal}>{money0(yearGross)}</Text>
         </View>
 
+        {/* Pas d'estimation auto ici, contrairement aux Congés Spectacles : l'ARE annuelle ne pourrait
+            venir que de la somme de 12 estimations mensuelles, qui sont des fourchettes. Ce champ part
+            dans une déclaration d'impôts — on renvoie donc au seul chiffre qui fasse foi. */}
         <Text style={s.label}>ARE perçue sur l&apos;année (€)</Text>
         <NumInput style={s.input} value={are} onChangeText={save('fisc_are', setAre)} placeholder="Ex : 4200" placeholderTextColor={C.muted} />
+        <Text style={s.hint}>Le montant exact figure sur ton attestation fiscale France Travail (espace personnel → Mes allocations → Attestation fiscale).</Text>
 
         <Text style={s.label}>Congés Spectacles reçus (€)</Text>
         <NumInput style={s.input} value={conges} onChangeText={save('fisc_conges', setConges)} placeholder={`Estimé auto ~${money0(Math.round(yearGross * 0.10))}`} placeholderTextColor={C.muted} />
