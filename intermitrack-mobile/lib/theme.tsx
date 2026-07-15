@@ -148,9 +148,19 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     AsyncStorage.setItem(FONT_KEY, p);
   }
 
+  // Les widgets ne lisaient le thème qu'au chargement des missions (onglet Calendrier) : changer de
+  // thème ne les prévenait jamais, ils gardaient l'ancienne couleur. Retour Yohan : « le widget reste
+  // tout le temps sombre quel que soit le thème ». On les prévient donc à chaque changement.
+  // require() différé et non import en tête : widgetSync importe déjà ce fichier (paletteFor) — un
+  // import statique créerait un cycle, avec paletteFor potentiellement undefined à l'initialisation.
+  function pushThemeToWidgets(id: ThemeId, s: CustomSettings | null) {
+    try { require('./widgetSync').syncWidgetTheme(id, s); } catch (e) { /* non bloquant */ }
+  }
+
   function setTheme(id: ThemeId) {
     setThemeId(id);
     AsyncStorage.setItem(STORAGE_KEY, id);
+    pushThemeToWidgets(id, custom);
   }
 
   function setCustom(s: CustomSettings) {
@@ -158,6 +168,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setThemeId('custom');
     AsyncStorage.setItem(CUSTOM_KEY, JSON.stringify(s));
     AsyncStorage.setItem(STORAGE_KEY, 'custom');
+    pushThemeToWidgets('custom', s);
   }
 
   // Conservé pour la bascule rapide clair <-> sombre.
@@ -165,6 +176,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setThemeId(prev => {
       const next: ThemeId = prev === 'light' ? 'dark' : 'light';
       AsyncStorage.setItem(STORAGE_KEY, next);
+      pushThemeToWidgets(next, custom); // même trou que setTheme : sans ça, les widgets ne suivent pas
       return next;
     });
   }

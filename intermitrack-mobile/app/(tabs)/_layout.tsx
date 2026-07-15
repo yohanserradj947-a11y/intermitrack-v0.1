@@ -18,12 +18,15 @@ const MaterialTopTabs = withLayoutContext(Navigator);
 
 const ICON = 22;
 
-// Largeur maximale du contenu. Toutes les mises en page sont pensées pour un téléphone : sur un
-// grand écran (iPad, ou l'appli iOS lancée sur un Mac Apple Silicon), les étirer donnerait des
-// cartes démesurées et des textes qui traversent l'écran. On borne donc la largeur et on centre :
-// aucun changement sur téléphone (toujours plus étroit que cette limite), et un rendu présentable
-// au-delà. Le fond du thème continue de remplir tout l'écran derrière.
-const MAX_W = 620;
+// Largeur maximale du contenu. Les mises en page sont pensées pour un téléphone : les étirer sans
+// limite sur un grand écran donnerait des cartes démesurées et des lignes de texte qui traversent
+// l'écran. On borne donc, et on centre. Aucun effet sur téléphone (toujours plus étroit).
+//
+// 900 et non 620 : à 620, un iPad affichait de larges bandes de chaque côté (retour Yohan sur
+// TestFlight, testé sur un iPad 768 x 1024 pt). À 900, le portrait est rempli entièrement et le
+// paysage ne laisse qu'une marge discrète. Valeur réglée sur l'appareil, pas au jugé.
+// L'écran de connexion, lui, est hors de ce conteneur et occupe tout l'écran — c'est voulu.
+const MAX_W = 900;
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();

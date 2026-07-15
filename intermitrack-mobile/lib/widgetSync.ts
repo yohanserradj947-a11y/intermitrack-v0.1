@@ -3,6 +3,50 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { paletteFor, ThemeId, CustomSettings } from './theme';
 
 const GROUP = 'group.fr.intermitrack.app';
+
+// Palette envoyée aux widgets. Une seule définition, utilisée par syncWidgets() ET syncWidgetTheme() :
+// deux copies auraient fini par diverger.
+function paletteForWidget(themeId: ThemeId, customTheme: CustomSettings | null) {
+  const C = paletteFor(themeId, customTheme);
+  return { bg: C.card, text: C.text, muted: C.muted, petrol: C.petrol, green: C.green, orange: C.orange, line: C.line, track: C.track };
+}
+
+// Met à jour UNIQUEMENT le thème des widgets, sans avoir besoin des missions.
+//
+// Pourquoi : le thème n'était écrit que par syncWidgets(), lui-même appelé seulement au chargement
+// des missions dans l'onglet Calendrier. Changer de thème ne prévenait donc JAMAIS le widget, qui
+// gardait la couleur de la dernière visite du calendrier — d'où « le widget reste tout le temps
+// sombre quel que soit le thème » (retour Yohan).
+//
+// On reçoit themeId/custom en paramètres plutôt que de les relire : l'appelant vient de les changer,
+// et l'écriture AsyncStorage est asynchrone — on relirait l'ANCIENNE valeur.
+export async function syncWidgetTheme(themeId: ThemeId, customTheme: CustomSettings | null) {
+  try {
+    const themePalette = paletteForWidget(themeId, customTheme);
+
+    if (Platform.OS === 'ios') {
+      let ExtensionStorage: any;
+      try { ExtensionStorage = require('@bacons/apple-targets').ExtensionStorage; } catch (e) { return; }
+      if (!ExtensionStorage) return;
+      const storage = new ExtensionStorage(GROUP);
+      storage.set('widget_theme', JSON.stringify(themePalette));
+      ExtensionStorage.reloadWidget();
+      return;
+    }
+
+    // Android : le widget est re-rendu côté JS, il faut donc lui repasser les données déjà stockées.
+    await AsyncStorage.setItem('widget_theme', JSON.stringify(themePalette));
+    try {
+      const { requestWidgetUpdate } = require('react-native-android-widget');
+      const { buildWidget } = require('../components/widgets/IntermitrackWidgets');
+      const read = async (k: string) => { try { const v = await AsyncStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } };
+      const data = { hours: await read('widget_hours'), next: await read('widget_next'), cal: await read('widget_calendar'), theme: themePalette };
+      ['Hours', 'Next', 'CalendarAgenda', 'CalendarMonth'].forEach((wname) => {
+        requestWidgetUpdate({ widgetName: wname, renderWidget: () => buildWidget(wname, data), widgetNotFound: () => {} });
+      });
+    } catch (e) { /* lib indisponible (ex. web) → non bloquant */ }
+  } catch (e) { /* non bloquant */ }
+}
 const pad = (n: number) => String(n).padStart(2, '0');
 const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
@@ -50,10 +94,11 @@ export async function syncWidgets(missions: any[], getColor: (name: string) => s
     let customTheme: CustomSettings | null = null;
     try { const cv = await AsyncStorage.getItem('intermitrack_theme_custom'); if (cv) customTheme = JSON.parse(cv); } catch (e) {}
     const C = paletteFor(themeId, customTheme);
+    // (palette widget calculée plus bas via paletteForWidget — même source que syncWidgetTheme)
     // Dégradés par défaut = ceux de l'app pour CE thème (passé pétrole→vert, futur orange du thème).
     const GRAD_PAST = [C.petrol, C.green];
     const GRAD_FUTURE = prodGradient(C.orange);
-    const themePalette = { bg: C.card, text: C.text, muted: C.muted, petrol: C.petrol, green: C.green, orange: C.orange, line: C.line, track: C.track };
+    const themePalette = paletteForWidget(themeId, customTheme);
 
     // --- Heures / 507h : DEPUIS la date ARE (période de droits France Travail), comme l'app ---
     let done = 0, planned = 0;
