@@ -95,7 +95,11 @@ export function eventToDraft(ev: any): MissionDraft {
     hours = textHours; hoursFound = true;
   } else if (!allDay) {
     const diff = (endRaw.getTime() - start.getTime()) / 3600000;
-    if (diff > 0 && diff <= 24) { hours = Math.round(diff * 2) / 2; hoursFound = true; }
+    // Strictement moins de 24 h : un créneau de minuit à minuit est une journée
+    // entière déguisée (agendas synchronisés, créneau posé à la main) et n'a pas
+    // toujours le drapeau allDay. Personne ne travaille 24 h : on préfère 8 h
+    // signalé « à compléter » plutôt que 24 h validé en silence.
+    if (diff > 0 && diff < 24) { hours = Math.round(diff * 2) / 2; hoursFound = true; }
   }
 
   // Dates : les "journée entière" ont une fin exclusive (minuit du lendemain) → on retire 1 ms.
