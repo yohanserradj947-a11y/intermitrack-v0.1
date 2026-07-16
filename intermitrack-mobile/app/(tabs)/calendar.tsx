@@ -384,13 +384,13 @@ export default function Calendar(){
 
   function moveMonth(n:number){const d=new Date(current);d.setMonth(d.getMonth()+n);d.setDate(1);setCurrent(d);setPage(0);}
   function _showExcelInfo(){
-    showAlert('Format Excel / CSV',
-      "Une ligne par mission. Intermitrack lit ces colonnes (peu importe l'ordre) :\n\n• Date — ex. 05/07/2026\n• Production — l'employeur\n• Heures — ex. 8\n• Montant / Brut — ex. 230\n\nExemple :\nDate | Production | Heures | Montant\n05/07/2026 | ENDEMOL | 8 | 230\n\nUne colonne manque ? Pas grave, tu completeras apres l'import.",
+    showAlert('Importer depuis un Excel',
+      "Garde ton fichier tel quel : c'est l'appli qui s'adapte au tien, pas l'inverse.\n\nUne ligne = une mission. Je cherche quatre choses :\n\n• Date — 05/07/2026, 5 juillet 2026, 05-07-26…\n• Production — l'employeur\n• Heures — 8, 8h, 7,5\n• Montant brut — 230, 230 €\n\nCOMMENT CA SE PASSE\nJe lis ton fichier et je te montre les colonnes que j'ai reconnues. Si je me trompe, tu touches la ligne et tu me designes la bonne : je te propose tes colonnes avec un exemple de leur contenu, donc tu t'y retrouves meme si ton tableau n'a aucun en-tete.\n\nLe nombre de missions trouvees s'affiche en direct pendant que tu corriges.\n\nPlusieurs onglets dans le fichier ? Tu choisis lequel.\n\nSeule la date est indispensable. Le reste se complete apres, ligne par ligne.",
       [{text:'Compris'}]);
   }
   function _showCalInfo(){
-    showAlert('Format agenda / calendrier',
-      "Intermitrack lit les evenements de ton agenda (iPhone / Samsung). Pour qu'il recupere tout, ecris dans le TITRE de l'evenement :\n\nProduction   Heures   Prix\nEx : ENDEMOL 8h 350€\n\nL'ordre est libre (ENDEMOL 350€ 8h marche aussi). La date vient de l'evenement.\n\nPas d'heures indiquees ? On met 8h par defaut pour le jour (modifiable apres l'import). Il manque une autre info ? Tu completeras apres.",
+    showAlert('Importer depuis ton agenda',
+      "Je lis les evenements de ton agenda (iPhone / Samsung) et j'en fais des missions. Ecris dans le TITRE :\n\nProduction   Heures   Prix\nEx : ENDEMOL 8h 350€\n\nL'ordre est libre : ENDEMOL 350€ 8h marche aussi.\n\nLES HEURES\n• Un seul horaire = un nombre d'heures.\n   ENDEMOL 12h  →  12 heures travaillees.\n• Deux horaires = un creneau, je calcule.\n   ENDEMOL 9h-17h  →  8 heures.\n   Mission de nuit : 20h-2h  →  6 heures.\n\nCe que tu ecris l'emporte sur la duree de l'evenement : si tu notes 12h sur un creneau d'une heure, je retiens 12 h.\n\nRien d'ecrit ? Je prends la duree du creneau, sinon 8 h par defaut.\n\nLa date vient de l'evenement. Tout reste modifiable avant l'import.",
       [{text:'Compris'}]);
   }
 
@@ -442,7 +442,7 @@ export default function Calendar(){
         <View style={{flex:1}}>
           <TouchableOpacity onPress={_showCalInfo} hitSlop={6} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:4,marginBottom:5}}>
             <Ionicons name="information-circle-outline" size={14} color={C.petrol}/>
-            <Text style={{fontSize:11.5,fontWeight:'800',color:C.petrol}}>Format agenda</Text>
+            <Text style={{fontSize:11.5,fontWeight:'800',color:C.petrol}}>Comment ça marche</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={()=>{trackEvent('import_open',{mode:'calendar'});setImportMode('calendar');setShowImport(true);}} activeOpacity={0.85} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
             <Ionicons name="calendar-outline" size={17} color={C.petrol}/>
@@ -452,7 +452,7 @@ export default function Calendar(){
         <View style={{flex:1}}>
           <TouchableOpacity onPress={_showExcelInfo} hitSlop={6} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:4,marginBottom:5}}>
             <Ionicons name="information-circle-outline" size={14} color={C.petrol}/>
-            <Text style={{fontSize:11.5,fontWeight:'800',color:C.petrol}}>Format Excel</Text>
+            <Text style={{fontSize:11.5,fontWeight:'800',color:C.petrol}}>Comment ça marche</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={()=>{trackEvent('import_open',{mode:'excel'});setImportMode('excel');setShowImport(true);}} activeOpacity={0.85} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
             <Ionicons name="document-text-outline" size={17} color={C.petrol}/>
