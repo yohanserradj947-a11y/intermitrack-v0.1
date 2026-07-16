@@ -916,7 +916,7 @@ export default function Calendar(){
                   />
                   <TouchableOpacity style={s.kmCheck} onPress={()=>setKmRT(v=>!v)}>
                     <View style={[s.kmBox,kmRT&&s.kmBoxOn]}>{kmRT&&<Text style={s.kmBoxTxt}>✓</Text>}</View>
-                    <Text style={s.kmCheckTxt}>Aller-retour (×2)</Text>
+                    <Text style={s.kmCheckTxt}>Je fais l'aller-retour (×2)</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={s.kmCheck} onPress={()=>setKmEveryDay(v=>!v)}>
                     <View style={[s.kmBox,kmEveryDay&&s.kmBoxOn]}>{kmEveryDay&&<Text style={s.kmBoxTxt}>✓</Text>}</View>
