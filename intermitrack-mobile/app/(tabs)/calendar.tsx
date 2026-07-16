@@ -773,7 +773,7 @@ export default function Calendar(){
               )}
               {!showTypePicker && !!fType && (
                 <TouchableOpacity onPress={()=>{setTypeAddMode(true);setShowTypePicker(true);}}>
-                  <Text style={s.typeAddLink}>+ 2e type de mission (ex. Son + Light)</Text>
+                  <Text style={s.typeAddLink}>+ Ajouter un type (ex. Montage + Démontage)</Text>
                 </TouchableOpacity>
               )}
               {showTypePicker && (
