@@ -167,7 +167,7 @@ export default function Calendar(){
     // Régime général et enseignement = toujours en HEURES (jamais de cachets, ce n'est pas du spectacle).
     // Sinon un artiste, forcé en mode cachet par son annexe, ne pouvait pas saisir ses heures d'enseignement.
     setFMode(regime==='intermittence' ? modeForNew(annexe) : 'heures'); setFCachets('');
-    setFHours(''); setFGross(salaireJour>0?String(salaireJour):''); setFVacations(''); setMdpDays([]);
+    setFHours(''); setFGross(salaireJour>0?String(salaireJour):''); setFVacations('1'); setMdpDays([]);
     setKmOpen(false); setKmFrom(''); setKmTo(''); setKmFromCoords(null); setKmToCoords(null); setKmRT(false); setKmEveryDay(false); setKmJustify(false); setKmDistance(''); setKmRate('');
     // Plus rien à pré-remplir ici : le taux vient directement de « Mes informations » (kmDefaults.taux).
     setShowFromPicker(false); setShowToPicker(false);
