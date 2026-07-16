@@ -3557,7 +3557,9 @@ function setMissionModeForOpen(forceMode){
   // Régime général / enseignement : toujours en heures, jamais de cachets, sélecteur masqué (retour Alizée).
   if(typeof _missionRegime!=='undefined' && _missionRegime!=='intermittence'){ if(row) row.style.display='none'; applyMissionMode('heures'); return; }
   if(ax==='les_deux'){ if(row) row.style.display='flex'; applyMissionMode(forceMode||_missionMode||'heures'); }
-  else if(ax==='artiste'){ if(row) row.style.display='none'; applyMissionMode('cachet'); }
+  // Artiste : cachet PAR DÉFAUT mais plus enfermé — le sélecteur reste visible pour basculer en
+  // heures si un contrat est payé à l'heure (retours Pauline/Alizée : ne plus bloquer les artistes).
+  else if(ax==='artiste'){ if(row) row.style.display='flex'; applyMissionMode(forceMode||'cachet'); }
   else { if(row) row.style.display='none'; applyMissionMode('heures'); }
 }
 document.addEventListener('click', function(e){ const b=e.target.closest && e.target.closest('#missionModeRow .mm-opt'); if(b) applyMissionMode(b.dataset.mm); });

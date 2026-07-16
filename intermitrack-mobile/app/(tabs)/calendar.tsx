@@ -833,9 +833,11 @@ export default function Calendar(){
                   onChange={(_e,date)=>{setShowEndPicker(false);if(date){setFEnd(date); if(!editId && fMode!=='cachet' && mdpDays.length===0 && daysInclusive(fStart,date)>=2){ openDayPicker(fStart,date); }}}}/>
               )}
 
-              {/* « Les deux » : c'est l'utilisateur qui dit, mission par mission, s'il saisit en heures ou en cachets.
-                  En technicien / artiste, le mode est imposé par l'annexe et ce sélecteur reste caché. */}
-              {annexe==='les_deux' && fRegime==='intermittence' && (
+              {/* L'annexe donne le mode PAR DÉFAUT (cachet pour un artiste), mais ne l'enferme plus :
+                  artiste et « les deux » voient le sélecteur pour basculer Heures/Cachets si un contrat
+                  est payé en heures. Évite de bloquer les artistes payés à l'heure (Pauline, Alizée…).
+                  Technicien = heures par défaut, jamais bloqué → pas besoin du sélecteur. */}
+              {(annexe==='les_deux' || annexe==='artiste') && fRegime==='intermittence' && (
                 <View style={{flexDirection:'row',gap:8,marginTop:4,marginBottom:4}}>
                   {([['heures','Heures'],['cachet','Cachets']] as ['heures'|'cachet',string][]).map(([val,lbl])=>(
                     <TouchableOpacity key={val} style={[s.mmOpt, fMode===val&&{backgroundColor:C.petrol,borderColor:C.petrol}]} onPress={()=>setFMode(val)}>
