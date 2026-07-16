@@ -46,7 +46,9 @@ export default function Fiscalite() {
   const insets = useSafeAreaInsets();
   const { session } = useSession();
   const uid = session?.user?.id;
-  const year = new Date().getFullYear();
+  // Année FISCALE navigable (impôts = année civile). On déclare souvent l'année précédente.
+  const nowYear = new Date().getFullYear();
+  const [year, setYear] = useState(nowYear);
 
   const [missions, setMissions] = useState<any[]>([]);
   const [frais, setFrais] = useState<any[]>([]);
@@ -128,6 +130,16 @@ export default function Fiscalite() {
       <View style={s.header}>
         <Text style={s.title}>Fiscalité</Text>
         <Text style={s.sub}>Estimations indicatives pour intermittents du spectacle.</Text>
+        {/* Année fiscale (impôts = année civile) : navigable pour déclarer l'année précédente. */}
+        <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:18,marginTop:12}}>
+          <TouchableOpacity onPress={()=>setYear(y=>y-1)} hitSlop={10} style={s.yrArrow}><Text style={s.yrArrowTxt}>‹</Text></TouchableOpacity>
+          <View style={{alignItems:'center',minWidth:110}}>
+            <Text style={s.yrVal}>{year}</Text>
+            <Text style={s.yrCap}>{year===nowYear?'Année en cours':`Revenus ${year}`}</Text>
+          </View>
+          <TouchableOpacity onPress={()=>setYear(y=>Math.min(nowYear,y+1))} disabled={year>=nowYear} hitSlop={10} style={[s.yrArrow,year>=nowYear&&{opacity:0.3}]}><Text style={s.yrArrowTxt}>›</Text></TouchableOpacity>
+        </View>
+        {!yMissions.length && <Text style={[s.sub,{textAlign:'center',marginTop:6}]}>Aucune mission saisie en {year}.</Text>}
       </View>
 
       <View style={s.warn}>
@@ -262,6 +274,10 @@ const makeS = (C: any) => StyleSheet.create({
   header: { backgroundColor: C.card, padding: 18, paddingTop: 52, borderBottomWidth: 1, borderBottomColor: C.line },
   title: { fontSize: 22, fontWeight: '900', color: C.petrol, letterSpacing: -0.5 },
   sub: { fontSize: 13, color: C.muted, marginTop: 4 },
+  yrArrow: { width: 40, height: 40, borderRadius: 12, borderWidth: 1.5, borderColor: C.petrol, alignItems: 'center', justifyContent: 'center' },
+  yrArrowTxt: { fontSize: 22, fontWeight: '900', color: C.petrol, lineHeight: 24 },
+  yrVal: { fontSize: 24, fontWeight: '900', color: C.text },
+  yrCap: { fontSize: 11.5, color: C.muted, marginTop: 1 },
   warn: { backgroundColor: C.warnBg, borderWidth: 1, borderColor: C.warnBd, borderRadius: 12, margin: 16, marginBottom: 0, padding: 12 },
   warnTitle: { fontSize: 13, fontWeight: '800', color: C.warnTx },
   warnTxt: { fontSize: 12, color: C.warnTx, marginTop: 4, lineHeight: 17 },

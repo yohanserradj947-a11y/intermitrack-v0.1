@@ -16,6 +16,7 @@ let deferredInstallPrompt = null;
 let historyPage = 1;
 let areAdmissionDate = "";
 let aiYearOffset = 0; // navigation dans l'historique des années d'intermittence (0 = année en cours)
+let _fiscalYear = new Date().getFullYear(); // année FISCALE affichée (impôts = année civile), navigable
 let _missionMode = 'heures';   // 'heures' (technicien) | 'cachet' (artiste) — pour la saisie de mission
 const CACHET_H = 12;           // 1 cachet = 12 h pour le comptage des 507 h (cachet isolé ; ajustable via le champ heures)
 
@@ -2315,7 +2316,7 @@ function fraisTotalForYear(year) {
 }
 
 function renderFraisList() {
-  const year = new Date().getFullYear();
+  const year = _fiscalYear; // aligné sur l'année fiscale choisie
   if ($("fraisYearLbl")) $("fraisYearLbl").textContent = year;
   if ($("fraisTotalPreview")) $("fraisTotalPreview").textContent = money2(fraisTotalForYear(year));
   const list = $("fraisList");
@@ -2616,7 +2617,7 @@ function renderFiscalite(yearGross, yearMissions) {
   const netAre = arePercue; // ARE = net imposable direct
   const netConges = Math.round(congesSpec * 0.88); // ~12% cotisations sur congés
   const netTotal = netSalaires + netAre + netConges + otherIncome;
-  const fraisSaisis = fraisTotalForYear(new Date().getFullYear());
+  const fraisSaisis = fraisTotalForYear(_fiscalYear);
   const totalFraisReels = totalKmAmount + autresFrais + fraisSaisis;
 
   // Abattement forfaitaire vs frais réels
@@ -2828,9 +2829,15 @@ function render() {
   // Sinon, dès qu'une date ARE est posée, le récap fiscal (dont les km) glissait sur les 12 mois
   // depuis l'anniversaire des droits au lieu de l'année civile (bug confirmé, retour JB 16/07).
   // Sans date ARE, yearMissions vaut déjà l'année civile → aucun changement pour ces utilisateurs.
-  const _fyS = new Date(year, 0, 1).getTime(), _fyE = new Date(year + 1, 0, 1).getTime();
+  const _fyS = new Date(_fiscalYear, 0, 1).getTime(), _fyE = new Date(_fiscalYear + 1, 0, 1).getTime();
   const fiscalMissions = missions.filter((m) => { const t = new Date((m.date) + "T00:00:00").getTime(); return t >= _fyS && t < _fyE; });
   const fiscalGross = fiscalMissions.reduce((a, x) => a + Number(x.gross || 0), 0);
+  // Sélecteur d'année fiscale : libellé + flèche « suivant » plafonnée à l'année en cours.
+  const _nowFY = new Date().getFullYear();
+  if ($("fyVal")) $("fyVal").textContent = _fiscalYear;
+  if ($("fyCap")) $("fyCap").textContent = _fiscalYear === _nowFY ? "Année en cours" : "Revenus " + _fiscalYear;
+  if ($("fyNext")) $("fyNext").style.opacity = _fiscalYear >= _nowFY ? ".3" : "1";
+  if ($("fyEmpty")) { if (!fiscalMissions.length) { $("fyEmpty").style.display = "block"; $("fyEmpty").textContent = "Aucune mission saisie en " + _fiscalYear + "."; } else $("fyEmpty").style.display = "none"; }
   const monthGross = Math.round(selectedMonthMissions.reduce((a, x) => a + Number(x.gross || 0) * monthFrac(x), 0));
   const percent = Math.round((yearHours / OBJECTIVE_HOURS) * 100);
   const remaining = Math.max(0, Math.round((OBJECTIVE_HOURS - yearHours - plannedHours - formationHours - enseignementHours) * 10) / 10);
@@ -4245,6 +4252,9 @@ function setupEvents() {
 
   _renderTabDots(); // points de position des onglets (au 1er affichage)
  
+  // Navigation de l'année fiscale (impôts)
+  if ($("fyPrev")) $("fyPrev").addEventListener("click", () => { _fiscalYear--; render(); renderFraisList(); });
+  if ($("fyNext")) $("fyNext").addEventListener("click", () => { _fiscalYear = Math.min(new Date().getFullYear(), _fiscalYear + 1); render(); renderFraisList(); });
   if ($("recapPrevBtn")) $("recapPrevBtn").addEventListener("click", () => moveMonth(-1));
   if ($("recapNextBtn")) $("recapNextBtn").addEventListener("click", () => moveMonth(1));
   if ($("recapMonthPicker")) {

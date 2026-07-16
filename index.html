@@ -847,6 +847,16 @@ z-index: 500 !important;
         <article class="card">
           <h2>Fiscalité</h2>
           <p class="sub">Estimations indicatives pour intermittents du spectacle.</p>
+          <!-- Année fiscale (impôts = année civile) : navigable pour déclarer l'année précédente. -->
+          <div style="display:flex;align-items:center;justify-content:center;gap:18px;margin:12px 0 2px;">
+            <button type="button" id="fyPrev" aria-label="Année précédente" style="width:40px;height:40px;border-radius:12px;border:1.5px solid var(--petrol);background:var(--card);color:var(--petrol);font-size:22px;font-weight:900;line-height:1;cursor:pointer;font-family:inherit;">‹</button>
+            <div style="text-align:center;min-width:120px;">
+              <div id="fyVal" style="font-size:24px;font-weight:900;color:var(--petrol);">—</div>
+              <div id="fyCap" style="font-size:11.5px;color:var(--muted);"></div>
+            </div>
+            <button type="button" id="fyNext" aria-label="Année suivante" style="width:40px;height:40px;border-radius:12px;border:1.5px solid var(--petrol);background:var(--card);color:var(--petrol);font-size:22px;font-weight:900;line-height:1;cursor:pointer;font-family:inherit;">›</button>
+          </div>
+          <p class="hint" id="fyEmpty" style="text-align:center;display:none;margin-top:4px;"></p>
           <div style="background:#FFF7ED;border:1px solid #FDBA74;border-radius:12px;padding:12px 14px;margin:12px 0 18px;font-size:13px;color:#9A3412;line-height:1.55;">
             <strong>⚠️ Version bêta — estimations indicatives</strong><br>
             Tous les montants de cet onglet (impôt, frais réels, abattements…) sont des <strong>estimations qui peuvent être faussées</strong> selon ta situation personnelle. Elles ne remplacent pas un calcul officiel : vérifie toujours sur <a href="https://www.impots.gouv.fr" target="_blank" style="color:#9A3412;text-decoration:underline;font-weight:600;">impots.gouv.fr</a> ou auprès d'un professionnel avant toute déclaration.
@@ -1367,7 +1377,7 @@ z-index: 500 !important;
   </main>
 
   <script src="document-parser.js?v=5"></script>
-  <script src="app.js?v=64"></script>
+  <script src="app.js?v=65"></script>
 
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>
