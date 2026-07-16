@@ -1603,7 +1603,8 @@ async function _mdpSaveBreakdown(){
   }
   const payloads = runs.map(function(r, idx){
     const runHours = r.hours * r.days;
-    const gross = sumHours > 0 ? Math.round(totalGross * (runHours / sumHours)) : Math.round(totalGross / runs.length);
+    // Au centime près (retour Benjamin) : l'arrondi à l'euro faussait le brut journalier, donc la déclaration.
+    const gross = sumHours > 0 ? Math.round(totalGross * (runHours / sumHours) * 100) / 100 : Math.round(totalGross / runs.length * 100) / 100;
     return {
       user_id: currentUser.id, production: production, emission: emission, lieu: lieu,
       mission_type: type, mission_date: r.start, end_date: r.end,
@@ -1612,7 +1613,7 @@ async function _mdpSaveBreakdown(){
     };
   });
   const grossSum = payloads.reduce(function(s,p){ return s + p.gross_amount; }, 0);
-  if (payloads.length) payloads[0].gross_amount += (totalGross - grossSum);
+  if (payloads.length) payloads[0].gross_amount = Math.round((payloads[0].gross_amount + (totalGross - grossSum)) * 100) / 100;
   const res = await sb.from("missions").insert(payloads);
   if (res.error){ toast("Erreur sauvegarde : " + res.error.message); return; }
   await _afterMissionSave(payloads[0].mission_date);
@@ -3546,6 +3547,8 @@ function applyMissionMode(mode){
 function setMissionModeForOpen(forceMode){
   const ax=(typeof _profil!=='undefined' && _profil && _profil.annexe) || 'technicien';
   const row=$("missionModeRow");
+  // Régime général / enseignement : toujours en heures, jamais de cachets, sélecteur masqué (retour Alizée).
+  if(typeof _missionRegime!=='undefined' && _missionRegime!=='intermittence'){ if(row) row.style.display='none'; applyMissionMode('heures'); return; }
   if(ax==='les_deux'){ if(row) row.style.display='flex'; applyMissionMode(forceMode||_missionMode||'heures'); }
   else if(ax==='artiste'){ if(row) row.style.display='none'; applyMissionMode('cachet'); }
   else { if(row) row.style.display='none'; applyMissionMode('heures'); }
@@ -3576,6 +3579,14 @@ function _renderNoteColors(){
 var _missionRegime = "intermittence";
 function _setMissionRegime(r) {
   _missionRegime = (r === "general" || r === "enseignement") ? r : "intermittence";
+  // Régime général et enseignement = toujours en HEURES (jamais de cachets, ce n'est pas du spectacle).
+  // Sinon un artiste, forcé en mode cachet par son annexe, ne pouvait pas enregistrer ses heures (retour Alizée).
+  if (_missionRegime !== "intermittence") {
+    var _row = $("missionModeRow"); if (_row) _row.style.display = "none";
+    applyMissionMode("heures");
+  } else if (typeof setMissionModeForOpen === "function") {
+    setMissionModeForOpen(); // retour en intermittence : mode selon l'annexe
+  }
   _renderRegimeBox();
 }
 function _missionTitleTxt() {

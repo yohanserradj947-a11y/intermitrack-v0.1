@@ -160,7 +160,9 @@ export default function Calendar(){
     setFRegime(regime);
     setFProduction(''); setFEmission(''); setFLieu(''); setShowLieuSuggest(false); setNewPoste(''); setFType('Montage'); setFStart(day); setFEnd(day);
     setShowTypePicker(false); setTypeAddMode(false);
-    setFMode(modeForNew(annexe)); setFCachets('');
+    // Régime général et enseignement = toujours en HEURES (jamais de cachets, ce n'est pas du spectacle).
+    // Sinon un artiste, forcé en mode cachet par son annexe, ne pouvait pas saisir ses heures d'enseignement.
+    setFMode(regime==='intermittence' ? modeForNew(annexe) : 'heures'); setFCachets('');
     setFHours(''); setFGross(''); setFVacations(''); setMdpDays([]);
     setKmOpen(false); setKmFrom(''); setKmTo(''); setKmFromCoords(null); setKmToCoords(null); setKmRT(false); setKmEveryDay(false); setKmJustify(false); setKmDistance(''); setKmRate('');
     // Plus rien à pré-remplir ici : le taux vient directement de « Mes informations » (kmDefaults.taux).
@@ -177,7 +179,8 @@ export default function Calendar(){
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
     // Relecture selon le mode : en cachet, le champ heures ne contient que les heures EN PLUS des cachets.
     const _h=Number(m.hours||0), _v=Number(m.vacations||0);
-    const _mode=modeForEdit(annexe,_h,_v);
+    // Régime général / enseignement : toujours en heures, jamais en cachet (voir openCreate).
+    const _mode=(m.regime && m.regime!=='intermittence') ? 'heures' : modeForEdit(annexe,_h,_v);
     setFMode(_mode);
     if(_mode==='cachet'){ setFCachets(String(_v||'')); setFHours(String(extraHoursOf(_h,_v)||'')); }
     else { setFCachets(''); setFHours(String(m.hours||'')); }
@@ -655,7 +658,7 @@ export default function Calendar(){
                   <Text style={s.rgLead}>Les deux ne comptent pas pareil dans tes 507 h. Choisis ton cas :</Text>
 
                   <TouchableOpacity style={[s.rgOpt,fRegime==='general'&&s.rgOptOn]} activeOpacity={0.85}
-                    onPress={()=>setFRegime('general')}>
+                    onPress={()=>{setFRegime('general');setFMode('heures');}}>
                     <View style={s.rgOptHead}>
                       <View style={[s.rgRadio,fRegime==='general'&&s.rgRadioOn]}>
                         {fRegime==='general'?<View style={s.rgRadioDot}/>:null}
@@ -667,7 +670,7 @@ export default function Calendar(){
                   </TouchableOpacity>
 
                   <TouchableOpacity style={[s.rgOpt,fRegime==='enseignement'&&s.rgOptOn]} activeOpacity={0.85}
-                    onPress={()=>setFRegime('enseignement')}>
+                    onPress={()=>{setFRegime('enseignement');setFMode('heures');}}>
                     <View style={s.rgOptHead}>
                       <View style={[s.rgRadio,fRegime==='enseignement'&&s.rgRadioOn]}>
                         {fRegime==='enseignement'?<View style={s.rgRadioDot}/>:null}
@@ -832,7 +835,7 @@ export default function Calendar(){
 
               {/* « Les deux » : c'est l'utilisateur qui dit, mission par mission, s'il saisit en heures ou en cachets.
                   En technicien / artiste, le mode est imposé par l'annexe et ce sélecteur reste caché. */}
-              {annexe==='les_deux' && (
+              {annexe==='les_deux' && fRegime==='intermittence' && (
                 <View style={{flexDirection:'row',gap:8,marginTop:4,marginBottom:4}}>
                   {([['heures','Heures'],['cachet','Cachets']] as ['heures'|'cachet',string][]).map(([val,lbl])=>(
                     <TouchableOpacity key={val} style={[s.mmOpt, fMode===val&&{backgroundColor:C.petrol,borderColor:C.petrol}]} onPress={()=>setFMode(val)}>
