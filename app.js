@@ -2693,6 +2693,13 @@ function render() {
   const monthFrac = (m) => missionDaysInMonth(m, current) / missionDayCount(m);
   const monthHours = Math.round(selectedMonthMissions.reduce((total, m) => total + Number(m.hours || 0) * monthFrac(m), 0) * 10) / 10;
   const yearGross = yearMissions.reduce((a, x) => a + Number(x.gross || 0), 0);
+  // FISCALITÉ = année CIVILE (impôts), TOUJOURS — jamais la fenêtre « année d'intermittence ».
+  // Sinon, dès qu'une date ARE est posée, le récap fiscal (dont les km) glissait sur les 12 mois
+  // depuis l'anniversaire des droits au lieu de l'année civile (bug confirmé, retour JB 16/07).
+  // Sans date ARE, yearMissions vaut déjà l'année civile → aucun changement pour ces utilisateurs.
+  const _fyS = new Date(year, 0, 1).getTime(), _fyE = new Date(year + 1, 0, 1).getTime();
+  const fiscalMissions = missions.filter((m) => { const t = new Date((m.date) + "T00:00:00").getTime(); return t >= _fyS && t < _fyE; });
+  const fiscalGross = fiscalMissions.reduce((a, x) => a + Number(x.gross || 0), 0);
   const monthGross = Math.round(selectedMonthMissions.reduce((a, x) => a + Number(x.gross || 0) * monthFrac(x), 0));
   const percent = Math.round((yearHours / OBJECTIVE_HOURS) * 100);
   const remaining = Math.max(0, Math.round((OBJECTIVE_HOURS - yearHours - plannedHours - formationHours - enseignementHours) * 10) / 10);
@@ -2718,7 +2725,7 @@ function render() {
   if($("vacLabelDash")){ const _art=(typeof _profil!=="undefined" && _profil && _profil.annexe==="artiste"); $("vacLabelDash").textContent = _art ? "Cachets" : "Vacations"; }
 }
   if ($("progressText")) $("progressText").textContent = percent + "% de ton objectif intermittent";
-  renderFiscalite(yearGross, yearMissions);
+  renderFiscalite(fiscalGross, fiscalMissions);
 
   renderChart(yearHours, plannedHours, formationHours, enseignementHours);
   ;

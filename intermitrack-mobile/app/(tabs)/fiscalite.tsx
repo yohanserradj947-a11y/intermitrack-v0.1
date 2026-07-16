@@ -100,6 +100,8 @@ export default function Fiscalite() {
   const yMissions = missions.filter((m: any) => new Date((m.mission_date || '') + 'T00:00:00').getFullYear() === year);
   const yearGross = yMissions.reduce((a: number, m: any) => a + Number(m.gross_amount || 0), 0);
   const totalKmAmount = yMissions.reduce((a: number, m: any) => a + Number(m.km_amount || 0), 0);
+  // Total de kilomètres de l'année (distance, pas le montant) — pratique au moment de déclarer (retour JB).
+  const totalKmDistance = Math.round(yMissions.reduce((a: number, m: any) => a + Number(m.km_distance || 0), 0));
   const fraisSaisis = frais.filter((x: any) => (x.frais_date || '').slice(0, 4) === String(year)).reduce((a: number, x: any) => a + Number(x.montant || 0), 0);
 
   const congesSpec = conges !== '' ? num(conges) : Math.round(yearGross * 0.10);
@@ -177,6 +179,7 @@ export default function Fiscalite() {
       </View>
       <View style={s.card}>
         <View style={s.autoRow}><Text style={s.autoLbl}>Frais km (missions) <Text style={s.autoTag}>✓ auto</Text></Text><Text style={s.autoVal}>{money2(totalKmAmount)}</Text></View>
+        <View style={s.autoRow}><Text style={s.autoLbl}>Total kilomètres ({year})</Text><Text style={s.autoVal}>{totalKmDistance} km</Text></View>
         <View style={s.autoRow}><Text style={s.autoLbl}>Dépenses saisies ({year})</Text><Text style={s.autoVal}>{money2(fraisSaisis)}</Text></View>
         <Text style={s.label}>Autres frais réels non listés (€)</Text>
         <NumInput style={s.input} value={autresFrais} onChangeText={save('fisc_autresfrais', setAutresFrais)} placeholder="0" placeholderTextColor={C.muted} />
