@@ -80,12 +80,19 @@ export function AccountMenu(){
   const [miKmElec,setMiKmElec]=useState(false);
   const [miAj,setMiAj]=useState('');
   const [miImpot,setMiImpot]=useState('');
+  // Salaire journalier (brut) : sert à pré-remplir le prix des missions et de l'import notes.
+  // Lu/écrit à part (défensif) car la colonne peut ne pas exister avant la migration.
+  const [miSalaireJour,setMiSalaireJour]=useState('');
+  const [profilSalaireJour,setProfilSalaireJour]=useState<number|null>(null);
 
   useEffect(()=>{loadProfil();},[]);
 
   async function loadProfil(){
     const { data:{ user } }=await supabase.auth.getUser();
-    if(user){ const { data }=await supabase.from('profiles').select('annexe,droits_ouverts,taux_journalier,taux_impot,km_cv,km_tranche,km_vehicle,km_annual,km_electric').eq('id',user.id).maybeSingle(); setProfil(data||null); }
+    if(user){ const { data }=await supabase.from('profiles').select('annexe,droits_ouverts,taux_journalier,taux_impot,km_cv,km_tranche,km_vehicle,km_annual,km_electric').eq('id',user.id).maybeSingle(); setProfil(data||null);
+      try { const r=await supabase.from('profiles').select('salaire_journalier').eq('id',user.id).maybeSingle();
+        setProfilSalaireJour(r.data && r.data.salaire_journalier!=null ? Number(r.data.salaire_journalier) : null); } catch(e){}
+    }
   }
 
   function openMesInfosModal(){
@@ -105,6 +112,7 @@ export function AccountMenu(){
       setMiKmAnnual(profil?.km_cv ? String(m.kmAnnuel) : '');
     }
     setMiKmElec(!!profil?.km_electric);
+    setMiSalaireJour(profilSalaireJour!=null?String(profilSalaireJour):'');
     setShowMesInfos(true);
   }
 
@@ -120,6 +128,8 @@ export function AccountMenu(){
     const droits=miDroits===true;
     const { error }=await supabase.from('profiles').upsert({ id:user.id, annexe:miAnnexe||null, droits_ouverts:miDroits, taux_journalier:droits?(Number(miAj)||null):null, taux_impot:droits?(Number(miImpot)||null):null, km_vehicle:miKmKind||null, km_cv:miKmCv||null, km_annual:Number(miKmAnnual)||null, km_electric:miKmElec },{onConflict:'id'});
     if(error){ showAlert('Erreur',error.message); return; }
+    // Écriture séparée et défensive : ne casse pas la sauvegarde du reste si la colonne n'existe pas encore.
+    try { await supabase.from('profiles').upsert({ id:user.id, salaire_journalier:Number(miSalaireJour)||null },{onConflict:'id'}); } catch(e){}
     setShowMesInfos(false); loadProfil(); _emitProfilChanged();
   }
 
@@ -292,6 +302,9 @@ export function AccountMenu(){
                   </TouchableOpacity>
                 ))}
               </View>
+
+              <Text style={[s.label,{marginTop:16}]}>Ton salaire journalier brut <Text style={{fontWeight:'400',color:C.muted,fontSize:12}}>— pré-remplit le prix de tes missions</Text></Text>
+              <NumInput style={s.input} value={miSalaireJour} onChangeText={setMiSalaireJour} placeholder="Ex : 230" placeholderTextColor={C.muted}/>
 
               {/* Vehicule memorise -> pre-remplit les frais km de chaque mission (retour JB).
                   Les cles sont celles du bareme, identiques a l'appli ET au site : ne pas diverger. */}

@@ -19,6 +19,7 @@ import { typeParts, addType, removeType } from '../../lib/missionType';
 import ProductionPickerModal from '../../components/ProductionPickerModal';
 import AddressPickerModal from '../../components/AddressPickerModal';
 import { knownAddresses, useKmDefaults } from '../../lib/kmAddresses';
+import { onProfilChanged } from '../../components/AccountMenu';
 import type { KmDefaults } from '../../lib/kmAddresses';
 import { VEHICLES, CAR_CV, MOTO_CV } from '../../lib/kmBareme';
 import ColorPickerModal from '../../components/ColorPickerModal';
@@ -133,6 +134,9 @@ export default function Calendar(){
   const [showToPicker,setShowToPicker]=useState(false);
   // Vehicule memorise dans « Mes informations » : pre-remplit chaque mission, reste modifiable ici.
   const kmDefaults=useKmDefaults();
+  // Salaire journalier (Mes informations) : pré-remplit le prix des missions et des notes.
+  const [salaireJour,setSalaireJour]=useState(0);
+  useEffect(()=>{ const load=async()=>{ try{ const {data:{user}}=await supabase.auth.getUser(); if(!user)return; const r=await supabase.from('profiles').select('salaire_journalier').eq('id',user.id).maybeSingle(); setSalaireJour(r.data&&r.data.salaire_journalier!=null?Number(r.data.salaire_journalier):0); }catch(e){} }; load(); return onProfilChanged(load); },[]);
   const [kmDistance,setKmDistance]=useState('');
   const [kmRate,setKmRate]=useState('');
   const [kmCalc,setKmCalc]=useState(false);
@@ -163,7 +167,7 @@ export default function Calendar(){
     // Régime général et enseignement = toujours en HEURES (jamais de cachets, ce n'est pas du spectacle).
     // Sinon un artiste, forcé en mode cachet par son annexe, ne pouvait pas saisir ses heures d'enseignement.
     setFMode(regime==='intermittence' ? modeForNew(annexe) : 'heures'); setFCachets('');
-    setFHours(''); setFGross(''); setFVacations(''); setMdpDays([]);
+    setFHours(''); setFGross(salaireJour>0?String(salaireJour):''); setFVacations(''); setMdpDays([]);
     setKmOpen(false); setKmFrom(''); setKmTo(''); setKmFromCoords(null); setKmToCoords(null); setKmRT(false); setKmEveryDay(false); setKmJustify(false); setKmDistance(''); setKmRate('');
     // Plus rien à pré-remplir ici : le taux vient directement de « Mes informations » (kmDefaults.taux).
     setShowFromPicker(false); setShowToPicker(false);
@@ -458,7 +462,7 @@ export default function Calendar(){
         <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}}>Coller mes notes</Text>
       </TouchableOpacity>
 
-      <CalendarImportModal visible={showImport} mode={importMode} avgDaily={(()=>{const g=missions.reduce((a:number,m:any)=>a+Number(m.gross_amount||0),0);const v=missions.reduce((a:number,m:any)=>a+Number(m.vacations||0),0);return g>0&&v>0?Math.round(g/v):0;})()} onClose={()=>setShowImport(false)} onImported={()=>loadMissions()}/>
+      <CalendarImportModal visible={showImport} mode={importMode} avgDaily={salaireJour>0?salaireJour:(()=>{const g=missions.reduce((a:number,m:any)=>a+Number(m.gross_amount||0),0);const v=missions.reduce((a:number,m:any)=>a+Number(m.vacations||0),0);return g>0&&v>0?Math.round(g/v):0;})()} onClose={()=>setShowImport(false)} onImported={()=>loadMissions()}/>
 
       <Modal visible={showMonthPicker} transparent animationType="fade" onRequestClose={()=>setShowMonthPicker(false)}>
         <TouchableOpacity activeOpacity={1} onPress={()=>setShowMonthPicker(false)} style={{flex:1,backgroundColor:'rgba(0,0,0,.5)',justifyContent:'center',alignItems:'center',padding:24}}>

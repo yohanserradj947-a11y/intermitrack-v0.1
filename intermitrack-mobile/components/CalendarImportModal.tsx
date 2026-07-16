@@ -244,7 +244,7 @@ export default function CalendarImportModal({
             {(hoursGuessed || priceGuessed) && <Text style={s.guessChip}>
               {[
                 hoursGuessed ? (cachetMode ? '1 cachet par défaut' : `${defH} h par défaut`) : null,
-                priceGuessed ? `${item.gross_amount} € (ton tarif moyen)` : null,
+                priceGuessed ? `${item.gross_amount} € (ton tarif journalier)` : null,
               ].filter(Boolean).join(' · ')} — à vérifier
             </Text>}
           </TouchableOpacity>
@@ -299,7 +299,7 @@ export default function CalendarImportModal({
                 placeholderTextColor={C.muted}
               />
               <Text style={s.bodyMuted}>
-                Ce qui manque sera pré-rempli : les heures ({cachetMode ? '1 cachet de 12 h, car ton profil est artiste' : '8 h, car ton profil est technicien'}){dailyRate > 0 ? `, et ${dailyRate} € pour le prix (ton tarif journalier moyen)` : ''}. Tu vérifies et corriges chaque ligne avant de valider.
+                Ce qui manque sera pré-rempli : les heures ({cachetMode ? '1 cachet de 12 h, car ton profil est artiste' : '8 h, car ton profil est technicien'}){dailyRate > 0 ? `, et ${dailyRate} € pour le prix (ton tarif journalier)` : ''}. Tu vérifies et corriges chaque ligne avant de valider.
               </Text>
               <Text style={s.body}>De quelle année s'agit-il ?</Text>
               <Text style={s.bodyMuted}>Tes notes n'indiquent pas l'année : confirme-la (une ligne qui précise jj/mm/aaaa garde la sienne).</Text>
