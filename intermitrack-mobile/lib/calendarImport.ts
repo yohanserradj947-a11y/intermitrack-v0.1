@@ -151,10 +151,11 @@ function monthOfLine(line: string): number | null {
   for (const [rx, m] of MONTH_PREFIX) { if (rx.test(w)) return m; }
   return null;
 }
-export function parseNotesText(text: string, year: number, defaultHours = 8, defaultPrice = 0): MissionDraft[] {
+export function parseNotesText(text: string, year: number, defaultHours = 8, defaultPrice = 0): { drafts: MissionDraft[]; skipped: string[] } {
   const lines = String(text || '').split(/\r?\n/);
   let curMonth: number | null = null;
   const out: MissionDraft[] = [];
+  const skipped: string[] = []; // lignes non blanches qu'on n'a pas su lire → montrées dans l'erreur
   let idx = 0;
   for (const raw of lines) {
     const line = raw.trim();
@@ -165,14 +166,12 @@ export function parseNotesText(text: string, year: number, defaultHours = 8, def
     const asMonth = monthOfLine(line);
     if (asMonth && digits === 0) { curMonth = asMonth; continue; }
 
-    // Puce en tête de ligne. Deux formes :
-    //  - symbole (*, •, ·, ▪, ou tiret + espace) → toujours une puce.
-    //  - numéro de liste (« 1. », « 2) ») SUIVI d'une date → puce ; le lookahead
-    //    « une date suit » évite de casser un vrai « 18.03 » (jj.mm).
-    let work = line;
-    const symBullet = work.match(/^\s*(?:[*•·▪]\s*|-\s+)/);
-    if (symBullet) work = work.slice(symBullet[0].length);
-    const numBullet = work.match(/^\s*\d{1,2}[.)]\s*(?=\d{1,2}[\/\-.]\d{1,2})/);
+    // On enlève TOUT caractère de tête qui n'est ni lettre ni chiffre : puces (*, •, -, –,
+    // ▪, ‣, →, +, emoji…), espaces insécables, etc. Robuste à n'importe quel format.
+    let work = line.replace(/^[^\p{L}\p{N}]+/u, '');
+    // Numéro de liste (« 1. », « 2) ») SUIVI d'une date → puce ; le lookahead évite de
+    // casser un vrai « 18.03 » (jj.mm).
+    const numBullet = work.match(/^\d{1,2}[.)]\s*(?=\d{1,2}[\/\-.]\d{1,2})/);
     if (numBullet) work = work.slice(numBullet[0].length);
 
     // Date explicite jj/mm(/aaaa) → prioritaire sur l'année confirmée. On prend la 1re
@@ -198,7 +197,7 @@ export function parseNotesText(text: string, year: number, defaultHours = 8, def
         if (d >= 1 && d <= 31) { dateISO = `${year}-${String(curMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`; rest = work.slice(dayM[0].length); }
       }
     }
-    if (!dateISO) continue; // ligne non reconnue (légende, texte libre…) → ignorée
+    if (!dateISO) { skipped.push(line); continue; } // non reconnue → on la garde pour l'afficher
 
     const parsed = parseEventText(rest, '');
     const prod = parsed.prod, textHours = parsed.textHours;
@@ -225,7 +224,7 @@ export function parseNotesText(text: string, year: number, defaultHours = 8, def
     });
   }
   out.sort((a, b) => a.mission_date.localeCompare(b.mission_date));
-  return out;
+  return { drafts: out, skipped };
 }
 
 // Demande l'accès, lit tous les calendriers, récupère les événements sur la période et les analyse.

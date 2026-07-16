@@ -112,11 +112,14 @@ export default function CalendarImportModal({
         return;
       }
       if (mode === 'notes') {
-        const found = parseNotesText(notesText, notesYear, defH, dailyRate);
-        trackEvent('import_read', { mode, annee: notesYear, lues: found.length });
+        const { drafts: found, skipped } = parseNotesText(notesText, notesYear, defH, dailyRate);
+        trackEvent('import_read', { mode, annee: notesYear, lues: found.length, ignorees: skipped.length });
         if (!found.length) {
           trackEvent('import_failed', { mode, raison: 'aucune_ligne' });
-          setError("Je n'ai reconnu aucune ligne. Chaque ligne doit commencer par un jour, avec un en-tête de mois au-dessus (ex : « MARS » puis « 18 prod 8h 230 »).");
+          const ex = skipped.slice(0, 4).map((l) => `•  ${l}`).join('\n');
+          setError("Je n'ai reconnu aucune mission." + (ex
+            ? `\n\nCes lignes m'ont bloqué :\n${ex}${skipped.length > 4 ? `\n(+${skipped.length - 4} autres)` : ''}\n\nChaque ligne a besoin d'un JOUR et d'un MOIS : soit « 18/03 prod 8h 230 », soit un en-tête « MARS » au-dessus puis « 18 prod 8h 230 ».`
+            : "\n\nColle des lignes avec un jour et un mois (ex : « MARS » puis « 18 prod 8h 230 »)."));
           setPhase('intro'); return;
         }
         await toPreview(found, 'notes');
@@ -289,7 +292,7 @@ export default function CalendarImportModal({
             <View style={s.pad}>
               <Text style={s.body}>Colle tes notes telles que tu les écris. Un en-tête de mois, puis une ligne par date :</Text>
               <Text style={[s.bodyMuted, { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>MARS{'\n'}18 vdlm 8h 230{'\n'}19 endemol 12h 450</Text>
-              <TextInput
+              <TxtInput
                 style={s.notesInput}
                 value={notesText}
                 onChangeText={setNotesText}

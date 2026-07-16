@@ -455,18 +455,18 @@ function _noteExtract(text){
   return { gross:gross, textHours:textHours, prod:prod };
 }
 function _parseNotes(text, year, defH, defP){
-  var lines=String(text||'').split(/\r?\n/), curMonth=null, out=[];
+  var lines=String(text||'').split(/\r?\n/), curMonth=null, out=[], skipped=[];
   for(var li=0;li<lines.length;li++){
     var line=lines[li].trim(); if(!line)continue;
     var digits=(line.match(/\d/g)||[]).length, asMonth=_noteMonthOfLine(line);
     if(asMonth&&digits===0){ curMonth=asMonth; continue; }
-    var work=line;
-    var symB=work.match(/^\s*(?:[*•·▪]\s*|-\s+)/); if(symB)work=work.slice(symB[0].length);
-    var bullet=work.match(/^\s*\d{1,2}[.)]\s*(?=\d{1,2}[\/\-.]\d{1,2})/); if(bullet)work=work.slice(bullet[0].length);
+    // On enlève tout caractère de tête qui n'est ni lettre ni chiffre : puces (*, •, -, –, ▪, →, +, emoji…), nbsp…
+    var work=line.replace(/^[^\p{L}\p{N}]+/u,'');
+    var bullet=work.match(/^\d{1,2}[.)]\s*(?=\d{1,2}[\/\-.]\d{1,2})/); if(bullet)work=work.slice(bullet[0].length);
     var dateISO=null, rest=work, re=/(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?/g, mt;
     while((mt=re.exec(work))){ var d=+mt[1], mo=+mt[2]; if(d>=1&&d<=31&&mo>=1&&mo<=12){ var y=mt[3]?(mt[3].length===2?2000+ +mt[3]:+mt[3]):year; dateISO=y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0'); rest=work.slice(0,mt.index)+' '+work.slice(mt.index+mt[0].length); break; } }
     if(!dateISO&&curMonth){ var dayM=work.match(/^(?:(?:lun|mar|mer|jeu|ven|sam|dim)[a-zàâäéèêëîïôöûüç.]*\s+)?(\d{1,2})\b/i); if(dayM){ var d2=+dayM[1]; if(d2>=1&&d2<=31){ dateISO=year+'-'+String(curMonth).padStart(2,'0')+'-'+String(d2).padStart(2,'0'); rest=work.slice(dayM[0].length); } } }
-    if(!dateISO)continue;
+    if(!dateISO){ skipped.push(line); continue; }
     var p=_noteExtract(rest), hf=(p.textHours!=null&&p.textHours>0&&p.textHours<=24), hours=hf?p.textHours:defH;
     var pf=p.gross>0, price=pf?p.gross:(defP>0?defP:0), missing=[];
     if(!p.prod||!p.prod.trim())missing.push('prod');
@@ -476,7 +476,7 @@ function _parseNotes(text, year, defH, defP){
     out.push({ date:dateISO, prod:(p.prod||'').replace(/[.\s]+$/,'').toUpperCase(), hours:hours, price:price, lieu:'', missing:missing, selected:true, check: chk.length?(chk.join(' · ')+' — à vérifier'):'' });
   }
   out.sort(function(a,b){return a.date.localeCompare(b.date);});
-  return out;
+  return { drafts: out, skipped: skipped };
 }
 function _openNotesImport(){
   var ov=document.getElementById('notesImportOverlay');
@@ -504,8 +504,13 @@ function _openNotesImport(){
   ov.style.display='flex';
   document.getElementById('niGo').onclick=async function(){
     var t=document.getElementById('niText').value, y=parseInt(document.getElementById('niYear').value,10)||year;
-    var drafts=_parseNotes(t,y,defH,defP);
-    if(!drafts.length){ var e=document.getElementById('niErr'); e.style.display='block'; e.textContent="Aucune ligne reconnue. Chaque ligne doit commencer par un jour, avec un en-tête de mois au-dessus (ex : « MARS » puis « 18 prod 8h 230 »)."; return; }
+    var _r=_parseNotes(t,y,defH,defP), drafts=_r.drafts, skipped=_r.skipped;
+    if(!drafts.length){ var e=document.getElementById('niErr'); e.style.display='block';
+      if(skipped.length){
+        var items=skipped.slice(0,4).map(function(l){return '•&nbsp;'+_xlEsc(l);}).join('<br>');
+        e.innerHTML="Je n'ai reconnu aucune mission.<br><br>Ces lignes m'ont bloqué :<br>"+items+(skipped.length>4?('<br>(+'+(skipped.length-4)+' autres)'):'')+"<br><br>Chaque ligne a besoin d'un JOUR et d'un MOIS : soit « 18/03 prod 8h 230 », soit un en-tête « MARS » au-dessus puis « 18 prod 8h 230 ».";
+      } else { e.textContent="Je n'ai reconnu aucune mission. Colle des lignes avec un jour et un mois (ex : « MARS » puis « 18 prod 8h 230 »)."; }
+      return; }
     try{ const ex=await sb.from('missions').select('mission_date,production'); const seen=new Set((ex.data||[]).map(function(m){return m.mission_date+'|'+String(m.production||'').toUpperCase();})); drafts=drafts.filter(function(d){return !seen.has(d.date+'|'+d.prod);}); }catch(_){}
     if(!drafts.length){ var e2=document.getElementById('niErr'); e2.style.display='block'; e2.textContent='Ces missions sont déjà dans ton compte — aucun doublon créé.'; return; }
     ov.style.display='none';
