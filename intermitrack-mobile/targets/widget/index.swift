@@ -28,7 +28,10 @@ func loadTheme() -> WTheme { loadJSON("widget_theme") ?? THEME_FALLBACK }
 
 extension Color {
   init(hexString: String) {
-    let h = hexString.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+    var h = hexString.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+    // Forme courte (#fff) : la déplier en #ffffff. Sans ça elle tombait dans le cas de
+    // secours ci-dessous et le texte sortait en pétrole, illisible sur une case colorée.
+    if h.count == 3 { h = h.map { "\($0)\($0)" }.joined() }
     var v: UInt64 = 0
     Scanner(string: h).scanHexInt64(&v)
     if h.count == 6 {

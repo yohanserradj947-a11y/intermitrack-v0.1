@@ -153,11 +153,14 @@ export async function syncWidgets(missions: any[], getColor: (name: string) => s
         const first = covering[0];
         const prod = (first.production || '').toUpperCase();
         const custom = getColor(prod); // hex ou null
-        const g = custom ? prodGradient(custom) : (past ? GRAD_PAST : GRAD_FUTURE);
+        // Aplat pour les couleurs perso : textOn() calcule le contraste sur cette
+        // teinte exacte, un dégradé rendrait le chiffre illisible sur ses extrémités.
+        const g = custom ? [custom] : (past ? GRAD_PAST : GRAD_FUTURE);
         const per = daysInclusive(first.mission_date, first.end_date || first.mission_date);
         const hours = Math.round((Number(first.hours || 0) / per) * 10) / 10;
         days.push({
-          d: day, ab: prod.slice(0, 3), g, txt: custom ? textOn(custom) : '#fff',
+          // Hex 6 caractères obligatoire : le décodeur Swift du widget ne lit pas la forme courte.
+          d: day, ab: prod.slice(0, 3), g, txt: custom ? textOn(custom) : '#FFFFFF',
           hours, more: covering.length - 1,
           hach: !!(past && custom),
           note: dayNotes.length > 0 ? (dayNotes[0].color || '#1E6FE0') : '',
@@ -165,7 +168,7 @@ export async function syncWidgets(missions: any[], getColor: (name: string) => s
       } else if (dayNotes.length > 0) {
         const n0 = dayNotes[0];
         const col = n0.color || '#1E6FE0';
-        days.push({ d: day, ab: noteAbbr(n0.title), g: prodGradient(col), txt: textOn(col), hours: 0, more: 0, hach: true, note: '' });
+        days.push({ d: day, ab: noteAbbr(n0.title), g: [col], txt: textOn(col), hours: 0, more: 0, hach: true, note: '' });
       }
     }
 
