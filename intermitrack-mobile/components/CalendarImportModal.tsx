@@ -1,16 +1,30 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Modal, View, Text, TouchableOpacity, FlatList, ActivityIndicator,
   StyleSheet, Platform, Linking, TextInput,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../lib/theme';
 import { supabase } from '../lib/supabase';
 import { GradientButton } from './GradientButton';
 import { scanCalendar, MissionDraft } from '../lib/calendarImport';
-import { pickAndParseExcel } from '../lib/excelImport';
+import {
+  pickAndReadExcel, autoDetect, countValid, buildDrafts,
+  Workbook, ColMap, ColKey,
+} from '../lib/excelImport';
+import { trackEvent } from '../lib/analytics';
 
-type Phase = 'intro' | 'loading' | 'preview' | 'importing' | 'done' | 'denied' | 'empty';
+type Phase = 'intro' | 'loading' | 'mapping' | 'preview' | 'importing' | 'done' | 'denied' | 'empty';
 type Mode = 'calendar' | 'excel';
+
+// Les 4 informations qu'on cherche dans le fichier. La date est la seule
+// indispensable : sans elle il n'y a pas de mission.
+const FIELDS: { key: ColKey; label: string; required?: boolean }[] = [
+  { key: 'date',  label: 'Date',       required: true },
+  { key: 'prod',  label: 'Production' },
+  { key: 'hours', label: 'Heures' },
+  { key: 'price', label: 'Montant brut' },
+];
 
 function fmtShort(iso: string) {
   const [y, m, d] = iso.split('-');
@@ -26,32 +40,88 @@ export default function CalendarImportModal({
   const [error, setError] = useState('');
   const [importedCount, setImportedCount] = useState(0);
   const [openKey, setOpenKey] = useState<string | null>(null);
+  // Étape « correspondance des colonnes » (Excel uniquement).
+  const [wb, setWb] = useState<Workbook | null>(null);
+  const [sheetIdx, setSheetIdx] = useState(0);
+  const [cols, setCols] = useState<ColMap | null>(null);
+  const [pickField, setPickField] = useState<ColKey | null>(null);
 
   function reset() {
     setPhase('intro'); setDrafts([]); setError(''); setImportedCount(0); setOpenKey(null);
+    setWb(null); setSheetIdx(0); setCols(null); setPickField(null);
   }
   function close() { reset(); onClose(); }
 
+  // On évite les doublons : on retire ce qui existe déjà (même date + même prod).
+  async function toPreview(found: MissionDraft[], source: string) {
+    const existing = new Set<string>();
+    try {
+      const { data } = await supabase.from('missions').select('mission_date,production');
+      (data || []).forEach((m: any) => existing.add(`${m.mission_date}|${(m.production || '').toUpperCase()}`));
+    } catch (e) {}
+    const fresh = found.filter((d) => !existing.has(`${d.mission_date}|${d.production}`));
+    trackEvent('import_parsed', { mode, source, lues: found.length, nouvelles: fresh.length });
+    if (!fresh.length) { setPhase('empty'); return; }
+    setDrafts(fresh); setPhase('preview');
+  }
+
   async function analyze() {
     setError(''); setPhase('loading');
+    trackEvent('import_start', { mode });
     try {
-      const { status, drafts: found } = mode === 'excel' ? await pickAndParseExcel() : await scanCalendar();
       if (mode === 'excel') {
-        if (status === 'canceled') { setPhase('intro'); return; }
-        if (status !== 'ok') { setError('Aucune date reconnue dans le fichier (colonnes attendues : Date, Production, Heures, Tarif).'); setPhase('intro'); return; }
-      } else if (status !== 'granted') { setPhase('denied'); return; }
-      // On évite les doublons : on retire ce qui existe déjà (même date + même prod).
-      const existing = new Set<string>();
-      try {
-        const { data } = await supabase.from('missions').select('mission_date,production');
-        (data || []).forEach((m: any) => existing.add(`${m.mission_date}|${(m.production || '').toUpperCase()}`));
-      } catch (e) {}
-      const fresh = found.filter((d) => !existing.has(`${d.mission_date}|${d.production}`));
-      if (!fresh.length) { setPhase('empty'); return; }
-      setDrafts(fresh); setPhase('preview');
+        // On LIT le fichier, on ne l'interprète pas encore : l'utilisateur
+        // valide la correspondance des colonnes avant qu'on crée quoi que ce soit.
+        const { status, wb: book } = await pickAndReadExcel();
+        if (status === 'canceled') { trackEvent('import_canceled', { mode }); setPhase('intro'); return; }
+        if (status !== 'ok' || !book) {
+          trackEvent('import_failed', { mode, raison: status });
+          setError(status === 'unreadable'
+            ? "Ce fichier n'a pas pu être ouvert. Enregistre-le au format .xlsx ou .csv, puis réessaie."
+            : 'Ce fichier ne contient aucune donnée.');
+          setPhase('intro'); return;
+        }
+        const first = book.sheets[0];
+        const detected = autoDetect(first);
+        setWb(book); setSheetIdx(0); setCols(detected);
+        trackEvent('import_read', {
+          mode, onglets: book.sheets.length, colonnes: first.columns.length,
+          detectees: FIELDS.filter((f) => detected[f.key] >= 0).map((f) => f.key),
+          lignes_datees: countValid(first, detected),
+        });
+        setPhase('mapping');
+        return;
+      }
+      const { status, drafts: found } = await scanCalendar();
+      if (status !== 'granted') { trackEvent('import_failed', { mode, raison: 'permission' }); setPhase('denied'); return; }
+      await toPreview(found, 'calendrier');
     } catch (e: any) {
-      setError(e?.message || 'Lecture du calendrier impossible.'); setPhase('intro');
+      trackEvent('import_failed', { mode, raison: 'exception', message: String(e?.message || e).slice(0, 120) });
+      setError(e?.message || 'Lecture impossible.'); setPhase('intro');
     }
+  }
+
+  // La correspondance est validée : c'est seulement maintenant qu'on construit.
+  async function confirmMapping() {
+    if (!wb || !cols) return;
+    const sheet = wb.sheets[sheetIdx];
+    trackEvent('import_mapping_ok', {
+      mode,
+      corrigee: JSON.stringify(cols) !== JSON.stringify(autoDetect(sheet)),
+      lignes_datees: countValid(sheet, cols),
+    });
+    setPhase('loading');
+    await toPreview(buildDrafts(sheet, cols, sheetIdx), 'excel');
+  }
+
+  function setCol(field: ColKey, index: number) {
+    setCols((prev) => (prev ? { ...prev, [field]: index } : prev));
+    setPickField(null);
+  }
+  function selectSheet(i: number) {
+    if (!wb) return;
+    setSheetIdx(i);
+    setCols(autoDetect(wb.sheets[i]));
   }
 
   function toggle(key: string) {
@@ -76,6 +146,10 @@ export default function CalendarImportModal({
   }
   const selected = drafts.filter((d) => d.selected);
   const incompleteCount = drafts.filter((d) => d.selected && d.missing && d.missing.length).length;
+  // Compteur vivant de l'écran de correspondance : il parcourt le fichier,
+  // d'où le useMemo (un gros classeur ne doit pas être relu à chaque frame).
+  const sheet = wb ? wb.sheets[sheetIdx] : null;
+  const validCount = useMemo(() => (sheet && cols ? countValid(sheet, cols) : 0), [sheet, cols]);
 
   async function doImport() {
     if (!selected.length) return;
@@ -94,9 +168,11 @@ export default function CalendarImportModal({
         const { error: err } = await supabase.from('missions').insert(payloads.slice(i, i + 100));
         if (err) throw err;
       }
+      trackEvent('import_done', { mode, count: selected.length, incomplets: incompleteCount });
       setImportedCount(selected.length); setPhase('done');
       onImported && onImported();
     } catch (e: any) {
+      trackEvent('import_failed', { mode, raison: 'insert', message: String(e?.message || e).slice(0, 120) });
       setError(e?.message || 'Import échoué, réessaie.'); setPhase('preview');
     }
   }
@@ -179,7 +255,93 @@ export default function CalendarImportModal({
           {phase === 'loading' && (
             <View style={s.center}>
               <ActivityIndicator color={C.petrol} size="large" />
-              <Text style={s.bodyMuted}>Lecture de ton calendrier…</Text>
+              <Text style={s.bodyMuted}>{mode === 'excel' ? 'Lecture de ton fichier…' : 'Lecture de ton calendrier…'}</Text>
+            </View>
+          )}
+
+          {phase === 'mapping' && sheet && cols && (
+            <View style={s.pad}>
+              {pickField === null ? (
+                <>
+                  <Text style={s.body}>J'ai lu « {wb!.fileName} ». Vérifie que j'ai bien compris ton tableau :</Text>
+
+                  {wb!.sheets.length > 1 && (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                      {wb!.sheets.map((sh, i) => (
+                        <TouchableOpacity key={sh.name} onPress={() => selectSheet(i)} activeOpacity={0.7}
+                          style={{ paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, borderWidth: 1.5,
+                                   borderColor: i === sheetIdx ? C.petrol : C.line,
+                                   backgroundColor: i === sheetIdx ? C.soft : 'transparent' }}>
+                          <Text style={{ fontSize: 12, fontWeight: '800', color: i === sheetIdx ? C.petrol : C.muted }}>{sh.name}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+
+                  {FIELDS.map((f) => {
+                    const ci = cols[f.key];
+                    const col = ci >= 0 ? sheet.columns[ci] : null;
+                    return (
+                      <TouchableOpacity key={f.key} onPress={() => setPickField(f.key)} activeOpacity={0.7}
+                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                                 paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: C.line }}>
+                        <Text style={{ fontSize: 13.5, fontWeight: '800', color: C.text }}>{f.label}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flexShrink: 1 }}>
+                          <Text numberOfLines={1} style={{ fontSize: 12.5, fontWeight: '700',
+                                color: col ? C.petrol : (f.required ? C.danger : C.muted) }}>
+                            {col ? `${col.letter} · ${col.header || col.sample || '—'}` : (f.required ? 'À indiquer' : 'Aucune')}
+                          </Text>
+                          <Ionicons name="chevron-forward" size={15} color={C.muted} />
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+
+                  <Text style={{ fontSize: 13, fontWeight: '800', marginTop: 14,
+                                 color: validCount > 0 ? C.green : C.danger }}>
+                    {validCount > 0
+                      ? `${validCount} mission${validCount > 1 ? 's' : ''} trouvée${validCount > 1 ? 's' : ''} dans ce tableau.`
+                      : "Je ne trouve aucune date. Touche « Date » et montre-moi la bonne colonne."}
+                  </Text>
+
+                  {validCount > 0 && (
+                    <Text style={s.bodyMuted}>
+                      Une info manque ? Tu pourras la compléter à l'écran suivant, ligne par ligne.
+                    </Text>
+                  )}
+
+                  <GradientButton onPress={confirmMapping} label="Continuer"
+                    style={[s.cta, validCount === 0 && { opacity: 0.4 }]} textStyle={s.ctaTxt} />
+                  <TouchableOpacity onPress={analyze} style={s.retry}><Text style={s.retryTxt}>Choisir un autre fichier</Text></TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <Text style={s.body}>Quelle colonne contient « {FIELDS.find((f) => f.key === pickField)!.label} » ?</Text>
+                  <FlatList
+                    data={[{ index: -1, letter: '', header: '', sample: '' }, ...sheet.columns]}
+                    keyExtractor={(c) => String(c.index)}
+                    style={{ maxHeight: 300 }}
+                    renderItem={({ item: c }) => (
+                      <TouchableOpacity onPress={() => setCol(pickField, c.index)} activeOpacity={0.7}
+                        style={{ paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: C.line }}>
+                        {c.index < 0 ? (
+                          <Text style={{ fontSize: 13, fontWeight: '800', color: C.muted }}>Cette info n'est pas dans mon fichier</Text>
+                        ) : (
+                          <>
+                            <Text style={{ fontSize: 13, fontWeight: '800', color: C.text }}>
+                              Colonne {c.letter}{c.header ? ` · ${c.header}` : ''}
+                            </Text>
+                            <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 1 }}>
+                              {c.sample ? `ex : ${c.sample}` : '(colonne vide)'}
+                            </Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                  />
+                  <TouchableOpacity onPress={() => setPickField(null)} style={s.retry}><Text style={s.retryTxt}>Annuler</Text></TouchableOpacity>
+                </>
+              )}
             </View>
           )}
 

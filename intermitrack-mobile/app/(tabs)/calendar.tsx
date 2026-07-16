@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
-import { useTrackView } from '../../lib/analytics';
+import { useTrackView, trackEvent } from '../../lib/analytics';
 import NumInput from '../../components/NumInput';
 import TxtInput from '../../components/TxtInput';
 import AddressInput from '../../components/AddressInput';
@@ -444,7 +444,7 @@ export default function Calendar(){
             <Ionicons name="information-circle-outline" size={14} color={C.petrol}/>
             <Text style={{fontSize:11.5,fontWeight:'800',color:C.petrol}}>Format agenda</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={()=>{setImportMode('calendar');setShowImport(true);}} activeOpacity={0.85} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
+          <TouchableOpacity onPress={()=>{trackEvent('import_open',{mode:'calendar'});setImportMode('calendar');setShowImport(true);}} activeOpacity={0.85} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
             <Ionicons name="calendar-outline" size={17} color={C.petrol}/>
             <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}}>Calendrier</Text>
           </TouchableOpacity>
@@ -454,7 +454,7 @@ export default function Calendar(){
             <Ionicons name="information-circle-outline" size={14} color={C.petrol}/>
             <Text style={{fontSize:11.5,fontWeight:'800',color:C.petrol}}>Format Excel</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={()=>{setImportMode('excel');setShowImport(true);}} activeOpacity={0.85} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
+          <TouchableOpacity onPress={()=>{trackEvent('import_open',{mode:'excel'});setImportMode('excel');setShowImport(true);}} activeOpacity={0.85} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
             <Ionicons name="document-text-outline" size={17} color={C.petrol}/>
             <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}}>Excel / CSV</Text>
           </TouchableOpacity>
