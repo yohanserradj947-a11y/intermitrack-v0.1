@@ -1689,6 +1689,47 @@ function activateView(viewName) {
   document.querySelectorAll(".tab").forEach((tab) => { tab.classList.toggle("active", tab.dataset.view === viewName); });
   document.querySelectorAll(".view").forEach((view) => { view.classList.toggle("active", view.id === "view-" + viewName); });
   trackEvent("view_" + viewName);
+  if (viewName === "previsions") {
+    if (!_srLoaded) { _srLoaded = true; _loadSalaireRef().then(_prefillC1Ref); } else { _prefillC1Ref(); }
+  }
+}
+
+// ===== Salaire de référence (Prévisions C1) : « les deux » =====
+// Pré-rempli depuis les missions (12 mois glissants), OU valeur mémorisée dans le profil qui prime.
+var _srSaved = null, _srLoaded = false;
+async function _loadSalaireRef() {
+  if (!currentUser) return;
+  // Lecture SÉPARÉE et défensive : la colonne peut ne pas exister avant la migration.
+  try { const r = await sb.from('profiles').select('salaire_reference').eq('id', currentUser.id).maybeSingle();
+    if (r.data && r.data.salaire_reference != null && Number(r.data.salaire_reference) > 0) _srSaved = Number(r.data.salaire_reference); } catch (e) {}
+}
+function _c1RefAuto() {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const win12 = new Date(today); win12.setFullYear(today.getFullYear() - 1);
+  const ref = (missions || []).filter(function (m) { const d = new Date((m.date || '') + 'T00:00:00'); return d >= win12 && d <= today; });
+  return { sr: Math.round(ref.reduce(function (a, m) { return a + Number(m.gross || 0); }, 0)),
+           nht: Math.round(ref.reduce(function (a, m) { return a + Number(m.hours || 0); }, 0) * 10) / 10 };
+}
+function _prefillC1Ref() {
+  const srIn = $("itk-c1-sr"), nhtIn = $("itk-c1-nht"), bar = $("itk-c1-refbar");
+  if (!srIn) return;
+  const auto = _c1RefAuto();
+  const sr = _srSaved != null ? _srSaved : auto.sr;
+  if (!srIn.value && sr > 0) srIn.value = sr;
+  if (nhtIn && !nhtIn.value && auto.nht > 0) nhtIn.value = auto.nht;
+  if (!bar) return;
+  const txt = _srSaved != null ? 'Valeur mémorisée dans ton profil' : (auto.sr > 0 ? 'Pré-rempli depuis tes missions (12 mois) : ' + auto.sr + ' €' : '');
+  const cur = Number(srIn.value || 0);
+  const canSave = cur > 0 && cur !== _srSaved;
+  const canReset = _srSaved != null && auto.sr > 0 && Math.abs(auto.sr - _srSaved) > 1;
+  bar.innerHTML = '<span>' + txt + '</span>' +
+    (canSave ? '<a href="#" id="itk-c1-refsave" style="font-weight:800;color:var(--petrol);white-space:nowrap;">Mémoriser</a>' : '') +
+    (canReset ? '<a href="#" id="itk-c1-refreset" style="font-weight:700;color:var(--petrol);white-space:nowrap;">Recalculer (' + auto.sr + ' €)</a>' : '');
+  bar.style.display = (txt || canSave || canReset) ? 'flex' : 'none';
+  const sv = $("itk-c1-refsave");
+  if (sv) sv.onclick = async function (e) { e.preventDefault(); const v = Number(srIn.value || 0); if (!(v > 0) || !currentUser) return; try { await sb.from('profiles').upsert({ id: currentUser.id, salaire_reference: v }, { onConflict: 'id' }); _srSaved = v; _prefillC1Ref(); } catch (err) {} };
+  const rs = $("itk-c1-refreset");
+  if (rs) rs.onclick = function (e) { e.preventDefault(); srIn.value = auto.sr; _prefillC1Ref(); };
 }
 
 // ===== Auto-entrepreneur : factures =====

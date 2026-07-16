@@ -26,6 +26,10 @@ export default function Previsions(){
   const [c1Sr,setC1Sr]=useState('');
   const [c1Csg,setC1Csg]=useState<'plein'|'reduit'|'exonere'>('plein');
   const [c1Res,setC1Res]=useState<any>(null);
+  const [savedSr,setSavedSr]=useState<number|null>(null); // salaire de référence mémorisé dans le profil
+  const [profileLoaded,setProfileLoaded]=useState(false); // le profil (donc savedSr) est connu
+  const [c1Prefilled,setC1Prefilled]=useState(false);     // pré-remplissage fait une seule fois
+  const [srSaved,setSrSaved]=useState(false);             // feedback « mémorisé ✓ »
 
   const [c2Nht,setC2Nht]=useState('');
   const [c2Prc,setC2Prc]=useState('');
@@ -54,6 +58,19 @@ export default function Previsions(){
     const { data }=await supabase.from('profiles').select('annexe').eq('id',user.id).maybeSingle();
     if(data && data.annexe==='artiste'){ setC1Annexe('artiste'); setC2Annexe('artiste'); setC4Statut('artiste'); }
     // 'les_deux' / 'technicien' → technicien (état initial conservé)
+    // salaire_reference : lecture SÉPARÉE et défensive (la colonne peut ne pas encore exister
+    // avant la migration → ne doit pas casser la présélection de l'annexe ci-dessus).
+    try { const r=await supabase.from('profiles').select('salaire_reference').eq('id',user.id).maybeSingle();
+      if(r.data && r.data.salaire_reference!=null && Number(r.data.salaire_reference)>0) setSavedSr(Number(r.data.salaire_reference)); } catch(e){}
+    setProfileLoaded(true);
+  }
+  // Enregistre le salaire de référence courant dans le profil (il prendra le dessus sur l'auto-calcul).
+  async function saveSr(){
+    const v=num(c1Sr);
+    const { data:{ user } }=await supabase.auth.getUser();
+    if(!user||!(v>0)) return;
+    await supabase.from('profiles').upsert({ id:user.id, salaire_reference:v },{ onConflict:'id' });
+    setSavedSr(v); setSrSaved(true); setTimeout(()=>setSrSaved(false),2000);
   }
   async function loadMissions(){
     const{data}=await supabase.from('missions').select('*');
@@ -72,6 +89,21 @@ export default function Previsions(){
     .reduce((a,m:any)=>a+Number(m.hours||0),0)*10)/10;
   const remaining=Math.max(0,Math.round((CONFIG.NH-doneH)*10)/10);
   const pct=Math.min(100,Math.round((doneH/CONFIG.NH)*100));
+
+  // Salaire de référence AUTO : total brut + heures des missions sur 12 mois glissants.
+  const _win12=new Date(today); _win12.setFullYear(today.getFullYear()-1);
+  const _refMissions=missions.filter((m:any)=>{ const d=new Date((m.mission_date||'')+'T00:00:00'); return d>=_win12 && d<=today; });
+  const autoSr=Math.round(_refMissions.reduce((a,m:any)=>a+Number(m.gross_amount||0),0));
+  const autoNht=Math.round(_refMissions.reduce((a,m:any)=>a+Number(m.hours||0),0)*10)/10;
+  // Pré-remplissage « les deux » : valeur mémorisée en priorité, sinon l'auto depuis les missions.
+  // Une seule fois, et sans écraser une saisie manuelle (on ne remplit que si le champ est vide).
+  useEffect(()=>{
+    if(c1Prefilled || loading || !profileLoaded) return;
+    const sr = savedSr!=null ? savedSr : autoSr;
+    if(!c1Sr && sr>0) setC1Sr(String(sr));
+    if(!c1Nht && autoNht>0) setC1Nht(String(autoNht));
+    if(sr>0 || autoNht>0) setC1Prefilled(true);
+  },[loading,profileLoaded,savedSr,autoSr,autoNht]);
 
   function calcC1(){
     const nht=num(c1Nht), sr=num(c1Sr);
@@ -135,6 +167,18 @@ export default function Previsions(){
         <NumInput style={s.input} value={c1Nht} onChangeText={setC1Nht} placeholder="507" placeholderTextColor={C.muted}/>
         <Text style={s.label}>Salaire de référence brut (€)</Text>
         <NumInput style={s.input} value={c1Sr} onChangeText={setC1Sr} placeholder="20000" placeholderTextColor={C.muted}/>
+        <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:-4,marginBottom:2}}>
+          <Text style={{fontSize:11.5,color:C.muted,flex:1}}>
+            {savedSr!=null ? 'Valeur mémorisée dans ton profil' : (autoSr>0 ? `Pré-rempli depuis tes missions (12 mois) : ${autoSr} €` : 'Saisis-le, ou ajoute des missions pour le pré-remplir')}
+          </Text>
+          {num(c1Sr)>0 && num(c1Sr)!==savedSr && (
+            <TouchableOpacity onPress={saveSr} hitSlop={8}><Text style={{fontSize:11.5,fontWeight:'800',color:C.petrol}}>Mémoriser</Text></TouchableOpacity>
+          )}
+          {srSaved && <Text style={{fontSize:11.5,fontWeight:'800',color:C.green}}>Mémorisé ✓</Text>}
+        </View>
+        {savedSr!=null && autoSr>0 && Math.abs(autoSr-savedSr)>1 && (
+          <TouchableOpacity onPress={()=>{setC1Sr(String(autoSr));}} hitSlop={6}><Text style={{fontSize:11.5,fontWeight:'700',color:C.petrol,marginBottom:4}}>Recalculer depuis mes missions ({autoSr} €)</Text></TouchableOpacity>
+        )}
         <Text style={s.label}>Taux CSG</Text>
         <View style={s.toggleRow}>
           {(['plein','reduit','exonere'] as const).map(t=>(
