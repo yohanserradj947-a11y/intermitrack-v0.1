@@ -12,6 +12,7 @@ import { GradientButton } from './GradientButton';
 import NumInput from './NumInput';
 import TxtInput from './TxtInput';
 import { scanCalendar, MissionDraft } from '../lib/calendarImport';
+import { useAnnexe, modeForNew, CACHET_H } from '../lib/annexe';
 import {
   pickAndReadExcel, autoDetect, countValid, buildDrafts,
   Workbook, ColMap, ColKey,
@@ -39,6 +40,12 @@ export default function CalendarImportModal({
   visible, onClose, onImported, mode = 'calendar',
 }: { visible: boolean; onClose: () => void; onImported?: () => void; mode?: Mode }) {
   const C = useTheme();
+  // Un artiste ne compte pas en heures mais en cachets : sans info, son repli
+  // est UN CACHET (12 h), pas une journée de technicien (8 h). On réutilise
+  // modeForNew() plutôt que de réinventer la règle ici.
+  const annexe = useAnnexe();
+  const cachetMode = modeForNew(annexe) === 'cachet';
+  const defH = cachetMode ? CACHET_H : 8;
   const [phase, setPhase] = useState<Phase>('intro');
   const [drafts, setDrafts] = useState<MissionDraft[]>([]);
   const [error, setError] = useState('');
@@ -96,7 +103,7 @@ export default function CalendarImportModal({
         setPhase('mapping');
         return;
       }
-      const { status, drafts: found } = await scanCalendar();
+      const { status, drafts: found } = await scanCalendar(12, 12, defH);
       if (status !== 'granted') { trackEvent('import_failed', { mode, raison: 'permission' }); setPhase('denied'); return; }
       await toPreview(found, 'calendrier');
     } catch (e: any) {
@@ -115,7 +122,7 @@ export default function CalendarImportModal({
       lignes_datees: countValid(sheet, cols),
     });
     setPhase('loading');
-    await toPreview(buildDrafts(sheet, cols, sheetIdx), 'excel');
+    await toPreview(buildDrafts(sheet, cols, sheetIdx, defH), 'excel');
   }
 
   function setCol(field: ColKey, index: number) {
@@ -149,7 +156,9 @@ export default function CalendarImportModal({
     }));
   }
   const selected = drafts.filter((d) => d.selected);
-  const incompleteCount = drafts.filter((d) => d.selected && d.missing && d.missing.length).length;
+  // Les heures ne comptent pas comme « incomplet » : elles valent 8 par défaut.
+  const incompleteCount = drafts.filter((d) => d.selected && (d.missing || []).some((m) => m !== 'heures')).length;
+  const guessedCount = drafts.filter((d) => d.selected && (d.missing || []).includes('heures')).length;
   // Compteur vivant de l'écran de correspondance : il parcourt le fichier,
   // d'où le useMemo (un gros classeur ne doit pas être relu à chaque frame).
   const sheet = wb ? wb.sheets[sheetIdx] : null;
@@ -164,7 +173,8 @@ export default function CalendarImportModal({
       const payloads = selected.map((d) => ({
         user_id: user.id, production: d.production, emission: null, lieu: d.lieu,
         mission_type: 'Tournage', mission_date: d.mission_date, end_date: d.end_date,
-        hours: d.hours, vacations: Math.max(1, Math.round(d.hours / 8)),
+        // Un cachet vaut 12 h : diviser par 8 pour un artiste comptait ses vacations en trop.
+        hours: d.hours, vacations: Math.max(1, Math.round(d.hours / (cachetMode ? CACHET_H : 8))),
         gross_amount: d.gross_amount, status: 'effectue',
         km_distance: 0, km_rate: 0, km_amount: 0,
       }));
@@ -184,7 +194,15 @@ export default function CalendarImportModal({
   const s = styles(C);
 
   function renderRow({ item }: { item: MissionDraft }) {
-    const incomplete = !!(item.missing && item.missing.length);
+    // « Manquant » recouvre deux situations très différentes, et les confondre
+    // rend le message incompréhensible : la prod et le prix sont VIDES (à
+    // compléter), tandis que les heures sont pré-remplies à 8 (à vérifier).
+    // Dire « à compléter » sur un champ qui contient déjà 8 invite à effacer
+    // le 8 pour retaper 8.
+    const miss = item.missing || [];
+    const toFill = miss.filter((m) => m !== 'heures');
+    const hoursGuessed = miss.includes('heures');
+    const incomplete = toFill.length > 0;
     const open = openKey === item.key;
     return (
       <View style={[s.rowWrap, incomplete && s.rowWrapWarn]}>
@@ -196,11 +214,14 @@ export default function CalendarImportModal({
             <Text style={s.rowProd} numberOfLines={1}>{item.production || item.title || 'Sans nom'}</Text>
             <Text style={s.rowMeta} numberOfLines={1}>
               {fmtShort(item.mission_date)}{item.end_date ? ` → ${fmtShort(item.end_date)}` : ''}
-              {!(item.missing || []).includes('heures') ? `  ·  ${item.hours} h` : ''}
+              {`  ·  ${item.hours} h`}{hoursGuessed ? ' (par défaut)' : ''}
               {item.gross_amount ? `  ·  ${item.gross_amount} €` : ''}
               {item.lieu ? `  ·  ${item.lieu}` : ''}
             </Text>
-            {incomplete && <Text style={s.warnChip}>⚠ À compléter : {item.missing.join(' · ')}</Text>}
+            {incomplete && <Text style={s.warnChip}>⚠ À compléter : {toFill.join(' · ')}</Text>}
+            {hoursGuessed && <Text style={s.guessChip}>
+              {cachetMode ? 'Durée non trouvée — 1 cachet par défaut, à vérifier' : 'Durée non trouvée — 8 h par défaut, à vérifier'}
+            </Text>}
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setOpenKey(open ? null : item.key)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Text style={s.editLink}>{open ? 'Fermer' : 'Modifier'}</Text>
@@ -214,7 +235,7 @@ export default function CalendarImportModal({
             </View>
             <View style={s.editRow}>
               <View style={[s.editField, { flex: 1 }]}>
-                <Text style={s.editLbl}>Heures</Text>
+                <Text style={s.editLbl}>{hoursGuessed ? `Heures (${defH} par défaut)` : 'Heures'}</Text>
                 <NumInput style={s.editInput} defaultValue={item.hours ? String(item.hours) : ''} onChangeText={(t: string) => editField(item.key, 'hours', t)} placeholder="8" placeholderTextColor={C.muted} />
               </View>
               <View style={[s.editField, { flex: 1 }]}>
@@ -381,7 +402,15 @@ export default function CalendarImportModal({
               {incompleteCount > 0 && (
                 <View style={s.banner}>
                   <Text style={s.bannerTitle}>⚠ {incompleteCount} mission{incompleteCount > 1 ? 's' : ''} à compléter</Text>
-                  <Text style={s.bannerTxt}>Il manque la prod, les heures ou le prix. Astuce : dans ton agenda, note « Prod 8h 350€ ». Touche « Modifier » pour compléter, ou importe et complète plus tard.</Text>
+                  <Text style={s.bannerTxt}>Il manque la prod ou le prix. Touche « Modifier » pour les renseigner — ou importe maintenant et complète plus tard.</Text>
+                </View>
+              )}
+              {guessedCount > 0 && incompleteCount === 0 && (
+                <View style={s.bannerSoft}>
+                  <Text style={s.bannerSoftTxt}>
+                    {guessedCount} mission{guessedCount > 1 ? 's sont' : ' est'} à {cachetMode ? '1 cachet' : '8 h'} par défaut : je n'ai pas trouvé la durée.
+                    {mode === 'calendar' ? ' Note « 12h » ou « 9h-17h » dans le titre de ton événement et je la reprendrai.' : ''}
+                  </Text>
                 </View>
               )}
               <FlatList
@@ -449,6 +478,9 @@ const styles = (C: any) => StyleSheet.create({
   rowProd: { fontSize: 14.5, fontWeight: '700', color: C.text },
   rowMeta: { fontSize: 12, color: C.muted, marginTop: 2 },
   warnChip: { fontSize: 11, fontWeight: '700', color: C.warnTx, marginTop: 3 },
+  // Volontairement discret : une valeur devinée n'est pas une erreur, elle n'a
+  // pas à crier aussi fort qu'un champ vide.
+  guessChip: { fontSize: 11, fontWeight: '600', color: C.muted, marginTop: 3 },
   editLink: { fontSize: 12, fontWeight: '700', color: C.petrol },
   editor: { paddingHorizontal: 6, paddingBottom: 12, gap: 8 },
   editRow: { flexDirection: 'row', gap: 10 },
@@ -456,6 +488,8 @@ const styles = (C: any) => StyleSheet.create({
   editLbl: { fontSize: 11, fontWeight: '700', color: C.muted, marginBottom: 3 },
   editInput: { borderWidth: 1, borderColor: C.line, borderRadius: 10, paddingVertical: 9, paddingHorizontal: 11, fontSize: 14, color: C.text, backgroundColor: C.card },
   banner: { marginHorizontal: 16, marginBottom: 8, padding: 12, borderRadius: 12, backgroundColor: C.warnBg, borderWidth: 1, borderColor: C.warnBd },
+  bannerSoft: { marginHorizontal: 16, marginBottom: 8, padding: 10, borderRadius: 12, backgroundColor: C.soft, borderWidth: 1, borderColor: C.line },
+  bannerSoftTxt: { fontSize: 12, color: C.muted, lineHeight: 17 },
   bannerTitle: { fontSize: 13, fontWeight: '800', color: C.warnTx },
   bannerTxt: { fontSize: 12, color: C.warnTx, marginTop: 3, lineHeight: 17 },
   doneTitle: { fontSize: 18, fontWeight: '800', color: C.green },

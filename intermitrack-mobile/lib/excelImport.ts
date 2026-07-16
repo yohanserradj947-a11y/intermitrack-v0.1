@@ -116,7 +116,9 @@ export function countValid(sheet: Sheet, cols: ColMap): number {
 }
 
 // Construit les missions à partir d'une correspondance EXPLICITE.
-export function buildDrafts(sheet: Sheet, cols: ColMap, sheetIdx = 0): MissionDraft[] {
+// defaultHours : repli quand la colonne Heures est absente ou vide. 8 h pour un
+// technicien, 12 h (un cachet) pour un artiste — l'appelant tranche.
+export function buildDrafts(sheet: Sheet, cols: ColMap, sheetIdx = 0, defaultHours = 8): MissionDraft[] {
   const drafts: MissionDraft[] = [];
   if (cols.date < 0) return drafts;
 
@@ -141,7 +143,7 @@ export function buildDrafts(sheet: Sheet, cols: ColMap, sheetIdx = 0): MissionDr
       production: prod.toUpperCase(),
       mission_date: dateISO,
       end_date: null,
-      hours: hours > 0 ? hours : 8,
+      hours: hours > 0 ? hours : defaultHours,
       gross_amount: price,
       lieu: lieu || null,
       title: prod,

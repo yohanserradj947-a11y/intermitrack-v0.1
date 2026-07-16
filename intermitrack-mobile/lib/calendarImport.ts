@@ -79,7 +79,10 @@ export function parseEventText(title: string, notes: string) {
 }
 
 // Transforme un événement du calendrier en brouillon de mission.
-export function eventToDraft(ev: any): MissionDraft {
+// defaultHours : la valeur de repli quand l'événement ne dit rien. 8 h pour un
+// technicien, 12 h (un cachet) pour un artiste — l'appelant tranche via
+// modeForNew(), on ne redécide pas ici.
+export function eventToDraft(ev: any, defaultHours = 8): MissionDraft {
   const start = new Date(ev.startDate);
   const endRaw = new Date(ev.endDate || ev.startDate);
   const allDay = !!ev.allDay;
@@ -88,8 +91,8 @@ export function eventToDraft(ev: any): MissionDraft {
   // Ce qui est ÉCRIT prime sur la durée du créneau : quelqu'un qui note "REC 12h"
   // sur un créneau d'une heure travaille 12 h — le créneau n'est qu'un repère.
   // À défaut d'heures écrites, on retombe sur la vraie durée du créneau.
-  // hoursFound = on a une vraie info (on n'invente pas). Sinon 8 h, signalé "à compléter".
-  let hours = 8;
+  // hoursFound = on a une vraie info (on n'invente pas). Sinon la valeur de repli, signalée.
+  let hours = defaultHours;
   let hoursFound = false;
   if (textHours != null && textHours > 0 && textHours <= 24) {
     hours = textHours; hoursFound = true;
@@ -131,7 +134,8 @@ export function eventToDraft(ev: any): MissionDraft {
 // Demande l'accès, lit tous les calendriers, récupère les événements sur la période et les analyse.
 export async function scanCalendar(
   monthsBack = 12,
-  monthsForward = 12
+  monthsForward = 12,
+  defaultHours = 8
 ): Promise<{ status: string; drafts: MissionDraft[] }> {
   const perm = await Calendar.requestCalendarPermissionsAsync();
   if (perm.status !== 'granted') return { status: perm.status, drafts: [] };
@@ -157,7 +161,7 @@ export async function scanCalendar(
   const events = await Calendar.getEventsAsync(ids, start, end);
   const drafts = (events || [])
     .filter((e: any) => e && e.title && e.status !== 'canceled' && !EXCLUDE.test(String(e.title)))
-    .map(eventToDraft)
+    .map((e: any) => eventToDraft(e, defaultHours))
     .sort((a, b) => a.mission_date.localeCompare(b.mission_date));
 
   return { status: 'granted', drafts };
