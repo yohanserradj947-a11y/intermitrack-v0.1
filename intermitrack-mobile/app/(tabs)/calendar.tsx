@@ -341,7 +341,9 @@ export default function Calendar(){
     }
     const payloads=runs.map((r)=>{
       const runHours=r.hours*r.days;
-      const gross=sumHours>0?Math.round(totalGross*(runHours/sumHours)):Math.round(totalGross/runs.length);
+      // Au centime près : arrondir à l'euro entier faussait le brut journalier
+      // (donc la déclaration). Le reliquat de centimes est réajusté sur la 1re ligne.
+      const gross=sumHours>0?Math.round(totalGross*(runHours/sumHours)*100)/100:Math.round(totalGross/runs.length*100)/100;
       return { user_id:user.id, production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, lieu:fLieu.trim()||null, mission_type:fType,
         regime:fRegime,
         mission_date:r.start, end_date:r.end!==r.start?r.end:null,
@@ -349,7 +351,7 @@ export default function Calendar(){
         km_distance:0, km_rate:0, km_amount:0 };
     });
     const grossSum=payloads.reduce((a,p)=>a+p.gross_amount,0);
-    if(payloads.length)payloads[0].gross_amount+=(totalGross-grossSum);
+    if(payloads.length)payloads[0].gross_amount=Math.round((payloads[0].gross_amount+(totalGross-grossSum))*100)/100;
     // Frais km : appliqués une seule fois sur la 1re ligne (total sur la période)
     if(payloads.length){
       const nbDays=mdpChecked.length;
