@@ -86,7 +86,6 @@ export default function Calendar(){
   const [calTab,setCalTab]=useState<'missions'|'notes'>('missions');
   const { postes, addPoste, removePoste } = usePostes();
   const [fLieu,setFLieu]=useState('');
-  const [showLieuSuggest,setShowLieuSuggest]=useState(false);
   const [newPoste,setNewPoste]=useState('');
   const insets=useSafeAreaInsets();
   const [missions,setMissions]=useState<any[]>([]);
@@ -119,7 +118,8 @@ export default function Calendar(){
   const [showEndPicker,setShowEndPicker]=useState(false);
   const [saving,setSaving]=useState(false);
   const [showProdPicker,setShowProdPicker]=useState(false);
-  const [showEmSuggest,setShowEmSuggest]=useState(false);
+  const [showEmPicker,setShowEmPicker]=useState(false);
+  const [showLieuPicker,setShowLieuPicker]=useState(false);
 
   const [kmOpen,setKmOpen]=useState(false);
   const [kmFrom,setKmFrom]=useState('');
@@ -158,7 +158,7 @@ export default function Calendar(){
   function openCreate(day:Date, regime:'intermittence'|'general'='intermittence'){
     setEditId(null);
     setFRegime(regime);
-    setFProduction(''); setFEmission(''); setFLieu(''); setShowLieuSuggest(false); setNewPoste(''); setFType('Montage'); setFStart(day); setFEnd(day);
+    setFProduction(''); setFEmission(''); setFLieu(''); setNewPoste(''); setFType('Montage'); setFStart(day); setFEnd(day);
     setShowTypePicker(false); setTypeAddMode(false);
     // Régime général et enseignement = toujours en HEURES (jamais de cachets, ce n'est pas du spectacle).
     // Sinon un artiste, forcé en mode cachet par son annexe, ne pouvait pas saisir ses heures d'enseignement.
@@ -167,13 +167,12 @@ export default function Calendar(){
     setKmOpen(false); setKmFrom(''); setKmTo(''); setKmFromCoords(null); setKmToCoords(null); setKmRT(false); setKmEveryDay(false); setKmJustify(false); setKmDistance(''); setKmRate('');
     // Plus rien à pré-remplir ici : le taux vient directement de « Mes informations » (kmDefaults.taux).
     setShowFromPicker(false); setShowToPicker(false);
-    setShowEmSuggest(false);
     setShowForm(true);
   }
   function openEdit(m:any){
     setEditId(m.id);
     setFRegime(m.regime||'intermittence');
-    setFProduction(m.production||''); setFEmission(m.emission||''); setFLieu(m.lieu||''); setShowLieuSuggest(false); setNewPoste(''); setFType(m.mission_type||'Montage');
+    setFProduction(m.production||''); setFEmission(m.emission||''); setFLieu(m.lieu||''); setNewPoste(''); setFType(m.mission_type||'Montage');
     setShowTypePicker(false); setTypeAddMode(false);
     setFStart(new Date((m.mission_date)+'T00:00:00'));
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
@@ -196,7 +195,6 @@ export default function Calendar(){
     setShowFromPicker(false); setShowToPicker(false);
     setKmDistance(m.km_distance?String(m.km_distance):''); setKmRate(m.km_rate?String(m.km_rate):'');
     setKmOpen(!!(m.km_distance||m.km_amount));
-    setShowEmSuggest(false);
     setShowForm(true);
   }
 
@@ -402,9 +400,6 @@ export default function Calendar(){
   function onCellPress(d:Date){
     setDayMenu({date:d,missions:missionsOn(d)});
   }
-  // Suggestions de production : on prend les productions déjà saisies (dans `missions`),
-  // sans doublons, insensible à la casse, et on garde celles qui contiennent le texte tapé.
-  const prodQuery=fProduction.trim().toUpperCase();
   // Employeurs deja saisis, classes du PLUS FREQUENT au moins frequent : les recurrents remontent d'eux-memes.
   const prodCounts=missions.reduce((acc:Record<string,number>,m:any)=>{const p=(m.production||'').toUpperCase().trim();if(p)acc[p]=(acc[p]||0)+1;return acc;},{});
   const knownProductions=Object.keys(prodCounts).sort((a,b)=>prodCounts[b]-prodCounts[a]);
@@ -413,19 +408,11 @@ export default function Calendar(){
   // fréquence du pop-up de production plutôt que d'entretenir deux listes qui finiraient par diverger.
   const allProds=knownProductions;
 
-  // Suggestions d'émission : on propose d'abord les émissions déjà utilisées pour la
-  // production choisie, puis les autres. Insensible à la casse, casse d'origine conservée.
-  const emQuery=fEmission.trim().toLowerCase();
-  const emForProd=missions.filter((m:any)=>(m.production||'').toUpperCase().trim()===prodQuery).map((m:any)=>(m.emission||'').trim()).filter(Boolean);
-  const emAll=missions.map((m:any)=>(m.emission||'').trim()).filter(Boolean);
-  const emUnique=(list:string[])=>{const seen=new Set<string>();const out:string[]=[];for(const e of list){const k=e.toLowerCase();if(!seen.has(k)){seen.add(k);out.push(e);}}return out;};
-  const emSuggestions=(emQuery
-    ? emUnique([...emForProd,...emAll]).filter(e=>e.toLowerCase().includes(emQuery)&&e.toLowerCase()!==emQuery)
-    : emUnique(emForProd)
-  ).slice(0,5);
-  const lieuQuery=fLieu.trim().toLowerCase();
-  const knownLieux=Array.from(new Set(missions.map((m:any)=>(m.lieu||'').trim()).filter(Boolean)));
-  const lieuSuggestions=(lieuQuery?knownLieux.filter(l=>l.toLowerCase().includes(lieuQuery)&&l.toLowerCase()!==lieuQuery):knownLieux).slice(0,5);
+  // Émissions et lieux déjà saisis, triés du plus fréquent au moins fréquent (pop-ups façon « production »).
+  // On déduplique en insensible à la casse mais on garde la casse d'origine pour l'affichage.
+  const _byFreq=(vals:string[])=>{const c:Record<string,{n:number;label:string}>={};for(const v of vals){const t=(v||'').trim();if(!t)continue;const k=t.toLowerCase();if(!c[k])c[k]={n:0,label:t};c[k].n++;}return Object.values(c).sort((a,b)=>b.n-a.n).map(x=>x.label);};
+  const knownEmissions=_byFreq(missions.map((m:any)=>m.emission||''));
+  const knownLieux=_byFreq(missions.map((m:any)=>m.lieu||''));
 
   if(loading)return<View style={s.center}><ActivityIndicator size="large" color={C.petrol}/></View>;
 
@@ -723,29 +710,39 @@ export default function Calendar(){
                 </>
               )}
 
+              {/* Même pop-up que la production : liste des émissions déjà saisies (plus utilisées d'abord)
+                  + création à la volée. Retour JB : fluidifier chaque champ comme celui de la production. */}
               <Text style={s.label}>Nom de l'émission (facultatif)</Text>
-              <TxtInput style={s.input} value={fEmission} onChangeText={(t:string)=>{setFEmission(t);setShowEmSuggest(true);}} onFocus={()=>setShowEmSuggest(true)} placeholder="Ex : Koh-Lanta" placeholderTextColor={C.muted}/>
-              {showEmSuggest&&emSuggestions.length>0&&(
-                <View style={s.suggestBox}>
-                  {emSuggestions.map(e=>(
-                    <TouchableOpacity key={e} style={s.suggestItem} onPress={()=>{setFEmission(e);setShowEmSuggest(false);}}>
-                      <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="videocam-outline" size={13} color={C.petrol} /><Text style={s.suggestTxt}>{e}</Text></View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
+              <TouchableOpacity style={s.typeBtn} onPress={()=>setShowEmPicker(true)}>
+                <Text style={[s.typeBtnTxt,!fEmission&&{color:C.muted,fontWeight:'400'}]} numberOfLines={1}>{fEmission||'Choisir ou créer…'}</Text>
+                <Text style={s.typeBtnChevron}>▾</Text>
+              </TouchableOpacity>
+              <ProductionPickerModal
+                visible={showEmPicker}
+                productions={knownEmissions}
+                current={fEmission}
+                label="Émission"
+                plural="émissions"
+                autoCap="sentences"
+                onPick={(p)=>{setFEmission(p);setShowEmPicker(false);}}
+                onClose={()=>setShowEmPicker(false)}
+              />
 
               <Text style={s.label}>Lieu (facultatif)</Text>
-              <TxtInput style={s.input} value={fLieu} onChangeText={(t:string)=>{setFLieu(t);setShowLieuSuggest(true);}} onFocus={()=>setShowLieuSuggest(true)} placeholder="Ex : Studio 130…" placeholderTextColor={C.muted}/>
-              {showLieuSuggest&&lieuSuggestions.length>0&&(
-                <View style={s.suggestBox}>
-                  {lieuSuggestions.map(l=>(
-                    <TouchableOpacity key={l} style={s.suggestItem} onPress={()=>{setFLieu(l);setShowLieuSuggest(false);}}>
-                      <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="location-outline" size={13} color={C.petrol} /><Text style={s.suggestTxt}>{l}</Text></View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
+              <TouchableOpacity style={s.typeBtn} onPress={()=>setShowLieuPicker(true)}>
+                <Text style={[s.typeBtnTxt,!fLieu&&{color:C.muted,fontWeight:'400'}]} numberOfLines={1}>{fLieu||'Choisir ou créer…'}</Text>
+                <Text style={s.typeBtnChevron}>▾</Text>
+              </TouchableOpacity>
+              <ProductionPickerModal
+                visible={showLieuPicker}
+                productions={knownLieux}
+                current={fLieu}
+                label="Lieu"
+                plural="lieux"
+                autoCap="sentences"
+                onPick={(p)=>{setFLieu(p);setShowLieuPicker(false);}}
+                onClose={()=>setShowLieuPicker(false)}
+              />
 
               <Text style={s.label}>Type de mission</Text>
               <TouchableOpacity style={s.typeBtn} onPress={()=>{setTypeAddMode(false);setShowTypePicker(v=>!v);}}>

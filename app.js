@@ -1643,6 +1643,7 @@ function editMission(id) {
   _setProdValue(mission.production || "");
   if ($("emission")) $("emission").value = mission.emission || "";
   if ($("lieu")) $("lieu").value = mission.lieu || "";
+  if (typeof _syncFieldBtn === 'function'){ _syncFieldBtn('emission','emBtnLabel'); _syncFieldBtn('lieu','lieuBtnLabel'); }
   _setTypeValue(mission.type || "Autres");
   $("date").value = mission.date || "";
   $("endDate").value = mission.endDate || mission.date || "";
@@ -3498,6 +3499,8 @@ function resetMissionFormForDate(dateStr, regime) {
   if (typeof switchAddTab === 'function') switchAddTab('mission');
   if ($("missionForm")) $("missionForm").reset();
   if ($("production")) _setProdValue("");
+  if ($("emission")) $("emission").value = ""; if ($("lieu")) $("lieu").value = "";
+  if (typeof _syncFieldBtn === 'function'){ _syncFieldBtn('emission','emBtnLabel'); _syncFieldBtn('lieu','lieuBtnLabel'); }
   _setAddrValue('from', ''); _setAddrValue('to', '');
   _applyKmProfil(); // véhicule pré-rempli depuis « Mes informations » (retour JB)
   if ($("type")) _setTypeValue((getCustomPostes()[0]) || "Montage");
@@ -4806,12 +4809,91 @@ function _openProdPicker(){
   ov.style.display='flex';
   var si=document.getElementById('prodSearchInput'); if(si) si.focus();
 }
+// ===== Pop-up générique émission / lieu : même expérience que la production (retour JB) =====
+// Émission et lieu avaient un simple <datalist> vide (aucune suggestion). Ici, le même pop-up que
+// la production : liste des valeurs déjà saisies (plus utilisées d'abord) + création à la volée.
+function _knownField(field){
+  var c = {};
+  (typeof missions !== 'undefined' ? missions : []).forEach(function(m){
+    var v = String(m[field] || '').trim();
+    if (v){ var k = v.toLowerCase(); if(!c[k]) c[k] = { n:0, label:v }; c[k].n++; }
+  });
+  return Object.keys(c).map(function(k){ return c[k]; }).sort(function(a,b){ return b.n - a.n; }).map(function(x){ return x.label; });
+}
+function _syncFieldBtn(inputId, labelId){
+  var l = document.getElementById(labelId), i = document.getElementById(inputId);
+  if (l && i){ l.textContent = i.value || 'Choisir ou créer…'; l.style.opacity = i.value ? '1' : '.45'; }
+}
+function _setFieldValue(inputId, labelId, v, upper){
+  var i = document.getElementById(inputId); if(!i) return;
+  i.value = upper ? String(v || '').toUpperCase() : (v || '');
+  _syncFieldBtn(inputId, labelId);
+}
+function _renderFieldPicker(ov){
+  var cfg = ov._cfg;
+  var q = (document.getElementById('fieldSearchInput') || {}).value || '';
+  var query = q.trim();
+  var all = _knownField(cfg.field);
+  var list = query ? all.filter(function(p){ return p.toUpperCase().indexOf(query.toUpperCase()) >= 0; }) : all;
+  var canCreate = !!query && !all.some(function(p){ return p.toUpperCase() === query.toUpperCase(); });
+  var cur = (document.getElementById(cfg.inputId) || {}).value || '';
+  var html = '<div class="pf-box"><div class="pf-title">' + escapeHtml(cfg.label) + '</div>';
+  html += '<div class="pf-addrow"><input type="text" id="fieldSearchInput" placeholder="Chercher ou créer…" autocomplete="off" value="' + escapeHtml(q) + '"></div>';
+  if (canCreate) html += '<button type="button" class="pf-create" id="fieldCreateBtn">+ Ajouter « ' + escapeHtml(query) + ' »</button>';
+  if (list.length){
+    html += '<div class="pf-label">' + (query ? 'Correspondances' : 'Tes ' + cfg.plural + ' · de la plus utilisée à la moins utilisée') + '</div>';
+    html += '<div class="pf-prodlist">' + list.map(function(p){
+      return '<button type="button" class="pf-opt' + (p === cur ? ' on' : '') + '" data-field="' + escapeHtml(p) + '">' + escapeHtml(p) + '</button>';
+    }).join('') + '</div>';
+  } else if (!canCreate){
+    html += '<div class="pf-label" style="text-align:center;">Rien d\'enregistré. Tape un nom pour l\'ajouter.</div>';
+  }
+  html += '<div class="pf-actions"><button type="button" class="pf-cancel" id="fieldPickClose">Fermer</button></div></div>';
+  ov.innerHTML = html;
+}
+function _openFieldPicker(cfg){
+  _profilEnsureDom(); // styles .pf-*
+  var ov = document.getElementById('fieldPickerOverlay');
+  if(!ov){
+    ov = document.createElement('div');
+    ov.id = 'fieldPickerOverlay';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-start;justify-content:center;z-index:100003;padding:6vh 16px 16px;overflow-y:auto;';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function(e){
+      var c = ov._cfg || {};
+      if(e.target === ov || e.target.id === 'fieldPickClose'){ ov.style.display='none'; return; }
+      if(e.target.id === 'fieldCreateBtn'){
+        var v = (document.getElementById('fieldSearchInput').value || '').trim();
+        if(v){ _setFieldValue(c.inputId, c.labelId, v, c.upper); ov.style.display='none'; }
+        return;
+      }
+      var b = e.target.closest && e.target.closest('[data-field]');
+      if(b){ _setFieldValue(c.inputId, c.labelId, b.dataset.field, c.upper); ov.style.display='none'; }
+    });
+    ov.addEventListener('input', function(e){
+      if(e.target.id === 'fieldSearchInput'){
+        var val = e.target.value;
+        _renderFieldPicker(ov);
+        var i = document.getElementById('fieldSearchInput');
+        if(i){ i.focus(); i.value = val; try{ i.setSelectionRange(val.length, val.length); }catch(_){} }
+      }
+    });
+  }
+  ov._cfg = cfg;
+  _renderFieldPicker(ov);
+  ov.style.display = 'flex';
+  setTimeout(function(){ var s = document.getElementById('fieldSearchInput'); if(s) s.focus(); }, 50);
+}
 (function(){
-  function wireProd(){
+  function wirePickers(){
     var pb=document.getElementById('prodBtn');
     if(pb && !pb.dataset.init){ pb.dataset.init='1'; pb.addEventListener('click', _openProdPicker); _syncProdBtn(); }
+    var eb=document.getElementById('emBtn');
+    if(eb && !eb.dataset.init){ eb.dataset.init='1'; eb.addEventListener('click', function(){ _openFieldPicker({field:'emission', inputId:'emission', labelId:'emBtnLabel', label:'Émission', plural:'émissions', upper:false}); }); _syncFieldBtn('emission','emBtnLabel'); }
+    var lb=document.getElementById('lieuBtn');
+    if(lb && !lb.dataset.init){ lb.dataset.init='1'; lb.addEventListener('click', function(){ _openFieldPicker({field:'lieu', inputId:'lieu', labelId:'lieuBtnLabel', label:'Lieu', plural:'lieux', upper:false}); }); _syncFieldBtn('lieu','lieuBtnLabel'); }
   }
-  if (document.readyState !== "loading") wireProd(); else document.addEventListener("DOMContentLoaded", wireProd);
+  if (document.readyState !== "loading") wirePickers(); else document.addEventListener("DOMContentLoaded", wirePickers);
 })();
 
 // ===== Plusieurs types sur une même mission (« Rec + MIX ») =====

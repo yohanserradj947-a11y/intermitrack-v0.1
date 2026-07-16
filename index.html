@@ -664,11 +664,11 @@ z-index: 500 !important;
               </div>
             </div>
             <label for="emission">Émission</label>
-            <input id="emission" list="emissionsList" autocomplete="off" placeholder="Ex :The voice..." />
-            <datalist id="emissionsList"></datalist>
+            <input id="emission" autocomplete="off" style="display:none;" />
+            <button type="button" id="emBtn" style="display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--text);font-weight:400;font-size:14px;font-family:inherit;cursor:pointer;"><span id="emBtnLabel">Choisir ou créer…</span><span style="opacity:.45;">▾</span></button>
             <label for="lieu">Lieu</label>
-            <input id="lieu" list="lieuxList" autocomplete="off" placeholder="Ex : Studio 130, La Plaine Saint-Denis…" />
-            <datalist id="lieuxList"></datalist>
+            <input id="lieu" autocomplete="off" style="display:none;" />
+            <button type="button" id="lieuBtn" style="display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--text);font-weight:400;font-size:14px;font-family:inherit;cursor:pointer;"><span id="lieuBtnLabel">Choisir ou créer…</span><span style="opacity:.45;">▾</span></button>
             <label for="type">Type de mission</label>
             <select id="type" style="display:none;"><optgroup label="Technique"><option>Montage</option><option>Tournage</option><option>Démontage</option><option>Régie</option><option>Son</option><option>Lumière</option><option>Image / Vidéo</option><option>Machiniste</option><option>Électricien</option><option>Poursuiteur</option><option>Plateau</option><option>Décor</option><option>HMC</option></optgroup><optgroup label="Artiste"><option>Comédien</option><option>Chanteur</option><option>Musicien</option><option>Danseur</option><option>Choriste</option></optgroup><option>Autres</option></select><button type="button" id="typeBtn" style="display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--text);font-weight:400;font-size:14px;font-family:inherit;cursor:pointer;"><span id="typeBtnLabel">Montage</span><span style="opacity:.45;">▾</span></button>
             <!-- Plusieurs types sur une même mission (« Rec + MIX ») : pastilles supprimables + lien d'ajout. Remplis par _syncTypeBtn(). -->

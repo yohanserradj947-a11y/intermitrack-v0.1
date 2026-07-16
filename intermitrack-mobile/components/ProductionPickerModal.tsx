@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 // `productions` arrive DEJA triee de la plus utilisee a la moins utilisee (voir prodCounts dans les ecrans).
 export default function ProductionPickerModal({
   visible, productions, current, onPick, onClose, label = 'Production',
+  plural = 'productions', autoCap = 'characters',
 }: {
   visible: boolean;
   productions: string[];
@@ -18,6 +19,8 @@ export default function ProductionPickerModal({
   onPick: (name: string) => void;
   onClose: () => void;
   label?: string;
+  plural?: string;                                     // « productions » / « émissions » / « lieux »
+  autoCap?: 'characters' | 'none' | 'sentences';       // lieux en minuscules, prod/émission en MAJ
 }) {
   const C = useTheme();
   const s = useMemo(() => makeS(C), [C]);
@@ -26,10 +29,12 @@ export default function ProductionPickerModal({
   // A chaque ouverture on repart d'une recherche vide, sinon on retrouverait le filtre precedent.
   useEffect(() => { if (visible) setQ(''); }, [visible]);
 
-  const query = q.trim().toUpperCase();
-  const list = query ? productions.filter(p => p.includes(query)) : productions;
-  // On ne propose la creation que si le nom tape n'existe pas deja a l'identique.
-  const canCreate = !!query && !productions.some(p => p === query);
+  // En mode « lieu » on ne force pas les majuscules : la comparaison se fait donc en insensible à la casse.
+  const raw = q.trim();
+  const query = autoCap === 'characters' ? raw.toUpperCase() : raw;
+  const list = query ? productions.filter(p => p.toUpperCase().includes(query.toUpperCase())) : productions;
+  // On ne propose la creation que si le nom tape n'existe pas deja a l'identique (casse ignorée).
+  const canCreate = !!query && !productions.some(p => p.toUpperCase() === query.toUpperCase());
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
@@ -46,7 +51,7 @@ export default function ProductionPickerModal({
               <TouchableOpacity onPress={onClose} hitSlop={8}><Ionicons name="close" size={22} color={C.muted} /></TouchableOpacity>
             </View>
 
-            <TxtInput style={s.input} value={q} onChangeText={setQ} placeholder="Chercher ou créer…" placeholderTextColor={C.muted} autoCapitalize="characters" />
+            <TxtInput style={s.input} value={q} onChangeText={setQ} placeholder="Chercher ou créer…" placeholderTextColor={C.muted} autoCapitalize={autoCap} />
 
             {canCreate && (
               <TouchableOpacity style={s.createBtn} onPress={() => onPick(query)}>
@@ -57,7 +62,7 @@ export default function ProductionPickerModal({
 
             {list.length > 0 ? (
               <>
-                <Text style={s.groupLbl}>{query ? 'Correspondances' : 'Tes productions · de la plus utilisée à la moins utilisée'}</Text>
+                <Text style={s.groupLbl}>{query ? 'Correspondances' : `Tes ${plural} · de la plus utilisée à la moins utilisée`}</Text>
                 {/* Liste scrollable : elle peut etre longue quand on a rempli une annee entiere. */}
                 <ScrollView style={s.list} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                   {list.map(p => (
@@ -69,7 +74,7 @@ export default function ProductionPickerModal({
                 </ScrollView>
               </>
             ) : (
-              !canCreate && <Text style={s.empty}>Aucune production enregistrée pour l'instant. Tape un nom pour la créer.</Text>
+              !canCreate && <Text style={s.empty}>Rien d'enregistré pour l'instant. Tape un nom pour l'ajouter.</Text>
             )}
           </TouchableOpacity>
         </TouchableOpacity>
