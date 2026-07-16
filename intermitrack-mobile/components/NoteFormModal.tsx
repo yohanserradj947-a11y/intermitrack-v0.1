@@ -9,6 +9,7 @@ import ColorPickerModal from './ColorPickerModal';
 // Clavier numérique iOS : pas de touche « entrée ». Sans la barre « OK » de
 // NumInput, le champ se referme sur l'utilisateur.
 import NumInput from './NumInput';
+import TxtInput from './TxtInput';
 
 const SUGGESTIONS = ['Médical', 'Perso', 'Vacances', 'Repos', 'Autres'];
 const ORG_SUGGESTIONS = ['AFDAS', 'CFPTS', 'INA', 'GRETA', 'CFA'];
@@ -130,7 +131,7 @@ export default function NoteFormModal({ visible, editNote, defaultDate, mode = '
               {isForm && <Text style={s.formIntro}>Une formation compte dans tes heures, pas dans ton brut ni tes cachets.</Text>}
 
               <Text style={s.label}>{isForm ? 'Organisme de formation' : 'Titre de la note'}</Text>
-              <TextInput style={s.input} value={title} onChangeText={setTitle} placeholder={isForm ? 'Ex : AFDAS, CFPTS, INA…' : 'Ex : RDV médecin, Congés posés…'} placeholderTextColor={C.muted} autoCapitalize={isForm ? 'characters' : 'sentences'} />
+              <TxtInput style={s.input} value={title} onChangeText={setTitle} placeholder={isForm ? 'Ex : AFDAS, CFPTS, INA…' : 'Ex : RDV médecin, Congés posés…'} placeholderTextColor={C.muted} autoCapitalize={isForm ? 'characters' : 'sentences'} />
               <View style={s.chipRow}>
                 {(isForm ? ORG_SUGGESTIONS : SUGGESTIONS).map(sug => (
                   <TouchableOpacity key={sug} style={s.chip} onPress={() => setTitle(sug)}>
@@ -194,7 +195,7 @@ export default function NoteFormModal({ visible, editNote, defaultDate, mode = '
               )}
 
               <Text style={s.label}>{isForm ? 'Intitulé (facultatif)' : 'Note (courte)'}</Text>
-              <TextInput style={[s.input, { height: 80, textAlignVertical: 'top' }]} value={text} onChangeText={setText} maxLength={200} multiline placeholder={isForm ? 'Ex : Habilitation électrique…' : 'Ex : RDV dentiste 14h…'} placeholderTextColor={C.muted} />
+              <TxtInput style={[s.input, { height: 80, textAlignVertical: 'top' }]} value={text} onChangeText={setText} maxLength={200} multiline placeholder={isForm ? 'Ex : Habilitation électrique…' : 'Ex : RDV dentiste 14h…'} placeholderTextColor={C.muted} />
               <Text style={s.counter}>{text.length} / 200</Text>
 
               <Text style={s.label}>Couleur (repère)</Text>
