@@ -131,6 +131,83 @@ export function eventToDraft(ev: any, defaultHours = 8): MissionDraft {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Import « Coller mes notes » : beaucoup de gens notent leurs dates en texte
+// libre (Notes du téléphone), sous un en-tête de mois. Ex :
+//   MARS
+//   18 vdlm 8h 230
+//   19 endemol 12h 450
+// On lit chaque ligne avec la MÊME logique que l'import calendrier (parseEventText).
+// L'année n'est presque jamais écrite → l'appelant la fait confirmer (defaut = année
+// en cours) ; une ligne qui précise jj/mm/aaaa garde SON année, elle.
+// ---------------------------------------------------------------------------
+const MONTH_PREFIX: [RegExp, number][] = [
+  [/^janv/i, 1], [/^f[eé]v/i, 2], [/^mars/i, 3], [/^avr/i, 4], [/^mai$/i, 5], [/^juin/i, 6],
+  [/^juil/i, 7], [/^ao[uû]t/i, 8], [/^sept/i, 9], [/^oct/i, 10], [/^nov/i, 11], [/^d[eé]c/i, 12],
+];
+function monthOfLine(line: string): number | null {
+  const w = line.replace(/[^a-zàâäéèêëîïôöûüç]/gi, '');
+  if (!w) return null;
+  for (const [rx, m] of MONTH_PREFIX) { if (rx.test(w)) return m; }
+  return null;
+}
+export function parseNotesText(text: string, year: number, defaultHours = 8): MissionDraft[] {
+  const lines = String(text || '').split(/\r?\n/);
+  let curMonth: number | null = null;
+  const out: MissionDraft[] = [];
+  let idx = 0;
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+
+    // En-tête de mois : que des lettres (aucun chiffre) et ça matche un mois.
+    const digits = (line.match(/\d/g) || []).length;
+    const asMonth = monthOfLine(line);
+    if (asMonth && digits === 0) { curMonth = asMonth; continue; }
+
+    // Date explicite jj/mm(/aaaa) n'importe où dans la ligne → prioritaire sur l'année confirmée.
+    let dateISO: string | null = null;
+    let rest = line;
+    const dm = line.match(/\b(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?\b/);
+    if (dm) {
+      const d = +dm[1], mo = +dm[2];
+      const y = dm[3] ? (dm[3].length === 2 ? 2000 + +dm[3] : +dm[3]) : year;
+      if (d >= 1 && d <= 31 && mo >= 1 && mo <= 12) { dateISO = `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`; rest = line.replace(dm[0], ' '); }
+    }
+    // Sinon : ligne « jour + reste » sous un en-tête de mois (avec ou sans jour de semaine devant).
+    if (!dateISO && curMonth) {
+      const dayM = line.match(/^(?:(?:lun|mar|mer|jeu|ven|sam|dim)[a-zàâäéèêëîïôöûüç.]*\s+)?(\d{1,2})\b/i);
+      if (dayM) {
+        const d = +dayM[1];
+        if (d >= 1 && d <= 31) { dateISO = `${year}-${String(curMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`; rest = line.slice(dayM[0].length); }
+      }
+    }
+    if (!dateISO) continue; // ligne non reconnue (légende, texte libre…) → ignorée
+
+    const { gross, textHours, prod } = parseEventText(rest, '');
+    const hoursFound = textHours != null && textHours > 0 && textHours <= 24;
+    const hours = hoursFound ? (textHours as number) : defaultHours;
+    const missing: string[] = [];
+    if (!prod || !prod.trim()) missing.push('prod');
+    if (!hoursFound) missing.push('heures');
+    if (!(gross > 0)) missing.push('prix');
+    out.push({
+      key: `note-${idx++}-${dateISO}`,
+      selected: true,
+      production: (prod || '').toUpperCase(),
+      mission_date: dateISO,
+      end_date: null,
+      hours,
+      gross_amount: gross,
+      lieu: null,
+      title: line,
+      missing,
+    });
+  }
+  out.sort((a, b) => a.mission_date.localeCompare(b.mission_date));
+  return out;
+}
+
 // Demande l'accès, lit tous les calendriers, récupère les événements sur la période et les analyse.
 export async function scanCalendar(
   monthsBack = 12,

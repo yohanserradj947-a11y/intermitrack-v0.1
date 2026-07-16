@@ -11,7 +11,7 @@ import { GradientButton } from './GradientButton';
 // de ces composants, on ne peut plus le refermer. Règle valable partout dans l'app.
 import NumInput from './NumInput';
 import TxtInput from './TxtInput';
-import { scanCalendar, MissionDraft } from '../lib/calendarImport';
+import { scanCalendar, parseNotesText, MissionDraft } from '../lib/calendarImport';
 import { useAnnexe, modeForNew, CACHET_H } from '../lib/annexe';
 import {
   pickAndReadExcel, autoDetect, countValid, buildDrafts,
@@ -20,7 +20,7 @@ import {
 import { trackEvent } from '../lib/analytics';
 
 type Phase = 'intro' | 'loading' | 'mapping' | 'preview' | 'importing' | 'done' | 'denied' | 'empty';
-type Mode = 'calendar' | 'excel';
+type Mode = 'calendar' | 'excel' | 'notes';
 
 // Les 4 informations qu'on cherche dans le fichier. La date est la seule
 // indispensable : sans elle il n'y a pas de mission.
@@ -51,6 +51,9 @@ export default function CalendarImportModal({
   const [error, setError] = useState('');
   const [importedCount, setImportedCount] = useState(0);
   const [openKey, setOpenKey] = useState<string | null>(null);
+  // Mode « coller mes notes » : le texte collé + l'année à confirmer (jamais écrite dans les notes).
+  const [notesText, setNotesText] = useState('');
+  const [notesYear, setNotesYear] = useState(new Date().getFullYear());
   // Étape « correspondance des colonnes » (Excel uniquement).
   const [wb, setWb] = useState<Workbook | null>(null);
   const [sheetIdx, setSheetIdx] = useState(0);
@@ -60,6 +63,7 @@ export default function CalendarImportModal({
   function reset() {
     setPhase('intro'); setDrafts([]); setError(''); setImportedCount(0); setOpenKey(null);
     setWb(null); setSheetIdx(0); setCols(null); setPickField(null);
+    setNotesText(''); setNotesYear(new Date().getFullYear());
   }
   function close() { reset(); onClose(); }
 
@@ -101,6 +105,17 @@ export default function CalendarImportModal({
           lignes_datees: countValid(first, detected),
         });
         setPhase('mapping');
+        return;
+      }
+      if (mode === 'notes') {
+        const found = parseNotesText(notesText, notesYear, defH);
+        trackEvent('import_read', { mode, annee: notesYear, lues: found.length });
+        if (!found.length) {
+          trackEvent('import_failed', { mode, raison: 'aucune_ligne' });
+          setError("Je n'ai reconnu aucune ligne. Chaque ligne doit commencer par un jour, avec un en-tête de mois au-dessus (ex : « MARS » puis « 18 prod 8h 230 »).");
+          setPhase('intro'); return;
+        }
+        await toPreview(found, 'notes');
         return;
       }
       const { status, drafts: found } = await scanCalendar(12, 12, defH);
@@ -254,13 +269,38 @@ export default function CalendarImportModal({
       <View style={s.overlay}>
         <View style={s.card}>
           <View style={s.head}>
-            <Text style={s.title}>{mode === 'excel' ? 'Importer depuis un Excel' : 'Importer depuis mon calendrier'}</Text>
+            <Text style={s.title}>{mode === 'excel' ? 'Importer depuis un Excel' : mode === 'notes' ? 'Coller mes notes' : 'Importer depuis mon calendrier'}</Text>
             <TouchableOpacity onPress={close} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Text style={s.close}>✕</Text>
             </TouchableOpacity>
           </View>
 
-          {phase === 'intro' && (
+          {phase === 'intro' && mode === 'notes' && (
+            <View style={s.pad}>
+              <Text style={s.body}>Colle tes notes telles que tu les écris. Un en-tête de mois, puis une ligne par date :</Text>
+              <Text style={[s.bodyMuted, { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>MARS{'\n'}18 vdlm 8h 230{'\n'}19 endemol 12h 450</Text>
+              <TextInput
+                style={s.notesInput}
+                value={notesText}
+                onChangeText={setNotesText}
+                multiline
+                textAlignVertical="top"
+                placeholder={'Colle ici…'}
+                placeholderTextColor={C.muted}
+              />
+              <Text style={s.body}>De quelle année s'agit-il ?</Text>
+              <Text style={s.bodyMuted}>Tes notes n'indiquent pas l'année : confirme-la (une ligne qui précise jj/mm/aaaa garde la sienne).</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 6, marginBottom: 4 }}>
+                <TouchableOpacity onPress={() => setNotesYear((y) => y - 1)} hitSlop={10} style={s.yearArrow}><Text style={s.yearArrowTxt}>‹</Text></TouchableOpacity>
+                <Text style={s.yearVal}>{notesYear}</Text>
+                <TouchableOpacity onPress={() => setNotesYear((y) => y + 1)} hitSlop={10} style={s.yearArrow}><Text style={s.yearArrowTxt}>›</Text></TouchableOpacity>
+              </View>
+              {!!error && <Text style={s.err}>{error}</Text>}
+              <GradientButton onPress={analyze} label="Analyser mes notes" style={[s.cta, !notesText.trim() && { opacity: 0.4 }]} textStyle={s.ctaTxt} />
+            </View>
+          )}
+
+          {phase === 'intro' && mode !== 'notes' && (
             <View style={s.pad}>
               <Text style={s.body}>
                 {mode === 'excel'
@@ -280,7 +320,7 @@ export default function CalendarImportModal({
           {phase === 'loading' && (
             <View style={s.center}>
               <ActivityIndicator color={C.petrol} size="large" />
-              <Text style={s.bodyMuted}>{mode === 'excel' ? 'Lecture de ton fichier…' : 'Lecture de ton calendrier…'}</Text>
+              <Text style={s.bodyMuted}>{mode === 'excel' ? 'Lecture de ton fichier…' : mode === 'notes' ? 'Lecture de tes notes…' : 'Lecture de ton calendrier…'}</Text>
             </View>
           )}
 
@@ -460,6 +500,10 @@ const styles = (C: any) => StyleSheet.create({
   body: { fontSize: 14.5, color: C.text, lineHeight: 21 },
   bodyMuted: { fontSize: 13, color: C.muted, lineHeight: 19 },
   err: { fontSize: 13, color: C.danger, fontWeight: '600' },
+  notesInput: { borderWidth: 1, borderColor: C.line, borderRadius: 12, padding: 12, fontSize: 14, color: C.text, backgroundColor: C.bg, minHeight: 130, maxHeight: 220, marginTop: 4 },
+  yearArrow: { width: 40, height: 40, borderRadius: 12, borderWidth: 1.5, borderColor: C.petrol, alignItems: 'center', justifyContent: 'center' },
+  yearArrowTxt: { fontSize: 22, fontWeight: '900', color: C.petrol, lineHeight: 24 },
+  yearVal: { fontSize: 20, fontWeight: '900', color: C.text, minWidth: 70, textAlign: 'center' },
   center: { paddingVertical: 46, alignItems: 'center', gap: 14 },
   cta: { marginTop: 14, height: 50, borderRadius: 14 },
   ctaTxt: { color: '#fff', fontWeight: '800', fontSize: 15 },

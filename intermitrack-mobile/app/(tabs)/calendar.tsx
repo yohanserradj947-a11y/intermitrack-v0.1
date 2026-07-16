@@ -74,7 +74,7 @@ export default function Calendar(){
   const [colorPickerOpen,setColorPickerOpen]=useState(false);
   const [managerOpen,setManagerOpen]=useState(false);
   const [showImport,setShowImport]=useState(false);
-  const [importMode,setImportMode]=useState<'calendar'|'excel'>('calendar');
+  const [importMode,setImportMode]=useState<'calendar'|'excel'|'notes'>('calendar');
   const { notes, notesForDate } = useNotes();
   const [noteFormOpen,setNoteFormOpen]=useState(false);
   const [noteFormEdit,setNoteFormEdit]=useState<Note|null>(null);
@@ -452,6 +452,11 @@ export default function Calendar(){
           </TouchableOpacity>
         </View>
       </View>
+      {/* 3e mode : coller ses notes (texte libre « MARS / 18 prod 8h 230 »), le format le plus courant. */}
+      <TouchableOpacity onPress={()=>{trackEvent('import_open',{mode:'notes'});setImportMode('notes');setShowImport(true);}} activeOpacity={0.85} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,marginHorizontal:14,marginBottom:10,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
+        <Ionicons name="create-outline" size={17} color={C.petrol}/>
+        <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}}>Coller mes notes</Text>
+      </TouchableOpacity>
 
       <CalendarImportModal visible={showImport} mode={importMode} onClose={()=>setShowImport(false)} onImported={()=>loadMissions()}/>
 
