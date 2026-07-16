@@ -208,9 +208,14 @@ struct CalCell: View {
         if i.hach { HachureOverlay().clipShape(RoundedRectangle(cornerRadius: 4)) }
       }
       if isToday { Circle().fill(ORANGE).frame(width: h * 0.80, height: h * 0.80) }
+      // Numéro TOUJOURS blanc dès que la case est colorée (comme sur Android). Retour Yohan :
+      // « c'est difficilement lisible sur iPhone ». On utilisait la couleur calculée pour la prod
+      // (textOn), donc NOIRE sur les couleurs claires — illisible sur le dégradé de la case.
+      // L'ombre garantit le contraste même sur une couleur de prod très pâle.
       Text("\(day)")
         .font(.system(size: h * 0.46, weight: (isToday || mission != nil) ? .heavy : .medium))
-        .foregroundColor(isToday ? .white : (mission.map { Color(hexString: $0.txt) } ?? .primary))
+        .foregroundColor((isToday || mission != nil) ? .white : .primary)
+        .shadow(color: .black.opacity((isToday || mission != nil) ? 0.45 : 0), radius: 1.5, x: 0, y: 0.5)
         .minimumScaleFactor(0.6)
       if !isToday { noteDot(6) }
     }
