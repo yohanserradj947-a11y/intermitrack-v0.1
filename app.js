@@ -472,7 +472,7 @@ function _parseNotes(text, year, defH, defP){
     if(!p.prod||!p.prod.trim())missing.push('prod');
     if(!pf&&price===0)missing.push('prix');
     // Ce qui a été pré-rempli (heures par défaut, prix depuis le salaire journalier) = à vérifier.
-    var chk=[]; if(!hf)chk.push((defH===12?'1 cachet':defH+' h')+' par défaut'); if(!pf&&price>0)chk.push(price+' € (tarif moyen)');
+    var chk=[]; if(!hf)chk.push((defH===12?'1 cachet':defH+' h')+' par défaut'); if(!pf&&price>0)chk.push(price+' € (tarif journalier)');
     out.push({ date:dateISO, prod:(p.prod||'').replace(/[.\s]+$/,'').toUpperCase(), hours:hours, price:price, lieu:'', missing:missing, selected:true, check: chk.length?(chk.join(' · ')+' — à vérifier'):'' });
   }
   out.sort(function(a,b){return a.date.localeCompare(b.date);});
@@ -488,15 +488,16 @@ function _openNotesImport(){
   }
   var year=new Date().getFullYear();
   var defH=(_profil&&_profil.annexe==='artiste')?12:8;
-  // Prix par défaut = TARIF JOURNALIER MOYEN des missions déjà saisies (pas le taux_journalier
-  // du profil, qui est l'allocation Pôle Emploi — retour Yohan).
-  var _g=(typeof missions!=='undefined'?missions:[]).reduce(function(a,m){return a+Number(m.gross||0);},0);
-  var _v=(typeof missions!=='undefined'?missions:[]).reduce(function(a,m){return a+Number(m.vacations||0);},0);
-  var defP=(_g>0&&_v>0)?Math.round(_g/_v):0;
+  // Prix par défaut : le SALAIRE JOURNALIER du profil s'il est renseigné, sinon le tarif journalier
+  // MOYEN des missions déjà saisies. (Jamais taux_journalier = allocation Pôle Emploi.)
+  var defP=(_profil&&Number(_profil.salaire_journalier)>0)?Number(_profil.salaire_journalier):0;
+  if(!defP){ var _g=(typeof missions!=='undefined'?missions:[]).reduce(function(a,m){return a+Number(m.gross||0);},0);
+    var _v=(typeof missions!=='undefined'?missions:[]).reduce(function(a,m){return a+Number(m.vacations||0);},0);
+    defP=(_g>0&&_v>0)?Math.round(_g/_v):0; }
   ov.innerHTML='<div class="pf-box" style="max-width:520px;"><div class="pf-title">Coller mes notes</div>'
    +'<p class="itk-hint" style="margin:2px 0 8px;">Un en-tête de mois, puis une ligne par date. Ex : <b>MARS</b> puis <b>18 vdlm 8h 230</b>.</p>'
    +'<textarea id="niText" rows="7" placeholder="Colle ici…" style="width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-size:14px;font-family:inherit;box-sizing:border-box;background:var(--card);color:var(--text);resize:vertical;"></textarea>'
-   +'<p class="itk-hint" style="margin:8px 0 2px;">Ce qui manque sera pré-rempli : les heures ('+(defH===12?'1 cachet de 12 h, car ton profil est artiste':'8 h, car ton profil est technicien')+')'+(defP>0?(', et '+defP+' € pour le prix (ton tarif journalier moyen)'):'')+'. Tu vérifies chaque ligne avant de valider.</p>'
+   +'<p class="itk-hint" style="margin:8px 0 2px;">Ce qui manque sera pré-rempli : les heures ('+(defH===12?'1 cachet de 12 h, car ton profil est artiste':'8 h, car ton profil est technicien')+')'+(defP>0?(', et '+defP+' € pour le prix (ton tarif journalier)'):'')+'. Tu vérifies chaque ligne avant de valider.</p>'
    +'<label class="itk-label" style="margin-top:6px;">Année (tes notes ne l\'indiquent pas)</label>'
    +'<input type="number" id="niYear" value="'+year+'" style="width:120px;border:1px solid var(--line);border-radius:11px;padding:10px 12px;font-size:14px;font-family:inherit;background:var(--card);color:var(--text);">'
    +'<div id="niErr" style="color:var(--danger);font-size:13px;font-weight:600;margin-top:8px;display:none;"></div>'
@@ -3597,7 +3598,7 @@ function resetMissionFormForDate(dateStr, regime) {
   if ($("endDate")) $("endDate").value = dateStr;
   if ($("hours")) $("hours").value = "";
   if ($("cachetInput")) $("cachetInput").value = "";
-  if ($("gross")) $("gross").value = "";
+  if ($("gross")) $("gross").value = (typeof _profil!=='undefined' && _profil && Number(_profil.salaire_journalier)>0) ? _profil.salaire_journalier : "";
   if (typeof setMissionModeForOpen === 'function') setMissionModeForOpen();  // Heures/Cachet selon l'annexe
   const submitBtn = document.querySelector("#missionForm button[type='submit']");
   if (submitBtn) submitBtn.textContent = "Enregistrer la mission";
@@ -4375,7 +4376,7 @@ var POSTES_MUSIQUE = ['Concert','Répétition','Session studio','Atelier / Péda
 async function loadProfil(){
   if(!currentUser) return;
   try{
-    const { data } = await sb.from('profiles').select('annexe,postes,droits_ouverts,taux_journalier,taux_impot,are_date,production_colors,notes,ae_custom_presta,custom_postes,km_cv,km_tranche,km_vehicle,km_annual,km_electric').eq('id', currentUser.id).maybeSingle();
+    const { data } = await sb.from('profiles').select('annexe,postes,droits_ouverts,taux_journalier,taux_impot,are_date,production_colors,notes,ae_custom_presta,custom_postes,km_cv,km_tranche,km_vehicle,km_annual,km_electric,salaire_journalier').eq('id', currentUser.id).maybeSingle();
     _profil = data || null;
     // Date ARE : la base de données fait foi (synchro multi-appareils).
     // Sinon, on migre la valeur locale (ancienne) vers la base.
@@ -4471,6 +4472,8 @@ function _profilEnsureDom(){
     + '<div class="pf-label">Tes postes <span style="font-weight:400;color:#9AA5B1;">— le 1er = défaut sur tes missions</span></div>'
     + '<div class="pf-seg" id="pfPostes"></div>'
     + '<div style="display:flex;gap:8px;margin-top:8px;"><input type="text" id="pfNewPoste" class="pf-input" placeholder="Ex : Clown, Cascadeur…" style="flex:1;"/><button type="button" class="pf-ok" id="pfAddPoste" style="flex:0 0 auto;padding:11px 16px;">Ajouter</button></div>'
+    + '<div class="pf-label">Ton salaire journalier brut <span style="font-weight:400;opacity:.65;">— pré-remplit le prix de tes missions</span></div>'
+    + '<input type="number" id="pfSalaireJour" class="pf-input" placeholder="Ex : 230" min="0" step="1"/>'
     // Véhicule mémorisé → pré-remplit les frais km de chaque mission (retour JB : « je ne change pas
     // ma voiture, et mon nombre de kilomètres annuel ne change pas d'une mission à l'autre »).
     // Clés identiques au barème de l'appli ET du site : ne pas diverger.
@@ -4552,6 +4555,7 @@ function openProfilModal(){
   if(dr===true){ ov.querySelector('[data-droits="oui"]').classList.add('on'); document.getElementById('pfAjWrap').style.display='block'; }
   else if(dr===false){ ov.querySelector('[data-droits="non"]').classList.add('on'); document.getElementById('pfAjWrap').style.display='none'; }
   document.getElementById('pfAj').value = (_profil && _profil.taux_journalier!=null) ? _profil.taux_journalier : '';
+  if(document.getElementById('pfSalaireJour')) document.getElementById('pfSalaireJour').value = (_profil && _profil.salaire_journalier!=null) ? _profil.salaire_journalier : '';
   document.getElementById('pfImpot').value = (_profil && _profil.taux_impot!=null) ? _profil.taux_impot : '';
   // Véhicule mémorisé (retour JB). Nouveau format si présent, sinon migration de l'ancien.
   var _v = kmProfilTaux();
@@ -4580,7 +4584,8 @@ async function _profilSave(){
     km_vehicle: kindBtn ? kindBtn.dataset.kmkind : null,
     km_cv: cvBtn ? cvBtn.dataset.kmcv : null,
     km_annual: Number(document.getElementById('pfKmAnnual').value) || null,
-    km_electric: !!ov.querySelector('#pfKmElec .pf-opt.on')
+    km_electric: !!ov.querySelector('#pfKmElec .pf-opt.on'),
+    salaire_journalier: Number((document.getElementById('pfSalaireJour')||{}).value) || null
   };
   var res = await sb.from('profiles').upsert(Object.assign({ id: currentUser.id }, p), { onConflict:'id' });
   if(res.error){ if(typeof toast==='function') toast('Erreur : '+res.error.message); return; }
