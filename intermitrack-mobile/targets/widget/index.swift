@@ -172,11 +172,11 @@ struct CalProvider: TimelineProvider {
   }
 }
 struct CalCell: View {
-  let day: Int; let info: CalDay?; let today: Int; let h: CGFloat; let big: Bool
+  let day: Int; let info: CalDay?; let today: Int; let h: CGFloat
   var isToday: Bool { day == today }
   var mission: CalDay? { if let i = info, !i.g.isEmpty { return i }; return nil }
   var body: some View {
-    if big { bigCell } else { compactCell }
+    bigCell
   }
   // GRAND widget : numéro en haut (aujourd'hui = pastille) + bande d'initiales de la mission dessous
   var bigCell: some View {
@@ -188,7 +188,9 @@ struct CalCell: View {
       .frame(height: h * 0.44)
       if let i = mission {
         ZStack {
-          RoundedRectangle(cornerRadius: 3).fill(LinearGradient(colors: i.g.map { Color(hexString: $0) }, startPoint: .leading, endPoint: .trailing))
+          // Fond uni, même raison que MiniCell : i.txt est calculé sur la couleur de référence seule,
+          // il ne peut pas être juste sur un dégradé qui monte jusqu'à +36 % de clarté.
+          RoundedRectangle(cornerRadius: 3).fill(Color(hexString: i.g.count > 1 ? i.g[1] : i.g[0]))
           if i.hach { HachureOverlay().clipShape(RoundedRectangle(cornerRadius: 3)) }
           Text(i.ab).font(.system(size: h * 0.24, weight: .heavy)).foregroundColor(Color(hexString: i.txt)).lineLimit(1).minimumScaleFactor(0.5).padding(.horizontal, 1)
           noteDot(5)
@@ -200,28 +202,10 @@ struct CalCell: View {
     }
     .frame(height: h)
   }
-  // MOYEN widget (court) : lisibilité max — fond coloré par prod + gros numéro centré (style iPhone)
-  var compactCell: some View {
-    ZStack {
-      if let i = mission {
-        // Fond UNI avec la couleur de la prod, comme sur Android — et non le dégradé.
-        // prodGradient renvoie [couleur −14 %, couleur, couleur +36 %] : en peignant le dégradé
-        // complet, le coin bas-droit devenait 36 % plus clair que la couleur de référence, alors que
-        // i.txt (= textOn(couleur)) est calculé sur elle seule. Le chiffre s'y perdait — d'où
-        // « difficilement lisible sur iPhone, contrairement à Android » (retour Yohan).
-        // Avec un fond uni, i.txt redevient exact : noir sur une couleur claire, blanc sinon.
-        RoundedRectangle(cornerRadius: 4).fill(Color(hexString: i.g.count > 1 ? i.g[1] : i.g[0]))
-        if i.hach { HachureOverlay().clipShape(RoundedRectangle(cornerRadius: 4)) }
-      }
-      if isToday { Circle().fill(ORANGE).frame(width: h * 0.80, height: h * 0.80) }
-      Text("\(day)")
-        .font(.system(size: h * 0.46, weight: (isToday || mission != nil) ? .heavy : .medium))
-        .foregroundColor(isToday ? .white : (mission.map { Color(hexString: $0.txt) } ?? .primary))
-        .minimumScaleFactor(0.6)
-      if !isToday { noteDot(6) }
-    }
-    .frame(height: h)
-  }
+  // compactCell SUPPRIMÉ : c'était du CODE MORT. CalCell n'est instancié qu'une seule fois, avec
+  // big: true (monthView) — compactCell n'a donc jamais été rendu. Le widget moyen utilise MiniCell.
+  // J'y avais d'abord corrigé le dégradé, sans effet : le correctif ne s'exécutait jamais.
+  // Repéré par Yohan (« on est d'accord que tous les autres widgets suivent déjà la même logique ? »).
   @ViewBuilder func noteDot(_ size: CGFloat) -> some View {
     if let i = info, !i.note.isEmpty {
       VStack { HStack { Spacer(); Circle().fill(Color(hexString: i.note)).frame(width: size, height: size).overlay(Circle().stroke(Color.white, lineWidth: 0.5)) }; Spacer() }.padding(1.5)
@@ -248,7 +232,13 @@ struct MiniCell: View {
   var mission: CalDay? { if let i = info, !i.g.isEmpty { return i }; return nil }
   var body: some View {
     ZStack {
-      if let m = mission { RoundedRectangle(cornerRadius: 4).fill(LinearGradient(colors: m.g.map { Color(hexString: $0) }, startPoint: .topLeading, endPoint: .bottomTrailing)) }
+      // Fond UNI (la couleur de la prod), comme Android — et non le dégradé.
+      // prodGradient renvoie [couleur −14 %, couleur, couleur +36 %] : en peignant le dégradé complet,
+      // le coin bas-droit devenait 36 % plus clair que la couleur de référence, alors que m.txt
+      // (= textOn(couleur)) est calculé sur elle seule. Le chiffre s'y perdait — d'où « difficilement
+      // lisible sur iPhone, contrairement à Android » (retour Yohan). Avec un fond uni, m.txt redevient
+      // exact : noir sur une couleur claire, blanc sinon.
+      if let m = mission { RoundedRectangle(cornerRadius: 4).fill(Color(hexString: m.g.count > 1 ? m.g[1] : m.g[0])) }
       if isToday { Circle().fill(Color(hexString: theme.orange)).frame(width: 21, height: 21) }
       Text("\(day)").font(.system(size: 12.5, weight: (isToday || mission != nil) ? .heavy : .medium)).foregroundColor(isToday ? .white : (mission.map { Color(hexString: $0.txt) } ?? Color(hexString: theme.text))).minimumScaleFactor(0.7)
     }.frame(height: 22)
@@ -285,7 +275,7 @@ struct CalView: View {
       LazyVGrid(columns: cols, spacing: 3) {
         ForEach(Array(monthCells.enumerated()), id: \.offset) { _, day in
           if day == 0 { Color.clear.frame(height: 34) }
-          else { CalCell(day: day, info: byDay[day], today: cal.today, h: 34, big: true) }
+          else { CalCell(day: day, info: byDay[day], today: cal.today, h: 34) }
         }
       }
       if let up = cal.upcoming, !up.isEmpty {
