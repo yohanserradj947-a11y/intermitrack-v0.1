@@ -26,18 +26,33 @@ function ymdLocal(d: Date): string {
 export function parseEventText(title: string, notes: string) {
   const text = `${title || ''} ${notes || ''}`;
 
-  // Heures écrites dans le texte : "8h", "10 h", "7,5h", "8h30"
+  // Toutes les mentions d'heures : "8h", "10 h", "7,5h", "8h30".
+  // Le (?!\d) est capital : sans lui, le groupe des minutes avale le début du
+  // prix et "TEST 12H 240" se lisait "12h24" → 12,4 heures.
+  const RX = /(\d{1,2})(?:[.,](\d))?\s*h(?:\s*(\d{2})(?!\d))?/gi;
+  const hits: number[] = [];
+  for (const m of text.matchAll(RX)) {
+    if (m[2] != null) hits.push(Number(m[1]) + Number(m[2]) / 10);       // "7,5h"
+    else if (m[3] != null) hits.push(Number(m[1]) + Number(m[3]) / 60);  // "8h30"
+    else hits.push(Number(m[1]));                                        // "8h"
+  }
+
+  // UNE seule mention = un nombre d'heures ("REC 12h") : c'est 80 % des cas.
+  // DEUX ou plus = des horaires ("9h-17h") : la durée est leur écart.
   let textHours: number | null = null;
-  const h = text.match(/(\d{1,2})(?:[.,](\d))?\s*h(?:\s*(\d{2}))?/i);
-  if (h) {
-    if (h[2] != null) textHours = Number(h[1]) + Number(h[2]) / 10;       // "7,5h"
-    else if (h[3] != null) textHours = Number(h[1]) + Number(h[3]) / 60;  // "8h30"
-    else textHours = Number(h[1]);                                        // "8h"
+  if (hits.length === 1) {
+    textHours = hits[0];
+  } else if (hits.length >= 2) {
+    let d = hits[hits.length - 1] - hits[0];
+    if (d < 0) d += 24; // mission de nuit : "20h-2h" = 6 h
+    if (d > 0 && d <= 24) textHours = Math.round(d * 2) / 2;
   }
 
   // Prix : d'abord un nombre suivi de € / euros ; sinon un nombre plausible (100–9999, pas une année).
+  // Le (?:^|[^\dh]) empêche le prix de démarrer juste après un "h" : sans lui,
+  // "18h30 520€" se lisait "30 520" (les espaces sont admis pour "1 200 €").
   let gross = 0;
-  const euro = text.match(/(\d[\d ]{0,6}\d|\d)\s*(?:€|euros?)/i);
+  const euro = text.match(/(?:^|[^\dh])(\d[\d ]{0,6}\d|\d)\s*(?:€|euros?)/i);
   if (euro) {
     const n = Number(euro[1].replace(/\s/g, ''));
     if (n >= 20 && n <= 99999) gross = n;
@@ -50,10 +65,12 @@ export function parseEventText(title: string, notes: string) {
 
   // Nom de prod = le titre débarrassé du prix et des heures.
   let prod = (title || '')
-    .replace(/(\d[\d ]{0,6}\d|\d)\s*(?:€|euros?)/gi, ' ')
-    .replace(/\b\d{1,2}(?:[.,]\d)?\s*h\b/gi, ' ')
+    .replace(/(^|[^\dh])(\d[\d ]{0,6}\d|\d)\s*(?:€|euros?)/gi, '$1 ')
+    // Même motif que ci-dessus : "8h30" doit partir en entier, pas laisser "30".
+    .replace(/\d{1,2}(?:[.,]\d)?\s*h(?:\s*\d{2}(?!\d))?/gi, ' ')
     .replace(/\b\d{3,4}\b/g, ' ')
     .replace(/[·|,;/]+/g, ' ')
+    .replace(/\s+-+\s*|^\s*-+|-+\s*$/g, ' ') // tirets orphelins laissés par "9h-17h"
     .replace(/\s{2,}/g, ' ')
     .trim();
   if (!prod) prod = (title || '').trim();
@@ -68,15 +85,18 @@ export function eventToDraft(ev: any): MissionDraft {
   const allDay = !!ev.allDay;
   const { gross, textHours, prod } = parseEventText(ev.title || '', ev.notes || '');
 
-  // Heures : vraie durée si l'événement est horodaté, sinon les heures écrites.
-  // hoursFound = on a une vraie info (on n'invente pas). Sinon 8 h par défaut mais signalé "à compléter".
+  // Ce qui est ÉCRIT prime sur la durée du créneau : quelqu'un qui note "REC 12h"
+  // sur un créneau d'une heure travaille 12 h — le créneau n'est qu'un repère.
+  // À défaut d'heures écrites, on retombe sur la vraie durée du créneau.
+  // hoursFound = on a une vraie info (on n'invente pas). Sinon 8 h, signalé "à compléter".
   let hours = 8;
   let hoursFound = false;
-  if (!allDay) {
+  if (textHours != null && textHours > 0 && textHours <= 24) {
+    hours = textHours; hoursFound = true;
+  } else if (!allDay) {
     const diff = (endRaw.getTime() - start.getTime()) / 3600000;
     if (diff > 0 && diff <= 24) { hours = Math.round(diff * 2) / 2; hoursFound = true; }
-    else if (textHours != null) { hours = textHours; hoursFound = true; }
-  } else if (textHours != null) { hours = textHours; hoursFound = true; }
+  }
 
   // Dates : les "journée entière" ont une fin exclusive (minuit du lendemain) → on retire 1 ms.
   const startDay = ymdLocal(start);
