@@ -294,7 +294,26 @@ export function AccountMenu(){
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text style={s.modalTitle}>Mes informations</Text>
 
-              <Text style={s.label}>Tu es plutôt…</Text>
+              <Text style={s.label}>Tes postes <Text style={{fontWeight:'400',color:C.muted,fontSize:12}}>— le 1er est proposé par défaut dans tes missions</Text></Text>
+              {postes.length===0 ? <Text style={{fontSize:12,color:C.muted,marginBottom:4}}>Aucun poste — ajoute le tien ci-dessous.</Text> : (
+                <View style={s.typeWrap}>
+                  {postes.map(p=>(
+                    <View key={p} style={[s.typeChip,s.typeChipActive,{flexDirection:'row',alignItems:'center',gap:6}]}>
+                      <Text style={s.typeChipTxtActive}>{p}</Text>
+                      <TouchableOpacity onPress={()=>removePoste(p)} hitSlop={8}><Text style={{color:'#fff',fontWeight:'900',fontSize:13}}>×</Text></TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+              <View style={{flexDirection:'row',gap:8,marginTop:8}}>
+                <TextInput style={[s.input,{flex:1}]} value={miNewPoste} onChangeText={setMiNewPoste} placeholder="Ex : Clown, Cascadeur…" placeholderTextColor={C.muted}/>
+                <TouchableOpacity style={{backgroundColor:C.petrol,borderRadius:12,paddingHorizontal:16,justifyContent:'center',alignItems:'center'}} onPress={()=>{const v=miNewPoste.trim();if(v){addPoste(v);setMiNewPoste('');}}}><Text style={{color:'#fff',fontWeight:'800',fontSize:13}}>Ajouter</Text></TouchableOpacity>
+              </View>
+
+              <Text style={[s.label,{marginTop:16}]}>Ton salaire journalier brut <Text style={{fontWeight:'400',color:C.muted,fontSize:12}}>— pré-remplit le prix de tes missions</Text></Text>
+              <NumInput style={s.input} value={miSalaireJour} onChangeText={setMiSalaireJour} placeholder="Ex : 230" placeholderTextColor={C.muted}/>
+
+              <Text style={[s.label,{marginTop:16}]}>Tu es plutôt…</Text>
               <View style={s.typeWrap}>
                 {([['technicien','Technicien (annexe 8)'],['artiste','Artiste (annexe 10)'],['les_deux','Les deux']] as ['technicien'|'artiste'|'les_deux',string][]).map(([val,lbl])=>(
                   <TouchableOpacity key={val} style={[s.typeChip,miAnnexe===val&&s.typeChipActive]} onPress={()=>setMiAnnexe(val)}>
@@ -302,9 +321,6 @@ export function AccountMenu(){
                   </TouchableOpacity>
                 ))}
               </View>
-
-              <Text style={[s.label,{marginTop:16}]}>Ton salaire journalier brut <Text style={{fontWeight:'400',color:C.muted,fontSize:12}}>— pré-remplit le prix de tes missions</Text></Text>
-              <NumInput style={s.input} value={miSalaireJour} onChangeText={setMiSalaireJour} placeholder="Ex : 230" placeholderTextColor={C.muted}/>
 
               {/* Vehicule memorise -> pre-remplit les frais km de chaque mission (retour JB).
                   Les cles sont celles du bareme, identiques a l'appli ET au site : ne pas diverger. */}
@@ -348,22 +364,6 @@ export function AccountMenu(){
                   soit {(fraisAnnuels(miKmKind,miKmCv,Number(miKmAnnual),miKmElec)/Number(miKmAnnual)).toFixed(3).replace('.',',')} €/km appliqués à tes missions.
                 </Text>
               )}
-
-              <Text style={s.label}>Tes postes <Text style={{fontWeight:'400',color:C.muted,fontSize:12}}>— ils apparaissent dans tes missions</Text></Text>
-              {postes.length===0 ? <Text style={{fontSize:12,color:C.muted,marginBottom:4}}>Aucun poste — ajoute le tien ci-dessous.</Text> : (
-                <View style={s.typeWrap}>
-                  {postes.map(p=>(
-                    <View key={p} style={[s.typeChip,s.typeChipActive,{flexDirection:'row',alignItems:'center',gap:6}]}>
-                      <Text style={s.typeChipTxtActive}>{p}</Text>
-                      <TouchableOpacity onPress={()=>removePoste(p)} hitSlop={8}><Text style={{color:'#fff',fontWeight:'900',fontSize:13}}>×</Text></TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              )}
-              <View style={{flexDirection:'row',gap:8,marginTop:8}}>
-                <TextInput style={[s.input,{flex:1}]} value={miNewPoste} onChangeText={setMiNewPoste} placeholder="Ex : Clown, Cascadeur…" placeholderTextColor={C.muted}/>
-                <TouchableOpacity style={{backgroundColor:C.petrol,borderRadius:12,paddingHorizontal:16,justifyContent:'center',alignItems:'center'}} onPress={()=>{const v=miNewPoste.trim();if(v){addPoste(v);setMiNewPoste('');}}}><Text style={{color:'#fff',fontWeight:'800',fontSize:13}}>Ajouter</Text></TouchableOpacity>
-              </View>
 
               <Text style={s.label}>As-tu déjà ouvert tes droits ?</Text>
               <View style={s.typeWrap}>

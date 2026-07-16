@@ -162,7 +162,7 @@ export default function Calendar(){
   function openCreate(day:Date, regime:'intermittence'|'general'='intermittence'){
     setEditId(null);
     setFRegime(regime);
-    setFProduction(''); setFEmission(''); setFLieu(''); setNewPoste(''); setFType('Montage'); setFStart(day); setFEnd(day);
+    setFProduction(''); setFEmission(''); setFLieu(''); setNewPoste(''); setFType(postes.length>0?postes[0]:'Montage'); setFStart(day); setFEnd(day);
     setShowTypePicker(false); setTypeAddMode(false);
     // Régime général et enseignement = toujours en HEURES (jamais de cachets, ce n'est pas du spectacle).
     // Sinon un artiste, forcé en mode cachet par son annexe, ne pouvait pas saisir ses heures d'enseignement.
