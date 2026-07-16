@@ -204,18 +204,19 @@ struct CalCell: View {
   var compactCell: some View {
     ZStack {
       if let i = mission {
-        RoundedRectangle(cornerRadius: 4).fill(LinearGradient(colors: i.g.map { Color(hexString: $0) }, startPoint: .topLeading, endPoint: .bottomTrailing))
+        // Fond UNI avec la couleur de la prod, comme sur Android — et non le dégradé.
+        // prodGradient renvoie [couleur −14 %, couleur, couleur +36 %] : en peignant le dégradé
+        // complet, le coin bas-droit devenait 36 % plus clair que la couleur de référence, alors que
+        // i.txt (= textOn(couleur)) est calculé sur elle seule. Le chiffre s'y perdait — d'où
+        // « difficilement lisible sur iPhone, contrairement à Android » (retour Yohan).
+        // Avec un fond uni, i.txt redevient exact : noir sur une couleur claire, blanc sinon.
+        RoundedRectangle(cornerRadius: 4).fill(Color(hexString: i.g.count > 1 ? i.g[1] : i.g[0]))
         if i.hach { HachureOverlay().clipShape(RoundedRectangle(cornerRadius: 4)) }
       }
       if isToday { Circle().fill(ORANGE).frame(width: h * 0.80, height: h * 0.80) }
-      // Numéro TOUJOURS blanc dès que la case est colorée (comme sur Android). Retour Yohan :
-      // « c'est difficilement lisible sur iPhone ». On utilisait la couleur calculée pour la prod
-      // (textOn), donc NOIRE sur les couleurs claires — illisible sur le dégradé de la case.
-      // L'ombre garantit le contraste même sur une couleur de prod très pâle.
       Text("\(day)")
         .font(.system(size: h * 0.46, weight: (isToday || mission != nil) ? .heavy : .medium))
-        .foregroundColor((isToday || mission != nil) ? .white : .primary)
-        .shadow(color: .black.opacity((isToday || mission != nil) ? 0.45 : 0), radius: 1.5, x: 0, y: 0.5)
+        .foregroundColor(isToday ? .white : (mission.map { Color(hexString: $0.txt) } ?? .primary))
         .minimumScaleFactor(0.6)
       if !isToday { noteDot(6) }
     }
