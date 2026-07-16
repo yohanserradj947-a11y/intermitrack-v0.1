@@ -4995,7 +4995,6 @@ function _openFieldPicker(cfg){
 // jamais utilisé pour regrouper ou calculer, il est seulement affiché.
 // Identique à lib/missionType.ts de l'appli : ne pas diverger.
 var TYPE_SEP = ' + ';
-var _typeAddMode = false; // true = le choix S'AJOUTE au type courant ; false = il le remplace (cas courant)
 function _typeParts(v){ return String(v||'').split(TYPE_SEP).map(function(s){return s.trim();}).filter(Boolean); }
 function _typeAdd(v,t){ var p=_typeParts(v); if(!t || p.indexOf(t)>=0) return v; p.push(t); return p.join(TYPE_SEP); }
 function _typeRemove(v,t){ return _typeParts(v).filter(function(x){return x!==t;}).join(TYPE_SEP); }
@@ -5004,18 +5003,16 @@ function _syncTypeBtn(){
   var l=document.getElementById('typeBtnLabel'); var t=document.getElementById('type');
   if(l && t) l.textContent = t.value || 'Choisir…';
   var v = t ? (t.value||'') : '';
-  // Lien « + Ajouter un type de mission » : seulement une fois un type choisi.
+  // Multi-sélection directe dans le pop-up : plus de lien « + Ajouter un type ».
   var link = document.getElementById('typeAddLink');
-  if(link) link.style.display = v ? 'inline-block' : 'none';
-  // Pastilles supprimables, uniquement quand il y a réellement plusieurs types.
+  if(link) link.style.display = 'none';
+  // Avertissement (pas un blocage) quand plusieurs types sont cochés.
   var row = document.getElementById('typeChipsRow');
   if(row){
     var parts = _typeParts(v);
     if(parts.length>1){
-      row.style.display='flex';
-      row.innerHTML = parts.map(function(p){
-        return '<span class="type-chip">'+escapeHtml(p)+'<button type="button" class="type-chip-x" data-deltype="'+escapeHtml(p)+'" aria-label="Retirer '+escapeHtml(p)+'">×</button></span>';
-      }).join('');
+      row.style.display='block';
+      row.innerHTML = '<span style="display:inline-block;font-size:12.5px;font-weight:700;color:#9A3412;background:#FFF7ED;border:1px solid #FDBA74;border-radius:8px;padding:6px 10px;margin-top:6px;">⚠ '+parts.length+' types sélectionnés — c\'est bien volontaire ?</span>';
     } else { row.style.display='none'; row.innerHTML=''; }
   }
 }
@@ -5038,13 +5035,12 @@ function _setTypeValue(v){
 function _renderTypePicker(ov){
   var base = ['Montage','Tournage','Démontage'];
   var customs = getCustomPostes();
-  var _curT = document.getElementById('type') ? (document.getElementById('type').value||'') : '';
-  var html = '<div class="pf-box"><div class="pf-title">' + (_typeAddMode ? 'Ajouter un 2e type à « '+escapeHtml(_curT)+' »' : 'Type de mission') + '</div>';
+  var html = '<div class="pf-box"><div class="pf-title">Type de mission</div>';
+  html += '<div class="pf-label">Touche pour cocher, retouche pour décocher — tu peux en cumuler (ex. Montage + Démontage).</div>';
   html += '<div class="pf-seg">' + base.map(function(p){ return '<button type="button" class="pf-opt" data-type="'+escapeHtml(p)+'">'+escapeHtml(p)+'</button>'; }).join('') + '</div>';
   if(customs.length){ html += '<div class="pf-label">Mes postes</div><div class="pf-seg">' + customs.map(function(p){ return '<button type="button" class="pf-opt pf-opt-custom" data-type="'+escapeHtml(p)+'">'+escapeHtml(p)+'<span class="pf-opt-del" data-delposte="'+escapeHtml(p)+'">×</span></button>'; }).join('') + '</div>'; }
   html += '<div class="pf-label">Ajouter un poste</div><div class="pf-addrow"><input type="text" id="newPosteInput" placeholder="Ex : Clown, Cascadeur…" autocomplete="off"><button type="button" id="addPosteBtn">Ajouter</button></div>';
-  // « Annuler » en mode ajout : un appui par erreur sur « + Ajouter un type » ne doit pas obliger a choisir.
-  html += '<div class="pf-actions"><button type="button" class="pf-cancel" id="typePickClose">' + (_typeAddMode ? 'Annuler' : 'Fermer') + '</button></div></div>';
+  html += '<div class="pf-actions"><button type="button" class="pf-ok" id="typePickClose" style="width:100%;">Valider</button></div></div>';
   ov.innerHTML = html;
   // Un type combiné (« Rec + MIX ») doit allumer SES DEUX pastilles, pas zéro : on compare par partie.
   var cur = document.getElementById('type') ? document.getElementById('type').value : '';
@@ -5056,9 +5052,9 @@ function _typePickerAddFromInput(ov){
   if(!v) return;
   addCustomPoste(v);
   var t = document.getElementById('type');
-  _setTypeValue(_typeAddMode ? _typeAdd(t?t.value:'', v) : v);
-  _typeAddMode = false;
-  ov.style.display='none';
+  _setTypeValue(_typeAdd(t?t.value:'', v)); // ajoute ET coche, sans fermer (multi-sélection)
+  if(inp) inp.value='';
+  _renderTypePicker(ov);
 }
 function _openTypePicker(){
   _profilEnsureDom(); // garantit les styles .pf-*
@@ -5072,16 +5068,16 @@ function _openTypePicker(){
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:100003;padding:16px;';
     document.body.appendChild(ov);
     ov.addEventListener('click', function(e){
-      if(e.target===ov || e.target.id==='typePickClose'){ _typeAddMode=false; ov.style.display='none'; return; }
+      if(e.target===ov || e.target.id==='typePickClose'){ ov.style.display='none'; return; }
       var del = e.target.closest && e.target.closest('[data-delposte]');
       if(del){ e.stopPropagation(); removeCustomPoste(del.dataset.delposte); _renderTypePicker(ov); return; }
       if(e.target.id==='addPosteBtn'){ _typePickerAddFromInput(ov); return; }
       var b = e.target.closest('[data-type]');
       if(b){
-        var t = document.getElementById('type');
-        _setTypeValue(_typeAddMode ? _typeAdd(t?t.value:'', b.dataset.type) : b.dataset.type);
-        _typeAddMode = false;
-        ov.style.display='none';
+        // Toggle : coche si absent, décoche si présent. On ne ferme pas → multi-sélection.
+        var t = document.getElementById('type'); var cur = t?t.value:'';
+        _setTypeValue(_typeParts(cur).indexOf(b.dataset.type)>=0 ? _typeRemove(cur, b.dataset.type) : _typeAdd(cur, b.dataset.type));
+        _renderTypePicker(ov);
       }
     });
     ov.addEventListener('keydown', function(e){ if(e.key==='Enter' && e.target.id==='newPosteInput'){ e.preventDefault(); _typePickerAddFromInput(ov); } });
@@ -5092,9 +5088,7 @@ function _openTypePicker(){
 (function(){
   function wire(){
     var tb=document.getElementById('typeBtn');
-    if(tb && !tb.dataset.init){ tb.dataset.init='1'; tb.addEventListener('click', function(){ _typeAddMode=false; _openTypePicker(); }); _syncTypeBtn(); }
-    var al=document.getElementById('typeAddLink');
-    if(al && !al.dataset.init){ al.dataset.init='1'; al.addEventListener('click', function(){ _typeAddMode=true; _openTypePicker(); }); }
+    if(tb && !tb.dataset.init){ tb.dataset.init='1'; tb.addEventListener('click', function(){ _openTypePicker(); }); _syncTypeBtn(); }
   }
   if (document.readyState !== "loading") wire(); else document.addEventListener("DOMContentLoaded", wire);
 })();

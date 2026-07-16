@@ -103,7 +103,6 @@ export default function Calendar(){
   const [fType,setFType]=useState('Montage');
   const [showTypePicker,setShowTypePicker]=useState(false);
   // true = le choix s'AJOUTE au type courant (« Rec + MIX ») ; false = il le remplace (cas courant).
-  const [typeAddMode,setTypeAddMode]=useState(false);
   const [fVacations,setFVacations]=useState('');
   const [dayMenu,setDayMenu]=useState<{date:Date;missions:any[]}|null>(null);
   const [fStart,setFStart]=useState(new Date());
@@ -163,7 +162,7 @@ export default function Calendar(){
     setEditId(null);
     setFRegime(regime);
     setFProduction(''); setFEmission(''); setFLieu(''); setNewPoste(''); setFType(postes.length>0?postes[0]:'Montage'); setFStart(day); setFEnd(day);
-    setShowTypePicker(false); setTypeAddMode(false);
+    setShowTypePicker(false);
     // Régime général et enseignement = toujours en HEURES (jamais de cachets, ce n'est pas du spectacle).
     // Sinon un artiste, forcé en mode cachet par son annexe, ne pouvait pas saisir ses heures d'enseignement.
     setFMode(regime==='intermittence' ? modeForNew(annexe) : 'heures'); setFCachets('');
@@ -177,7 +176,7 @@ export default function Calendar(){
     setEditId(m.id);
     setFRegime(m.regime||'intermittence');
     setFProduction(m.production||''); setFEmission(m.emission||''); setFLieu(m.lieu||''); setNewPoste(''); setFType(m.mission_type||'Montage');
-    setShowTypePicker(false); setTypeAddMode(false);
+    setShowTypePicker(false);
     setFStart(new Date((m.mission_date)+'T00:00:00'));
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
     // Relecture selon le mode : en cachet, le champ heures ne contient que les heures EN PLUS des cachets.
@@ -754,65 +753,50 @@ export default function Calendar(){
               />
 
               <Text style={s.label}>Type de mission</Text>
-              <TouchableOpacity style={s.typeBtn} onPress={()=>{setTypeAddMode(false);setShowTypePicker(v=>!v);}}>
-                <Text style={s.typeBtnTxt}>{fType}</Text>
+              <TouchableOpacity style={s.typeBtn} onPress={()=>setShowTypePicker(v=>!v)}>
+                <Text style={[s.typeBtnTxt,!fType&&{color:C.muted,fontWeight:'400'}]}>{fType||'Choisir le type'}</Text>
                 <Text style={s.typeBtnChevron}>{showTypePicker?'▴':'▾'}</Text>
               </TouchableOpacity>
-              {/* Plusieurs types le meme jour pour le meme employeur (ex. « Rec + MIX » en doublage) : on garde
-                  l'appui UNIQUE pour le cas courant, et on ajoute un lien discret pour en cumuler un 2e.
-                  Retour Damien. */}
+              {/* Multi-sélection directe : on touche autant de types que voulu (Montage + Démontage,
+                  Rec + MIX…). Un simple avertissement si 2+, pas de mode séparé. Retour Yohan. */}
               {typeParts(fType).length>1 && (
-                <View style={s.typeWrap}>
-                  {typeParts(fType).map(t=>(
-                    <View key={t} style={[s.typeChip,s.typeChipActive,{flexDirection:'row',alignItems:'center',gap:6}]}>
-                      <Text style={s.typeChipTxtActive}>{t}</Text>
-                      <TouchableOpacity onPress={()=>setFType(removeType(fType,t))} hitSlop={8}><Text style={{color:'#fff',fontWeight:'900',fontSize:13}}>×</Text></TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              )}
-              {!showTypePicker && !!fType && (
-                <TouchableOpacity onPress={()=>{setTypeAddMode(true);setShowTypePicker(true);}}>
-                  <Text style={s.typeAddLink}>+ Ajouter un type (ex. Montage + Démontage)</Text>
-                </TouchableOpacity>
+                <Text style={s.typeMultiWarn}>⚠ {typeParts(fType).length} types sélectionnés — c'est bien volontaire ?</Text>
               )}
               {showTypePicker && (
                 <View style={s.typePickerInline}>
-                  {/* Annuler : sans ca, un appui par erreur sur « + Ajouter un type » obligeait a choisir
-                      quelque chose (ou a quitter la mission). Retour Yohan. */}
-                  {typeAddMode && (
-                    <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:10}}>
-                      <Text style={[s.typeGroupLbl,{flexShrink:1}]} numberOfLines={1}>Ajouter un 2e type à « {fType} »</Text>
-                      <TouchableOpacity onPress={()=>{setShowTypePicker(false);setTypeAddMode(false);}} hitSlop={8}>
-                        <Text style={s.typeCancelTxt}>Annuler</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
+                  <Text style={s.typeGroupLbl}>Touche pour cocher, retouche pour décocher</Text>
                   <View style={s.typeWrap}>
-                    {['Montage','Tournage','Démontage'].map(p=>(
-                      <TouchableOpacity key={p} style={[s.typeChip,typeParts(fType).includes(p)&&s.typeChipActive]} onPress={()=>{setFType(typeAddMode?addType(fType,p):p);setShowTypePicker(false);setTypeAddMode(false);}}>
-                        <Text style={typeParts(fType).includes(p)?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text>
-                      </TouchableOpacity>
-                    ))}
+                    {['Montage','Tournage','Démontage'].map(p=>{
+                      const on=typeParts(fType).includes(p);
+                      return (
+                        <TouchableOpacity key={p} style={[s.typeChip,on&&s.typeChipActive]} onPress={()=>setFType(on?removeType(fType,p):addType(fType,p))}>
+                          <Text style={on?s.typeChipTxtActive:s.typeChipTxt}>{on?'✓ ':''}{p}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                   {postes.length>0 && (
                     <View>
                       <Text style={s.typeGroupLbl}>Mes postes</Text>
                       <View style={s.typeWrap}>
-                        {postes.map(p=>(
-                          <View key={p} style={[s.typeChip,typeParts(fType).includes(p)&&s.typeChipActive,{flexDirection:'row',alignItems:'center',gap:6}]}>
-                            <TouchableOpacity onPress={()=>{setFType(typeAddMode?addType(fType,p):p);setShowTypePicker(false);setTypeAddMode(false);}}><Text style={typeParts(fType).includes(p)?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text></TouchableOpacity>
-                            <TouchableOpacity onPress={()=>removePoste(p)} hitSlop={8}><Text style={{color:typeParts(fType).includes(p)?'#fff':C.muted,fontWeight:'900',fontSize:13}}>×</Text></TouchableOpacity>
-                          </View>
-                        ))}
+                        {postes.map(p=>{
+                          const on=typeParts(fType).includes(p);
+                          return (
+                            <View key={p} style={[s.typeChip,on&&s.typeChipActive,{flexDirection:'row',alignItems:'center',gap:6}]}>
+                              <TouchableOpacity onPress={()=>setFType(on?removeType(fType,p):addType(fType,p))}><Text style={on?s.typeChipTxtActive:s.typeChipTxt}>{on?'✓ ':''}{p}</Text></TouchableOpacity>
+                              <TouchableOpacity onPress={()=>removePoste(p)} hitSlop={8}><Text style={{color:on?'#fff':C.muted,fontWeight:'900',fontSize:13}}>×</Text></TouchableOpacity>
+                            </View>
+                          );
+                        })}
                       </View>
                     </View>
                   )}
                   <Text style={s.typeGroupLbl}>Ajouter un poste</Text>
                   <View style={{flexDirection:'row',gap:8}}>
                     <TxtInput style={[s.input,{flex:1}]} value={newPoste} onChangeText={setNewPoste} placeholder="Ex : Clown, Cascadeur…" placeholderTextColor={C.muted}/>
-                    <TouchableOpacity style={s.addPosteBtn} onPress={()=>{const v=newPoste.trim();if(v){addPoste(v);setFType(typeAddMode?addType(fType,v):v);setNewPoste('');setShowTypePicker(false);setTypeAddMode(false);}}}><Text style={s.addPosteTxt}>Ajouter</Text></TouchableOpacity>
+                    <TouchableOpacity style={s.addPosteBtn} onPress={()=>{const v=newPoste.trim();if(v){addPoste(v);setFType(addType(fType,v));setNewPoste('');}}}><Text style={s.addPosteTxt}>Ajouter</Text></TouchableOpacity>
                   </View>
+                  <TouchableOpacity style={s.typeValidBtn} onPress={()=>setShowTypePicker(false)}><Text style={s.typeValidTxt}>Valider</Text></TouchableOpacity>
                 </View>
               )}
 
@@ -1197,8 +1181,9 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   mmOpt:{flex:1,paddingVertical:10,borderRadius:11,borderWidth:1.5,borderColor:C.line,backgroundColor:C.card,alignItems:'center'},
   mmOptTxt:{fontSize:13,fontWeight:'800',color:C.petrol},
   // Lien discret « + Ajouter un type de mission » : ne doit pas concurrencer le bouton principal.
-  typeAddLink:{fontSize:12,fontWeight:'700',color:C.petrol,marginTop:8,textDecorationLine:'underline'},
-  typeCancelTxt:{fontSize:12,fontWeight:'800',color:C.muted,textDecorationLine:'underline'},
+  typeMultiWarn:{fontSize:12.5,fontWeight:'700',color:C.warnTx,backgroundColor:C.warnBg,borderRadius:8,paddingVertical:7,paddingHorizontal:10,marginTop:8,overflow:'hidden'},
+  typeValidBtn:{backgroundColor:C.petrol,borderRadius:12,paddingVertical:12,alignItems:'center',marginTop:12},
+  typeValidTxt:{color:'#fff',fontWeight:'800',fontSize:14},
   mdpFill:{flexDirection:'row',alignItems:'center',gap:8,backgroundColor:C.soft,borderRadius:11,padding:10,marginBottom:14},
   mdpFillLbl:{fontSize:13,fontWeight:'700',color:C.petrol},
   mdpFillInput:{width:60,backgroundColor:C.card,borderWidth:1,borderColor:C.line,borderRadius:9,paddingVertical:6,paddingHorizontal:8,textAlign:'center',fontSize:14,color:C.text},
