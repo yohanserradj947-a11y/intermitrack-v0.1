@@ -7,6 +7,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../lib/theme';
 import { supabase } from '../lib/supabase';
 import { GradientButton } from './GradientButton';
+// Le clavier numérique iOS n'a pas de touche « entrée » : sans la barre « OK »
+// de ces composants, on ne peut plus le refermer. Règle valable partout dans l'app.
+import NumInput from './NumInput';
+import TxtInput from './TxtInput';
 import { scanCalendar, MissionDraft } from '../lib/calendarImport';
 import {
   pickAndReadExcel, autoDetect, countValid, buildDrafts,
@@ -206,16 +210,16 @@ export default function CalendarImportModal({
           <View style={s.editor}>
             <View style={s.editField}>
               <Text style={s.editLbl}>Prod</Text>
-              <TextInput style={s.editInput} defaultValue={item.production} onChangeText={(t) => editField(item.key, 'prod', t)} autoCapitalize="characters" placeholder="Nom de la prod" placeholderTextColor={C.muted} />
+              <TxtInput style={s.editInput} defaultValue={item.production} onChangeText={(t: string) => editField(item.key, 'prod', t)} autoCapitalize="characters" placeholder="Nom de la prod" placeholderTextColor={C.muted} />
             </View>
             <View style={s.editRow}>
               <View style={[s.editField, { flex: 1 }]}>
                 <Text style={s.editLbl}>Heures</Text>
-                <TextInput style={s.editInput} defaultValue={item.hours ? String(item.hours) : ''} onChangeText={(t) => editField(item.key, 'hours', t)} keyboardType="numeric" placeholder="8" placeholderTextColor={C.muted} />
+                <NumInput style={s.editInput} defaultValue={item.hours ? String(item.hours) : ''} onChangeText={(t: string) => editField(item.key, 'hours', t)} placeholder="8" placeholderTextColor={C.muted} />
               </View>
               <View style={[s.editField, { flex: 1 }]}>
                 <Text style={s.editLbl}>Prix (€)</Text>
-                <TextInput style={s.editInput} defaultValue={item.gross_amount ? String(item.gross_amount) : ''} onChangeText={(t) => editField(item.key, 'prix', t)} keyboardType="numeric" placeholder="350" placeholderTextColor={C.muted} />
+                <NumInput style={s.editInput} defaultValue={item.gross_amount ? String(item.gross_amount) : ''} onChangeText={(t: string) => editField(item.key, 'prix', t)} placeholder="350" placeholderTextColor={C.muted} />
               </View>
             </View>
           </View>

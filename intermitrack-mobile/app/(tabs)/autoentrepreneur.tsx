@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AddressInput from '../../components/AddressInput';
 import { GradientButton } from '../../components/GradientButton';
 import NumInput from '../../components/NumInput';
+import TxtInput from '../../components/TxtInput';
 import { useTrackView } from '../../lib/analytics';
 import { useSession } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
@@ -603,7 +604,7 @@ thead th.r,td.r{text-align:right;}tbody td{padding:11px 10px;border-bottom:1px s
                 <Text style={s.label}>Adresse</Text>
                 <AddressInput style={s.input} value={socAddr} onChangeText={setSocAddr} placeholder="Commence à taper, choisis dans la liste" />
                 <Text style={s.label}>Téléphone</Text>
-                <TextInput style={s.input} value={socTel} onChangeText={setSocTel} placeholder="06…" placeholderTextColor={C.muted} keyboardType="phone-pad" />
+                <TxtInput style={s.input} value={socTel} onChangeText={setSocTel} placeholder="06…" placeholderTextColor={C.muted} keyboardType="phone-pad" />
                 <Text style={s.label}>Email</Text>
                 <TextInput style={s.input} value={socEmail} onChangeText={setSocEmail} placeholder="contact@exemple.fr" placeholderTextColor={C.muted} autoCapitalize="none" keyboardType="email-address" />
                 <Text style={s.label}>SIRET (optionnel)</Text>

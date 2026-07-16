@@ -6,6 +6,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, useThemeControls } from '../lib/theme';
 import { useNotes, Note, NOTE_PRESETS } from '../lib/notes';
 import ColorPickerModal from './ColorPickerModal';
+// Clavier numérique iOS : pas de touche « entrée ». Sans la barre « OK » de
+// NumInput, le champ se referme sur l'utilisateur.
+import NumInput from './NumInput';
 
 const SUGGESTIONS = ['Médical', 'Perso', 'Vacances', 'Repos', 'Autres'];
 const ORG_SUGGESTIONS = ['AFDAS', 'CFPTS', 'INA', 'GRETA', 'CFA'];
@@ -151,7 +154,7 @@ export default function NoteFormModal({ visible, editNote, defaultDate, mode = '
 
               {isForm && !multiDay && (<>
                 <Text style={s.label}>Heures de formation</Text>
-                <TextInput style={s.input} value={hours} onChangeText={setHours} keyboardType="numeric" placeholder="Ex : 35" placeholderTextColor={C.muted} />
+                <NumInput style={s.input} value={hours} onChangeText={setHours} placeholder="Ex : 35" placeholderTextColor={C.muted} />
               </>)}
 
               {isForm && multiDay && (
@@ -168,7 +171,7 @@ export default function NoteFormModal({ visible, editNote, defaultDate, mode = '
                   <View style={s.mdGenRow}>
                     <View style={{ flex: 1 }}>
                       <Text style={s.mdMini}>Heures / jour</Text>
-                      <TextInput style={s.input} value={perDayHours} onChangeText={setPerDayHours} keyboardType="numeric" placeholder="Ex : 7" placeholderTextColor={C.muted} />
+                      <NumInput style={s.input} value={perDayHours} onChangeText={setPerDayHours} placeholder="Ex : 7" placeholderTextColor={C.muted} />
                     </View>
                     <TouchableOpacity style={s.genBtn} onPress={generateDays}><Text style={s.genBtnTxt}>Générer</Text></TouchableOpacity>
                   </View>
@@ -181,7 +184,7 @@ export default function NoteFormModal({ visible, editNote, defaultDate, mode = '
                             <View style={[s.fdCheck, d.checked && s.fdCheckOn]}>{d.checked ? <Text style={s.fdCheckTxt}>✓</Text> : null}</View>
                             <Text style={s.fdLabel}>{new Date(d.date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' })}</Text>
                           </TouchableOpacity>
-                          <TextInput style={s.fdHours} value={String(d.hours)} keyboardType="numeric" editable={d.checked} onChangeText={(v) => { const n = Number(v.replace(',', '.')) || 0; setFormDays(arr => arr.map((x, j) => j === i ? { ...x, hours: n } : x)); }} />
+                          <NumInput style={s.fdHours} value={String(d.hours)} editable={d.checked} onChangeText={(v: string) => { const n = Number(v.replace(',', '.')) || 0; setFormDays(arr => arr.map((x, j) => j === i ? { ...x, hours: n } : x)); }} />
                           <Text style={s.fdHoursU}>h</Text>
                         </View>
                       ))}
