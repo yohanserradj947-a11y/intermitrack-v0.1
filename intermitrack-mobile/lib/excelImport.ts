@@ -169,7 +169,10 @@ export async function pickAndReadExcel(): Promise<{ status: 'canceled' | 'unread
   let book: XLSX.WorkBook;
   try {
     const buf = await (await fetch(res.assets[0].uri)).arrayBuffer();
-    book = XLSX.read(new Uint8Array(buf), { type: 'array', cellDates: true });
+    // PAS de cellDates : on garde les dates en numéro de série Excel et on les
+    // convertit en UTC (ymdFromAny). cellDates créait un objet Date dépendant du
+    // fuseau du téléphone → décalage d'un jour selon l'appareil (retour Pauline).
+    book = XLSX.read(new Uint8Array(buf), { type: 'array' });
   } catch (e) {
     return { status: 'unreadable' };
   }
@@ -190,7 +193,14 @@ export async function pickAndReadExcel(): Promise<{ status: 'canceled' | 'unread
       let sample = '';
       for (let ri = headerIdx + 1; ri < Math.min(rows.length, headerIdx + 25); ri++) {
         const v = (rows[ri] || [])[ci];
-        if (v !== '' && v != null) { sample = v instanceof Date ? (ymdFromAny(v) || '') : String(v).trim(); break; }
+        if (v !== '' && v != null) {
+          // Un numéro de série qui tombe sur une date plausible (2015–2035) est
+          // affiché formaté, sinon on montre la valeur brute (heures, montant…).
+          const asDate = ymdFromAny(v);
+          const plausible = typeof v === 'number' && asDate && Number(asDate.slice(0, 4)) >= 2015 && Number(asDate.slice(0, 4)) <= 2035;
+          sample = plausible ? (asDate as string) : (v instanceof Date ? (ymdFromAny(v) || '') : String(v).trim());
+          break;
+        }
       }
       columns.push({
         index: ci,
