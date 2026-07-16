@@ -165,11 +165,15 @@ export function parseNotesText(text: string, year: number, defaultHours = 8, def
     const asMonth = monthOfLine(line);
     if (asMonth && digits === 0) { curMonth = asMonth; continue; }
 
-    // Numéro de liste en tête (« 1. », « 2) ») SUIVI d'une date → on l'enlève.
-    // Le lookahead « une date suit » évite de casser un vrai « 18.03 » (jj.mm).
+    // Puce en tête de ligne. Deux formes :
+    //  - symbole (*, •, ·, ▪, ou tiret + espace) → toujours une puce.
+    //  - numéro de liste (« 1. », « 2) ») SUIVI d'une date → puce ; le lookahead
+    //    « une date suit » évite de casser un vrai « 18.03 » (jj.mm).
     let work = line;
-    const bullet = work.match(/^\s*\d{1,2}[.)]\s*(?=\d{1,2}[\/\-.]\d{1,2})/);
-    if (bullet) work = work.slice(bullet[0].length);
+    const symBullet = work.match(/^\s*(?:[*•·▪]\s*|-\s+)/);
+    if (symBullet) work = work.slice(symBullet[0].length);
+    const numBullet = work.match(/^\s*\d{1,2}[.)]\s*(?=\d{1,2}[\/\-.]\d{1,2})/);
+    if (numBullet) work = work.slice(numBullet[0].length);
 
     // Date explicite jj/mm(/aaaa) → prioritaire sur l'année confirmée. On prend la 1re
     // occurrence VALIDE (mois 1-12), pas la première venue.
@@ -210,7 +214,7 @@ export function parseNotesText(text: string, year: number, defaultHours = 8, def
     out.push({
       key: `note-${idx++}-${dateISO}`,
       selected: true,
-      production: (prod || '').toUpperCase(),
+      production: (prod || '').replace(/[.\s]+$/, '').toUpperCase(),
       mission_date: dateISO,
       end_date: null,
       hours,

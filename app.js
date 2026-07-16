@@ -460,7 +460,9 @@ function _parseNotes(text, year, defH, defP){
     var line=lines[li].trim(); if(!line)continue;
     var digits=(line.match(/\d/g)||[]).length, asMonth=_noteMonthOfLine(line);
     if(asMonth&&digits===0){ curMonth=asMonth; continue; }
-    var work=line, bullet=work.match(/^\s*\d{1,2}[.)]\s*(?=\d{1,2}[\/\-.]\d{1,2})/); if(bullet)work=work.slice(bullet[0].length);
+    var work=line;
+    var symB=work.match(/^\s*(?:[*•·▪]\s*|-\s+)/); if(symB)work=work.slice(symB[0].length);
+    var bullet=work.match(/^\s*\d{1,2}[.)]\s*(?=\d{1,2}[\/\-.]\d{1,2})/); if(bullet)work=work.slice(bullet[0].length);
     var dateISO=null, rest=work, re=/(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?/g, mt;
     while((mt=re.exec(work))){ var d=+mt[1], mo=+mt[2]; if(d>=1&&d<=31&&mo>=1&&mo<=12){ var y=mt[3]?(mt[3].length===2?2000+ +mt[3]:+mt[3]):year; dateISO=y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0'); rest=work.slice(0,mt.index)+' '+work.slice(mt.index+mt[0].length); break; } }
     if(!dateISO&&curMonth){ var dayM=work.match(/^(?:(?:lun|mar|mer|jeu|ven|sam|dim)[a-zàâäéèêëîïôöûüç.]*\s+)?(\d{1,2})\b/i); if(dayM){ var d2=+dayM[1]; if(d2>=1&&d2<=31){ dateISO=year+'-'+String(curMonth).padStart(2,'0')+'-'+String(d2).padStart(2,'0'); rest=work.slice(dayM[0].length); } } }
@@ -471,7 +473,7 @@ function _parseNotes(text, year, defH, defP){
     if(!pf&&price===0)missing.push('prix');
     // Ce qui a été pré-rempli (heures par défaut, prix depuis le salaire journalier) = à vérifier.
     var chk=[]; if(!hf)chk.push((defH===12?'1 cachet':defH+' h')+' par défaut'); if(!pf&&price>0)chk.push(price+' € (tarif moyen)');
-    out.push({ date:dateISO, prod:(p.prod||'').toUpperCase(), hours:hours, price:price, lieu:'', missing:missing, selected:true, check: chk.length?(chk.join(' · ')+' — à vérifier'):'' });
+    out.push({ date:dateISO, prod:(p.prod||'').replace(/[.\s]+$/,'').toUpperCase(), hours:hours, price:price, lieu:'', missing:missing, selected:true, check: chk.length?(chk.join(' · ')+' — à vérifier'):'' });
   }
   out.sort(function(a,b){return a.date.localeCompare(b.date);});
   return out;
@@ -1759,9 +1761,17 @@ async function deleteMission(id) {
   await loadMissions();
 }
 
+// Points de position des onglets : un par onglet, l'actif en pilule pétrole (comme l'appli).
+function _renderTabDots(){
+  var box=document.getElementById('tabDots'); if(!box)return;
+  var tabs=document.querySelectorAll('.tabs .tab');
+  var html=''; tabs.forEach(function(t){ html+='<span class="tab-dot'+(t.classList.contains('active')?' on':'')+'"></span>'; });
+  box.innerHTML=html;
+}
 function activateView(viewName) {
   document.querySelectorAll(".tab").forEach((tab) => { tab.classList.toggle("active", tab.dataset.view === viewName); });
   document.querySelectorAll(".view").forEach((view) => { view.classList.toggle("active", view.id === "view-" + viewName); });
+  _renderTabDots();
   trackEvent("view_" + viewName);
   if (viewName === "previsions") {
     if (!_srLoaded) { _srLoaded = true; _loadSalaireRef().then(_prefillC1Ref); } else { _prefillC1Ref(); }
@@ -4227,18 +4237,7 @@ function setupEvents() {
     else if (del) deleteFacture(del.getAttribute("data-facture-delete"));
   });
 
-  const tabsWrap = document.querySelector(".tabs-wrap");
-  const tabsNav = document.querySelector(".tabs");
-  if (tabsWrap && tabsNav) {
-    const updateSwipeHints = () => {
-      const maxScroll = tabsNav.scrollWidth - tabsNav.clientWidth;
-      tabsWrap.classList.toggle("can-left", tabsNav.scrollLeft > 5);
-      tabsWrap.classList.toggle("can-right", tabsNav.scrollLeft < maxScroll - 5);
-    };
-    tabsNav.addEventListener("scroll", updateSwipeHints);
-    window.addEventListener("resize", updateSwipeHints);
-    updateSwipeHints();
-  }
+  _renderTabDots(); // points de position des onglets (au 1er affichage)
  
   if ($("recapPrevBtn")) $("recapPrevBtn").addEventListener("click", () => moveMonth(-1));
   if ($("recapNextBtn")) $("recapNextBtn").addEventListener("click", () => moveMonth(1));
