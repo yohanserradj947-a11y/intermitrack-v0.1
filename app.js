@@ -403,7 +403,7 @@ function _xlRender(){
   const list=document.getElementById('xlList');
   list.innerHTML=_xlDrafts.map(function(d,i){
     const warn=d.missing.length>0;
-    return '<div class="xl-row'+(warn?' warn':'')+'"><div class="xl-r1"><input type="checkbox" class="xl-chk" data-i="'+i+'" '+(d.selected?'checked':'')+'><div style="flex:1;min-width:0;"><div class="xl-prod">'+_xlEsc(d.prod||'(sans nom)')+'</div><div class="xl-meta">'+_xlFmtD(d.date)+(d.missing.indexOf('heures')<0?(' · '+d.hours+' h'):'')+(d.price?(' · '+d.price+' €'):'')+(d.lieu?(' · '+_xlEsc(d.lieu)):'')+'</div>'+(warn?('<div class="xl-warnchip">⚠ À compléter : '+d.missing.join(' · ')+'</div>'):'')+'</div></div><div class="xl-edit"><input placeholder="Prod" data-e="prod" data-i="'+i+'" value="'+_xlEsc(d.prod||'')+'"><input placeholder="Heures" data-e="hours" data-i="'+i+'" value="'+_xlEsc(d.hours||'')+'"><input placeholder="Prix €" data-e="price" data-i="'+i+'" value="'+_xlEsc(d.price||'')+'"></div></div>';
+    return '<div class="xl-row'+(warn?' warn':'')+'"><div class="xl-r1"><input type="checkbox" class="xl-chk" data-i="'+i+'" '+(d.selected?'checked':'')+'><div style="flex:1;min-width:0;"><div class="xl-prod">'+_xlEsc(d.prod||'(sans nom)')+'</div><div class="xl-meta">'+_xlFmtD(d.date)+(d.missing.indexOf('heures')<0?(' · '+d.hours+' h'):'')+(d.price?(' · '+d.price+' €'):'')+(d.lieu?(' · '+_xlEsc(d.lieu)):'')+'</div>'+(warn?('<div class="xl-warnchip">⚠ À compléter : '+d.missing.join(' · ')+'</div>'):'')+(d.check?('<div style="font-size:11px;color:var(--muted);margin-top:2px;">'+_xlEsc(d.check)+'</div>'):'')+'</div></div><div class="xl-edit"><input placeholder="Prod" data-e="prod" data-i="'+i+'" value="'+_xlEsc(d.prod||'')+'"><input placeholder="Heures" data-e="hours" data-i="'+i+'" value="'+_xlEsc(d.hours||'')+'"><input placeholder="Prix €" data-e="price" data-i="'+i+'" value="'+_xlEsc(d.price||'')+'"></div></div>';
   }).join('');
   _xlUpdBtn();
 }
@@ -426,7 +426,7 @@ async function _xlPickFile(){
   if(!inp){ inp=document.createElement('input'); inp.type='file'; inp.id='xlFileInput'; inp.accept='.xlsx,.xls,.csv'; inp.style.display='none'; document.body.appendChild(inp);
     inp.addEventListener('change', async function(){ const f=inp.files&&inp.files[0]; inp.value=''; if(!f)return;
       try{
-        const buf=await f.arrayBuffer(); const wb=XLSX.read(new Uint8Array(buf),{type:'array',cellDates:true});
+        const buf=await f.arrayBuffer(); const wb=XLSX.read(new Uint8Array(buf),{type:'array'}); /* pas de cellDates : dates lues en numéro de série + UTC (_xlYmd), sinon décalage d'un jour selon le fuseau */
         let drafts=_xlParseWorkbook(wb);
         const rawCount=drafts.length;
         try{ const ex=await sb.from('missions').select('mission_date,production'); const seen=new Set((ex.data||[]).map(function(m){return m.mission_date+'|'+String(m.production||'').toUpperCase();})); drafts=drafts.filter(function(d){return !seen.has(d.date+'|'+d.prod);}); }catch(_){}
@@ -438,6 +438,79 @@ async function _xlPickFile(){
   inp.click();
 }
 document.addEventListener('click', function(e){ if(e.target.closest && e.target.closest('#importExcelBtn')) _xlPickFile(); });
+
+// ===== Import « Coller mes notes » (site) — port du parseur de l'appli =====
+var XL_NOTE_MONTHS = [[/^janv/i,1],[/^f[eé]v/i,2],[/^mars/i,3],[/^avr/i,4],[/^mai$/i,5],[/^juin/i,6],[/^juil/i,7],[/^ao[uû]t/i,8],[/^sept/i,9],[/^oct/i,10],[/^nov/i,11],[/^d[eé]c/i,12]];
+function _noteMonthOfLine(line){ var w=line.replace(/[^a-zàâäéèêëîïôöûüç]/gi,''); if(!w)return null; for(var i=0;i<XL_NOTE_MONTHS.length;i++){ if(XL_NOTE_MONTHS[i][0].test(w)) return XL_NOTE_MONTHS[i][1]; } return null; }
+function _noteExtract(text){
+  var RX=/(\d{1,2})(?:[.,](\d))?\s*h(?:\s*(\d{2})(?!\d))?/gi, m, hits=[];
+  while((m=RX.exec(text))){ if(m[2]!=null)hits.push(+m[1]+ +m[2]/10); else if(m[3]!=null)hits.push(+m[1]+ +m[3]/60); else hits.push(+m[1]); }
+  var textHours=null;
+  if(hits.length===1) textHours=hits[0];
+  else if(hits.length>=2){ var dd=hits[hits.length-1]-hits[0]; if(dd<0)dd+=24; if(dd>0&&dd<=24)textHours=Math.round(dd*2)/2; }
+  var gross=0, euro=text.match(/(?:^|[^\dh])(\d[\d ]{0,6}\d|\d)\s*(?:€|euros?)/i);
+  if(euro){ var n=Number(euro[1].replace(/\s/g,'')); if(n>=20&&n<=99999)gross=n; }
+  else { var nums=(text.match(/\d{2,4}/g)||[]).map(Number).filter(function(x){return x>=100&&x<=9999&&!(x>=1990&&x<=2099);}); if(nums.length)gross=nums[0]; }
+  var prod=String(text||'').replace(/(^|[^\dh])(\d[\d ]{0,6}\d|\d)\s*(?:€|euros?)/gi,'$1 ').replace(/\d{1,2}(?:[.,]\d)?\s*h(?:\s*\d{2}(?!\d))?/gi,' ').replace(/\b\d{3,4}\b/g,' ').replace(/[·|,;\/]+/g,' ').replace(/\s+-+\s*|^\s*-+|-+\s*$/g,' ').replace(/\s{2,}/g,' ').trim();
+  return { gross:gross, textHours:textHours, prod:prod };
+}
+function _parseNotes(text, year, defH, defP){
+  var lines=String(text||'').split(/\r?\n/), curMonth=null, out=[];
+  for(var li=0;li<lines.length;li++){
+    var line=lines[li].trim(); if(!line)continue;
+    var digits=(line.match(/\d/g)||[]).length, asMonth=_noteMonthOfLine(line);
+    if(asMonth&&digits===0){ curMonth=asMonth; continue; }
+    var work=line, bullet=work.match(/^\s*\d{1,2}[.)]\s*(?=\d{1,2}[\/\-.]\d{1,2})/); if(bullet)work=work.slice(bullet[0].length);
+    var dateISO=null, rest=work, re=/(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?/g, mt;
+    while((mt=re.exec(work))){ var d=+mt[1], mo=+mt[2]; if(d>=1&&d<=31&&mo>=1&&mo<=12){ var y=mt[3]?(mt[3].length===2?2000+ +mt[3]:+mt[3]):year; dateISO=y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0'); rest=work.slice(0,mt.index)+' '+work.slice(mt.index+mt[0].length); break; } }
+    if(!dateISO&&curMonth){ var dayM=work.match(/^(?:(?:lun|mar|mer|jeu|ven|sam|dim)[a-zàâäéèêëîïôöûüç.]*\s+)?(\d{1,2})\b/i); if(dayM){ var d2=+dayM[1]; if(d2>=1&&d2<=31){ dateISO=year+'-'+String(curMonth).padStart(2,'0')+'-'+String(d2).padStart(2,'0'); rest=work.slice(dayM[0].length); } } }
+    if(!dateISO)continue;
+    var p=_noteExtract(rest), hf=(p.textHours!=null&&p.textHours>0&&p.textHours<=24), hours=hf?p.textHours:defH;
+    var pf=p.gross>0, price=pf?p.gross:(defP>0?defP:0), missing=[];
+    if(!p.prod||!p.prod.trim())missing.push('prod');
+    if(!pf&&price===0)missing.push('prix');
+    // Ce qui a été pré-rempli (heures par défaut, prix depuis le salaire journalier) = à vérifier.
+    var chk=[]; if(!hf)chk.push((defH===12?'1 cachet':defH+' h')+' par défaut'); if(!pf&&price>0)chk.push(price+' € (tarif moyen)');
+    out.push({ date:dateISO, prod:(p.prod||'').toUpperCase(), hours:hours, price:price, lieu:'', missing:missing, selected:true, check: chk.length?(chk.join(' · ')+' — à vérifier'):'' });
+  }
+  out.sort(function(a,b){return a.date.localeCompare(b.date);});
+  return out;
+}
+function _openNotesImport(){
+  var ov=document.getElementById('notesImportOverlay');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='notesImportOverlay';
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-start;justify-content:center;z-index:100003;padding:6vh 16px 16px;overflow-y:auto;';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function(e){ if(e.target===ov||e.target.id==='niClose') ov.style.display='none'; });
+  }
+  var year=new Date().getFullYear();
+  var defH=(_profil&&_profil.annexe==='artiste')?12:8;
+  // Prix par défaut = TARIF JOURNALIER MOYEN des missions déjà saisies (pas le taux_journalier
+  // du profil, qui est l'allocation Pôle Emploi — retour Yohan).
+  var _g=(typeof missions!=='undefined'?missions:[]).reduce(function(a,m){return a+Number(m.gross||0);},0);
+  var _v=(typeof missions!=='undefined'?missions:[]).reduce(function(a,m){return a+Number(m.vacations||0);},0);
+  var defP=(_g>0&&_v>0)?Math.round(_g/_v):0;
+  ov.innerHTML='<div class="pf-box" style="max-width:520px;"><div class="pf-title">Coller mes notes</div>'
+   +'<p class="itk-hint" style="margin:2px 0 8px;">Un en-tête de mois, puis une ligne par date. Ex : <b>MARS</b> puis <b>18 vdlm 8h 230</b>.</p>'
+   +'<textarea id="niText" rows="7" placeholder="Colle ici…" style="width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-size:14px;font-family:inherit;box-sizing:border-box;background:var(--card);color:var(--text);resize:vertical;"></textarea>'
+   +'<p class="itk-hint" style="margin:8px 0 2px;">Ce qui manque sera pré-rempli : les heures ('+(defH===12?'1 cachet de 12 h, car ton profil est artiste':'8 h, car ton profil est technicien')+')'+(defP>0?(', et '+defP+' € pour le prix (ton tarif journalier moyen)'):'')+'. Tu vérifies chaque ligne avant de valider.</p>'
+   +'<label class="itk-label" style="margin-top:6px;">Année (tes notes ne l\'indiquent pas)</label>'
+   +'<input type="number" id="niYear" value="'+year+'" style="width:120px;border:1px solid var(--line);border-radius:11px;padding:10px 12px;font-size:14px;font-family:inherit;background:var(--card);color:var(--text);">'
+   +'<div id="niErr" style="color:var(--danger);font-size:13px;font-weight:600;margin-top:8px;display:none;"></div>'
+   +'<div class="pf-actions" style="margin-top:14px;gap:8px;display:flex;"><button type="button" class="pf-create" id="niGo" style="flex:1;">Analyser mes notes</button><button type="button" class="pf-cancel" id="niClose">Fermer</button></div></div>';
+  ov.style.display='flex';
+  document.getElementById('niGo').onclick=async function(){
+    var t=document.getElementById('niText').value, y=parseInt(document.getElementById('niYear').value,10)||year;
+    var drafts=_parseNotes(t,y,defH,defP);
+    if(!drafts.length){ var e=document.getElementById('niErr'); e.style.display='block'; e.textContent="Aucune ligne reconnue. Chaque ligne doit commencer par un jour, avec un en-tête de mois au-dessus (ex : « MARS » puis « 18 prod 8h 230 »)."; return; }
+    try{ const ex=await sb.from('missions').select('mission_date,production'); const seen=new Set((ex.data||[]).map(function(m){return m.mission_date+'|'+String(m.production||'').toUpperCase();})); drafts=drafts.filter(function(d){return !seen.has(d.date+'|'+d.prod);}); }catch(_){}
+    if(!drafts.length){ var e2=document.getElementById('niErr'); e2.style.display='block'; e2.textContent='Ces missions sont déjà dans ton compte — aucun doublon créé.'; return; }
+    ov.style.display='none';
+    _xlDrafts=drafts; _xlEnsureModal(); _xlRender(); document.getElementById('xlOverlay').classList.add('open');
+  };
+}
+document.addEventListener('click', function(e){ if(e.target.closest && e.target.closest('#importNotesBtn')) _openNotesImport(); });
 // Popup d'aide : comment préparer son fichier Excel/CSV
 function _xlInfoShow(){
   let ov=document.getElementById('xlInfoOverlay');
@@ -3335,6 +3408,7 @@ function renderCalendar() {
       <button class="cal-tool-btn" type="button" id="prodColorsResetBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Réinitialiser les couleurs</button>
       <button class="cal-tool-btn" type="button" id="importExcelBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8"/></svg>Importer un Excel/CSV</button>
       <button class="cal-tool-btn" type="button" id="xlInfoBtn" title="Comment préparer mon fichier Excel ?" style="flex:0 0 auto;padding:9px 12px;">ⓘ Format Excel</button>
+      <button class="cal-tool-btn" type="button" id="importNotesBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Coller mes notes</button>
       <button class="cal-tool-btn" type="button" id="resetCalendarBtn" style="color:#DC2626;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>Réinitialiser le calendrier</button>
     </div>
     <div class="new-cal-daynames"><div>L</div><div>M</div><div>M</div><div>J</div><div>V</div><div>S</div><div>D</div></div>

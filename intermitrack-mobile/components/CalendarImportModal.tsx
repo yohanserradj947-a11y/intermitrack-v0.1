@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Modal, View, Text, TouchableOpacity, FlatList, ActivityIndicator,
   StyleSheet, Platform, Linking, TextInput,
@@ -37,8 +37,8 @@ function fmtShort(iso: string) {
 }
 
 export default function CalendarImportModal({
-  visible, onClose, onImported, mode = 'calendar',
-}: { visible: boolean; onClose: () => void; onImported?: () => void; mode?: Mode }) {
+  visible, onClose, onImported, mode = 'calendar', avgDaily = 0,
+}: { visible: boolean; onClose: () => void; onImported?: () => void; mode?: Mode; avgDaily?: number }) {
   const C = useTheme();
   // Un artiste ne compte pas en heures mais en cachets : sans info, son repli
   // est UN CACHET (12 h), pas une journée de technicien (8 h). On réutilise
@@ -54,13 +54,10 @@ export default function CalendarImportModal({
   // Mode « coller mes notes » : le texte collé + l'année à confirmer (jamais écrite dans les notes).
   const [notesText, setNotesText] = useState('');
   const [notesYear, setNotesYear] = useState(new Date().getFullYear());
-  // Salaire journalier du profil : sert à pré-remplir le prix des notes sans montant (à vérifier).
-  const [dailyRate, setDailyRate] = useState(0);
-  useEffect(() => { (async () => {
-    try { const { data: { user } } = await supabase.auth.getUser(); if (!user) return;
-      const { data } = await supabase.from('profiles').select('taux_journalier').eq('id', user.id).maybeSingle();
-      if (data && data.taux_journalier != null && Number(data.taux_journalier) > 0) setDailyRate(Number(data.taux_journalier));
-    } catch (e) {} })(); }, []);
+  // Prix des notes sans montant : pré-rempli avec le TARIF JOURNALIER MOYEN calculé sur les
+  // missions déjà saisies (avgDaily), passé par le calendrier. PAS le taux journalier du profil,
+  // qui est l'allocation Pôle Emploi (retour Yohan), rien à voir avec un salaire de mission.
+  const dailyRate = avgDaily;
   // Étape « correspondance des colonnes » (Excel uniquement).
   const [wb, setWb] = useState<Workbook | null>(null);
   const [sheetIdx, setSheetIdx] = useState(0);
@@ -247,7 +244,7 @@ export default function CalendarImportModal({
             {(hoursGuessed || priceGuessed) && <Text style={s.guessChip}>
               {[
                 hoursGuessed ? (cachetMode ? '1 cachet par défaut' : `${defH} h par défaut`) : null,
-                priceGuessed ? `${item.gross_amount} € (ton salaire journalier)` : null,
+                priceGuessed ? `${item.gross_amount} € (ton tarif moyen)` : null,
               ].filter(Boolean).join(' · ')} — à vérifier
             </Text>}
           </TouchableOpacity>
@@ -302,7 +299,7 @@ export default function CalendarImportModal({
                 placeholderTextColor={C.muted}
               />
               <Text style={s.bodyMuted}>
-                Ce qui manque sera pré-rempli : {cachetMode ? '1 cachet' : `${defH} h`} pour les heures{dailyRate > 0 ? `, et ${dailyRate} € pour le prix (ton salaire journalier)` : ''}. Tu vérifies et corriges chaque ligne avant de valider.
+                Ce qui manque sera pré-rempli : les heures ({cachetMode ? '1 cachet de 12 h, car ton profil est artiste' : '8 h, car ton profil est technicien'}){dailyRate > 0 ? `, et ${dailyRate} € pour le prix (ton tarif journalier moyen)` : ''}. Tu vérifies et corriges chaque ligne avant de valider.
               </Text>
               <Text style={s.body}>De quelle année s'agit-il ?</Text>
               <Text style={s.bodyMuted}>Tes notes n'indiquent pas l'année : confirme-la (une ligne qui précise jj/mm/aaaa garde la sienne).</Text>

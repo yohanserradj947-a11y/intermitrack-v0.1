@@ -458,7 +458,7 @@ export default function Calendar(){
         <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}}>Coller mes notes</Text>
       </TouchableOpacity>
 
-      <CalendarImportModal visible={showImport} mode={importMode} onClose={()=>setShowImport(false)} onImported={()=>loadMissions()}/>
+      <CalendarImportModal visible={showImport} mode={importMode} avgDaily={(()=>{const g=missions.reduce((a:number,m:any)=>a+Number(m.gross_amount||0),0);const v=missions.reduce((a:number,m:any)=>a+Number(m.vacations||0),0);return g>0&&v>0?Math.round(g/v):0;})()} onClose={()=>setShowImport(false)} onImported={()=>loadMissions()}/>
 
       <Modal visible={showMonthPicker} transparent animationType="fade" onRequestClose={()=>setShowMonthPicker(false)}>
         <TouchableOpacity activeOpacity={1} onPress={()=>setShowMonthPicker(false)} style={{flex:1,backgroundColor:'rgba(0,0,0,.5)',justifyContent:'center',alignItems:'center',padding:24}}>
