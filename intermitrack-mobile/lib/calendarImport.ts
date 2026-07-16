@@ -151,7 +151,7 @@ function monthOfLine(line: string): number | null {
   for (const [rx, m] of MONTH_PREFIX) { if (rx.test(w)) return m; }
   return null;
 }
-export function parseNotesText(text: string, year: number, defaultHours = 8): MissionDraft[] {
+export function parseNotesText(text: string, year: number, defaultHours = 8, defaultPrice = 0): MissionDraft[] {
   const lines = String(text || '').split(/\r?\n/);
   let curMonth: number | null = null;
   const out: MissionDraft[] = [];
@@ -165,32 +165,48 @@ export function parseNotesText(text: string, year: number, defaultHours = 8): Mi
     const asMonth = monthOfLine(line);
     if (asMonth && digits === 0) { curMonth = asMonth; continue; }
 
-    // Date explicite jj/mm(/aaaa) n'importe où dans la ligne → prioritaire sur l'année confirmée.
+    // Numéro de liste en tête (« 1. », « 2) ») SUIVI d'une date → on l'enlève.
+    // Le lookahead « une date suit » évite de casser un vrai « 18.03 » (jj.mm).
+    let work = line;
+    const bullet = work.match(/^\s*\d{1,2}[.)]\s*(?=\d{1,2}[\/\-.]\d{1,2})/);
+    if (bullet) work = work.slice(bullet[0].length);
+
+    // Date explicite jj/mm(/aaaa) → prioritaire sur l'année confirmée. On prend la 1re
+    // occurrence VALIDE (mois 1-12), pas la première venue.
     let dateISO: string | null = null;
-    let rest = line;
-    const dm = line.match(/\b(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?\b/);
-    if (dm) {
-      const d = +dm[1], mo = +dm[2];
-      const y = dm[3] ? (dm[3].length === 2 ? 2000 + +dm[3] : +dm[3]) : year;
-      if (d >= 1 && d <= 31 && mo >= 1 && mo <= 12) { dateISO = `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`; rest = line.replace(dm[0], ' '); }
+    let rest = work;
+    const re = /(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?/g;
+    let mt: RegExpExecArray | null;
+    while ((mt = re.exec(work))) {
+      const d = +mt[1], mo = +mt[2];
+      if (d >= 1 && d <= 31 && mo >= 1 && mo <= 12) {
+        const y = mt[3] ? (mt[3].length === 2 ? 2000 + +mt[3] : +mt[3]) : year;
+        dateISO = `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        rest = work.slice(0, mt.index) + ' ' + work.slice(mt.index + mt[0].length);
+        break;
+      }
     }
     // Sinon : ligne « jour + reste » sous un en-tête de mois (avec ou sans jour de semaine devant).
     if (!dateISO && curMonth) {
-      const dayM = line.match(/^(?:(?:lun|mar|mer|jeu|ven|sam|dim)[a-zàâäéèêëîïôöûüç.]*\s+)?(\d{1,2})\b/i);
+      const dayM = work.match(/^(?:(?:lun|mar|mer|jeu|ven|sam|dim)[a-zàâäéèêëîïôöûüç.]*\s+)?(\d{1,2})\b/i);
       if (dayM) {
         const d = +dayM[1];
-        if (d >= 1 && d <= 31) { dateISO = `${year}-${String(curMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`; rest = line.slice(dayM[0].length); }
+        if (d >= 1 && d <= 31) { dateISO = `${year}-${String(curMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`; rest = work.slice(dayM[0].length); }
       }
     }
     if (!dateISO) continue; // ligne non reconnue (légende, texte libre…) → ignorée
 
-    const { gross, textHours, prod } = parseEventText(rest, '');
+    const parsed = parseEventText(rest, '');
+    const prod = parsed.prod, textHours = parsed.textHours;
     const hoursFound = textHours != null && textHours > 0 && textHours <= 24;
     const hours = hoursFound ? (textHours as number) : defaultHours;
+    // Prix : celui écrit ; sinon le salaire journalier du profil s'il est renseigné (à vérifier).
+    const priceFound = parsed.gross > 0;
+    const gross = priceFound ? parsed.gross : (defaultPrice > 0 ? defaultPrice : 0);
     const missing: string[] = [];
     if (!prod || !prod.trim()) missing.push('prod');
     if (!hoursFound) missing.push('heures');
-    if (!(gross > 0)) missing.push('prix');
+    if (!priceFound) missing.push('prix');
     out.push({
       key: `note-${idx++}-${dateISO}`,
       selected: true,

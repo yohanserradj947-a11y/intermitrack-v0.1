@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Modal, View, Text, TouchableOpacity, FlatList, ActivityIndicator,
   StyleSheet, Platform, Linking, TextInput,
@@ -54,6 +54,13 @@ export default function CalendarImportModal({
   // Mode « coller mes notes » : le texte collé + l'année à confirmer (jamais écrite dans les notes).
   const [notesText, setNotesText] = useState('');
   const [notesYear, setNotesYear] = useState(new Date().getFullYear());
+  // Salaire journalier du profil : sert à pré-remplir le prix des notes sans montant (à vérifier).
+  const [dailyRate, setDailyRate] = useState(0);
+  useEffect(() => { (async () => {
+    try { const { data: { user } } = await supabase.auth.getUser(); if (!user) return;
+      const { data } = await supabase.from('profiles').select('taux_journalier').eq('id', user.id).maybeSingle();
+      if (data && data.taux_journalier != null && Number(data.taux_journalier) > 0) setDailyRate(Number(data.taux_journalier));
+    } catch (e) {} })(); }, []);
   // Étape « correspondance des colonnes » (Excel uniquement).
   const [wb, setWb] = useState<Workbook | null>(null);
   const [sheetIdx, setSheetIdx] = useState(0);
@@ -108,7 +115,7 @@ export default function CalendarImportModal({
         return;
       }
       if (mode === 'notes') {
-        const found = parseNotesText(notesText, notesYear, defH);
+        const found = parseNotesText(notesText, notesYear, defH, dailyRate);
         trackEvent('import_read', { mode, annee: notesYear, lues: found.length });
         if (!found.length) {
           trackEvent('import_failed', { mode, raison: 'aucune_ligne' });
@@ -215,8 +222,11 @@ export default function CalendarImportModal({
     // Dire « à compléter » sur un champ qui contient déjà 8 invite à effacer
     // le 8 pour retaper 8.
     const miss = item.missing || [];
-    const toFill = miss.filter((m) => m !== 'heures');
+    // Un champ « manquant » qui a été PRÉ-REMPLI (heures par défaut, prix depuis le salaire
+    // journalier) est « à vérifier » (gris) ; s'il est resté VIDE, il est « à compléter » (orange).
     const hoursGuessed = miss.includes('heures');
+    const priceGuessed = miss.includes('prix') && item.gross_amount > 0;
+    const toFill = miss.filter((m) => m === 'prod' || (m === 'prix' && !priceGuessed));
     const incomplete = toFill.length > 0;
     const open = openKey === item.key;
     return (
@@ -234,8 +244,11 @@ export default function CalendarImportModal({
               {item.lieu ? `  ·  ${item.lieu}` : ''}
             </Text>
             {incomplete && <Text style={s.warnChip}>⚠ À compléter : {toFill.join(' · ')}</Text>}
-            {hoursGuessed && <Text style={s.guessChip}>
-              {cachetMode ? 'Durée non trouvée — 1 cachet par défaut, à vérifier' : 'Durée non trouvée — 8 h par défaut, à vérifier'}
+            {(hoursGuessed || priceGuessed) && <Text style={s.guessChip}>
+              {[
+                hoursGuessed ? (cachetMode ? '1 cachet par défaut' : `${defH} h par défaut`) : null,
+                priceGuessed ? `${item.gross_amount} € (ton salaire journalier)` : null,
+              ].filter(Boolean).join(' · ')} — à vérifier
             </Text>}
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setOpenKey(open ? null : item.key)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -288,6 +301,9 @@ export default function CalendarImportModal({
                 placeholder={'Colle ici…'}
                 placeholderTextColor={C.muted}
               />
+              <Text style={s.bodyMuted}>
+                Ce qui manque sera pré-rempli : {cachetMode ? '1 cachet' : `${defH} h`} pour les heures{dailyRate > 0 ? `, et ${dailyRate} € pour le prix (ton salaire journalier)` : ''}. Tu vérifies et corriges chaque ligne avant de valider.
+              </Text>
               <Text style={s.body}>De quelle année s'agit-il ?</Text>
               <Text style={s.bodyMuted}>Tes notes n'indiquent pas l'année : confirme-la (une ligne qui précise jj/mm/aaaa garde la sienne).</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 6, marginBottom: 4 }}>
