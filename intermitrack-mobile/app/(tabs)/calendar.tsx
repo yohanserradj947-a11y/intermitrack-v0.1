@@ -153,9 +153,19 @@ export default function Calendar(){
   useEffect(()=>{
     if(editId || !showForm) return;
     if(!fProduction.trim() || !fType.trim()) return;
-    const p=getLearnedPrice(fProduction, fType);
+    let p=getLearnedPrice(fProduction, fType);
+    if(p==null){
+      // Repli sur les missions DÉJÀ enregistrées : dernier prix/jour pour cette prod (+ poste si dispo).
+      // Ça fait profiter l'existant du pré-remplissage sans attendre une nouvelle saisie.
+      const prodU=fProduction.trim().toUpperCase();
+      const perDay=(m:any)=>Math.round((Number(m.gross_amount)/Math.max(1,Number(m.vacations)||1))*100)/100;
+      const paid=missions.filter((m:any)=>Number(m.gross_amount)>0);
+      let cand=paid.filter((m:any)=>(m.production||'').toUpperCase()===prodU && (m.mission_type||'')===fType);
+      if(!cand.length) cand=paid.filter((m:any)=>(m.production||'').toUpperCase()===prodU);
+      if(cand.length){ cand.sort((a:any,b:any)=>a.mission_date<b.mission_date?1:-1); p=perDay(cand[0]); }
+    }
     if(p!=null) setFGross(String(p));
-  },[fProduction, fType, showForm, editId, getLearnedPrice]);
+  },[fProduction, fType, showForm, editId, getLearnedPrice, missions]);
   useFocusEffect(useCallback(()=>{
     loadMissions(true);
     const loop=Animated.loop(Animated.sequence([Animated.timing(pulse,{toValue:1,duration:850,useNativeDriver:true}),Animated.timing(pulse,{toValue:0,duration:850,useNativeDriver:true})]));
