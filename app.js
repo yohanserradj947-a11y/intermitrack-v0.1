@@ -449,10 +449,11 @@ function _noteExtract(text){
   var textHours=null;
   if(hits.length===1) textHours=hits[0];
   else if(hits.length>=2){ var dd=hits[hits.length-1]-hits[0]; if(dd<0)dd+=24; if(dd>0&&dd<=24)textHours=Math.round(dd*2)/2; }
-  var gross=0, euro=text.match(/(?:^|[^\dh])(\d[\d ]{0,6}\d|\d)\s*(?:€|euros?)/i);
-  if(euro){ var n=Number(euro[1].replace(/\s/g,'')); if(n>=20&&n<=99999)gross=n; }
+  // Partie décimale CAPTURÉE : sans ça "191.48 €" laissait le € collé à ".48" → prix lu "48". On reconstruit 191,48.
+  var gross=0, euro=text.match(/(?:^|[^\dh])(\d[\d ]{0,6}\d|\d)(?:[.,](\d{1,2}))?\s*(?:€|euros?)/i);
+  if(euro){ var n=Number(euro[1].replace(/\s/g,'')); if(euro[2]!=null)n+=Number(euro[2])/(euro[2].length===1?10:100); if(n>=20&&n<=99999)gross=Math.round(n*100)/100; }
   else { var nums=(text.match(/\d{2,4}/g)||[]).map(Number).filter(function(x){return x>=100&&x<=9999&&!(x>=1990&&x<=2099);}); if(nums.length)gross=nums[0]; }
-  var prod=String(text||'').replace(/(^|[^\dh])(\d[\d ]{0,6}\d|\d)\s*(?:€|euros?)/gi,'$1 ').replace(/\d{1,2}(?:[.,]\d)?\s*h(?:\s*\d{2}(?!\d))?/gi,' ').replace(/\b\d{3,4}\b/g,' ').replace(/[·|,;\/]+/g,' ').replace(/\s+-+\s*|^\s*-+|-+\s*$/g,' ').replace(/\s{2,}/g,' ').trim();
+  var prod=String(text||'').replace(/(^|[^\dh])(\d[\d ]{0,6}\d|\d)(?:[.,]\d{1,2})?\s*(?:€|euros?)/gi,'$1 ').replace(/\d{1,2}(?:[.,]\d)?\s*h(?:\s*\d{2}(?!\d))?/gi,' ').replace(/\b\d{3,4}\b/g,' ').replace(/[·|,;\/]+/g,' ').replace(/\s+-+\s*|^\s*-+|-+\s*$/g,' ').replace(/\s{2,}/g,' ').trim();
   return { gross:gross, textHours:textHours, prod:prod };
 }
 function _parseNotes(text, year, defH, defP){
@@ -618,9 +619,39 @@ async function resetCalendar(){
   if (typeof render==='function') render();
   if (typeof toast==='function') toast("Calendrier réinitialisé — toutes les missions ont été supprimées ✓");
 }
+// Réinitialise le MOIS affiché : supprime uniquement ses missions (notes/couleurs intactes).
+async function resetMonth(){
+  if (!currentUser) return;
+  const list = monthMissions(current);
+  const lbl = current.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  if (!list.length) { if (typeof toast==='function') toast("Aucune mission en " + lbl + "."); return; }
+  const ok = await confirmDialog(`⚠️ Réinitialiser ${lbl} ?\n\nLes ${list.length} mission(s) de ${lbl} seront DÉFINITIVEMENT supprimées. Tes notes et couleurs ne sont pas touchées.\n\nAction irréversible.`);
+  if (!ok) return;
+  const { error } = await sb.from("missions").delete().eq("user_id", currentUser.id).in("id", list.map(function(m){return m.id;}));
+  if (error) { if (typeof toast==='function') toast("Erreur : " + error.message); return; }
+  if (typeof loadMissions==='function') await loadMissions();
+  if (typeof render==='function') render();
+  if (typeof toast==='function') toast(lbl + " réinitialisé ✓");
+}
+// Réinitialise l'ANNÉE affichée : pratique après un import parti sur une mauvaise année.
+async function resetYear(){
+  if (!currentUser) return;
+  const y = current.getFullYear();
+  const n = missions.filter(function(m){ return new Date(m.date + "T00:00:00").getFullYear() === y; }).length;
+  if (!n) { if (typeof toast==='function') toast("Aucune mission en " + y + "."); return; }
+  const ok = await confirmDialog(`⚠️ Réinitialiser l'année ${y} ?\n\nLes ${n} mission(s) de ${y} seront DÉFINITIVEMENT supprimées. Tes notes et couleurs ne sont pas touchées.\n\nAction irréversible.`);
+  if (!ok) return;
+  const { error } = await sb.from("missions").delete().eq("user_id", currentUser.id).gte("mission_date", `${y}-01-01`).lte("mission_date", `${y}-12-31`);
+  if (error) { if (typeof toast==='function') toast("Erreur : " + error.message); return; }
+  if (typeof loadMissions==='function') await loadMissions();
+  if (typeof render==='function') render();
+  if (typeof toast==='function') toast("Année " + y + " réinitialisée ✓");
+}
 document.addEventListener('click', function(e){
   if (e.target.closest && e.target.closest('#prodColorsManageBtn')) openProdColorsManager();
   else if (e.target.closest && e.target.closest('#prodColorsResetBtn')) resetProdColors();
+  else if (e.target.closest && e.target.closest('#resetMonthBtn')) resetMonth();
+  else if (e.target.closest && e.target.closest('#resetYearBtn')) resetYear();
   else if (e.target.closest && e.target.closest('#resetCalendarBtn')) resetCalendar();
 });
 
@@ -3432,6 +3463,8 @@ function renderCalendar() {
       <button class="cal-tool-btn" type="button" id="importExcelBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8"/></svg>Importer un Excel/CSV</button>
       <button class="cal-tool-btn" type="button" id="xlInfoBtn" title="Comment préparer mon fichier Excel ?" style="flex:0 0 auto;padding:9px 12px;">ⓘ Format Excel</button>
       <button class="cal-tool-btn" type="button" id="importNotesBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Coller mes notes</button>
+      <button class="cal-tool-btn" type="button" id="resetMonthBtn" style="color:#DC2626;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>Réinitialiser le mois</button>
+      <button class="cal-tool-btn" type="button" id="resetYearBtn" style="color:#DC2626;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>Réinitialiser l'année</button>
       <button class="cal-tool-btn" type="button" id="resetCalendarBtn" style="color:#DC2626;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>Réinitialiser le calendrier</button>
     </div>
     <div class="new-cal-daynames"><div>L</div><div>M</div><div>M</div><div>J</div><div>V</div><div>S</div><div>D</div></div>
