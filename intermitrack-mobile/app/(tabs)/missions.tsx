@@ -18,7 +18,7 @@ import { useAnnexe, modeForEdit, computeHoursVac, extraHoursOf, CACHET_H } from 
 import { typeParts, addType, removeType } from '../../lib/missionType';
 import ProductionPickerModal from '../../components/ProductionPickerModal';
 import { knownAddresses } from '../../lib/kmAddresses';
-import { usePostes } from '../../lib/postes';
+import { usePostes, quickTypeChips } from '../../lib/postes';
 import { LinearGradient } from 'expo-linear-gradient';
 import ColorPickerModal from '../../components/ColorPickerModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -369,7 +369,7 @@ export default function Missions(){
                       </View>
                     )}
                     <View style={s.typeWrap}>
-                      {['Montage','Tournage','Démontage'].map(p=>(
+                      {quickTypeChips(annexe).map(p=>(
                         <TouchableOpacity key={p} style={[s.typeChip,typeParts(fType).includes(p)&&s.typeChipActive]} onPress={()=>{setFType(typeAddMode?addType(fType,p):p);setShowTypePicker(false);setTypeAddMode(false);}}>
                           <Text style={typeParts(fType).includes(p)?s.typeChipTxtActive:s.typeChipTxt}>{p}</Text>
                         </TouchableOpacity>

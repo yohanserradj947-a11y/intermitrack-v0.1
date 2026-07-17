@@ -9,6 +9,14 @@ export function usePostes() { return useContext(PostesContext); }
 
 const pkey = (uid: string) => `intermitrack_custom_postes_${uid}`;
 
+// Types rapides proposés d'office selon l'annexe (retour artistes : « montage/démontage » n'a pas
+// de sens en annexe 10). L'utilisateur peut toujours ajouter ses propres postes par-dessus.
+export function quickTypeChips(annexe: string): string[] {
+  if (annexe === 'artiste') return ['Comédien', 'Chanteur', 'Musicien', 'Danseur', 'Choriste'];
+  if (annexe === 'les_deux') return ['Montage', 'Tournage', 'Démontage', 'Comédien', 'Chanteur', 'Musicien', 'Danseur', 'Choriste'];
+  return ['Montage', 'Tournage', 'Démontage'];
+}
+
 export function PostesProvider({ children }: { children: ReactNode }) {
   const { session } = useSession();
   const uid = session?.user?.id || null;

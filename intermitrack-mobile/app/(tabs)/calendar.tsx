@@ -30,7 +30,7 @@ import NoteDetailModal from '../../components/NoteDetailModal';
 import CalendarImportModal from '../../components/CalendarImportModal';
 import { syncWidgets } from '../../lib/widgetSync';
 import { useNotes, noteAbbr, Note } from '../../lib/notes';
-import { usePostes } from '../../lib/postes';
+import { usePostes, quickTypeChips } from '../../lib/postes';
 import Svg, { Line } from 'react-native-svg';
 
 // Barème kilométrique officiel : coefficient par tranche de km annuels.
@@ -161,7 +161,7 @@ export default function Calendar(){
   function openCreate(day:Date, regime:'intermittence'|'general'='intermittence'){
     setEditId(null);
     setFRegime(regime);
-    setFProduction(''); setFEmission(''); setFLieu(''); setNewPoste(''); setFType(postes.length>0?postes[0]:'Montage'); setFStart(day); setFEnd(day);
+    setFProduction(''); setFEmission(''); setFLieu(''); setNewPoste(''); setFType(postes.length>0?postes[0]:quickTypeChips(annexe)[0]); setFStart(day); setFEnd(day);
     setShowTypePicker(false);
     // Régime général et enseignement = toujours en HEURES (jamais de cachets, ce n'est pas du spectacle).
     // Sinon un artiste, forcé en mode cachet par son annexe, ne pouvait pas saisir ses heures d'enseignement.
@@ -259,8 +259,9 @@ export default function Calendar(){
       if(!fCachets.trim()||Number(fCachets)<=0){ showAlert('Cachets manquants','Indique le nombre de cachets.'); return; }
     } else if(!fHours.trim()){ showAlert('Heures manquantes','Indique le nombre d\'heures.'); return; }
     const nb=daysInclusive(fStart,fEnd);
-    // Le sélecteur de jours répartit des HEURES par jour : il n'a pas de sens en saisie au cachet.
-    if(!editId && nb>=2 && fMode!=='cachet'){
+    // Sélecteur de jours pour toute période ≥ 2 jours : en heures on répartit les heures/jour,
+    // en cachet chaque jour coché = 1 cachet (retour artiste : un contrat 10→25 ne travaille pas les 16 jours).
+    if(!editId && nb>=2){
       if(mdpDays.length===0){ openDayPicker(fStart,fEnd); return; }
       commitMultiDay();
     }else{
@@ -352,7 +353,7 @@ export default function Calendar(){
 
   // Ouvre le sélecteur de jours travaillés (au choix des dates).
   function openDayPicker(s:Date,e:Date){
-    const per=8; // chaque jour démarre à 8h (plus de division automatique = plus de virgules)
+    const per=fMode==='cachet'?CACHET_H:8; // heures : 8h/jour ; cachet : 1 cachet = 12h/jour
     const days:{date:string;checked:boolean;hours:number}[]=[];
     for(let d=new Date(s); d<=e; d.setDate(d.getDate()+1)) days.push({date:iso(d),checked:true,hours:per});
     setMdpDays(days); setShowForm(false); setShowMdp(true);
@@ -360,8 +361,8 @@ export default function Calendar(){
   // « Continuer » : on garde la sélection des jours et on revient au formulaire (pas de sauvegarde ici).
   function confirmDays(){
     if(mdpChecked.length===0){ showAlert('Aucun jour','Coche au moins un jour travaillé.'); return; }
-    setFHours(String(mdpTotalH));
-    setFVacations(String(mdpChecked.length));
+    if(fMode==='cachet'){ setFCachets(String(mdpChecked.length)); }
+    else { setFHours(String(mdpTotalH)); setFVacations(String(mdpChecked.length)); }
     setShowMdp(false); setShowForm(true);
   }
   async function commitMultiDay(){
@@ -813,7 +814,7 @@ export default function Calendar(){
                 <View style={s.typePickerInline}>
                   <Text style={s.typeGroupLbl}>Touche pour cocher, retouche pour décocher</Text>
                   <View style={s.typeWrap}>
-                    {['Montage','Tournage','Démontage'].map(p=>{
+                    {quickTypeChips(annexe).map(p=>{
                       const on=typeParts(fType).includes(p);
                       return (
                         <TouchableOpacity key={p} style={[s.typeChip,on&&s.typeChipActive]} onPress={()=>setFType(on?removeType(fType,p):addType(fType,p))}>
@@ -867,7 +868,7 @@ export default function Calendar(){
               )}
               {showEndPicker&&(
                 <DateTimePicker value={fEnd} mode="date" locale="fr-FR" themeVariant={scheme} display={Platform.OS==='ios'?'spinner':'default'}
-                  onChange={(_e,date)=>{setShowEndPicker(false);if(date){setFEnd(date); if(!editId && fMode!=='cachet' && mdpDays.length===0 && daysInclusive(fStart,date)>=2){ openDayPicker(fStart,date); }}}}/>
+                  onChange={(_e,date)=>{setShowEndPicker(false);if(date){setFEnd(date); if(!editId && mdpDays.length===0 && daysInclusive(fStart,date)>=2){ openDayPicker(fStart,date); }}}}/>
               )}
 
               {/* L'annexe donne le mode PAR DÉFAUT (cachet pour un artiste), mais ne l'enferme plus :
@@ -904,9 +905,9 @@ export default function Calendar(){
                 ))}
               </View>
               )}
-              {(!editId && fMode!=='cachet' && daysInclusive(fStart,fEnd)>=2) ? (
+              {(!editId && daysInclusive(fStart,fEnd)>=2) ? (
                 <TouchableOpacity style={s.kmCalcBtn} onPress={()=>openDayPicker(fStart,fEnd)}>
-                  <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6}}><Ionicons name="calendar-outline" size={14} color={C.petrol} /><Text style={s.kmCalcTxt}>{mdpChecked.length>0?`${mdpChecked.length} jour(s) travaillé(s) · modifier`:'Choisir les jours travaillés'}</Text></View>
+                  <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6}}><Ionicons name="calendar-outline" size={14} color={C.petrol} /><Text style={s.kmCalcTxt}>{mdpChecked.length>0?`${mdpChecked.length} jour(s) travaillé(s) · modifier`:(fMode==='cachet'?'Choisir les jours de cachet':'Choisir les jours travaillés')}</Text></View>
                 </TouchableOpacity>
               ) : null}
 
@@ -1024,12 +1025,13 @@ export default function Calendar(){
         <View style={s.modalOverlay}>
           <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <Text style={s.modalTitle}>Quels jours as-tu travaillés ?</Text>
-              <Text style={s.miniHint}>Coche les jours travaillés et ajuste les heures de chaque jour.</Text>
+              <Text style={s.modalTitle}>{fMode==='cachet'?'Quels jours de cachet ?':'Quels jours as-tu travaillés ?'}</Text>
+              <Text style={s.miniHint}>{fMode==='cachet'?'Coche tes jours de cachet — 1 cachet par jour.':'Coche les jours travaillés et ajuste les heures de chaque jour.'}</Text>
               <View style={s.mdpTools}>
                 <TouchableOpacity style={s.mdpTool} onPress={()=>setAll(true)}><Text style={s.mdpToolTxt}>Tout cocher</Text></TouchableOpacity>
                 <TouchableOpacity style={s.mdpTool} onPress={()=>setAll(false)}><Text style={s.mdpToolTxt}>Tout décocher</Text></TouchableOpacity>
               </View>
+              {fMode!=='cachet' && (<>
               <Text style={s.mdpFillLbl}>Mettre tous les jours cochés à :</Text>
               <View style={{flexDirection:'row',flexWrap:'wrap',gap:8,marginBottom:12}}>
                 {[4,8,10,12].map(h=>(
@@ -1038,17 +1040,19 @@ export default function Calendar(){
                   </TouchableOpacity>
                 ))}
               </View>
+              </>)}
               {mdpDays.map((d,i)=>(
                 <View key={d.date} style={[s.mdpDay,!d.checked&&{opacity:0.5}]}>
                   <TouchableOpacity style={[s.checkbox,d.checked&&s.checkboxOn]} onPress={()=>toggleDay(i)}>
                     {d.checked&&<Text style={s.checkmark}>✓</Text>}
                   </TouchableOpacity>
                   <Text style={s.mdpDayLabel} numberOfLines={1}>{frDay(d.date)}</Text>
-                  <NumInput style={s.mdpHours} value={String(d.hours)} onChangeText={(v:string)=>setDayHours(i,v)} editable={d.checked}/>
-                  <Text style={s.mdpHoursU}>h</Text>
+                  {fMode==='cachet'
+                    ? <Text style={[s.mdpHoursU,{minWidth:64,textAlign:'right'}]}>{d.checked?'1 cachet':'—'}</Text>
+                    : <><NumInput style={s.mdpHours} value={String(d.hours)} onChangeText={(v:string)=>setDayHours(i,v)} editable={d.checked}/><Text style={s.mdpHoursU}>h</Text></>}
                 </View>
               ))}
-              <View style={s.mdpTotal}><Text style={s.mdpTotalTxt}>Total : {mdpTotalH} h sur {mdpChecked.length} jour{mdpChecked.length>1?'s':''}</Text></View>
+              <View style={s.mdpTotal}><Text style={s.mdpTotalTxt}>{fMode==='cachet'?`Total : ${mdpChecked.length} cachet${mdpChecked.length>1?'s':''}`:`Total : ${mdpTotalH} h sur ${mdpChecked.length} jour${mdpChecked.length>1?'s':''}`}</Text></View>
               <GradientButton onPress={confirmDays} style={s.saveBtn} textStyle={s.saveBtnTxt} label="Continuer →" />
               <TouchableOpacity style={s.cancelBtn} onPress={()=>setShowMdp(false)}>
                 <Text style={s.cancelBtnTxt}>Annuler</Text>
