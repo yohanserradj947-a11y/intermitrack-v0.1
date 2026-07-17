@@ -125,7 +125,11 @@ export default function CalendarImportModal({
         await toPreview(found, 'notes');
         return;
       }
-      const { status, drafts: found } = await scanCalendar(12, 12, defH);
+      // Fenêtre large pour récupérer l'historique (retour utilisatrice : ne pouvait pas importer
+      // ses missions d'avant juillet 2025). 36 mois arrière + 12 avant = 4 ans, la limite iOS par requête.
+      // Le garde-fou anti-fantôme de scanCalendar borne sur cette même fenêtre (les dates aberrantes
+      // type 2021, antérieures, restent donc écartées).
+      const { status, drafts: found } = await scanCalendar(36, 12, defH);
       if (status !== 'granted') { trackEvent('import_failed', { mode, raison: 'permission' }); setPhase('denied'); return; }
       await toPreview(found, 'calendrier');
     } catch (e: any) {
