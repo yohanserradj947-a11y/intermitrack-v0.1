@@ -309,6 +309,41 @@ export default function Calendar(){
     ]);
   }
 
+  // Réinitialiser le MOIS affiché : supprime uniquement ses missions (notes et couleurs intactes).
+  function resetMonth(){
+    const y=current.getFullYear(), mo=current.getMonth();
+    const n=missions.filter((m:any)=>{const d=new Date(m.mission_date+'T00:00:00');return d.getMonth()===mo&&d.getFullYear()===y;}).length;
+    if(n===0) return;
+    const lbl=monthLabel(current), mm=String(mo+1).padStart(2,'0');
+    showAlert(`Réinitialiser ${lbl} ?`,`Les ${n} mission(s) de ${lbl} seront définitivement supprimées. Tes notes et couleurs ne sont pas touchées. Cette action est irréversible.`,[
+      {text:'Annuler',style:'cancel'},
+      {text:'Supprimer le mois',style:'destructive',onPress:async()=>{
+        const { data:{ user } }=await supabase.auth.getUser();
+        if(!user){ showAlert('Erreur','Session expirée, reconnecte-toi.'); return; }
+        const { error }=await supabase.from('missions').delete().eq('user_id',user.id).gte('mission_date',`${y}-${mm}-01`).lte('mission_date',`${y}-${mm}-31`);
+        if(error){ showAlert('Erreur',error.message); return; }
+        loadMissions(true);
+      }},
+    ]);
+  }
+
+  // Réinitialiser l'ANNÉE affichée : pratique pour nettoyer d'un coup un import parti sur une mauvaise année.
+  function resetYear(){
+    const y=current.getFullYear();
+    const n=missions.filter((m:any)=>new Date(m.mission_date+'T00:00:00').getFullYear()===y).length;
+    if(n===0) return;
+    showAlert(`Réinitialiser l'année ${y} ?`,`Les ${n} mission(s) de ${y} seront définitivement supprimées. Tes notes et couleurs ne sont pas touchées. Cette action est irréversible.`,[
+      {text:'Annuler',style:'cancel'},
+      {text:"Supprimer l'année",style:'destructive',onPress:async()=>{
+        const { data:{ user } }=await supabase.auth.getUser();
+        if(!user){ showAlert('Erreur','Session expirée, reconnecte-toi.'); return; }
+        const { error }=await supabase.from('missions').delete().eq('user_id',user.id).gte('mission_date',`${y}-01-01`).lte('mission_date',`${y}-12-31`);
+        if(error){ showAlert('Erreur',error.message); return; }
+        loadMissions(true);
+      }},
+    ]);
+  }
+
   function toggleDay(i:number){ setMdpDays(ds=>ds.map((d,idx)=>idx===i?{...d,checked:!d.checked}:d)); }
   function setDayHours(i:number,h:string){ setMdpDays(ds=>ds.map((d,idx)=>idx===i?{...d,hours:Number(h)||0}:d)); }
   function setAll(val:boolean){ setMdpDays(ds=>ds.map(d=>({...d,checked:val}))); }
@@ -564,9 +599,21 @@ export default function Calendar(){
       </View>
 
       <Text style={s.hint}>Touche un jour pour ajouter une mission, ou une mission existante pour la modifier</Text>
-      <TouchableOpacity onPress={resetCalendar} hitSlop={8} style={{alignSelf:'center',marginTop:1,marginBottom:2,paddingVertical:5,paddingHorizontal:10}}>
-        <Text style={{fontSize:11.5,color:C.muted,textDecorationLine:'underline'}}>Réinitialiser le calendrier</Text>
-      </TouchableOpacity>
+      <View style={{flexDirection:'row',flexWrap:'wrap',justifyContent:'center',alignItems:'center',columnGap:16,rowGap:1,marginTop:1,marginBottom:2}}>
+        {monthMissions.length>0 && (
+          <TouchableOpacity onPress={resetMonth} hitSlop={8} style={{paddingVertical:5,paddingHorizontal:6}}>
+            <Text style={{fontSize:11.5,color:C.danger,textDecorationLine:'underline',fontWeight:'700'}}>Réinitialiser le mois</Text>
+          </TouchableOpacity>
+        )}
+        {missions.some((m:any)=>new Date(m.mission_date+'T00:00:00').getFullYear()===year) && (
+          <TouchableOpacity onPress={resetYear} hitSlop={8} style={{paddingVertical:5,paddingHorizontal:6}}>
+            <Text style={{fontSize:11.5,color:C.danger,textDecorationLine:'underline',fontWeight:'700'}}>Réinitialiser {year}</Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity onPress={resetCalendar} hitSlop={8} style={{paddingVertical:5,paddingHorizontal:6}}>
+          <Text style={{fontSize:11.5,color:C.muted,textDecorationLine:'underline'}}>Tout le calendrier</Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={s.calTabs}>
         <TouchableOpacity style={[s.calTab,calTab==='missions'&&s.calTabOn]} onPress={()=>setCalTab('missions')}>
