@@ -230,27 +230,47 @@ export function parseNotesText(text: string, year: number, defaultHours = 8, def
   return { drafts: out, skipped };
 }
 
-// Demande l'accès, lit tous les calendriers, récupère les événements sur la période et les analyse.
+// Calendriers "système" à écarter par leur nom (fériés, anniversaires, abonnements, météo…).
+const CAL_EXCLUDE = /f[eé]ri|holiday|anniversaire|birthday|f[eê]te|vacance|scolaire|school|contacts?|sport|m[eé]t[eé]o|weather|lunar|lunaire/i;
+
+// Liste des calendriers du téléphone, pour laisser l'utilisateur choisir lequel scanner.
+// On masque les calendriers système (par leur nom). `suggested` = calendrier perso modifiable → pré-coché.
+export async function listCalendars(): Promise<{ status: string; calendars: { id: string; title: string; color: string; suggested: boolean }[] }> {
+  const perm = await Calendar.requestCalendarPermissionsAsync();
+  if (perm.status !== 'granted') return { status: perm.status, calendars: [] };
+  const cals = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+  const calendars = cals
+    .filter((c: any) => !CAL_EXCLUDE.test(`${c.title || ''} ${(c.name || '')} ${(c.source && c.source.name) || ''}`))
+    .map((c: any) => ({ id: c.id, title: c.title || c.name || 'Calendrier', color: c.color || '#1F4E5F', suggested: c.allowsModifications !== false }));
+  return { status: 'granted', calendars };
+}
+
+// Demande l'accès, récupère les événements sur la période et les analyse.
+// onlyIds : si fourni, on scanne EXACTEMENT ces calendriers (choix de l'utilisateur) ; sinon,
+// tous les calendriers perso modifiables (comportement par défaut).
 export async function scanCalendar(
   monthsBack = 12,
   monthsForward = 12,
-  defaultHours = 8
+  defaultHours = 8,
+  onlyIds?: string[]
 ): Promise<{ status: string; drafts: MissionDraft[] }> {
   const perm = await Calendar.requestCalendarPermissionsAsync();
   if (perm.status !== 'granted') return { status: perm.status, drafts: [] };
 
-  const cals = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
-  // On écarte les calendriers "système" : jours fériés, anniversaires, abonnements en lecture seule
-  // (ce sont eux qui polluent avec les fêtes nationales, etc.). On garde tes calendriers modifiables.
-  const EXCLUDE = /f[eé]ri|holiday|anniversaire|birthday|f[eê]te|vacance|scolaire|school|contacts?|sport|m[eé]t[eé]o|weather|lunar|lunaire/i;
-  const usable = cals.filter((c: any) => {
-    const label = `${c.title || ''} ${(c.name || '')} ${(c.source && c.source.name) || ''}`;
-    if (EXCLUDE.test(label)) return false;
-    if (c.allowsModifications === false) return false; // fériés/anniversaires = non modifiables
-    return true;
-  });
-  const chosen = usable.length ? usable : cals;
-  const ids = chosen.map((c: any) => c.id);
+  let ids: string[];
+  if (onlyIds && onlyIds.length) {
+    ids = onlyIds;
+  } else {
+    const cals = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+    const usable = cals.filter((c: any) => {
+      const label = `${c.title || ''} ${(c.name || '')} ${(c.source && c.source.name) || ''}`;
+      if (CAL_EXCLUDE.test(label)) return false;
+      if (c.allowsModifications === false) return false; // fériés/anniversaires = non modifiables
+      return true;
+    });
+    const chosen = usable.length ? usable : cals;
+    ids = chosen.map((c: any) => c.id);
+  }
   if (!ids.length) return { status: 'granted', drafts: [] };
 
   const now = new Date();
@@ -260,7 +280,7 @@ export async function scanCalendar(
   const events = await Calendar.getEventsAsync(ids, start, end);
   const startT = start.getTime(), endT = end.getTime();
   const drafts = (events || [])
-    .filter((e: any) => e && e.title && e.status !== 'canceled' && !EXCLUDE.test(String(e.title)))
+    .filter((e: any) => e && e.title && e.status !== 'canceled' && !CAL_EXCLUDE.test(String(e.title)))
     // Garde-fou iOS : pour un évènement RÉCURRENT, getEventsAsync peut renvoyer une occurrence datée à
     // la CRÉATION de la série (ex. 2021) au lieu de sa date dans la fenêtre demandée → missions fantômes.
     // On écarte donc tout évènement dont la date sort de la fenêtre réellement interrogée.

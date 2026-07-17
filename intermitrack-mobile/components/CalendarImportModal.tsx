@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   Modal, View, Text, TouchableOpacity, FlatList, ActivityIndicator,
-  StyleSheet, Platform, Linking, TextInput,
+  StyleSheet, Platform, Linking, TextInput, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../lib/theme';
@@ -11,7 +11,7 @@ import { GradientButton } from './GradientButton';
 // de ces composants, on ne peut plus le refermer. Règle valable partout dans l'app.
 import NumInput from './NumInput';
 import TxtInput from './TxtInput';
-import { scanCalendar, parseNotesText, MissionDraft } from '../lib/calendarImport';
+import { scanCalendar, listCalendars, parseNotesText, MissionDraft } from '../lib/calendarImport';
 import { useAnnexe, modeForNew, CACHET_H } from '../lib/annexe';
 import {
   pickAndReadExcel, autoDetect, countValid, buildDrafts,
@@ -19,7 +19,8 @@ import {
 } from '../lib/excelImport';
 import { trackEvent } from '../lib/analytics';
 
-type Phase = 'intro' | 'loading' | 'mapping' | 'preview' | 'importing' | 'done' | 'denied' | 'empty';
+type Phase = 'intro' | 'calendars' | 'loading' | 'mapping' | 'preview' | 'importing' | 'done' | 'denied' | 'empty';
+type CalInfo = { id: string; title: string; color: string; suggested: boolean };
 type Mode = 'calendar' | 'excel' | 'notes';
 
 // Les 4 informations qu'on cherche dans le fichier. La date est la seule
@@ -47,6 +48,9 @@ export default function CalendarImportModal({
   const cachetMode = modeForNew(annexe) === 'cachet';
   const defH = cachetMode ? CACHET_H : 8;
   const [phase, setPhase] = useState<Phase>('intro');
+  // Sélecteur de calendriers (import calendrier) : liste + IDs cochés.
+  const [calList, setCalList] = useState<CalInfo[]>([]);
+  const [calSel, setCalSel] = useState<Set<string>>(new Set());
   const [drafts, setDrafts] = useState<MissionDraft[]>([]);
   const [error, setError] = useState('');
   const [importedCount, setImportedCount] = useState(0);
@@ -68,6 +72,7 @@ export default function CalendarImportModal({
     setPhase('intro'); setDrafts([]); setError(''); setImportedCount(0); setOpenKey(null);
     setWb(null); setSheetIdx(0); setCols(null); setPickField(null);
     setNotesText(''); setNotesYear(new Date().getFullYear());
+    setCalList([]); setCalSel(new Set());
   }
   function close() { reset(); onClose(); }
 
@@ -82,6 +87,43 @@ export default function CalendarImportModal({
     trackEvent('import_parsed', { mode, source, lues: found.length, nouvelles: fresh.length });
     if (!fresh.length) { setPhase('empty'); return; }
     setDrafts(fresh); setPhase('preview');
+  }
+
+  function toggleCal(id: string) {
+    setCalSel((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  }
+
+  // Étape « Choisis tes calendriers » : on liste les calendriers du téléphone et on laisse cocher
+  // lequel scanner (retour utilisatrice : l'appli scannait le mauvais calendrier). S'il n'y en a qu'un,
+  // inutile de demander → on scanne directement.
+  async function chooseCalendars() {
+    setError(''); setPhase('loading');
+    trackEvent('import_start', { mode });
+    try {
+      const { status, calendars } = await listCalendars();
+      if (status !== 'granted') { trackEvent('import_failed', { mode, raison: 'permission' }); setPhase('denied'); return; }
+      if (!calendars.length) { setError("Aucun calendrier trouvé sur ton téléphone."); setPhase('intro'); return; }
+      if (calendars.length === 1) { await runCalendarScan(calendars.map((c) => c.id)); return; }
+      setCalList(calendars);
+      setCalSel(new Set(calendars.filter((c) => c.suggested).map((c) => c.id)));
+      setPhase('calendars');
+    } catch (e: any) {
+      trackEvent('import_failed', { mode, raison: 'exception', message: String(e?.message || e).slice(0, 120) });
+      setError(e?.message || 'Lecture impossible.'); setPhase('intro');
+    }
+  }
+
+  async function runCalendarScan(ids: string[]) {
+    setError(''); setPhase('loading');
+    try {
+      // Fenêtre large (36 mois arrière + 12 avant = 4 ans, limite iOS) ; garde-fou anti-fantôme dans scanCalendar.
+      const { status, drafts: found } = await scanCalendar(36, 12, defH, ids);
+      if (status !== 'granted') { setPhase('denied'); return; }
+      await toPreview(found, 'calendrier');
+    } catch (e: any) {
+      trackEvent('import_failed', { mode, raison: 'exception', message: String(e?.message || e).slice(0, 120) });
+      setError(e?.message || 'Lecture impossible.'); setPhase('intro');
+    }
   }
 
   async function analyze() {
@@ -333,7 +375,33 @@ export default function CalendarImportModal({
                   : "On récupère la prod, les dates, les heures, le lieu, et le prix s'il est écrit. Tu pourras tout vérifier avant d'importer."}
               </Text>
               {!!error && <Text style={s.err}>{error}</Text>}
-              <GradientButton onPress={analyze} label={mode === 'excel' ? 'Choisir mon fichier' : 'Analyser mon calendrier'} style={s.cta} textStyle={s.ctaTxt} />
+              <GradientButton onPress={mode === 'excel' ? analyze : chooseCalendars} label={mode === 'excel' ? 'Choisir mon fichier' : 'Analyser mon calendrier'} style={s.cta} textStyle={s.ctaTxt} />
+            </View>
+          )}
+
+          {phase === 'calendars' && (
+            <View style={s.pad}>
+              <Text style={s.body}>Quels calendriers analyser ?</Text>
+              <Text style={s.bodyMuted}>Coche le(s) calendrier(s) où tu notes tes missions. Les fériés et anniversaires sont déjà exclus.</Text>
+              <ScrollView style={{ maxHeight: 280, marginTop: 4 }}>
+                {calList.map((c) => {
+                  const on = calSel.has(c.id);
+                  return (
+                    <TouchableOpacity key={c.id} style={s.calRow} onPress={() => toggleCal(c.id)} activeOpacity={0.75}>
+                      <View style={[s.calDot, { backgroundColor: c.color }]} />
+                      <Text style={s.calName} numberOfLines={1}>{c.title}</Text>
+                      <Ionicons name={on ? 'checkbox' : 'square-outline'} size={22} color={on ? C.petrol : C.muted} />
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+              {!!error && <Text style={s.err}>{error}</Text>}
+              <GradientButton
+                onPress={() => { const ids = [...calSel]; if (!ids.length) { setError('Coche au moins un calendrier.'); return; } runCalendarScan(ids); }}
+                label="Analyser"
+                style={s.cta}
+                textStyle={s.ctaTxt}
+              />
             </View>
           )}
 
@@ -525,6 +593,9 @@ const styles = (C: any) => StyleSheet.create({
   yearArrowTxt: { fontSize: 22, fontWeight: '900', color: C.petrol, lineHeight: 24 },
   yearVal: { fontSize: 20, fontWeight: '900', color: C.text, minWidth: 70, textAlign: 'center' },
   center: { paddingVertical: 46, alignItems: 'center', gap: 14 },
+  calRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: C.line },
+  calDot: { width: 14, height: 14, borderRadius: 7 },
+  calName: { flex: 1, fontSize: 14.5, color: C.text, fontWeight: '600' },
   cta: { marginTop: 14, height: 50, borderRadius: 14 },
   ctaTxt: { color: '#fff', fontWeight: '800', fontSize: 15 },
   retry: { alignItems: 'center', paddingVertical: 12 },
