@@ -23,6 +23,10 @@ const CONTACTS: Contact[] = [
     { type: 'text', label: 'Centre de recouvrement Cinéma Spectacle, TSA 70113, 92891 Nanterre Cedex 09' },
     { type: 'url', label: 'francetravail.fr/spectacle', value: 'https://www.francetravail.fr/spectacle/' },
   ] },
+  { ic: 'flash-outline', name: 'SOS Cachet (ACFDA)', role: 'Coup de pouce pour trouver des cachets en urgence (Île-de-France)', lines: [
+    { type: 'mail', label: 'soscachetacfda@gmail.com', value: 'soscachetacfda@gmail.com' },
+    { type: 'url', label: 'acfda.fr', value: 'https://www.acfda.fr' },
+  ] },
   { ic: 'shield-checkmark-outline', name: 'Audiens', role: 'Retraite, prévoyance, santé, action sociale', lines: [
     { type: 'tel', label: '0 173 173 755 (intermittents & pigistes)', value: '0173173755' },
     { type: 'text', label: '74 rue Jean-Bleuzen, 92177 Vanves Cedex' },
