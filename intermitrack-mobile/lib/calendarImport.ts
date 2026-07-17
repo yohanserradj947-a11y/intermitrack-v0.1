@@ -52,10 +52,13 @@ export function parseEventText(title: string, notes: string) {
   // Le (?:^|[^\dh]) empêche le prix de démarrer juste après un "h" : sans lui,
   // "18h30 520€" se lisait "30 520" (les espaces sont admis pour "1 200 €").
   let gross = 0;
-  const euro = text.match(/(?:^|[^\dh])(\d[\d ]{0,6}\d|\d)\s*(?:€|euros?)/i);
+  // La partie décimale est CAPTURÉE : sans ça, "191.48 €" laissait le € collé à ".48"
+  // et le prix se lisait "48". On reconstruit donc 191 + 48/100 = 191,48.
+  const euro = text.match(/(?:^|[^\dh])(\d[\d ]{0,6}\d|\d)(?:[.,](\d{1,2}))?\s*(?:€|euros?)/i);
   if (euro) {
-    const n = Number(euro[1].replace(/\s/g, ''));
-    if (n >= 20 && n <= 99999) gross = n;
+    let n = Number(euro[1].replace(/\s/g, ''));
+    if (euro[2] != null) n += Number(euro[2]) / (euro[2].length === 1 ? 10 : 100);
+    if (n >= 20 && n <= 99999) gross = Math.round(n * 100) / 100;
   } else {
     const nums = (text.match(/\d{2,4}/g) || [])
       .map(Number)
@@ -65,7 +68,7 @@ export function parseEventText(title: string, notes: string) {
 
   // Nom de prod = le titre débarrassé du prix et des heures.
   let prod = (title || '')
-    .replace(/(^|[^\dh])(\d[\d ]{0,6}\d|\d)\s*(?:€|euros?)/gi, '$1 ')
+    .replace(/(^|[^\dh])(\d[\d ]{0,6}\d|\d)(?:[.,]\d{1,2})?\s*(?:€|euros?)/gi, '$1 ')
     // Même motif que ci-dessus : "8h30" doit partir en entier, pas laisser "30".
     .replace(/\d{1,2}(?:[.,]\d)?\s*h(?:\s*\d{2}(?!\d))?/gi, ' ')
     .replace(/\b\d{3,4}\b/g, ' ')
