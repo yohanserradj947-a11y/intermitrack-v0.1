@@ -32,6 +32,7 @@ import CalendarImportModal from '../../components/CalendarImportModal';
 import { syncWidgets } from '../../lib/widgetSync';
 import { useNotes, noteAbbr, Note } from '../../lib/notes';
 import { usePostes, quickTypeChips } from '../../lib/postes';
+import { usePriceMemory } from '../../lib/priceMemory';
 import Svg, { Line } from 'react-native-svg';
 
 // Barème kilométrique officiel : coefficient par tranche de km annuels.
@@ -87,6 +88,7 @@ export default function Calendar(){
   const [noteDetail,setNoteDetail]=useState<Note|null>(null);
   const [calTab,setCalTab]=useState<'missions'|'notes'>('missions');
   const { postes, addPoste, removePoste } = usePostes();
+  const { getLearnedPrice, rememberPrice } = usePriceMemory();
   const [fLieu,setFLieu]=useState('');
   const [newPoste,setNewPoste]=useState('');
   const insets=useSafeAreaInsets();
@@ -146,6 +148,14 @@ export default function Calendar(){
 
   const pulse=useRef(new Animated.Value(0)).current;
   useEffect(()=>{loadMissions();},[]);
+  // Prix appris : dès qu'on a choisi une prod ET un poste sur une NOUVELLE mission, on pré-remplit
+  // le prix mémorisé pour ce couple (prioritaire sur le salaire journalier). Modifiable ensuite.
+  useEffect(()=>{
+    if(editId || !showForm) return;
+    if(!fProduction.trim() || !fType.trim()) return;
+    const p=getLearnedPrice(fProduction, fType);
+    if(p!=null) setFGross(String(p));
+  },[fProduction, fType, showForm, editId, getLearnedPrice]);
   useFocusEffect(useCallback(()=>{
     loadMissions(true);
     const loop=Animated.loop(Animated.sequence([Animated.timing(pulse,{toValue:1,duration:850,useNativeDriver:true}),Animated.timing(pulse,{toValue:0,duration:850,useNativeDriver:true})]));
@@ -251,6 +261,8 @@ export default function Calendar(){
       : await supabase.from('missions').insert(payload);
     setSaving(false);
     if(error){ showAlert('Erreur',error.message); return; }
+    // Mémorise le prix/jour pour ce couple (prod + poste), pré-remplira la prochaine fois.
+    rememberPrice(fProduction, fType, (Number(fGross)||0)/Math.max(1, hv.vacations||1));
     setShowForm(false); setEditId(null); loadMissions(true);
   }
 
@@ -403,6 +415,8 @@ export default function Calendar(){
     const { error }=await supabase.from('missions').insert(payloads);
     setSaving(false);
     if(error){ showAlert('Erreur',error.message); return; }
+    // Prix/jour appris pour (prod + poste) = total réparti sur le nombre de jours cochés.
+    rememberPrice(fProduction, fType, totalGross/Math.max(1, mdpChecked.length));
     setShowMdp(false); setShowForm(false); setEditId(null); setMdpDays([]); loadMissions(true);
   }
 

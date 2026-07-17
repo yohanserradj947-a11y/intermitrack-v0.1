@@ -19,6 +19,7 @@ import { typeParts, addType, removeType } from '../../lib/missionType';
 import ProductionPickerModal from '../../components/ProductionPickerModal';
 import { knownAddresses } from '../../lib/kmAddresses';
 import { usePostes, quickTypeChips } from '../../lib/postes';
+import { usePriceMemory } from '../../lib/priceMemory';
 import { LinearGradient } from 'expo-linear-gradient';
 import ColorPickerModal from '../../components/ColorPickerModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -40,6 +41,7 @@ export default function Missions(){
   const { colorOrDefault, getColor, setColor, custom, addCustom } = useProdColors();
   const [colorPickerOpen,setColorPickerOpen]=useState(false);
   const { postes, addPoste, removePoste } = usePostes();
+  const { rememberPrice } = usePriceMemory();
   const [fLieu,setFLieu]=useState('');
   const [showLieuSuggest,setShowLieuSuggest]=useState(false);
   const [newPoste,setNewPoste]=useState('');
@@ -140,6 +142,8 @@ export default function Missions(){
     }).eq('id',editId);
     setSaving(false);
     if(error){ showAlert('Erreur',error.message); return; }
+    // Mémorise le prix/jour appris pour (prod + poste).
+    rememberPrice(fProduction, fType, (Number(fGross)||0)/Math.max(1, hv.vacations||1));
     setEditId(null); loadMissions();
   }
 
