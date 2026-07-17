@@ -212,11 +212,29 @@ export function parseNotesText(text: string, year: number, defaultHours = 8, def
     // --- Dates de la ligne (une ou plusieurs) ---
     let dates: string[] = [];
     let rest = work;
+    let rangeNote: string | undefined;
+
+    // Plage « X au Y » : un contrat sur une période. Si c'est 2 jours (début + fin), ce sont
+    // FORCÉMENT ces 2 dates → 2 missions (retour Justine). Au-delà de 2 jours, impossible de
+    // deviner lesquels : on met la 1re date et on signale de compléter les autres à la main.
+    const rng = work.match(/^(\d{1,2})(?:[\/\-.](\d{1,2}))?\s*(?:au|à)\s*(\d{1,2})(?:[\/\-.](\d{1,2}))?(?=\s|$)/i);
+    if (rng) {
+      const d1 = +rng[1], m1 = rng[2] ? +rng[2] : curMonth;
+      const d2 = +rng[3], m2 = rng[4] ? +rng[4] : (m1 || curMonth);
+      if (m1 && m2 && d1 >= 1 && d1 <= 31 && d2 >= 1 && d2 <= 31) {
+        const iso1 = `${year}-${String(m1).padStart(2, '0')}-${String(d1).padStart(2, '0')}`;
+        const iso2 = `${year}-${String(m2).padStart(2, '0')}-${String(d2).padStart(2, '0')}`;
+        const span = Math.round((Date.UTC(year, m2 - 1, d2) - Date.UTC(year, m1 - 1, d1)) / 86400000) + 1;
+        if (span === 2) dates = [iso1, iso2];
+        else { dates = [iso1]; if (span > 2) rangeNote = `Contrat du ${d1}/${m1} au ${d2}/${m2} : ajoute les autres jours travaillés à la main (l'appli ne peut pas deviner lesquels).`; }
+        rest = work.slice(rng[0].length);
+      }
+    }
 
     // Multi-jours sous un en-tête de mois : suite d'au moins 2 jours en tête, séparés par « / », « - » ou espace.
     // Ex : « 6/7 FRTV », « 16 17 FRTV », « 24/25/26 AMP ». Prioritaire sur jj/mm quand un mois est en en-tête.
     const multi = curMonth ? work.match(/^(\d{1,2}(?:\s*[\/\-]\s*\d{1,2}|\s+\d{1,2})+)(?=\s|$)/) : null;
-    if (multi) {
+    if (!dates.length && multi) {
       const nums = multi[1].split(/[\/\-\s]+/).map(Number).filter((n) => n >= 1 && n <= 31);
       if (nums.length >= 2) { dates = nums.map((d) => `${year}-${String(curMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`); rest = work.slice(multi[0].length); }
     }
@@ -245,6 +263,7 @@ export function parseNotesText(text: string, year: number, defaultHours = 8, def
       if (!prodUp.trim()) drafts.forEach((d) => d.missing.push('prod'));
       const hasDetail = (parsed.textHours != null && parsed.textHours > 0) || parsed.gross > 0;
       fill(drafts, parsed.textHours, parsed.gross);
+      if (rangeNote) drafts.forEach((d) => { d.note = rangeNote; }); // plage > 2 jours : jours à compléter
       out.push(...drafts);
       block = hasDetail ? [] : drafts; // pas de détail sur la ligne → on attend la ligne suivante
       continue;

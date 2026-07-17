@@ -490,10 +490,17 @@ function _parseNotes(text, year, defH, defP){
     if(asMonth&&digits===0){ curMonth=asMonth; block=[]; continue; }
     var work=line.replace(/^[^\p{L}\p{N}]+/u,'');
     var bullet=work.match(/^\d{1,2}[.)]\s*(?=\d{1,2}[\/\-.]\d{1,2})/); if(bullet)work=work.slice(bullet[0].length);
-    var dates=[], rest=work;
+    var dates=[], rest=work, rangeNote='';
+    // Plage « X au Y » : un contrat sur une période. 2 jours (début + fin) = FORCÉMENT ces 2 dates -> 2
+    // missions (retour Justine). Au-delà de 2 jours, impossible de deviner -> 1re date + note à compléter.
+    var rng=work.match(/^(\d{1,2})(?:[\/\-.](\d{1,2}))?\s*(?:au|à)\s*(\d{1,2})(?:[\/\-.](\d{1,2}))?(?=\s|$)/i);
+    if(rng){ var _d1=+rng[1], _m1=rng[2]?+rng[2]:curMonth, _d2=+rng[3], _m2=rng[4]?+rng[4]:(_m1||curMonth);
+      if(_m1&&_m2&&_d1>=1&&_d1<=31&&_d2>=1&&_d2<=31){ var _i1=year+'-'+String(_m1).padStart(2,'0')+'-'+String(_d1).padStart(2,'0'), _i2=year+'-'+String(_m2).padStart(2,'0')+'-'+String(_d2).padStart(2,'0'), _span=Math.round((Date.UTC(year,_m2-1,_d2)-Date.UTC(year,_m1-1,_d1))/86400000)+1;
+        if(_span===2)dates=[_i1,_i2]; else{ dates=[_i1]; if(_span>2)rangeNote='Contrat du '+_d1+'/'+_m1+' au '+_d2+'/'+_m2+' : ajoute les autres jours travaillés à la main (l\'appli ne peut pas deviner lesquels).'; }
+        rest=work.slice(rng[0].length); } }
     // Multi-jours sous un en-tête de mois : « 6/7 », « 16 17 », « 24/25/26 » -> une mission par jour.
     var multi=curMonth?work.match(/^(\d{1,2}(?:\s*[\/\-]\s*\d{1,2}|\s+\d{1,2})+)(?=\s|$)/):null;
-    if(multi){ var nums=multi[1].split(/[\/\-\s]+/).map(Number).filter(function(n){return n>=1&&n<=31;}); if(nums.length>=2){ dates=nums.map(function(d){return year+'-'+String(curMonth).padStart(2,'0')+'-'+String(d).padStart(2,'0');}); rest=work.slice(multi[0].length); } }
+    if(!dates.length&&multi){ var nums=multi[1].split(/[\/\-\s]+/).map(Number).filter(function(n){return n>=1&&n<=31;}); if(nums.length>=2){ dates=nums.map(function(d){return year+'-'+String(curMonth).padStart(2,'0')+'-'+String(d).padStart(2,'0');}); rest=work.slice(multi[0].length); } }
     if(!dates.length){ var ex=work.match(/^(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?\b/); if(ex&&+ex[2]>=1&&+ex[2]<=12&&+ex[1]>=1&&+ex[1]<=31){ var y=ex[3]?(ex[3].length===2?2000+ +ex[3]:+ex[3]):year; dates=[y+'-'+String(+ex[2]).padStart(2,'0')+'-'+String(+ex[1]).padStart(2,'0')]; rest=work.slice(ex[0].length); } }
     if(!dates.length&&curMonth){ var dayM=work.match(/^(?:(?:lun|mar|mer|jeu|ven|sam|dim)[a-zàâäéèêëîïôöûüç.]*\s+)?(\d{1,2})\b/i); if(dayM&&+dayM[1]>=1&&+dayM[1]<=31){ dates=[year+'-'+String(curMonth).padStart(2,'0')+'-'+String(+dayM[1]).padStart(2,'0')]; rest=work.slice(dayM[0].length); } }
     if(dates.length){
@@ -502,6 +509,7 @@ function _parseNotes(text, year, defH, defP){
       if(!prodUp.trim())drafts.forEach(function(d){ d.missing.push('prod'); });
       var hasDetail=(parsed.textHours!=null&&parsed.textHours>0)||parsed.gross>0;
       fill(drafts, parsed.textHours, parsed.gross);
+      if(rangeNote)drafts.forEach(function(d){ d.check=rangeNote; }); // plage > 2 jours : jours à compléter
       out.push.apply(out, drafts);
       block=hasDetail?[]:drafts; // pas de détail sur la ligne -> on attend la ligne suivante
       continue;
