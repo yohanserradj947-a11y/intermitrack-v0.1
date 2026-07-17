@@ -1616,6 +1616,8 @@ async function addMission(event) {
   else result = await sb.from("missions").insert(payload);
   const { error } = result;
   if (error) { toast("Erreur sauvegarde : " + error.message); return; }
+  // Mémorise le prix/jour appris pour (prod + poste).
+  _rememberPrice(payload.production, payload.mission_type, (Number(payload.gross_amount)||0)/Math.max(1, _vac||1));
   await _afterMissionSave(payload.mission_date);
 }
 
@@ -1763,6 +1765,8 @@ async function _mdpSaveBreakdown(){
   if (payloads.length) payloads[0].gross_amount = Math.round((payloads[0].gross_amount + (totalGross - grossSum)) * 100) / 100;
   const res = await sb.from("missions").insert(payloads);
   if (res.error){ toast("Erreur sauvegarde : " + res.error.message); return; }
+  // Prix/jour appris pour (prod + poste) = total réparti sur le nombre de jours cochés.
+  _rememberPrice(production, type, totalGross / Math.max(1, checked.length));
   await _afterMissionSave(payloads[0].mission_date);
 }
 
@@ -4455,6 +4459,9 @@ async function loadProfil(){
   try{
     const { data } = await sb.from('profiles').select('annexe,postes,droits_ouverts,taux_journalier,taux_impot,are_date,production_colors,notes,ae_custom_presta,custom_postes,km_cv,km_tranche,km_vehicle,km_annual,km_electric,salaire_journalier').eq('id', currentUser.id).maybeSingle();
     _profil = data || null;
+    // Prix appris (prod+poste) : select SÉPARÉ et défensif — la colonne price_memory peut ne pas
+    // encore exister (avant migration), il ne doit donc pas casser le chargement du profil.
+    try { const _pm = await sb.from('profiles').select('price_memory').eq('id', currentUser.id).maybeSingle(); if (_profil && _pm.data) _profil.price_memory = _pm.data.price_memory || {}; } catch(e){}
     // Date ARE : la base de données fait foi (synchro multi-appareils).
     // Sinon, on migre la valeur locale (ancienne) vers la base.
     if (data && data.are_date) {
@@ -4929,6 +4936,7 @@ function _setProdValue(v){
   i.value = v || '';
   if (typeof syncProdColorPicker === 'function') syncProdColorPicker();
   _syncProdBtn();
+  if (typeof _prefillLearnedPrice === 'function') _prefillLearnedPrice();
 }
 function _renderProdPicker(ov){
   var q = (document.getElementById('prodSearchInput') || {}).value || '';
@@ -5117,6 +5125,39 @@ document.addEventListener('click', function(e){
 // Le <select id="type"> a une liste d'<option> FIXE. Une valeur hors liste (ex. un poste
 // perso "Chorégraphe") est REFUSÉE par le navigateur et remise à vide → "ça ne se sélectionne pas".
 // On crée donc l'<option> manquante avant d'affecter la valeur.
+// ===== Prix appris par (production + poste) — mêmes règles que l'appli =====
+function _priceKey(prod, poste){ return String(prod||'').toUpperCase().trim()+'|'+String(poste||'').toUpperCase().trim(); }
+// Prix/jour appris pour ce couple : mémoire du profil, sinon repli sur les missions déjà saisies.
+function _learnedPrice(prod, poste){
+  prod=String(prod||'').trim(); poste=String(poste||'').trim(); if(!prod||!poste) return null;
+  var mem=(typeof _profil!=='undefined'&&_profil&&_profil.price_memory)?_profil.price_memory:{};
+  var v=mem[_priceKey(prod,poste)];
+  if(typeof v==='number'&&v>0) return v;
+  var prodU=prod.toUpperCase(), list=(typeof missions!=='undefined'?missions:[]).filter(function(m){return Number(m.gross)>0;});
+  var perDay=function(m){return Math.round((Number(m.gross)/Math.max(1,Number(m.vacations)||1))*100)/100;};
+  var cand=list.filter(function(m){return String(m.production||'').toUpperCase()===prodU && String(m.type||'')===poste;});
+  if(!cand.length) cand=list.filter(function(m){return String(m.production||'').toUpperCase()===prodU;});
+  if(cand.length){ cand.sort(function(a,b){return a.date<b.date?1:-1;}); return perDay(cand[0]); }
+  return null;
+}
+// Pré-remplit le prix dès qu'on a une prod ET un poste (nouvelle mission uniquement).
+function _prefillLearnedPrice(){
+  var pe=document.getElementById('production'), te=document.getElementById('type'), ge=document.getElementById('gross');
+  if(!pe||!te||!ge) return;
+  if(typeof editingMissionId!=='undefined' && editingMissionId) return; // en édition : on ne touche pas au prix saisi
+  var p=_learnedPrice(pe.value, te.value);
+  if(p!=null) ge.value=p;
+}
+// Retient silencieusement le prix/jour pour ce couple (prod+poste).
+function _rememberPrice(prod, poste, perDay){
+  prod=String(prod||'').trim(); poste=String(poste||'').trim();
+  if(!prod||!poste||!(perDay>0)||typeof _profil==='undefined'||!_profil) return;
+  var k=_priceKey(prod,poste), val=Math.round(perDay*100)/100;
+  if(!_profil.price_memory) _profil.price_memory={};
+  if(_profil.price_memory[k]===val) return;
+  _profil.price_memory[k]=val;
+  if(currentUser){ try{ sb.from('profiles').upsert({id:currentUser.id, price_memory:_profil.price_memory},{onConflict:'id'}).then(function(){},function(){}); }catch(e){} }
+}
 function _setTypeValue(v){
   var t = document.getElementById('type'); if(!t) return;
   v = v || '';
@@ -5125,6 +5166,7 @@ function _setTypeValue(v){
   }
   t.value = v;
   if(typeof _syncTypeBtn === 'function') _syncTypeBtn();
+  if(typeof _prefillLearnedPrice === 'function') _prefillLearnedPrice();
 }
 function _renderTypePicker(ov){
   var base = ['Montage','Tournage','Démontage'];
