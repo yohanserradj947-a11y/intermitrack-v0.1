@@ -337,8 +337,9 @@ export default function CalendarImportModal({
 
           {phase === 'intro' && mode === 'notes' && (
             <View style={s.pad}>
-              <Text style={s.body}>Colle tes notes telles que tu les écris. Un en-tête de mois, puis une ligne par date :</Text>
-              <Text style={[s.bodyMuted, { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>MARS{'\n'}18 vdlm 8h 230{'\n'}19 endemol 12h 450</Text>
+              <Text style={s.body}>Colle tes notes telles que tu les écris : un en-tête de mois, puis une ligne par date. Les heures et le prix peuvent être sur la même ligne ou sur celle du dessous.</Text>
+              <Text style={[s.bodyMuted, { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>MARS{'\n'}18 vdlm 8h 230{'\n'}19 endemol{'\n'}12h 450{'\n'}20 24 canal 16h 400</Text>
+              <Text style={s.bodyMuted}>Plusieurs jours d'un coup : « 20 24 canal 16h 400 » crée 2 missions (les 20 et 24). Pour un contrat sur des dates espacées, écris les vrais jours travaillés — pas « du 20 au 24 » : l'appli ne peut pas deviner lesquels.</Text>
               <TxtInput
                 style={s.notesInput}
                 value={notesText}

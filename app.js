@@ -531,7 +531,7 @@ function _openNotesImport(){
     var _v=(typeof missions!=='undefined'?missions:[]).reduce(function(a,m){return a+Number(m.vacations||0);},0);
     defP=(_g>0&&_v>0)?Math.round(_g/_v):0; }
   ov.innerHTML='<div class="pf-box" style="max-width:520px;"><div class="pf-title">Coller mes notes</div>'
-   +'<p class="itk-hint" style="margin:2px 0 8px;">Un en-tête de mois, puis une ligne par date. Ex : <b>MARS</b> puis <b>18 vdlm 8h 230</b>.</p>'
+   +'<p class="itk-hint" style="margin:2px 0 8px;">Un en-tête de mois, puis une ligne par date. Les heures et le prix peuvent être sur la même ligne ou sur celle du dessous.<br>Ex : <b>MARS</b> puis <b>18 vdlm 8h 230</b> — ou <b>19 endemol</b> puis <b>12h 450</b> en dessous.<br>Plusieurs jours d\'un coup : <b>20 24 canal 16h 400</b> crée 2 missions (les 20 et 24). Pour un contrat sur des dates espacées, écris les vrais jours travaillés, pas « du 20 au 24 » : l\'appli ne peut pas deviner lesquels.</p>'
    +'<textarea id="niText" rows="7" placeholder="Colle ici…" style="width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-size:14px;font-family:inherit;box-sizing:border-box;background:var(--card);color:var(--text);resize:vertical;"></textarea>'
    +'<p class="itk-hint" style="margin:8px 0 2px;">Ce qui manque sera pré-rempli : les heures ('+(defH===12?'1 cachet de 12 h, car ton profil est artiste':'8 h, car ton profil est technicien')+')'+(defP>0?(', et '+defP+' € pour le prix (ton tarif journalier)'):'')+'. Tu vérifies chaque ligne avant de valider.</p>'
    +'<label class="itk-label" style="margin-top:6px;">Année (tes notes ne l\'indiquent pas)</label>'
