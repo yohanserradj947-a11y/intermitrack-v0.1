@@ -15,6 +15,7 @@ import { GradientButton } from '../../components/GradientButton';
 import { Ionicons } from '@expo/vector-icons';
 import { useProdColors, PROD_PRESETS, prodGradient, textOn } from '../../lib/prodColors';
 import { useAnnexe, modeForNew, modeForEdit, computeHoursVac, extraHoursOf, CACHET_H } from '../../lib/annexe';
+import { CHARGE_DEFAUT } from '../../lib/calcul';
 import { typeParts, addType, removeType } from '../../lib/missionType';
 import ProductionPickerModal from '../../components/ProductionPickerModal';
 import AddressPickerModal from '../../components/AddressPickerModal';
@@ -642,6 +643,12 @@ export default function Calendar(){
                 <View style={{alignItems:'flex-end',gap:6}}>
                   <View style={{flexDirection:'row',alignItems:'center',gap:4}}><Ionicons name="time-outline" size={14} color={col}/><Text style={[s.mHours,{color:col}]}>{m.hours}h</Text></View>
                   <View style={s.mPill}><Text style={s.mPillTxt}>{m.mission_type}</Text></View>
+                  {Number(m.gross_amount)>0 && (
+                    <View style={{alignItems:'flex-end'}}>
+                      <Text style={s.mBrut}>{Math.round(Number(m.gross_amount))} € brut</Text>
+                      <Text style={s.mNet}>≈ {Math.round(Number(m.gross_amount)*(1-(CHARGE_DEFAUT[annexe==='artiste'?'artiste':'technicien']||22.5)/100))} € net</Text>
+                    </View>
+                  )}
                 </View>
                 <TouchableOpacity style={[s.quickDelBtn,{alignSelf:'center'}]} onPress={()=>quickDelete(m)} hitSlop={6}>
                   <Ionicons name="close" size={17} color={C.danger}/>
@@ -1168,6 +1175,8 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   mHours:{fontSize:16,fontWeight:'900',color:C.orange},
   mPill:{backgroundColor:C.soft,borderRadius:8,paddingHorizontal:8,paddingVertical:3},
   mPillTxt:{fontSize:10,fontWeight:'800',color:C.petrol},
+  mBrut:{fontSize:11,fontWeight:'800',color:C.text},
+  mNet:{fontSize:10.5,fontWeight:'700',color:C.muted},
   pager:{flexDirection:'row',justifyContent:'center',alignItems:'center',gap:16,marginTop:6},
   pagerTxt:{fontSize:12,fontWeight:'900',color:C.petrol},
   modalOverlay:{flex:1,backgroundColor:'rgba(0,0,0,.5)',justifyContent:'flex-end'},
