@@ -255,8 +255,13 @@ export async function scanCalendar(
   const end = new Date(now.getFullYear(), now.getMonth() + monthsForward, 28);
 
   const events = await Calendar.getEventsAsync(ids, start, end);
+  const startT = start.getTime(), endT = end.getTime();
   const drafts = (events || [])
     .filter((e: any) => e && e.title && e.status !== 'canceled' && !EXCLUDE.test(String(e.title)))
+    // Garde-fou iOS : pour un évènement RÉCURRENT, getEventsAsync peut renvoyer une occurrence datée à
+    // la CRÉATION de la série (ex. 2021) au lieu de sa date dans la fenêtre demandée → missions fantômes.
+    // On écarte donc tout évènement dont la date sort de la fenêtre réellement interrogée.
+    .filter((e: any) => { const t = new Date(e.startDate).getTime(); return isFinite(t) && t >= startT && t <= endT; })
     .map((e: any) => eventToDraft(e, defaultHours))
     .sort((a, b) => a.mission_date.localeCompare(b.mission_date));
 
