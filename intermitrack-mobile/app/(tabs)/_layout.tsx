@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabDots } from '@/components/tab-dots';
 import { SwipeHint } from '@/components/swipe-hint';
 import { AccountMenu } from '@/components/AccountMenu';
-import WhatsNewModal from '@/components/WhatsNewModal';
+import ProfileSetupModal from '@/components/ProfileSetupModal';
 import OnboardingTour from '@/components/OnboardingTour';
 import ThemeBackdrop from '@/components/ThemeBackdrop';
 import { useTheme } from '@/lib/theme';
@@ -117,7 +117,7 @@ export default function TabLayout() {
     </MaterialTopTabs>
     <SwipeHint />
     <AccountMenu />
-    <WhatsNewModal />
+    <ProfileSetupModal />
     <OnboardingTour />
     </View>
   );

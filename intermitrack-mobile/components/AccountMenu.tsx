@@ -23,6 +23,8 @@ export function openMesInfos(){ if(_openMesInfos)_openMesInfos(); }
 let _profilListeners:Array<()=>void>=[];
 export function onProfilChanged(fn:()=>void){ _profilListeners.push(fn); return ()=>{ _profilListeners=_profilListeners.filter(f=>f!==fn); }; }
 function _emitProfilChanged(){ _profilListeners.forEach(f=>{ try{ f(); }catch(e){} }); }
+// Émis par le réglage de profil au 1er lancement (ProfileSetupModal), même effet qu'un enregistrement dans « Mes informations ».
+export function emitProfilChanged(){ _emitProfilChanged(); }
 
 // Compte admin (toi) : seul à voir l'écran Analytics.
 const ADMIN_EMAIL = 'yohanserradj947@gmail.com';

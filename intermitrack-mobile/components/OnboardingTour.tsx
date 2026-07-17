@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useSession } from '../lib/auth';
 import { useTheme } from '../lib/theme';
+import { onProfileGateResolved } from '../lib/introFlow';
 
 const SEEN_KEY = 'intermitrack_onboarding_v1';
 const PREVIEW = false;
@@ -35,7 +36,8 @@ export default function OnboardingTour() {
       if (seen) return;
       try {
         const { count } = await supabase.from('missions').select('id', { count: 'exact', head: true });
-        if ((count || 0) === 0) { await AsyncStorage.setItem(SEEN_KEY, '1'); setVisible(true); }
+        // Le tuto missions n'apparaît qu'APRÈS le réglage du profil (il pré-remplit la 1re mission).
+        if ((count || 0) === 0) { onProfileGateResolved(async () => { await AsyncStorage.setItem(SEEN_KEY, '1'); setVisible(true); }); }
       } catch (e) {}
     })();
   }, [uid]);
