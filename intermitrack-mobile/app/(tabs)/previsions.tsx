@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,6 +8,7 @@ import { ajBrute, ajNet, carence, congesSpectacles, etalementCarence, netAPayer,
 import NumInput from '../../components/NumInput';
 import { GradientButton } from '../../components/GradientButton';
 import { useTheme } from '../../lib/theme';
+import { onProfilChanged } from '../../components/AccountMenu';
 
 // const C = thème dynamique (useTheme) — voir lib/theme.tsx
 
@@ -38,6 +39,7 @@ export default function Previsions(){
   const [c2Deja,setC2Deja]=useState(false);
   const [c2Mois,setC2Mois]=useState(new Date().getMonth());
   const [c2Res,setC2Res]=useState<any>(null);
+  const prevAnnexeRef=useRef<string|null>(null); // dernier statut connu → resync les cartes quand il change
 
   const [c3Brut,setC3Brut]=useState('');
   const [c3Res,setC3Res]=useState<any>(null);
@@ -50,14 +52,18 @@ export default function Previsions(){
   const [c4Res,setC4Res]=useState<any>(null);
 
   useEffect(()=>{loadMissions();loadTaux();loadAnnexe();},[]);
+  // Resync l'annexe des cartes dès que le statut change (onboarding « Règle ton profil » ou Mes infos).
+  useEffect(()=>onProfilChanged(loadAnnexe),[]);
   useFocusEffect(useCallback(()=>{loadMissions();},[]));
   // Prévisions : présélectionne l'annexe selon le profil de l'user (avant : bloqué sur technicien).
   async function loadAnnexe(){
     const { data:{ user } }=await supabase.auth.getUser();
     if(!user) return;
     const { data }=await supabase.from('profiles').select('annexe').eq('id',user.id).maybeSingle();
-    if(data && data.annexe==='artiste'){ setC1Annexe('artiste'); setC2Annexe('artiste'); setC4Statut('artiste'); }
-    // 'les_deux' / 'technicien' → technicien (état initial conservé)
+    const raw=(data && data.annexe) || '';
+    // On ne réécrit les cartes QUE si le statut a réellement changé, pour ne pas écraser un choix
+    // manuel Technicien/Artiste après une autre sauvegarde de profil (salaire, km…). 'les_deux'/vide → technicien.
+    if(raw!==prevAnnexeRef.current){ prevAnnexeRef.current=raw; const want=raw==='artiste'?'artiste':'technicien'; setC1Annexe(want); setC2Annexe(want); setC4Statut(want); }
     // salaire_reference : lecture SÉPARÉE et défensive (la colonne peut ne pas encore exister
     // avant la migration → ne doit pas casser la présélection de l'annexe ci-dessus).
     try { const r=await supabase.from('profiles').select('salaire_reference').eq('id',user.id).maybeSingle();
