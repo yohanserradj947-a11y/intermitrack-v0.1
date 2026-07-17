@@ -457,25 +457,59 @@ function _noteExtract(text){
   return { gross:gross, textHours:textHours, prod:prod };
 }
 function _parseNotes(text, year, defH, defP){
-  var lines=String(text||'').split(/\r?\n/), curMonth=null, out=[], skipped=[];
+  var lines=String(text||'').split(/\r?\n/), curMonth=null, out=[], skipped=[], block=[];
+  // Applique heures + prix (depuis la ligne-date OU une ligne de détail) à un bloc de N jours.
+  function fill(drafts, textHours, gross){
+    var N=drafts.length; if(!N)return;
+    var hoursFound=textHours!=null&&textHours>0&&textHours<=24*Math.max(1,N), overtimeMsg='';
+    if(hoursFound){
+      var total=textHours;
+      if(N===1){ drafts.forEach(function(d){ d.hours=total; }); }
+      else {
+        // JAMAIS total ÷ jours : base = defH/jour ; le surplus = heures sup à ajouter à la main.
+        var base=defH, extra=Math.round((total-N*base)*10)/10;
+        drafts.forEach(function(d){ d.hours=base; });
+        if(extra>0)overtimeMsg=N+' jours × '+base+'h = '+(N*base)+'h ; tu as noté '+total+'h → ajoute les '+extra+'h en plus sur le bon jour.';
+        else if(extra<0)overtimeMsg='Tu as noté '+total+'h pour '+N+' jours (base '+(N*base)+'h) — vérifie les heures.';
+      }
+    }
+    var priceFound=gross>0;
+    if(priceFound){ var per=Math.round((gross/N)*100)/100, acc=0; drafts.forEach(function(d,i){ d.price=(i===N-1)?Math.round((gross-acc)*100)/100:per; acc+=per; }); }
+    else if(defP>0){ drafts.forEach(function(d){ d.price=defP; }); }
+    drafts.forEach(function(d){
+      d.missing=d.missing.filter(function(m){return m!=='heures'&&m!=='prix';});
+      if(!hoursFound)d.missing.push('heures');
+      if(!priceFound)d.missing.push('prix');
+      var chk=[]; if(!hoursFound)chk.push((defH===12?'1 cachet':defH+' h')+' par défaut'); if(!priceFound&&d.price>0)chk.push(d.price+' € (tarif journalier)');
+      d.check = overtimeMsg ? overtimeMsg : (chk.length?(chk.join(' · ')+' — à vérifier'):'');
+    });
+  }
   for(var li=0;li<lines.length;li++){
     var line=lines[li].trim(); if(!line)continue;
     var digits=(line.match(/\d/g)||[]).length, asMonth=_noteMonthOfLine(line);
-    if(asMonth&&digits===0){ curMonth=asMonth; continue; }
-    // On enlève tout caractère de tête qui n'est ni lettre ni chiffre : puces (*, •, -, –, ▪, →, +, emoji…), nbsp…
+    if(asMonth&&digits===0){ curMonth=asMonth; block=[]; continue; }
     var work=line.replace(/^[^\p{L}\p{N}]+/u,'');
     var bullet=work.match(/^\d{1,2}[.)]\s*(?=\d{1,2}[\/\-.]\d{1,2})/); if(bullet)work=work.slice(bullet[0].length);
-    var dateISO=null, rest=work, re=/(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?/g, mt;
-    while((mt=re.exec(work))){ var d=+mt[1], mo=+mt[2]; if(d>=1&&d<=31&&mo>=1&&mo<=12){ var y=mt[3]?(mt[3].length===2?2000+ +mt[3]:+mt[3]):year; dateISO=y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0'); rest=work.slice(0,mt.index)+' '+work.slice(mt.index+mt[0].length); break; } }
-    if(!dateISO&&curMonth){ var dayM=work.match(/^(?:(?:lun|mar|mer|jeu|ven|sam|dim)[a-zàâäéèêëîïôöûüç.]*\s+)?(\d{1,2})\b/i); if(dayM){ var d2=+dayM[1]; if(d2>=1&&d2<=31){ dateISO=year+'-'+String(curMonth).padStart(2,'0')+'-'+String(d2).padStart(2,'0'); rest=work.slice(dayM[0].length); } } }
-    if(!dateISO){ skipped.push(line); continue; }
-    var p=_noteExtract(rest), hf=(p.textHours!=null&&p.textHours>0&&p.textHours<=24), hours=hf?p.textHours:defH;
-    var pf=p.gross>0, price=pf?p.gross:(defP>0?defP:0), missing=[];
-    if(!p.prod||!p.prod.trim())missing.push('prod');
-    if(!pf&&price===0)missing.push('prix');
-    // Ce qui a été pré-rempli (heures par défaut, prix depuis le salaire journalier) = à vérifier.
-    var chk=[]; if(!hf)chk.push((defH===12?'1 cachet':defH+' h')+' par défaut'); if(!pf&&price>0)chk.push(price+' € (tarif journalier)');
-    out.push({ date:dateISO, prod:(p.prod||'').replace(/[.\s]+$/,'').toUpperCase(), hours:hours, price:price, lieu:'', missing:missing, selected:true, check: chk.length?(chk.join(' · ')+' — à vérifier'):'' });
+    var dates=[], rest=work;
+    // Multi-jours sous un en-tête de mois : « 6/7 », « 16 17 », « 24/25/26 » -> une mission par jour.
+    var multi=curMonth?work.match(/^(\d{1,2}(?:\s*[\/\-]\s*\d{1,2}|\s+\d{1,2})+)(?=\s|$)/):null;
+    if(multi){ var nums=multi[1].split(/[\/\-\s]+/).map(Number).filter(function(n){return n>=1&&n<=31;}); if(nums.length>=2){ dates=nums.map(function(d){return year+'-'+String(curMonth).padStart(2,'0')+'-'+String(d).padStart(2,'0');}); rest=work.slice(multi[0].length); } }
+    if(!dates.length){ var ex=work.match(/^(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?\b/); if(ex&&+ex[2]>=1&&+ex[2]<=12&&+ex[1]>=1&&+ex[1]<=31){ var y=ex[3]?(ex[3].length===2?2000+ +ex[3]:+ex[3]):year; dates=[y+'-'+String(+ex[2]).padStart(2,'0')+'-'+String(+ex[1]).padStart(2,'0')]; rest=work.slice(ex[0].length); } }
+    if(!dates.length&&curMonth){ var dayM=work.match(/^(?:(?:lun|mar|mer|jeu|ven|sam|dim)[a-zàâäéèêëîïôöûüç.]*\s+)?(\d{1,2})\b/i); if(dayM&&+dayM[1]>=1&&+dayM[1]<=31){ dates=[year+'-'+String(curMonth).padStart(2,'0')+'-'+String(+dayM[1]).padStart(2,'0')]; rest=work.slice(dayM[0].length); } }
+    if(dates.length){
+      var parsed=_noteExtract(rest), prodUp=(parsed.prod||'').replace(/[.\s]+$/,'').toUpperCase();
+      var drafts=dates.map(function(dt){ return { date:dt, prod:prodUp, hours:defH, price:0, lieu:'', missing:[], selected:true, check:'' }; });
+      if(!prodUp.trim())drafts.forEach(function(d){ d.missing.push('prod'); });
+      var hasDetail=(parsed.textHours!=null&&parsed.textHours>0)||parsed.gross>0;
+      fill(drafts, parsed.textHours, parsed.gross);
+      out.push.apply(out, drafts);
+      block=hasDetail?[]:drafts; // pas de détail sur la ligne -> on attend la ligne suivante
+      continue;
+    }
+    // Ligne de DÉTAIL (heures/prix sans date) -> complète le bloc précédent.
+    var det=_noteExtract(work), hasDet=(det.textHours!=null&&det.textHours>0)||det.gross>0;
+    if(block.length&&hasDet){ fill(block, det.textHours, det.gross); block=[]; continue; }
+    skipped.push(line);
   }
   out.sort(function(a,b){return a.date.localeCompare(b.date);});
   return { drafts: out, skipped: skipped };
