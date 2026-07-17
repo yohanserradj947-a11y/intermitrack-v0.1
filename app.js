@@ -4367,7 +4367,7 @@ function maybeShowWhatsNew() {
 sb.auth.onAuthStateChange((_event, session) => {
   if (_event === "PASSWORD_RECOVERY") { showResetPasswordModal(); return; } // lien "mot de passe oublié" cliqué
   currentUser = session?.user || null;
-  if (currentUser) { showApp(); loadMissions(); loadDocuments(); maybeShowWhatsNew(); }
+  if (currentUser) { showApp(); loadMissions(); loadDocuments(); }
   else showAuth();
 });
  
@@ -4508,10 +4508,16 @@ function _profilEnsureDom(){
   const intro = document.createElement('div');
   intro.id = 'profilIntroOverlay';
   intro.innerHTML = '<div class="pf-box" style="max-width:420px;">'
-    + '<div style="font-size:40px;text-align:center;margin-bottom:8px;">👋</div>'
-    + '<div class="pf-title" style="text-align:center;">Une nouveauté pour toi</div>'
-    + '<div class="pf-sub" style="text-align:center;">Tu peux maintenant remplir <b>« Mes informations »</b> (annexe, poste, taux journalier).<br/><br/>C\'est <b>optionnel</b> — ça sert à <b>pré-remplir tes missions</b> et à <b>calculer ton revenu mensuel</b>.<br/><br/>Tu le retrouveras quand tu veux dans ton <b>menu en haut à droite → Mes informations</b>.</div>'
-    + '<div class="pf-actions"><button type="button" class="pf-cancel" id="pfIntroLater">Plus tard</button><button type="button" class="pf-ok" id="pfIntroFill">Remplir maintenant</button></div>'
+    + '<div class="pf-title" style="text-align:center;">Règle ton profil</div>'
+    + '<div class="pf-sub" style="text-align:center;">Deux infos pour que tout se pré-remplisse : tes heures, tes prix et tes calculs France Travail.</div>'
+    + '<div class="pf-label">Ton statut</div>'
+    + '<div class="pf-seg" id="pfIntroStatut"><button type="button" data-istatut="technicien" class="pf-opt">Technicien</button><button type="button" data-istatut="artiste" class="pf-opt">Artiste</button><button type="button" data-istatut="les_deux" class="pf-opt">Les deux</button></div>'
+    + '<div class="pf-hint">Technicien : journée = 8 h · Artiste : cachet = 12 h. C\'est ce choix qui fait qu\'un import d\'artiste met 12 h quand les heures manquent.</div>'
+    + '<div class="pf-label">Salaire journalier brut <span style="font-weight:600;color:#9AA5B1;">(facultatif)</span></div>'
+    + '<input id="pfIntroSalaire" class="pf-input" type="number" inputmode="decimal" placeholder="ex : 230" />'
+    + '<div class="pf-hint">Pré-remplit le prix de tes missions et de tes imports. Modifiable à tout moment.</div>'
+    + '<div class="pf-actions"><button type="button" class="pf-cancel" id="pfIntroLater">Plus tard</button><button type="button" class="pf-ok" id="pfIntroSave">Enregistrer</button></div>'
+    + '<div class="pf-hint" style="text-align:center;margin-top:10px;">Réglable à tout moment depuis ton espace, en haut à droite.</div>'
     + '</div>';
   document.body.appendChild(intro);
 
@@ -4540,8 +4546,20 @@ function _profilEnsureDom(){
   ov.querySelector('#pfPostes').addEventListener('click', function(e){ var d=e.target.closest && e.target.closest('[data-delposte]'); if(d){ e.stopPropagation(); removeCustomPoste(d.dataset.delposte); _profilRenderPostes(); } });
   document.getElementById('pfAddPoste').addEventListener('click', _profilAddPoste);
   document.getElementById('pfNewPoste').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); _profilAddPoste(); } });
-  document.getElementById('pfIntroLater').addEventListener('click', function(){ localStorage.setItem('intermitrack_profil_intro_v1','1'); intro.classList.remove('open'); });
-  document.getElementById('pfIntroFill').addEventListener('click', function(){ localStorage.setItem('intermitrack_profil_intro_v1','1'); intro.classList.remove('open'); openProfilModal(); });
+  intro.querySelector('#pfIntroStatut').addEventListener('click', function(e){ var b=e.target.closest('[data-istatut]'); if(!b)return; intro.querySelectorAll('#pfIntroStatut .pf-opt').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); });
+  document.getElementById('pfIntroLater').addEventListener('click', function(){ try{ localStorage.setItem('intermitrack_profilsetup_day', _todayStr()); }catch(e){} intro.classList.remove('open'); });
+  document.getElementById('pfIntroSave').addEventListener('click', async function(){
+    var b = intro.querySelector('#pfIntroStatut .pf-opt.on'); if(!b) return; // il faut choisir un statut
+    var statut = b.dataset.istatut;
+    var sal = Number((document.getElementById('pfIntroSalaire')||{}).value) || null;
+    if(currentUser){ var upd={ id: currentUser.id, annexe: statut }; if(sal>0) upd.salaire_journalier=sal; try{ await sb.from('profiles').upsert(upd, { onConflict:'id' }); }catch(e){} }
+    if(!_profil) _profil={}; _profil.annexe=statut; if(sal>0) _profil.salaire_journalier=sal;
+    try{ localStorage.setItem('intermitrack_profilsetup_day', _todayStr()); }catch(e){}
+    if (typeof _syncPrevAnnexe === 'function') _syncPrevAnnexe();
+    intro.classList.remove('open');
+    if(typeof render==='function') render();
+    if(typeof toast==='function') toast('Profil enregistré ✅');
+  });
 }
 
 function _profilRenderPostes(){
@@ -4606,10 +4624,19 @@ async function _profilSave(){
   if(typeof render==='function') render(); // re-render le dashboard → l'estimation France Travail s'adapte tout de suite (annexe artiste/technicien)
 }
 
+function _todayStr(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+// Réglage du profil : s'affiche tant que l'annexe (statut) n'est pas choisie, 1×/jour au maximum.
+// Détection « pas réglé » = annexe vide en base. Dès que le statut est enregistré : ne réapparaît plus jamais.
 function _profilShowIntroIfNeeded(){
-  if(localStorage.getItem('intermitrack_profil_intro_v1')) return;
+  if(_profil && _profil.annexe) return;                                                                 // déjà réglé -> jamais
+  try{ if(localStorage.getItem('intermitrack_profilsetup_day') === _todayStr()) return; }catch(e){}     // déjà montré aujourd'hui
   _profilEnsureDom();
-  setTimeout(function(){ var i=document.getElementById('profilIntroOverlay'); if(i) i.classList.add('open'); }, 900);
+  setTimeout(function(){
+    var i=document.getElementById('profilIntroOverlay'); if(!i) return;
+    i.querySelectorAll('#pfIntroStatut .pf-opt').forEach(function(x){x.classList.remove('on');});
+    var s=document.getElementById('pfIntroSalaire'); if(s) s.value=(_profil && _profil.salaire_journalier!=null)? _profil.salaire_journalier : '';
+    i.classList.add('open');
+  }, 900);
 }
 
 // Taux horaire / jour selon l'annexe du profil (8h technicien, 12h artiste)
