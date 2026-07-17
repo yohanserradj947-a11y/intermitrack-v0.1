@@ -296,6 +296,7 @@ export default function CalendarImportModal({
                 priceGuessed ? `${item.gross_amount} € (ton tarif journalier)` : null,
               ].filter(Boolean).join(' · ')} — à vérifier
             </Text>}
+            {!!item.note && <Text style={s.noteChip}>ℹ {item.note}</Text>}
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setOpenKey(open ? null : item.key)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Text style={s.editLink}>{open ? 'Fermer' : 'Modifier'}</Text>
@@ -616,6 +617,7 @@ const styles = (C: any) => StyleSheet.create({
   // Volontairement discret : une valeur devinée n'est pas une erreur, elle n'a
   // pas à crier aussi fort qu'un champ vide.
   guessChip: { fontSize: 11, fontWeight: '600', color: C.muted, marginTop: 3 },
+  noteChip: { fontSize: 11, fontWeight: '700', color: C.petrol, marginTop: 3 },
   editLink: { fontSize: 12, fontWeight: '700', color: C.petrol },
   editor: { paddingHorizontal: 6, paddingBottom: 12, gap: 8 },
   editRow: { flexDirection: 'row', gap: 10 },

@@ -12,6 +12,7 @@ export type MissionDraft = {
   lieu: string | null;
   title: string;          // titre original (pour l'affichage)
   missing: string[];      // infos essentielles non trouvées : 'prod' | 'heures' | 'prix'
+  note?: string;          // info « à vérifier » (ex : heures sup à ajouter sur un contrat multi-jours)
 };
 
 // Date locale au format 'YYYY-MM-DD' (comme le reste de l'app, sans fuseau).
@@ -158,73 +159,102 @@ export function parseNotesText(text: string, year: number, defaultHours = 8, def
   const lines = String(text || '').split(/\r?\n/);
   let curMonth: number | null = null;
   const out: MissionDraft[] = [];
-  const skipped: string[] = []; // lignes non blanches qu'on n'a pas su lire → montrées dans l'erreur
+  const skipped: string[] = [];
   let idx = 0;
+  // Bloc « en attente » : les brouillons de la dernière ligne-date, qu'une ligne de détail
+  // (heures/prix sur la ligne du dessous) vient compléter. Beaucoup notent sur 2 lignes.
+  let block: MissionDraft[] = [];
+
+  // Applique heures + prix à un bloc de N jours (depuis la ligne-date elle-même OU la ligne de détail).
+  const fill = (drafts: MissionDraft[], textHours: number | null, gross: number) => {
+    const N = drafts.length; if (!N) return;
+    const hoursFound = textHours != null && textHours > 0 && textHours <= 24 * Math.max(1, N);
+    if (hoursFound) {
+      const total = textHours as number;
+      if (N === 1) {
+        drafts[0].hours = total; drafts[0].note = undefined;
+      } else {
+        // JAMAIS total ÷ jours : la base est defaultHours/jour ; le surplus = heures sup à ajouter à la main.
+        const base = defaultHours;
+        const extra = Math.round((total - N * base) * 10) / 10;
+        drafts.forEach((d) => {
+          d.hours = base;
+          if (extra > 0) d.note = `${N} jours × ${base}h = ${N * base}h ; tu as noté ${total}h → ajoute les ${extra}h en plus sur le bon jour.`;
+          else if (extra < 0) d.note = `Tu as noté ${total}h pour ${N} jours (base ${N * base}h) — vérifie les heures.`;
+          else d.note = undefined;
+        });
+      }
+    }
+    drafts.forEach((d) => { d.missing = d.missing.filter((m) => m !== 'heures'); if (!hoursFound) d.missing.push('heures'); });
+    const priceFound = gross > 0;
+    if (priceFound) {
+      // Prix réparti à parts égales sur les jours (ajustable dans l'aperçu) ; reliquat sur le 1er.
+      const per = Math.round((gross / N) * 100) / 100;
+      let acc = 0;
+      drafts.forEach((d, i) => { d.gross_amount = i === N - 1 ? Math.round((gross - acc) * 100) / 100 : per; acc += per; });
+    } else if (defaultPrice > 0) {
+      drafts.forEach((d) => { d.gross_amount = defaultPrice; });
+    }
+    drafts.forEach((d) => { d.missing = d.missing.filter((m) => m !== 'prix'); if (!priceFound) d.missing.push('prix'); });
+  };
+
   for (const raw of lines) {
     const line = raw.trim();
     if (!line) continue;
-
-    // En-tête de mois : que des lettres (aucun chiffre) et ça matche un mois.
     const digits = (line.match(/\d/g) || []).length;
     const asMonth = monthOfLine(line);
-    if (asMonth && digits === 0) { curMonth = asMonth; continue; }
+    if (asMonth && digits === 0) { curMonth = asMonth; block = []; continue; }
 
-    // On enlève TOUT caractère de tête qui n'est ni lettre ni chiffre : puces (*, •, -, –,
-    // ▪, ‣, →, +, emoji…), espaces insécables, etc. Robuste à n'importe quel format.
     let work = line.replace(/^[^\p{L}\p{N}]+/u, '');
-    // Numéro de liste (« 1. », « 2) ») SUIVI d'une date → puce ; le lookahead évite de
-    // casser un vrai « 18.03 » (jj.mm).
     const numBullet = work.match(/^\d{1,2}[.)]\s*(?=\d{1,2}[\/\-.]\d{1,2})/);
     if (numBullet) work = work.slice(numBullet[0].length);
 
-    // Date explicite jj/mm(/aaaa) → prioritaire sur l'année confirmée. On prend la 1re
-    // occurrence VALIDE (mois 1-12), pas la première venue.
-    let dateISO: string | null = null;
+    // --- Dates de la ligne (une ou plusieurs) ---
+    let dates: string[] = [];
     let rest = work;
-    const re = /(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?/g;
-    let mt: RegExpExecArray | null;
-    while ((mt = re.exec(work))) {
-      const d = +mt[1], mo = +mt[2];
-      if (d >= 1 && d <= 31 && mo >= 1 && mo <= 12) {
-        const y = mt[3] ? (mt[3].length === 2 ? 2000 + +mt[3] : +mt[3]) : year;
-        dateISO = `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        rest = work.slice(0, mt.index) + ' ' + work.slice(mt.index + mt[0].length);
-        break;
-      }
-    }
-    // Sinon : ligne « jour + reste » sous un en-tête de mois (avec ou sans jour de semaine devant).
-    if (!dateISO && curMonth) {
-      const dayM = work.match(/^(?:(?:lun|mar|mer|jeu|ven|sam|dim)[a-zàâäéèêëîïôöûüç.]*\s+)?(\d{1,2})\b/i);
-      if (dayM) {
-        const d = +dayM[1];
-        if (d >= 1 && d <= 31) { dateISO = `${year}-${String(curMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`; rest = work.slice(dayM[0].length); }
-      }
-    }
-    if (!dateISO) { skipped.push(line); continue; } // non reconnue → on la garde pour l'afficher
 
-    const parsed = parseEventText(rest, '');
-    const prod = parsed.prod, textHours = parsed.textHours;
-    const hoursFound = textHours != null && textHours > 0 && textHours <= 24;
-    const hours = hoursFound ? (textHours as number) : defaultHours;
-    // Prix : celui écrit ; sinon le salaire journalier du profil s'il est renseigné (à vérifier).
-    const priceFound = parsed.gross > 0;
-    const gross = priceFound ? parsed.gross : (defaultPrice > 0 ? defaultPrice : 0);
-    const missing: string[] = [];
-    if (!prod || !prod.trim()) missing.push('prod');
-    if (!hoursFound) missing.push('heures');
-    if (!priceFound) missing.push('prix');
-    out.push({
-      key: `note-${idx++}-${dateISO}`,
-      selected: true,
-      production: (prod || '').replace(/[.\s]+$/, '').toUpperCase(),
-      mission_date: dateISO,
-      end_date: null,
-      hours,
-      gross_amount: gross,
-      lieu: null,
-      title: line,
-      missing,
-    });
+    // Multi-jours sous un en-tête de mois : suite d'au moins 2 jours en tête, séparés par « / », « - » ou espace.
+    // Ex : « 6/7 FRTV », « 16 17 FRTV », « 24/25/26 AMP ». Prioritaire sur jj/mm quand un mois est en en-tête.
+    const multi = curMonth ? work.match(/^(\d{1,2}(?:\s*[\/\-]\s*\d{1,2}|\s+\d{1,2})+)(?=\s|$)/) : null;
+    if (multi) {
+      const nums = multi[1].split(/[\/\-\s]+/).map(Number).filter((n) => n >= 1 && n <= 31);
+      if (nums.length >= 2) { dates = nums.map((d) => `${year}-${String(curMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`); rest = work.slice(multi[0].length); }
+    }
+    // Date explicite jj/mm(/aaaa).
+    if (!dates.length) {
+      const ex = work.match(/^(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?\b/);
+      if (ex && +ex[2] >= 1 && +ex[2] <= 12 && +ex[1] >= 1 && +ex[1] <= 31) {
+        const y = ex[3] ? (ex[3].length === 2 ? 2000 + +ex[3] : +ex[3]) : year;
+        dates = [`${y}-${String(+ex[2]).padStart(2, '0')}-${String(+ex[1]).padStart(2, '0')}`];
+        rest = work.slice(ex[0].length);
+      }
+    }
+    // Jour simple sous un en-tête de mois.
+    if (!dates.length && curMonth) {
+      const dayM = work.match(/^(?:(?:lun|mar|mer|jeu|ven|sam|dim)[a-zàâäéèêëîïôöûüç.]*\s+)?(\d{1,2})\b/i);
+      if (dayM && +dayM[1] >= 1 && +dayM[1] <= 31) { dates = [`${year}-${String(curMonth).padStart(2, '0')}-${String(+dayM[1]).padStart(2, '0')}`]; rest = work.slice(dayM[0].length); }
+    }
+
+    if (dates.length) {
+      const parsed = parseEventText(rest, '');
+      const prodUp = (parsed.prod || '').replace(/[.\s]+$/, '').toUpperCase();
+      const drafts: MissionDraft[] = dates.map((dt) => ({
+        key: `note-${idx++}-${dt}`, selected: true, production: prodUp,
+        mission_date: dt, end_date: null, hours: defaultHours, gross_amount: 0, lieu: null, title: line, missing: [],
+      }));
+      if (!prodUp.trim()) drafts.forEach((d) => d.missing.push('prod'));
+      const hasDetail = (parsed.textHours != null && parsed.textHours > 0) || parsed.gross > 0;
+      fill(drafts, parsed.textHours, parsed.gross);
+      out.push(...drafts);
+      block = hasDetail ? [] : drafts; // pas de détail sur la ligne → on attend la ligne suivante
+      continue;
+    }
+
+    // --- Pas de date : ligne de DÉTAIL (heures/prix) qui complète le bloc précédent ? ---
+    const det = parseEventText(work, '');
+    const hasDetail = (det.textHours != null && det.textHours > 0) || det.gross > 0;
+    if (block.length && hasDetail) { fill(block, det.textHours, det.gross); block = []; continue; }
+    skipped.push(line);
   }
   out.sort((a, b) => a.mission_date.localeCompare(b.mission_date));
   return { drafts: out, skipped };
