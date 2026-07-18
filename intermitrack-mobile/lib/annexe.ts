@@ -40,8 +40,12 @@ export function modeForNew(annexe: Annexe): 'heures' | 'cachet' {
 // En « les_deux » on ne sait pas comment elle a été saisie : on la relit comme un cachet si les heures
 // correspondent à un multiple exact de 12 h (tolérance 0,6 h). Même heuristique que le site.
 export function modeForEdit(annexe: Annexe, hours: number, vacations: number): 'heures' | 'cachet' {
-  if (annexe === 'artiste') return 'cachet';
-  if (annexe === 'les_deux' && vacations > 0 && Math.abs(hours - vacations * CACHET_H) < 0.6) return 'cachet';
+  if (annexe === 'technicien') return 'heures';
+  // Artiste & les_deux : cachet SI les heures atteignent au moins vacations x 12 h (les cachets, éventuellement
+  // + des heures de répète/atelier en plus). Une mission saisie EN HEURES a toujours hours < vacations x 12
+  // (vacations ≈ h/8, et 8 < 12). Corrige : une mission artiste en heures (ex 32 h / 4) était relue en cachet
+  // -> 4 cachets = 48 h fantômes. Gère aussi les cachets AVEC heures en plus (que l'ancien exact-match cassait).
+  if (vacations > 0 && hours >= vacations * CACHET_H - 0.6) return 'cachet';
   return 'heures';
 }
 
