@@ -286,9 +286,10 @@ export default function Calendar(){
       if(!fCachets.trim()||Number(fCachets)<=0){ showAlert('Cachets manquants','Indique le nombre de cachets.'); return; }
     } else if(!fHours.trim()){ showAlert('Heures manquantes','Indique le nombre d\'heures.'); return; }
     const nb=daysInclusive(fStart,fEnd);
-    // Sélecteur de jours pour toute période ≥ 2 jours : en heures on répartit les heures/jour,
-    // en cachet chaque jour coché = 1 cachet (retour artiste : un contrat 10→25 ne travaille pas les 16 jours).
-    if(!editId && nb>=2){
+    // Sélecteur de jours UNIQUEMENT pour l'intermittence (répartir vacations/cachets par jour).
+    // Régime général / enseignement = déclaration EN BLOC (période + heures totales, comme l'actualisation
+    // France Travail) : on ne demande PAS de jour travaillé, on n'écrase pas la période. Retour Emeric.
+    if(!editId && nb>=2 && fRegime==='intermittence'){
       if(mdpDays.length===0){ openDayPicker(fStart,fEnd); return; }
       commitMultiDay();
     }else{
@@ -1002,7 +1003,7 @@ export default function Calendar(){
               <Text style={s.label}>{fMode==='cachet'?'Heures payées en heures (facultatif)':'Heures cumulées'}</Text>
               <NumInput style={s.input} value={fHours} onChangeText={setFHours} placeholder={fMode==='cachet'?'0':'8'} placeholderTextColor={C.muted}/>
               {fMode==='cachet' && <Text style={s.miniHint}>Répétitions, ateliers… payés en heures et non en cachets, sur ce même contrat. Elles s'ajoutent aux cachets.</Text>}
-              {fMode!=='cachet' && (
+              {fMode!=='cachet' && fRegime==='intermittence' && (
               <View style={{flexDirection:'row',flexWrap:'wrap',gap:8,marginTop:8}}>
                 {[4,8,12].map(h=>(
                   <TouchableOpacity key={h} style={[s.mdpTool, fHours===String(h)&&{backgroundColor:C.petrol}]} onPressIn={()=>setFHours(String(h))}>
