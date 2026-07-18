@@ -2,6 +2,12 @@
 -- vient de confirmer son adresse (email_confirmed_at passe de vide -> date),
 -- ou est créé déjà confirmé. L'appel HTTP est ASYNCHRONE (pg_net) : il ne
 -- ralentit ni ne bloque jamais l'inscription.
+--
+-- ⚠️ SÉCURITÉ : le secret d'en-tête `x-webhook-secret` n'est VOLONTAIREMENT
+-- pas versionné (marqueur SECRET_A_DEFINIR ci-dessous). La vraie valeur vit
+-- uniquement (1) dans les secrets de la fonction Edge (WEBHOOK_SECRET) et
+-- (2) dans la base, appliquée à la main depuis l'éditeur SQL Supabase. Pour
+-- (ré)appliquer : remplace SECRET_A_DEFINIR par la valeur réelle avant d'exécuter.
 
 create extension if not exists pg_net;
 
@@ -19,7 +25,7 @@ begin
       url := 'https://upeogpgczoghlfwblnkb.supabase.co/functions/v1/welcome-email',
       headers := jsonb_build_object(
         'Content-Type', 'application/json',
-        'x-webhook-secret', '7d61a5126977ada6911c03e68eacc703017554c08a58f2f8'
+        'x-webhook-secret', 'SECRET_A_DEFINIR'
       ),
       body := jsonb_build_object(
         'record', jsonb_build_object(
