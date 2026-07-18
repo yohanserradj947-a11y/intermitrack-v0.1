@@ -1,80 +1,70 @@
-import { useEffect, useMemo, useRef, ReactNode } from 'react';
-import { Animated, View, Easing, StyleSheet, Dimensions } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useThemeControls } from '../lib/theme';
+import { useEffect, useRef, ReactNode } from 'react';
+import { Animated, View, StyleSheet, Image, Easing, Dimensions } from 'react-native';
+import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
+import { useTheme, useThemeControls } from '../lib/theme';
 
 const { width: W, height: H } = Dimensions.get('window');
 
-// shapes: nom d'icône MaterialCommunityIcons, ou null = pastille ronde (poudre).
-type Spec = {
-  shapes: (string | null)[]; colors: string[]; count: number; dir: 'down' | 'up';
-  sizeMin: number; sizeMax: number; dur: [number, number]; opacity: number;
-};
+// Grain fin (PNG bruité 96x96, tuilé) — texture premium façon photo argentique.
+const NOISE = 'data:image/png;base64,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';
 
-// Ambiance premium PROPRE à chaque thème (4-5 éléments, vitesse douce).
-const EFFECTS: Record<string, Spec> = {
-  // Noir & Or : poudre d'or + éclats scintillants
-  noir:   { shapes: [null, null, null, 'star-four-points', 'star'], colors: ['#D4AF37', '#E8CC6A', '#F1DDA0'], count: 22, dir: 'down', sizeMin: 3, sizeMax: 9, dur: [10000, 17000], opacity: 0.5 },
-  // Rose Girly : cœurs, fleurs, papillons
-  rose:   { shapes: ['heart', 'heart-outline', 'flower', 'flower-tulip', 'butterfly'], colors: ['#FF5FA6', '#FF9ECF', '#C79CFF'], count: 15, dir: 'up', sizeMin: 15, sizeMax: 28, dur: [12000, 20000], opacity: 0.5 },
-  // Rock'n'Roll : guitare, ampli, médiator, note, tête de mort
-  rock:   { shapes: ['guitar-electric', 'amplifier', 'guitar-pick', 'music', 'skull'], colors: ['#E11D2A', '#CFCFCF', '#F4F4F4'], count: 11, dir: 'down', sizeMin: 20, sizeMax: 36, dur: [13000, 21000], opacity: 0.42 },
-  // Hip-Hop : bombe de tag, boombox, micro, casque, cassette
-  hiphop: { shapes: ['spray', 'boombox', 'microphone-variant', 'headphones', 'cassette'], colors: ['#FFD12E', '#7CF03A', '#F6E7BF'], count: 11, dir: 'up', sizeMin: 20, sizeMax: 36, dur: [13000, 21000], opacity: 0.45 },
-  // Lyrique : notes, clé de sol, violon
-  lyric:  { shapes: ['music-note-eighth', 'music-note-quarter', 'music-clef-treble', 'music', 'violin'], colors: ['#C9A24B', '#E6C877'], count: 14, dir: 'up', sizeMin: 16, sizeMax: 30, dur: [13000, 22000], opacity: 0.5 },
-};
+// Thèmes qui affichent le décor : les MÊMES qu'avant (ceux qui avaient les icônes qui tombaient).
+// Chacun reprend ses propres accents via la palette du thème (pas de couleur inventée).
+const THEMED = new Set(['noir', 'rose', 'rock', 'hiphop', 'lyric']);
 
-function Particle({ x, dir, dur, delay, opacity, rotate, children }: {
-  x: number; dir: 'down' | 'up'; dur: number; delay: number; opacity: number; rotate: string; children: ReactNode;
-}) {
-  const p = useRef(new Animated.Value(0)).current;
+type GlowCfg = { color: string; top: number; left: number; size: number; dur: number; delay: number; minO: number; maxO: number; drift: number };
+
+// Un halo de couleur : dégradé radial dont l'opacité, l'échelle et la position pulsent lentement.
+function Glow({ cfg, id }: { cfg: GlowCfg; id: string }) {
+  const a = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    const loop = Animated.loop(Animated.timing(p, { toValue: 1, duration: dur, delay, easing: Easing.linear, useNativeDriver: true }));
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: cfg.dur, delay: cfg.delay, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0, duration: cfg.dur, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ]),
+    );
     loop.start();
     return () => loop.stop();
   }, []);
-  const translateY = p.interpolate({ inputRange: [0, 1], outputRange: dir === 'down' ? [-60, H + 60] : [H + 60, -60] });
-  const translateX = p.interpolate({ inputRange: [0, 0.5, 1], outputRange: [x, x + 20, x] });
-  const opa = p.interpolate({ inputRange: [0, 0.14, 0.85, 1], outputRange: [0, opacity, opacity, 0] });
+  const opacity = a.interpolate({ inputRange: [0, 1], outputRange: [cfg.minO, cfg.maxO] });
+  const scale = a.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.14] });
+  const translateX = a.interpolate({ inputRange: [0, 1], outputRange: [-cfg.drift, cfg.drift] });
+  const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [cfg.drift * 0.6, -cfg.drift * 0.6] });
   return (
-    <Animated.View pointerEvents="none" style={{ position: 'absolute', opacity: opa, transform: [{ translateX }, { translateY }, { rotate }] }}>
-      {children}
+    <Animated.View pointerEvents="none" style={{ position: 'absolute', top: cfg.top, left: cfg.left, width: cfg.size, height: cfg.size, opacity, transform: [{ translateX }, { translateY }, { scale }] }}>
+      <Svg width="100%" height="100%">
+        <Defs>
+          <RadialGradient id={id} cx="50%" cy="50%" r="50%">
+            <Stop offset="0" stopColor={cfg.color} stopOpacity="1" />
+            <Stop offset="1" stopColor={cfg.color} stopOpacity="0" />
+          </RadialGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${id})`} />
+      </Svg>
     </Animated.View>
   );
 }
 
 export default function ThemeBackdrop() {
   const { themeId } = useThemeControls();
-  const spec = EFFECTS[themeId as keyof typeof EFFECTS];
+  const C = useTheme();
+  if (!THEMED.has(themeId as string)) return null;
 
-  const particles = useMemo(() => {
-    if (!spec) return [];
-    return Array.from({ length: spec.count }, (_, i) => {
-      const color = spec.colors[i % spec.colors.length];
-      const size = spec.sizeMin + Math.random() * (spec.sizeMax - spec.sizeMin);
-      const shape = spec.shapes[Math.floor(Math.random() * spec.shapes.length)];
-      const node: ReactNode = shape
-        ? <MaterialCommunityIcons name={shape as any} size={size} color={color} />
-        : <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: color }} />;
-      return {
-        key: `${themeId}-${i}`,
-        x: Math.random() * W,
-        dir: spec.dir,
-        dur: spec.dur[0] + Math.random() * (spec.dur[1] - spec.dur[0]),
-        delay: Math.random() * spec.dur[1],
-        opacity: spec.opacity,
-        rotate: `${Math.round((Math.random() - 0.5) * 36)}deg`,
-        node,
-      };
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [themeId]);
+  const S = Math.max(W, H) * 0.9;
+  // 3 halos aux accents DU THÈME (petrol / sage / orange de sa palette), phases décalées -> couleur qui bouge.
+  const glows: GlowCfg[] = [
+    { color: C.petrol, top: -S * 0.30, left: -S * 0.22, size: S, dur: 5200, delay: 0, minO: 0.10, maxO: 0.30, drift: 16 },
+    { color: C.sage, top: -S * 0.14, left: W - S * 0.62, size: S * 0.92, dur: 6400, delay: 900, minO: 0.08, maxO: 0.24, drift: 22 },
+    { color: C.orange, top: H - S * 0.58, left: W * 0.5 - S * 0.5, size: S, dur: 7200, delay: 1800, minO: 0.10, maxO: 0.26, drift: 14 },
+  ];
 
-  if (!spec) return null;
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      {particles.map(pp => <Particle key={pp.key} x={pp.x} dir={pp.dir} dur={pp.dur} delay={pp.delay} opacity={pp.opacity} rotate={pp.rotate}>{pp.node}</Particle>)}
+      {glows.map((g, i) => (
+        <Glow key={`${themeId}-${i}`} cfg={g} id={`glow-${themeId}-${i}`} />
+      ))}
+      <Image source={{ uri: NOISE }} resizeMode="repeat" style={[StyleSheet.absoluteFill, { opacity: 0.06 }]} />
     </View>
   );
 }

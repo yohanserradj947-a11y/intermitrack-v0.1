@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Modal, View, Text, TouchableOpacity, ScrollView, StyleSheet, TextInput, Alert } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, ScrollView, StyleSheet, TextInput, Alert, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemeControls, THEME_META, DEFAULT_CUSTOM, type CustomSettings, type CustomTheme } from '../lib/theme';
 import ColorPickerModal from './ColorPickerModal';
@@ -102,9 +102,10 @@ export default function ThemeModal({ visible, onClose }: { visible: boolean; onC
         </View>
       </View>
 
-      {/* ÉDITEUR — rien n'est enregistré tant qu'on n'a pas nommé et validé. Annuler ne laisse aucune trace. */}
-      <Modal visible={!!edit} transparent animationType="fade" onRequestClose={() => setEdit(null)}>
-        <View style={st.overlay}>
+      {/* ÉDITEUR — un simple CALQUE (pas un Modal imbriqué), sinon iOS gèle l'écran au retour.
+          Rien n'est enregistré tant qu'on n'a pas nommé et validé. Annuler ne laisse aucune trace. */}
+      {edit && (
+        <View style={[StyleSheet.absoluteFill, st.overlay]}>
           <View style={[st.card, { backgroundColor: C.card, borderColor: C.line }]}>
             <View style={st.head}>
               <Text style={[st.title, { color: C.petrol }]}>{edit?.id ? 'Modifier le thème' : 'Nouveau thème'}</Text>
@@ -117,6 +118,7 @@ export default function ThemeModal({ visible, onClose }: { visible: boolean; onC
                 style={[st.nameInput, { borderColor: C.line, color: C.text, backgroundColor: C.bg }]}
                 value={edit.name} onChangeText={(t) => setEdit({ ...edit, name: t })}
                 placeholder="Ex : Mon bleu nuit" placeholderTextColor={C.muted} maxLength={24}
+                returnKeyType="done" blurOnSubmit onSubmitEditing={() => Keyboard.dismiss()}
               />
 
               {/* Aperçu : on doit voir ce qu'on fait, sans que ce soit appliqué à l'appli pour autant. */}
@@ -160,16 +162,17 @@ export default function ThemeModal({ visible, onClose }: { visible: boolean; onC
                 </TouchableOpacity>
               </View>
             </>)}
+
+            {/* Le picker DOIT être ici, DANS le modal éditeur, sinon il s'ouvre derrière (bug). */}
+            <ColorPickerModal
+              visible={picker !== null}
+              initial={picker === 'a' ? (edit?.s.accent ?? DEFAULT_CUSTOM.accent) : (edit?.s.accent2 ?? DEFAULT_CUSTOM.accent2)}
+              onPick={(hex) => { if (edit) setEdit({ ...edit, s: picker === 'a' ? { ...edit.s, accent: hex } : { ...edit.s, accent2: hex } }); setPicker(null); }}
+              onClose={() => setPicker(null)}
+            />
           </View>
         </View>
-      </Modal>
-
-      <ColorPickerModal
-        visible={picker !== null}
-        initial={picker === 'a' ? (edit?.s.accent ?? DEFAULT_CUSTOM.accent) : (edit?.s.accent2 ?? DEFAULT_CUSTOM.accent2)}
-        onPick={(hex) => { if (edit) setEdit({ ...edit, s: picker === 'a' ? { ...edit.s, accent: hex } : { ...edit.s, accent2: hex } }); setPicker(null); }}
-        onClose={() => setPicker(null)}
-      />
+      )}
     </Modal>
   );
 }
