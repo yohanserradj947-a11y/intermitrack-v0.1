@@ -86,7 +86,7 @@ export default function Calendar(){
   const [quickOpen,setQuickOpen]=useState(false);
   const [quickDate,setQuickDate]=useState('');
   const [noteDetail,setNoteDetail]=useState<Note|null>(null);
-  const [calTab,setCalTab]=useState<'missions'|'notes'>('missions');
+  const [calTab,setCalTab]=useState<'missions'|'notes'|'general'>('missions');
   const { postes, addPoste, removePoste } = usePostes();
   const { getLearnedPrice, rememberPrice } = usePriceMemory();
   const [fLieu,setFLieu]=useState('');
@@ -442,11 +442,23 @@ export default function Calendar(){
 
   function missionsOn(d:Date){const day=iso(d);return missions.filter((m:any)=>{const s=m.mission_date;const e=m.end_date||m.mission_date;return day>=s&&day<=e;});}
 
-  const monthMissions=missions.filter((m:any)=>{const d=new Date(m.mission_date+'T00:00:00');return d.getMonth()===month&&d.getFullYear()===year;});
+  // Tri : la PROCHAINE mission en tête (à-venir du plus proche au plus loin),
+  // puis les passées (la plus récente d'abord). Fini « la 1re du mois » quand on est le 18.
+  const _tD=new Date(); _tD.setHours(0,0,0,0);
+  // Le régime général sort de la grille ET de « missions du mois » : il a sa propre section (pas de jour à justifier).
+  const monthMissions=missions.filter((m:any)=>{const d=new Date(m.mission_date+'T00:00:00');return d.getMonth()===month&&d.getFullYear()===year&&m.regime!=='general';})
+    .sort((a:any,b:any)=>{
+      const ea=new Date((a.end_date||a.mission_date)+'T00:00:00'), eb=new Date((b.end_date||b.mission_date)+'T00:00:00');
+      const fa=ea>=_tD, fb=eb>=_tD;
+      if(fa!==fb) return fa?-1:1;
+      const da=new Date(a.mission_date+'T00:00:00').getTime(), db=new Date(b.mission_date+'T00:00:00').getTime();
+      return fa?da-db:db-da;
+    });
   const perPage=4;
   const totalPages=Math.max(1,Math.ceil(monthMissions.length/perPage));
   const visible=monthMissions.slice(page*perPage,(page+1)*perPage);
   const monthNotes=notes.filter((n)=>{const d=new Date(n.date+'T00:00:00');return d.getMonth()===month&&d.getFullYear()===year;}).sort((a,b)=>a.date<b.date?-1:1);
+  const monthGeneral=missions.filter((m:any)=>{const d=new Date(m.mission_date+'T00:00:00');return d.getMonth()===month&&d.getFullYear()===year&&m.regime==='general';}).sort((a:any,b:any)=>a.mission_date<b.mission_date?-1:1);
 
 
   function moveMonth(n:number){const d=new Date(current);d.setMonth(d.getMonth()+n);d.setDate(1);setCurrent(d);setPage(0);}
@@ -462,7 +474,7 @@ export default function Calendar(){
   }
 
   function onCellPress(d:Date){
-    setDayMenu({date:d,missions:missionsOn(d)});
+    setDayMenu({date:d,missions:missionsOn(d).filter((m:any)=>m.regime!=='general')});
   }
   // Employeurs deja saisis, classes du PLUS FREQUENT au moins frequent : les recurrents remontent d'eux-memes.
   const prodCounts=missions.reduce((acc:Record<string,number>,m:any)=>{const p=(m.production||'').toUpperCase().trim();if(p)acc[p]=(acc[p]||0)+1;return acc;},{});
@@ -571,7 +583,7 @@ export default function Calendar(){
         {cells.map((d,i)=>{
           if(!d)return<View key={i} style={[s.cell,{backgroundColor:'transparent',borderColor:'transparent',elevation:0,shadowOpacity:0}]}/>;
           const dayISO=iso(d);
-          const ms=missionsOn(d);
+          const ms=missionsOn(d).filter((m:any)=>m.regime!=='general');
           const has=ms.length>0;
           const isToday=dayISO===todayISO;
           const isPast=dayISO<todayISO;
@@ -586,6 +598,10 @@ export default function Calendar(){
           const isSplit=has&&ms.length===2&&!isToday;
           const cA=isSplit?(getColor(ms[0].production)||(isPast?'#1F4E5F':'#F97316')):'';
           const cB=isSplit?(getColor(ms[1].production)||(isPast?'#1F4E5F':'#F97316')):'';
+          // Chaque moitié garde son VRAI dégradé (comme une case pleine), au lieu d'une couleur plate :
+          // couleur perso -> prodGradient ; sinon dégradé par défaut passé/futur.
+          const gA=isSplit?(getColor(ms[0].production)?prodGradient(getColor(ms[0].production)!):(isPast?GRAD_PAST_T:GRAD_FUTURE_T)):null;
+          const gB=isSplit?(getColor(ms[1].production)?prodGradient(getColor(ms[1].production)!):(isPast?GRAD_PAST_T:GRAD_FUTURE_T)):null;
           const grad=(!isToday&&fillable&&!isSplit)?(customCol?prodGradient(customCol):(isPast?GRAD_PAST_T:GRAD_FUTURE_T)):null;
           const filled=grad!=null||isSplit;
           const hach=filled&&!isSplit&&(noteOnly||(isPast&&!!customCol)); // notes hachurées ; missions passées perso hachurées
@@ -595,7 +611,7 @@ export default function Calendar(){
           return(
             <TouchableOpacity key={i} style={[s.cell,isToday?s.cellToday:(filled?s.cellFilled:s.cellEmpty)]} activeOpacity={0.85} onPress={()=>onCellPress(d)}>
               {isSplit
-                ? <LinearGradient colors={[cA,cA,'rgba(255,255,255,0.6)','rgba(255,255,255,0.6)',cB,cB]} locations={[0,0.49,0.49,0.51,0.51,1]} start={{x:0,y:0}} end={{x:1,y:1}} style={StyleSheet.absoluteFill}/>
+                ? <LinearGradient colors={[gA![0],gA![gA!.length-1],'rgba(255,255,255,0.6)','rgba(255,255,255,0.6)',gB![0],gB![gB!.length-1]]} locations={[0,0.49,0.49,0.51,0.51,1]} start={{x:0,y:0}} end={{x:1,y:1}} style={StyleSheet.absoluteFill}/>
                 : (grad&&<LinearGradient colors={grad} start={{x:0,y:0}} end={{x:1,y:1}} style={StyleSheet.absoluteFill}/>)}
               {hach&&<Svg width={84} height={80} style={{position:'absolute',top:0,left:0}}>{Array.from({length:22},(_,k)=>{const o=-84+k*9;return <Line key={k} x1={o} y1={0} x2={o+84} y2={84} stroke="rgba(255,255,255,0.30)" strokeWidth={2.5}/>;})}</Svg>}
               {isToday&&<Animated.View pointerEvents="none" style={[s.todayFrame,{opacity:pulse.interpolate({inputRange:[0,1],outputRange:[0.35,1]})}]}/>}
@@ -648,6 +664,11 @@ export default function Calendar(){
         <TouchableOpacity style={[s.calTab,calTab==='notes'&&s.calTabOn]} onPress={()=>setCalTab('notes')}>
           <Text style={calTab==='notes'?s.calTabTxtOn:s.calTabTxt}>Notes perso</Text>
         </TouchableOpacity>
+        {monthGeneral.length>0 && (
+        <TouchableOpacity style={[s.calTab,calTab==='general'&&s.calTabOn]} onPress={()=>setCalTab('general')}>
+          <Text style={calTab==='general'?s.calTabTxtOn:s.calTabTxt}>Régime général</Text>
+        </TouchableOpacity>
+        )}
       </View>
 
       {calTab==='missions' ? (
@@ -675,7 +696,7 @@ export default function Calendar(){
                   )}
                 </View>
                 <TouchableOpacity style={[s.quickDelBtn,{alignSelf:'center'}]} onPress={()=>quickDelete(m)} hitSlop={6}>
-                  <Ionicons name="close" size={17} color={C.danger}/>
+                  <Ionicons name="close" size={13} color={C.danger}/>
                 </TouchableOpacity>
               </TouchableOpacity>
             );
@@ -688,6 +709,27 @@ export default function Calendar(){
             <TouchableOpacity style={[s.navBtn,{opacity:page>=totalPages-1?0.3:1}]} disabled={page>=totalPages-1} onPress={()=>setPage(p=>Math.min(totalPages-1,p+1))}><Text style={s.navTxt}>›</Text></TouchableOpacity>
           </View>
         )}
+      </View>
+      ) : calTab==='general' ? (
+      <View style={{paddingHorizontal:16,gap:10}}>
+        {monthGeneral.length===0
+          ?<Text style={s.empty}>Aucun régime général ce mois-ci.</Text>
+          :monthGeneral.map((m:any)=>(
+            <TouchableOpacity key={m.id} style={[s.missionCard,{borderLeftColor:'#0EA5E9'}]} onPress={()=>openEdit(m)}>
+              <View style={{flex:1,gap:3}}>
+                <View style={s.mRow}><Ionicons name="easel-outline" size={13} color={'#0EA5E9'}/><Text style={[s.mProd,{color:'#0EA5E9'}]} numberOfLines={1}>{m.production||'Régime général'}</Text></View>
+                <View style={s.mRow}><Ionicons name="calendar-outline" size={12} color={C.muted}/><Text style={s.mDate}>{fmtDate(m.mission_date)}{m.end_date&&m.end_date!==m.mission_date?` → ${fmtDate(m.end_date)}`:''}</Text></View>
+              </View>
+              <View style={{alignItems:'flex-end',gap:6}}>
+                <View style={{flexDirection:'row',alignItems:'center',gap:4}}><Ionicons name="time-outline" size={14} color={'#0EA5E9'}/><Text style={[s.mHours,{color:'#0EA5E9'}]}>{m.hours}h</Text></View>
+                {Number(m.gross_amount)>0 && (<View style={{alignItems:'flex-end'}}><Text style={s.mBrut}>{Math.round(Number(m.gross_amount))} € brut</Text></View>)}
+              </View>
+              <TouchableOpacity style={[s.quickDelBtn,{alignSelf:'center'}]} onPress={()=>quickDelete(m)} hitSlop={6}>
+                <Ionicons name="close" size={13} color={C.danger}/>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          ))
+        }
       </View>
       ) : (
       <View style={{paddingHorizontal:16,gap:10}}>
@@ -799,6 +841,7 @@ export default function Calendar(){
 
               {/* Même pop-up que la production : liste des émissions déjà saisies (plus utilisées d'abord)
                   + création à la volée. Retour JB : fluidifier chaque champ comme celui de la production. */}
+              {fRegime==='intermittence' && (<>
               <Text style={s.label}>Nom de l'émission (facultatif)</Text>
               <TouchableOpacity style={s.typeBtn} onPress={()=>setShowEmPicker(true)}>
                 <Text style={[s.typeBtnTxt,!fEmission&&{color:C.muted,fontWeight:'400'}]} numberOfLines={1}>{fEmission||'Choisir ou créer…'}</Text>
@@ -814,6 +857,7 @@ export default function Calendar(){
                 onPick={(p)=>{setFEmission(p);setShowEmPicker(false);}}
                 onClose={()=>setShowEmPicker(false)}
               />
+              </>)}
 
               <Text style={s.label}>Lieu (facultatif)</Text>
               <TouchableOpacity style={s.typeBtn} onPress={()=>setShowLieuPicker(true)}>
@@ -831,6 +875,7 @@ export default function Calendar(){
                 onClose={()=>setShowLieuPicker(false)}
               />
 
+              {fRegime==='intermittence' && (<>
               <Text style={s.label}>Type de mission</Text>
               <TouchableOpacity style={s.typeBtn} onPress={()=>setShowTypePicker(v=>!v)}>
                 <Text style={[s.typeBtnTxt,!fType&&{color:C.muted,fontWeight:'400'}]}>{fType||'Choisir le type'}</Text>
@@ -878,6 +923,7 @@ export default function Calendar(){
                   <TouchableOpacity style={s.typeValidBtn} onPress={()=>setShowTypePicker(false)}><Text style={s.typeValidTxt}>Valider</Text></TouchableOpacity>
                 </View>
               )}
+              </>)}
 
               <View style={s.row}>
                 <View style={{flex:1}}>
@@ -943,7 +989,7 @@ export default function Calendar(){
               ) : null}
 
               {/* En cachet, le nombre de vacations EST le nombre de cachets : on ne le redemande pas. */}
-              {fMode!=='cachet' && (<>
+              {fMode!=='cachet' && fRegime==='intermittence' && (<>
               <Text style={s.label}>Nombre de vacations</Text>
               <NumInput style={s.input} value={fVacations} onChangeText={setFVacations} placeholder="Ex : 1" placeholderTextColor={C.muted}/>
               <Text style={s.miniHint}>1 vacation = 1 journée de travail. Se remplit tout seul depuis le sélecteur de jours.</Text>
@@ -1292,7 +1338,7 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   resetCalTxt:{fontSize:12.5,fontWeight:'800',color:C.danger},
   modalHeader:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:12},
   modalClose:{width:34,height:34,borderRadius:17,alignItems:'center',justifyContent:'center',backgroundColor:C.soft},
-  quickDelBtn:{width:32,height:32,borderRadius:9,alignItems:'center',justifyContent:'center',backgroundColor:C.danger+'1A',marginLeft:2},
+  quickDelBtn:{width:24,height:24,borderRadius:8,alignItems:'center',justifyContent:'center',backgroundColor:'transparent',marginLeft:2},
   calTabs:{flexDirection:'row',gap:8,marginHorizontal:16,marginTop:18,marginBottom:12,backgroundColor:C.soft,borderRadius:12,padding:5},
   calTab:{flex:1,paddingVertical:9,borderRadius:9,alignItems:'center'},
   calTabOn:{backgroundColor:C.card,shadowColor:'#000',shadowOpacity:0.08,shadowRadius:6,elevation:2},

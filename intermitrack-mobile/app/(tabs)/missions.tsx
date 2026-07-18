@@ -49,6 +49,10 @@ export default function Missions(){
   const [missions,setMissions]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
   const [selected,setSelected]=useState<string|null>(null);
+  const [prodEditOpen,setProdEditOpen]=useState(false);
+  const [renameVal,setRenameVal]=useState('');
+  const [prodColorPickOpen,setProdColorPickOpen]=useState(false);
+  const [savingProd,setSavingProd]=useState(false);
   const [period,setPeriod]=useState<'all'|'year'|'custom'|'month'|'ai'>('all');
   const [customYear,setCustomYear]=useState(new Date().getFullYear());
   const [monthRef,setMonthRef]=useState(new Date()); // filtre « Mois »
@@ -234,6 +238,24 @@ export default function Missions(){
 
   if(loading)return<View style={s.center}><ActivityIndicator size="large" color={C.petrol}/></View>;
 
+  // Renommer une prod = mettre à jour TOUTES ses missions (par id, sûr) + déplacer sa couleur sur le nouveau nom.
+  async function saveProdEdit(prod:any){
+    const newName=renameVal.trim().toUpperCase();
+    setSavingProd(true);
+    try{
+      if(newName && newName!==prod.name){
+        const ids=prod.list.map((m:any)=>m.id);
+        const { error }=await supabase.from('missions').update({production:newName}).in('id',ids);
+        if(error) throw error;
+        const c=getColor(prod.name);
+        if(c){ addCustom(c); setColor(newName,c); setColor(prod.name,null); }
+        setSelected(newName);
+        await loadMissions();
+      }
+      setProdEditOpen(false);
+    }catch(e:any){ Alert.alert('Erreur', e?.message||'Modification impossible.'); }
+    setSavingProd(false);
+  }
   if(selected){
     const prod=sorted.find(p=>p.name===selected);
     if(!prod)return null;
@@ -246,6 +268,10 @@ export default function Missions(){
           <View style={{flex:1}}>
             <Text style={s.detailTitle}>{prod.name}</Text>
             <Text style={s.detailSub}>{prod.count} mission{prod.count>1?'s':''} enregistrée{prod.count>1?'s':''}</Text>
+            <TouchableOpacity onPress={()=>{setRenameVal(prod.name);setProdEditOpen(true);}} style={{flexDirection:'row',alignItems:'center',gap:5,marginTop:6}} hitSlop={6}>
+              <Ionicons name="color-palette-outline" size={14} color={C.petrol}/>
+              <Text style={{fontSize:12.5,fontWeight:'800',color:C.petrol,textDecorationLine:'underline'}}>Modifier nom / couleur</Text>
+            </TouchableOpacity>
           </View>
         </View>
         <View style={{padding:16,gap:10}}>
@@ -255,7 +281,7 @@ export default function Missions(){
                 <View style={{flexDirection:'row',alignItems:'center',gap:5,flex:1}}><Ionicons name="document-text-outline" size={13} color={C.petrol}/><Text style={s.missionProd} numberOfLines={1}>{m.production}</Text></View>
                 {!!m.mission_type && <View style={s.pill}><Text style={s.pillTxt}>{m.mission_type}</Text></View>}
                 <TouchableOpacity style={s.quickDelBtn} onPress={()=>quickDelete(m)} hitSlop={6}>
-                  <Ionicons name="close" size={17} color={C.danger}/>
+                  <Ionicons name="close" size={13} color={C.danger}/>
                 </TouchableOpacity>
               </View>
               <View style={{gap:4,marginTop:8}}>
@@ -270,6 +296,34 @@ export default function Missions(){
           ))}
         </View>
 
+        <Modal visible={prodEditOpen} transparent animationType="slide" onRequestClose={()=>setProdEditOpen(false)}>
+          <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
+          <View style={s.modalOverlay}>
+            <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
+              <View style={s.modalHeader}>
+                <Text style={[s.modalTitle,{marginBottom:0,flex:1,textAlign:'left'}]}>Modifier la production</Text>
+                <TouchableOpacity style={s.modalClose} onPress={()=>setProdEditOpen(false)} hitSlop={8}><Ionicons name="close" size={22} color={C.muted}/></TouchableOpacity>
+              </View>
+              <Text style={s.label}>Nom de la production</Text>
+              <TextInput style={s.input} value={renameVal} onChangeText={setRenameVal} autoCapitalize="characters" placeholder="Nom de la production" placeholderTextColor={C.muted}/>
+              <Text style={{fontSize:11,color:C.muted,marginTop:6}}>Renommer met à jour toutes les missions de cette production (passées et à venir).</Text>
+              <Text style={s.label}>Couleur de la production</Text>
+              <View style={s.colorRow}>
+                <TouchableOpacity style={[s.colorSw,getColor(selected||'')===null&&s.colorSwOn]} onPress={()=>setColor(selected||'',null)}>
+                  <LinearGradient colors={['#1F4E5F','#1F4E5F','#F97316','#F97316']} locations={[0,0.5,0.5,1]} start={{x:0,y:0}} end={{x:1,y:1}} style={StyleSheet.absoluteFill}/>
+                  <Text style={{fontSize:8,fontWeight:'900',color:'#fff'}}>auto</Text>
+                </TouchableOpacity>
+                {PROD_PRESETS.concat(custom).map(hex=>(
+                  <TouchableOpacity key={hex} style={[s.colorSw,{backgroundColor:hex},(getColor(selected||'')||'').toLowerCase()===hex.toLowerCase()&&s.colorSwOn]} onPress={()=>setColor(selected||'',hex)} />
+                ))}
+                <TouchableOpacity style={s.colorAdd} onPress={()=>setProdColorPickOpen(true)}><Text style={s.colorAddTxt}>+</Text></TouchableOpacity>
+              </View>
+              <TouchableOpacity style={[s.saveBtn,savingProd&&{opacity:0.5}]} disabled={savingProd} onPress={()=>saveProdEdit(prod)}><Text style={s.saveBtnTxt}>{savingProd?'Enregistrement…':'Enregistrer'}</Text></TouchableOpacity>
+            </View>
+          </View>
+          </KeyboardAvoidingView>
+          <ColorPickerModal visible={prodColorPickOpen} initial={getColor(selected||'')||'#1E6FE0'} onClose={()=>setProdColorPickOpen(false)} onPick={(hex)=>{addCustom(hex);setColor(selected||'',hex);setProdColorPickOpen(false);}}/>
+        </Modal>
         <Modal visible={!!editId} animationType="slide" transparent onRequestClose={()=>setEditId(null)}>
           <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
           <View style={s.modalOverlay}>
@@ -602,7 +656,7 @@ const makeS=(C:any)=>StyleSheet.create({
   detailTitle:{fontSize:18,fontWeight:'900',color:C.petrol},
   detailSub:{fontSize:12,color:C.muted,marginTop:2},
   missionCard:{backgroundColor:C.card,borderRadius:16,padding:14,borderWidth:1,borderColor:C.line,borderLeftWidth:4,borderLeftColor:C.petrol},
-  quickDelBtn:{width:30,height:30,borderRadius:9,alignItems:'center',justifyContent:'center',backgroundColor:C.danger+'1A',marginLeft:6},
+  quickDelBtn:{width:24,height:24,borderRadius:8,alignItems:'center',justifyContent:'center',backgroundColor:'transparent',marginLeft:6},
   modalHeader:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:12},
   modalClose:{width:34,height:34,borderRadius:17,alignItems:'center',justifyContent:'center',backgroundColor:C.soft},
   missionHead:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:8},

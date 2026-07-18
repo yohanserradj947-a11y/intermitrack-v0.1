@@ -418,38 +418,9 @@ export default function HomeScreen(){
         }
       </View>
 
-      <View style={s.section}>
-        <Text style={s.sectionTitle}>Missions à venir</Text>
-        {upcoming.length===0
-          ?<Text style={s.empty}>Aucune mission à venir.</Text>
-          :<>
-            {visibleM.map((m:any)=>(
-              <TouchableOpacity key={m.id} style={s.missionCard} onPress={()=>openEdit(m)}>
-                <View style={s.missionHead}>
-                  <Text style={s.missionProd} numberOfLines={1}>{m.production}</Text>
-                  {!!m.mission_type && <View style={s.pill}><Text style={s.pillTxt}>{m.mission_type}</Text></View>}
-                </View>
-                <View style={s.missionInfo}>
-                  {m.emission?<View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="videocam-outline" size={13} color={C.muted} /><Text style={s.meta}>{m.emission}</Text></View>:null}
-                  <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="calendar-outline" size={13} color={C.muted} /><Text style={s.meta}>{fmtPeriod(m.mission_date,m.end_date)}</Text></View>
-                  <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="time-outline" size={13} color={C.muted} /><Text style={s.meta}>{m.hours}h · {money(m.gross_amount)}</Text></View>
-                </View>
-              </TouchableOpacity>
-            ))}
-            {totalPages>1&&(
-              <View style={s.pagination}>
-                <TouchableOpacity style={[s.navBtn,{opacity:missionPage===0?0.3:1}]} onPress={()=>setMissionPage(p=>Math.max(0,p-1))} disabled={missionPage===0}>
-                  <Text style={s.navBtnTxt}>‹</Text>
-                </TouchableOpacity>
-                <Text style={s.pageInfo}>Page {missionPage+1} / {totalPages}</Text>
-                <TouchableOpacity style={[s.navBtn,{opacity:missionPage>=totalPages-1?0.3:1}]} onPress={()=>setMissionPage(p=>Math.min(totalPages-1,p+1))} disabled={missionPage>=totalPages-1}>
-                  <Text style={s.navBtnTxt}>›</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </>
-        }
-      </View>
+      {/* « Missions à venir » retiré du dashboard (redondant avec la liste sous le calendrier
+          et l'onglet Missions). La prochaine mission se retrouve désormais en tête de
+          « Mes missions du mois » sous le calendrier. */}
 
       <Modal visible={!!editId} animationType="slide" transparent onRequestClose={()=>setEditId(null)}>
         <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
