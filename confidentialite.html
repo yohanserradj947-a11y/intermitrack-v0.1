@@ -27,9 +27,8 @@ a{color:var(--petrol);}
 
 /* CONTENU pleine largeur */
 .wrap{padding:clamp(22px,3.5vw,44px) clamp(20px,5vw,64px);}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:20px;align-items:start;}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px 30px;box-shadow:0 3px 16px rgba(31,78,95,.06);}
-.card.full{grid-column:1/-1;}
+.grid{column-count:3;column-gap:20px;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px 30px;box-shadow:0 3px 16px rgba(31,78,95,.06);break-inside:avoid;-webkit-column-break-inside:avoid;margin:0 0 20px;}
 .card h2{color:var(--petrol);font-size:17px;margin:0 0 16px;padding-bottom:12px;border-bottom:2px solid var(--line);display:flex;align-items:center;gap:11px;letter-spacing:-.01em;}
 .card h2 .num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:9px;background:rgba(31,78,95,.09);color:var(--petrol);font-size:13px;font-weight:900;flex:none;}
 .card p{margin:0 0 12px;font-size:15px;}
@@ -50,8 +49,9 @@ a{color:var(--petrol);}
 .foot a{color:var(--muted);text-decoration:none;}
 .foot a:hover{color:var(--petrol);}
 
-@media(max-width:560px){
-  .grid{grid-template-columns:1fr;}
+@media(max-width:1100px){ .grid{column-count:2;} }
+@media(max-width:640px){
+  .grid{column-count:1;}
   .card{padding:22px 20px;}
 }
 </style>
