@@ -9,10 +9,15 @@ import { normalizeProd } from './prodColors';
 // Le prix stocké est le prix PAR JOUR (ou par cachet). Priorité : prix appris > salaire journalier > vide.
 function normPoste(p: string) { return (p || '').toUpperCase().trim(); }
 export function priceKey(prod: string, poste: string) { return `${normalizeProd(prod)}|${normPoste(poste)}`; }
+// Tarif AU NIVEAU PRODUCTION (tous postes confondus) : stocké sous un poste-marqueur. Sert de REPLI
+// quand aucun tarif (prod + poste) précis n'existe. Réglable à la main dans « Modifier la production ».
+const PROD_RATE = '__ALL__';
 
 type Ctx = {
   getLearnedPrice: (prod: string, poste: string) => number | null;
   rememberPrice: (prod: string, poste: string, pricePerDay: number) => void;
+  getProdRate: (prod: string) => number | null;
+  setProdRate: (prod: string, rate: number) => void;
 };
 const PriceContext = createContext<Ctx>({} as Ctx);
 export function usePriceMemory() { return useContext(PriceContext); }
@@ -51,10 +56,30 @@ export function PriceMemoryProvider({ children }: { children: ReactNode }) {
   }, [uid]);
 
   const getLearnedPrice = useCallback((prod: string, poste: string) => {
-    if (!prod || !poste) return null;
-    const v = prices[priceKey(prod, poste)];
+    if (!prod) return null;
+    if (poste) { const v = prices[priceKey(prod, poste)]; if (typeof v === 'number' && v > 0) return v; }
+    const pr = prices[priceKey(prod, PROD_RATE)]; // repli : tarif défini au niveau de la production
+    return (typeof pr === 'number' && pr > 0) ? pr : null;
+  }, [prices]);
+
+  const getProdRate = useCallback((prod: string) => {
+    const v = prices[priceKey(prod, PROD_RATE)];
     return (typeof v === 'number' && v > 0) ? v : null;
   }, [prices]);
+
+  const setProdRate = useCallback((prod: string, rate: number) => {
+    if (!prod || !prod.trim()) return;
+    const k = priceKey(prod, PROD_RATE);
+    setPrices(prev => {
+      const next = { ...prev };
+      if (!(rate > 0)) delete next[k]; else next[k] = Math.round(rate * 100) / 100;
+      if (uid) {
+        AsyncStorage.setItem(pmkey(uid), JSON.stringify(next));
+        supabase.from('profiles').upsert({ id: uid, price_memory: next }, { onConflict: 'id' }).then(() => {}, () => {});
+      }
+      return next;
+    });
+  }, [uid]);
 
   const rememberPrice = useCallback((prod: string, poste: string, pricePerDay: number) => {
     if (!prod || !prod.trim() || !poste || !poste.trim() || !(pricePerDay > 0)) return;
@@ -71,5 +96,5 @@ export function PriceMemoryProvider({ children }: { children: ReactNode }) {
     });
   }, [uid]);
 
-  return <PriceContext.Provider value={{ getLearnedPrice, rememberPrice }}>{children}</PriceContext.Provider>;
+  return <PriceContext.Provider value={{ getLearnedPrice, rememberPrice, getProdRate, setProdRate }}>{children}</PriceContext.Provider>;
 }

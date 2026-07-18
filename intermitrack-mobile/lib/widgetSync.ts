@@ -85,6 +85,8 @@ export async function syncWidgets(missions: any[], getColor: (name: string) => s
   if (Platform.OS !== 'ios' && Platform.OS !== 'android') return;
 
   try {
+    // Le régime général « pur » ne fait pas partie de l'intermittence : hors 507 h, hors calendrier widget, hors « à venir ».
+    missions = missions.filter((m: any) => (m.regime || 'intermittence') !== 'general');
     const now = new Date();
     const todayISO = ymd(now);
     const areDate = await AsyncStorage.getItem('intermitrack_are_date'); // 'YYYY-MM-DD' ou null
@@ -142,9 +144,18 @@ export async function syncWidgets(missions: any[], getColor: (name: string) => s
     for (let day = 1; day <= daysInMonth; day++) {
       const dISO = ymd(new Date(y, mo, day));
       const covering = missions.filter((m) => {
+        // Contrat cachet : seulement les jours réellement travaillés (cachet_days), pas toute la période.
+        if (m.cachet_days && typeof m.cachet_days === 'object' && !Array.isArray(m.cachet_days)) {
+          return Object.prototype.hasOwnProperty.call(m.cachet_days, dISO);
+        }
         const s = m.mission_date || ''; if (!s) return false;
         const e = m.end_date || m.mission_date || s;
-        return dISO >= s && dISO <= e;
+        // Moins de vacations saisies que de jours de période -> on n'affiche que les 1ers jours travaillés
+        // (sinon on montrerait des jours non travaillés). Vacations >= période = période complète (cas normal).
+        const spanD = daysInclusive(s, e);
+        const v = Number(m.vacations);
+        const shownEnd = (v > 0 && v < spanD) ? ymd(new Date(new Date(s + 'T00:00:00').getTime() + (Math.ceil(v) - 1) * 86400000)) : e;
+        return dISO >= s && dISO <= shownEnd;
       });
       const dayNotes = (notes || []).filter((n) => isDateInNote(dISO, n));
       const past = dISO < todayISO;
@@ -156,8 +167,9 @@ export async function syncWidgets(missions: any[], getColor: (name: string) => s
         // Aplat pour les couleurs perso : textOn() calcule le contraste sur cette
         // teinte exacte, un dégradé rendrait le chiffre illisible sur ses extrémités.
         const g = custom ? [custom] : (past ? GRAD_PAST : GRAD_FUTURE);
+        const cdN = (first.cachet_days && typeof first.cachet_days === 'object' && !Array.isArray(first.cachet_days)) ? first.cachet_days[dISO] : null;
         const per = daysInclusive(first.mission_date, first.end_date || first.mission_date);
-        const hours = Math.round((Number(first.hours || 0) / per) * 10) / 10;
+        const hours = cdN != null ? cdN * 12 : Math.round((Number(first.hours || 0) / per) * 10) / 10;
         days.push({
           // Hex 6 caractères obligatoire : le décodeur Swift du widget ne lit pas la forme courte.
           d: day, ab: prod.slice(0, 3), g, txt: custom ? textOn(custom) : '#FFFFFF',

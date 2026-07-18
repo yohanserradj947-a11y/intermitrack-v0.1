@@ -87,7 +87,7 @@ export default function NoteFormModal({ visible, editNote, defaultDate, mode = '
       onClose();
       return;
     }
-    if (!text.trim()) { showAlert('Note vide', 'Écris ta note (courte).'); return; }
+    if (!text.trim() && !title.trim()) { showAlert('Note vide', 'Donne au moins un titre à ta note (le texte est optionnel).'); return; }
     const data = { date: startISO, endDate: endISO, title: title.trim() || 'Note', text: text.trim(), color, kind: 'note' as const };
     if (editNote) updateNote(editNote.id, data); else addNote(data);
     onClose();

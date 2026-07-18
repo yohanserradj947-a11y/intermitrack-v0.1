@@ -339,7 +339,7 @@ export default function CalendarImportModal({
 
           {phase === 'intro' && mode === 'notes' && (
             <View style={s.pad}>
-              <Text style={s.body}>Colle tes notes telles que tu les écris : un en-tête de mois, puis une ligne par date. Les heures et le prix peuvent être sur la même ligne ou sur celle du dessous.</Text>
+              <Text style={s.body}>Colle tes notes telles que tu les écris : un en-tête de mois, puis une ligne par date. Les heures et le prix peuvent être sur la même ligne ou sur celle du dessous (les montants acceptent la virgule ou le point : 230,50 comme 230.50).</Text>
               <Text style={[s.bodyMuted, { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>MARS{'\n'}18 vdlm 8h 230{'\n'}19 endemol{'\n'}12h 450{'\n'}20 24 canal 16h 400</Text>
               <Text style={s.bodyMuted}>Plusieurs jours d'un coup : « 20 24 canal 16h 400 » crée 2 missions (les 20 et 24). Pour un contrat sur des dates espacées, écris les vrais jours travaillés — pas « du 20 au 24 » : l'appli ne peut pas deviner lesquels.</Text>
               <TxtInput
@@ -376,7 +376,7 @@ export default function CalendarImportModal({
               <Text style={s.bodyMuted}>
                 {mode === 'excel'
                   ? "On récupère la prod, les dates, les heures, le prix et le lieu. Tu pourras tout vérifier avant d'importer."
-                  : "On récupère la prod, les dates, les heures, le lieu, et le prix s'il est écrit. Tu pourras tout vérifier avant d'importer."}
+                  : `On récupère la prod, les dates, le lieu, et le prix s'il est écrit. Pour les heures, je prends la durée du créneau de l'événement ; sans horaire (journée entière), je mets ${cachetMode ? '1 cachet (12 h)' : '8 h'} par défaut, modifiable. Tu vérifies tout avant d'importer.`}
               </Text>
               {!!error && <Text style={s.err}>{error}</Text>}
               <GradientButton onPress={mode === 'excel' ? analyze : chooseCalendars} label={mode === 'excel' ? 'Choisir mon fichier' : 'Analyser mon calendrier'} style={s.cta} textStyle={s.ctaTxt} />

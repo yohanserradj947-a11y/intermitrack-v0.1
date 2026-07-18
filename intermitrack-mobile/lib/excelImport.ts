@@ -37,11 +37,21 @@ export function ymdFromAny(v: any): string | null {
   return null;
 }
 
-// Extrait un nombre d'une cellule ("230,00 €", "8h", 230…).
+// Extrait un nombre d'une cellule ("230,00 €", "8h", 230, "25.000,00", "1 250,50"…).
+// Gère virgule OU point comme décimale, et les séparateurs de milliers, pour ne plus
+// transformer « 250,00 » en 25000 (retour Tuu Coo).
 function num(v: any): number {
   if (v == null || v === '') return 0;
   if (typeof v === 'number') return v;
-  const n = Number(String(v).replace(/[^\d,.-]/g, '').replace(/\s/g, '').replace(',', '.'));
+  let s = String(v).replace(/[^\d,.\-]/g, '').replace(/\s/g, '');
+  if (s.indexOf(',') >= 0 && s.indexOf('.') >= 0) {
+    // Les deux présents : le DERNIER est le séparateur décimal (« 1.250,50 » ou « 1,250.50 »).
+    s = s.lastIndexOf(',') > s.lastIndexOf('.') ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+  } else if (s.indexOf(',') >= 0) {
+    // Virgule seule : décimale si 1–2 chiffres en fin (« 250,00 »), sinon milliers (« 25,000 »).
+    s = /,\d{1,2}$/.test(s) ? s.replace(',', '.') : s.replace(/,/g, '');
+  }
+  const n = Number(s);
   return isFinite(n) ? n : 0;
 }
 
@@ -172,7 +182,9 @@ export async function pickAndReadExcel(): Promise<{ status: 'canceled' | 'unread
     // PAS de cellDates : on garde les dates en numéro de série Excel et on les
     // convertit en UTC (ymdFromAny). cellDates créait un objet Date dépendant du
     // fuseau du téléphone → décalage d'un jour selon l'appareil (retour Pauline).
-    book = XLSX.read(new Uint8Array(buf), { type: 'array' });
+    // raw:true → SheetJS ne « devine » pas les nombres à la lecture (sinon « 250,00 » en CSV
+    // devient 25000). On garde le texte brut et c'est num() qui interprète, virgule comprise.
+    book = XLSX.read(new Uint8Array(buf), { type: 'array', raw: true });
   } catch (e) {
     return { status: 'unreadable' };
   }

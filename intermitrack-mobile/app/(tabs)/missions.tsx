@@ -41,7 +41,7 @@ export default function Missions(){
   const { colorOrDefault, getColor, setColor, custom, addCustom } = useProdColors();
   const [colorPickerOpen,setColorPickerOpen]=useState(false);
   const { postes, addPoste, removePoste } = usePostes();
-  const { rememberPrice } = usePriceMemory();
+  const { rememberPrice, getProdRate, setProdRate } = usePriceMemory();
   const [fLieu,setFLieu]=useState('');
   const [showLieuSuggest,setShowLieuSuggest]=useState(false);
   const [newPoste,setNewPoste]=useState('');
@@ -51,6 +51,7 @@ export default function Missions(){
   const [selected,setSelected]=useState<string|null>(null);
   const [prodEditOpen,setProdEditOpen]=useState(false);
   const [renameVal,setRenameVal]=useState('');
+  const [tarifVal,setTarifVal]=useState('');
   const [prodColorPickOpen,setProdColorPickOpen]=useState(false);
   const [savingProd,setSavingProd]=useState(false);
   const [period,setPeriod]=useState<'all'|'year'|'custom'|'month'|'ai'>('all');
@@ -184,7 +185,11 @@ export default function Missions(){
   const _fullVac=(m:any)=>Math.max(1,Math.round((new Date((m.end_date||m.mission_date)+'T00:00:00').getTime()-new Date(m.mission_date+'T00:00:00').getTime())/86400000)+1);
   const isMonth=period==='month';
   // Valeur d'une mission selon le filtre : au prorata du mois en mode « Mois », complète sinon. Saisie rapide = vacations stockées.
-  const mv=(m:any)=>{ const fast=m.mission_type==='Saisie rapide'; if(isMonth){ const {inM,frac}=_mDays(m); return { gross:Number(m.gross_amount||0)*frac, hours:Number(m.hours||0)*frac, vac:fast?(Number(m.vacations)||1):inM }; } return { gross:Number(m.gross_amount||0), hours:Number(m.hours||0), vac:fast?(Number(m.vacations)||1):_fullVac(m) }; };
+  // Contrat cachet : le nombre de vacations = les cachets réellement travaillés (cachet_days),
+  // pas les jours de la période (sinon 10→25 compterait 16 au lieu de 3-4 cachets). Cohérent avec le dashboard.
+  const _cd=(m:any)=>(m.cachet_days && typeof m.cachet_days==='object' && !Array.isArray(m.cachet_days))?m.cachet_days:null;
+  const _cdVac=(m:any,winStart?:number,winEnd?:number)=>{ const cd=_cd(m); if(!cd)return null; let c=0; for(const k in cd){ if(winStart!=null){ const t=new Date(k+'T00:00:00').getTime(); if(t<winStart||t>winEnd!)continue; } c+=Number(cd[k])||0; } return c; };
+  const mv=(m:any)=>{ const fast=m.mission_type==='Saisie rapide'; const v=Number(m.vacations); if(isMonth){ const {inM,frac}=_mDays(m); const cv=_cdVac(m,_mS,_mE); return { gross:Number(m.gross_amount||0)*frac, hours:Number(m.hours||0)*frac, vac:cv!=null?cv:(fast?(v||1):(v>0?v*frac:inM)) }; } const cf=_cdVac(m); return { gross:Number(m.gross_amount||0), hours:Number(m.hours||0), vac:cf!=null?cf:(fast?(v||1):(v>0?v:_fullVac(m))) }; };
 
   const filtered=missions.filter((m:any)=>{
     const d=new Date(m.mission_date+'T00:00:00');
@@ -252,6 +257,9 @@ export default function Missions(){
         setSelected(newName);
         await loadMissions();
       }
+      // Tarif au niveau production : pré-remplira tes prochaines missions de cette prod (repli si pas de prix prod+poste précis).
+      const t=Number(String(tarifVal).replace(/\s/g,'').replace(',','.'))||0;
+      setProdRate(newName||prod.name, t);
       setProdEditOpen(false);
     }catch(e:any){ Alert.alert('Erreur', e?.message||'Modification impossible.'); }
     setSavingProd(false);
@@ -268,7 +276,7 @@ export default function Missions(){
           <View style={{flex:1}}>
             <Text style={s.detailTitle}>{prod.name}</Text>
             <Text style={s.detailSub}>{prod.count} mission{prod.count>1?'s':''} enregistrée{prod.count>1?'s':''}</Text>
-            <TouchableOpacity onPress={()=>{setRenameVal(prod.name);setProdEditOpen(true);}} style={{flexDirection:'row',alignItems:'center',gap:5,marginTop:6}} hitSlop={6}>
+            <TouchableOpacity onPress={()=>{setRenameVal(prod.name);setTarifVal(getProdRate(prod.name)?String(getProdRate(prod.name)):'');setProdEditOpen(true);}} style={{flexDirection:'row',alignItems:'center',gap:5,marginTop:6}} hitSlop={6}>
               <Ionicons name="color-palette-outline" size={14} color={C.petrol}/>
               <Text style={{fontSize:12.5,fontWeight:'800',color:C.petrol,textDecorationLine:'underline'}}>Modifier nom / couleur</Text>
             </TouchableOpacity>
@@ -307,6 +315,9 @@ export default function Missions(){
               <Text style={s.label}>Nom de la production</Text>
               <TextInput style={s.input} value={renameVal} onChangeText={setRenameVal} autoCapitalize="characters" placeholder="Nom de la production" placeholderTextColor={C.muted}/>
               <Text style={{fontSize:11,color:C.muted,marginTop:6}}>Renommer met à jour toutes les missions de cette production (passées et à venir).</Text>
+              <Text style={s.label}>Tarif par jour (€) — optionnel</Text>
+              <NumInput style={s.input} value={tarifVal} onChangeText={setTarifVal} placeholder="Ex : 230" placeholderTextColor={C.muted}/>
+              <Text style={{fontSize:11,color:C.muted,marginTop:6}}>Pré-rempli automatiquement sur tes prochaines dates de cette production (laisse vide pour ne rien imposer).</Text>
               <Text style={s.label}>Couleur de la production</Text>
               <View style={s.colorRow}>
                 <TouchableOpacity style={[s.colorSw,getColor(selected||'')===null&&s.colorSwOn]} onPress={()=>setColor(selected||'',null)}>

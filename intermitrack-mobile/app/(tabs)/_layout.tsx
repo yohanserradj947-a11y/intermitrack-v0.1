@@ -39,6 +39,13 @@ export default function TabLayout() {
   // donc dans le vide. Sans défilement, les onglets se répartissent nativement sur toute la largeur et
   // l'indicateur retombe juste, sans rustine. Retour Yohan (iPad).
   const scrollTabs = width < TABS_TOTAL + 20;
+  // Onglet actif nettement visible : pastille pétrole douce derrière l'icône (fiable, pas de calcul
+  // d'offset comme l'ancien indicateur qui se décalait). Retour Yohan : on ne savait plus où on était.
+  const tabIcon = (name: keyof typeof Ionicons.glyphMap) => ({ color, focused }: { color: string; focused: boolean }) => (
+    <View style={{ backgroundColor: focused ? C.petrol + '22' : 'transparent', borderRadius: 999, paddingHorizontal: 13, paddingVertical: 3 }}>
+      <Ionicons name={name} size={ICON} color={color} />
+    </View>
+  );
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
     <ThemeBackdrop />
@@ -80,39 +87,39 @@ export default function TabLayout() {
     >
       <MaterialTopTabs.Screen
         name="index"
-        options={{ title: 'Tableau', tabBarIcon: ({ color }: { color: string }) => <Ionicons name="grid-outline" size={ICON} color={color} /> }}
+        options={{ title: 'Tableau', tabBarIcon: tabIcon('grid-outline') }}
       />
       <MaterialTopTabs.Screen
         name="calendar"
-        options={{ title: 'Calendrier', tabBarIcon: ({ color }: { color: string }) => <Ionicons name="calendar-outline" size={ICON} color={color} /> }}
+        options={{ title: 'Calendrier', tabBarIcon: tabIcon('calendar-outline') }}
       />
       <MaterialTopTabs.Screen
         name="missions"
-        options={{ title: 'Missions', tabBarIcon: ({ color }: { color: string }) => <Ionicons name="briefcase-outline" size={ICON} color={color} /> }}
+        options={{ title: 'Missions', tabBarIcon: tabIcon('briefcase-outline') }}
       />
       <MaterialTopTabs.Screen
         name="actualisation"
-        options={{ title: 'Actu.', tabBarIcon: ({ color }: { color: string }) => <Ionicons name="checkmark-done-outline" size={ICON} color={color} /> }}
+        options={{ title: 'Actu.', tabBarIcon: tabIcon('checkmark-done-outline') }}
       />
       <MaterialTopTabs.Screen
         name="previsions"
-        options={{ title: 'Prévisions', tabBarIcon: ({ color }: { color: string }) => <Ionicons name="trending-up-outline" size={ICON} color={color} /> }}
+        options={{ title: 'Prévisions', tabBarIcon: tabIcon('trending-up-outline') }}
       />
       <MaterialTopTabs.Screen
         name="documents"
-        options={{ title: 'Documents', tabBarIcon: ({ color }: { color: string }) => <Ionicons name="document-text-outline" size={ICON} color={color} /> }}
+        options={{ title: 'Documents', tabBarIcon: tabIcon('document-text-outline') }}
       />
       <MaterialTopTabs.Screen
         name="autoentrepreneur"
-        options={{ title: 'Auto-entr.', tabBarIcon: ({ color }: { color: string }) => <Ionicons name="cash-outline" size={ICON} color={color} /> }}
+        options={{ title: 'Auto-entr.', tabBarIcon: tabIcon('cash-outline') }}
       />
       <MaterialTopTabs.Screen
         name="fiscalite"
-        options={{ title: 'Fiscalité', tabBarIcon: ({ color }: { color: string }) => <Ionicons name="calculator-outline" size={ICON} color={color} /> }}
+        options={{ title: 'Fiscalité', tabBarIcon: tabIcon('calculator-outline') }}
       />
       <MaterialTopTabs.Screen
         name="contacts"
-        options={{ title: 'Contacts', tabBarIcon: ({ color }: { color: string }) => <Ionicons name="call-outline" size={ICON} color={color} /> }}
+        options={{ title: 'Contacts', tabBarIcon: tabIcon('call-outline') }}
       />
     </MaterialTopTabs>
     <SwipeHint />

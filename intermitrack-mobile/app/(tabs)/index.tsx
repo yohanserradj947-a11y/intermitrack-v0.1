@@ -210,17 +210,42 @@ export default function HomeScreen(){
     // Tout le récap du mois suit la MÊME logique : la part de chaque mission qui tombe DANS le mois (au prorata des jours).
     const _mvS=new Date(current.getFullYear(),current.getMonth(),1).getTime(), _mvE=new Date(current.getFullYear(),current.getMonth()+1,0).getTime();
     const monthDays=(m:any)=>{const s=new Date(m.mission_date+'T00:00:00').getTime(),e=new Date((m.end_date||m.mission_date)+'T00:00:00').getTime();const tot=Math.max(1,Math.round((e-s)/86400000)+1);const p=Math.max(s,_mvS),q=Math.min(e,_mvE);const inM=q<p?0:Math.round((q-p)/86400000)+1;return {inM,frac:inM/tot};};
+    // TOTAL du mois (toutes missions, régime général compris) : sert à l'estimation France Travail (tout revenu réduit tes jours indemnisables).
     const monthH=Math.round(missions.reduce((a:number,m:any)=>a+Number(m.hours||0)*monthDays(m).frac,0)*10)/10;
     const monthG=Math.round(missions.reduce((a:number,m:any)=>a+Number(m.gross_amount||0)*monthDays(m).frac,0));
-    const monthVac=missions.reduce((a:number,m:any)=>{const md=monthDays(m);return a+(m.mission_type==='Saisie rapide'?(md.inM>0?(Number(m.vacations)||1):0):md.inM);},0); // 1 vacation = 1 jour ; saisie rapide = vacations saisies
-    const monthRate=monthH>0?Math.round(monthG/monthH):0;
+    // Récap INTERMITTENCE : le régime général « pur » a sa propre case, il ne gonfle plus heures/brut/vacations.
+    const notGen=(m:any)=>regOf(m)!=='general';
+    const monthHi=Math.round(missions.filter(notGen).reduce((a:number,m:any)=>a+Number(m.hours||0)*monthDays(m).frac,0)*10)/10;
+    const monthGi=Math.round(missions.filter(notGen).reduce((a:number,m:any)=>a+Number(m.gross_amount||0)*monthDays(m).frac,0));
+    // Régime général du mois : nombre de déclarations + heures (case dédiée).
+    const regGenM=missions.filter((m:any)=>regOf(m)==='general'&&monthDays(m).inM>0);
+    const regGenH=Math.round(regGenM.reduce((a:number,m:any)=>a+Number(m.hours||0)*monthDays(m).frac,0)*10)/10;
+    const regGenCount=regGenM.length;
+    // Formation effectuée ce mois-ci (case dédiée) : notes de type formation datées dans le mois affiché.
+    const monthFormH=Math.round((notes||[]).filter((n:any)=>{const d=new Date(n.date+'T00:00:00');return n.kind==='formation'&&d.getMonth()===current.getMonth()&&d.getFullYear()===current.getFullYear();}).reduce((a:number,n:any)=>a+Number(n.hours||0),0)*10)/10;
+    const monthVac=Math.round(missions.reduce((a:number,m:any)=>{
+      if(regOf(m)==='general') return a; // régime général : PAS une vacation d'intermittence (il a sa propre case)
+      // Contrat cachet : on compte les CACHETS réellement travaillés dans le mois (cachet_days),
+      // pas les jours de la période (sinon un contrat 10→25 compterait 16 au lieu de 3-4 cachets).
+      if(m.cachet_days && typeof m.cachet_days==='object' && !Array.isArray(m.cachet_days)){
+        let c=0; for(const k in m.cachet_days){ const t=new Date(k+'T00:00:00').getTime(); if(t>=_mvS&&t<=_mvE) c+=Number(m.cachet_days[k])||0; } return a+c;
+      }
+      const md=monthDays(m);
+      if(m.mission_type==='Saisie rapide') return a+(md.inM>0?(Number(m.vacations)||1):0);
+      // On compte les VACATIONS SAISIES (proratisées au mois), pas les jours de la période : une
+      // mission « 18→29 » avec 1 seule vacation compte 1, pas 12. (Pour une mission normale, vacations = jours → identique.)
+      const v=Number(m.vacations);
+      return a+(v>0?v*md.frac:md.inM);
+    },0)); // 1 vacation = 1 jour ; cachet = cachet_days ; sinon vacations saisies
+    // Récap affiché = INTERMITTENCE (monthHi/monthGi) ; le régime général a sa propre case.
+    const monthRate=monthHi>0?Math.round(monthGi/monthHi):0;
     // Net à payer estimé = brut − charges salariales − prélèvement à la source
-    const monthNet=Math.round(monthG*(1-chargeRate/100)*(1-pasRate/100));
-    const monthRateNet=monthH>0?Math.round(monthNet/monthH):0;
-    return { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, monthH, monthG, monthNet, monthVac, monthRate, monthRateNet, upcoming, winStart, winEnd, hasARE };
+    const monthNet=Math.round(monthGi*(1-chargeRate/100)*(1-pasRate/100));
+    const monthRateNet=monthHi>0?Math.round(monthNet/monthHi):0;
+    return { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthNet, monthVac, monthRate, monthRateNet, upcoming, winStart, winEnd, hasARE };
   },[missions,notes,areDate,yearOffset,current,chargeRate,pasRate]);
 
-  const { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, monthH, monthG, monthNet, monthVac, monthRate, monthRateNet, upcoming, winStart, winEnd, hasARE } = stats;
+  const { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthNet, monthVac, monthRate, monthRateNet, upcoming, winStart, winEnd, hasARE } = stats;
 
   const ft=useMemo(()=>{
     const aj=(profil&&Number(profil.taux_journalier))||0;
@@ -368,11 +393,21 @@ export default function HomeScreen(){
           </View>
         </View>
         <View style={s.statsGrid}>
-          <View style={s.statBox}><Text style={s.statVal}>{monthH}h</Text><Text style={s.statLbl}>Heures</Text></View>
-          <View style={s.statBox}><Text style={s.statVal}>{money(monthNet)}</Text><Text style={s.statSub}>Brut {money(monthG)}</Text><Text style={s.statLbl}>Net à payer (est.)</Text></View>
+          <View style={s.statBox}><Text style={s.statVal}>{monthHi}h</Text><Text style={s.statLbl}>Heures</Text></View>
+          <View style={s.statBox}><Text style={s.statVal}>{money(monthNet)}</Text><Text style={s.statSub}>Brut {money(monthGi)}</Text><Text style={s.statLbl}>Net à payer (est.)</Text></View>
           <View style={s.statBox}><Text style={s.statVal}>{monthVac}</Text><Text style={s.statLbl}>Vacations</Text></View>
           <View style={s.statBox}><Text style={s.statVal}>{money(monthRateNet)}/h</Text><Text style={s.statSub}>Brut {money(monthRate)}/h</Text><Text style={s.statLbl}>Moyenne €/h (net est.)</Text></View>
         </View>
+        {(regGenCount>0 || monthFormH>0) && (
+          <View style={[s.statsGrid,{marginTop:8}]}>
+            {regGenCount>0 && (
+              <View style={s.statBox}><Text style={s.statVal}>{regGenH}h</Text><Text style={s.statSub}>{regGenCount} déclaration{regGenCount>1?'s':''}</Text><Text style={s.statLbl}>Régime général</Text></View>
+            )}
+            {monthFormH>0 && (
+              <View style={s.statBox}><Text style={s.statVal}>{monthFormH}h</Text><Text style={s.statLbl}>Formation</Text></View>
+            )}
+          </View>
+        )}
       </View>
 
       <View style={s.section}>

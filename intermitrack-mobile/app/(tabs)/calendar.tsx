@@ -73,7 +73,7 @@ export default function Calendar(){
   // Dégradés par défaut des jours SANS couleur perso — suivent le thème (or en Noir & Or, etc.).
   const GRAD_PAST_T: [string, string] = [C.petrol, C.green];
   const GRAD_FUTURE_T = prodGradient(C.orange);
-  const { getColor, setColor, custom, addCustom, reset } = useProdColors();
+  const { colors, getColor, setColor, custom, addCustom, reset } = useProdColors();
   const [colorPickerOpen,setColorPickerOpen]=useState(false);
   const [managerOpen,setManagerOpen]=useState(false);
   const [showImport,setShowImport]=useState(false);
@@ -144,10 +144,14 @@ export default function Calendar(){
   const [kmCalc,setKmCalc]=useState(false);
 
   const [showMdp,setShowMdp]=useState(false);
-  const [mdpDays,setMdpDays]=useState<{date:string;checked:boolean;hours:number}[]>([]);
+  const [mdpDays,setMdpDays]=useState<{date:string;checked:boolean;hours:number;cachets:number}[]>([]);
 
   const pulse=useRef(new Animated.Value(0)).current;
   useEffect(()=>{loadMissions();},[]);
+  // Re-synchronise les widgets à CHAQUE changement (missions, notes, couleurs : création / suppression / modif),
+  // sinon le widget garde des dates ou des notes déjà effacées. On saute le tout premier rendu (données pas encore chargées).
+  const _widgetReady=useRef(false);
+  useEffect(()=>{ if(!_widgetReady.current){ _widgetReady.current=true; return; } syncWidgets(missions, getColor, notes); },[missions, notes, colors]);
   // Prix appris : dès qu'on a choisi une prod ET un poste sur une NOUVELLE mission, on pré-remplit
   // le prix mémorisé pour ce couple (prioritaire sur le salaire journalier). Modifiable ensuite.
   useEffect(()=>{
@@ -370,21 +374,25 @@ export default function Calendar(){
 
   function toggleDay(i:number){ setMdpDays(ds=>ds.map((d,idx)=>idx===i?{...d,checked:!d.checked}:d)); }
   function setDayHours(i:number,h:string){ setMdpDays(ds=>ds.map((d,idx)=>idx===i?{...d,hours:Number(h)||0}:d)); }
+  // Cachet : nombre de cachets pour CE jour (plusieurs le même jour possibles). 1 cachet = CACHET_H heures.
+  function setDayCachets(i:number,v:string){ const c=Math.max(0,Math.round(Number(v)||0)); setMdpDays(ds=>ds.map((d,idx)=>idx===i?{...d,cachets:c,hours:c*CACHET_H}:d)); }
   function setAll(val:boolean){ setMdpDays(ds=>ds.map(d=>({...d,checked:val}))); }
   const mdpChecked=mdpDays.filter(d=>d.checked);
   const mdpTotalH=Math.round(mdpChecked.reduce((a,d)=>a+(Number(d.hours)||0),0)*10)/10;
+  const mdpTotalCachets=mdpChecked.reduce((a,d)=>a+(Number(d.cachets)||1),0);
 
   // Ouvre le sélecteur de jours travaillés (au choix des dates).
   function openDayPicker(s:Date,e:Date){
     const per=fMode==='cachet'?CACHET_H:8; // heures : 8h/jour ; cachet : 1 cachet = 12h/jour
-    const days:{date:string;checked:boolean;hours:number}[]=[];
-    for(let d=new Date(s); d<=e; d.setDate(d.getDate()+1)) days.push({date:iso(d),checked:true,hours:per});
+    const days:{date:string;checked:boolean;hours:number;cachets:number}[]=[];
+    // Rien de coché par défaut : c'est à la personne de cocher ses vrais jours (artiste ET technicien).
+    for(let d=new Date(s); d<=e; d.setDate(d.getDate()+1)) days.push({date:iso(d),checked:false,hours:per,cachets:1});
     setMdpDays(days); setShowForm(false); setShowMdp(true);
   }
   // « Continuer » : on garde la sélection des jours et on revient au formulaire (pas de sauvegarde ici).
   function confirmDays(){
     if(mdpChecked.length===0){ showAlert('Aucun jour','Coche au moins un jour travaillé.'); return; }
-    if(fMode==='cachet'){ setFCachets(String(mdpChecked.length)); }
+    if(fMode==='cachet'){ setFCachets(String(mdpTotalCachets)); }
     else { setFHours(String(mdpTotalH)); setFVacations(String(mdpChecked.length)); }
     setShowMdp(false); setShowForm(true);
   }
@@ -394,6 +402,23 @@ export default function Calendar(){
     const { data:{ user } } = await supabase.auth.getUser();
     if(!user){ showAlert('Erreur','Tu n\'es plus connecté.'); setSaving(false); return; }
     const totalGross=Number(fGross)||0;
+    if(fMode==='cachet'){
+      // Version fidèle : UNE seule mission = le contrat, avec la répartition des cachets par jour (retour Emeric).
+      const chk=mdpDays.filter(d=>d.checked).slice().sort((a,b)=>a.date<b.date?-1:1);
+      const cd:Record<string,number>={}; let totalCachets=0;
+      for(const d of chk){ const n=Math.max(1,Number(d.cachets)||1); cd[d.date]=n; totalCachets+=n; }
+      const start=chk[0].date, end=chk[chk.length-1].date;
+      const payload:any={ user_id:user.id, production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, lieu:fLieu.trim()||null, mission_type:fType,
+        regime:fRegime, mission_date:start, end_date:end!==start?end:null,
+        hours:totalCachets*CACHET_H, vacations:totalCachets, gross_amount:Math.round(totalGross*100)/100, status:'effectue', cachet_days:cd,
+        km_distance:Math.round(kmEff(chk.length)), km_rate:pf(kmRate), km_amount:Math.round(kmFraisFor(chk.length)*100)/100 };
+      const { error }=await supabase.from('missions').insert([payload]);
+      setSaving(false);
+      if(error){ showAlert('Erreur',error.message); return; }
+      rememberPrice(fProduction, fType, totalGross/Math.max(1,totalCachets));
+      setShowMdp(false); setShowForm(false); setEditId(null); setMdpDays([]); loadMissions(true);
+      return;
+    }
     const sumHours=mdpChecked.reduce((a,d)=>a+(Number(d.hours)||0),0);
     const runs:{start:string;end:string;hours:number;days:number}[]=[];
     let cur:any=null;
@@ -440,7 +465,7 @@ export default function Calendar(){
   for(let d=1;d<=daysInMonth;d++)cells.push(new Date(year,month,d));
   while(cells.length%7!==0)cells.push(null);
 
-  function missionsOn(d:Date){const day=iso(d);return missions.filter((m:any)=>{const s=m.mission_date;const e=m.end_date||m.mission_date;return day>=s&&day<=e;});}
+  function missionsOn(d:Date){const day=iso(d);return missions.filter((m:any)=>{ if(m.cachet_days && typeof m.cachet_days==='object' && !Array.isArray(m.cachet_days)){ return Object.prototype.hasOwnProperty.call(m.cachet_days,day); } const s=m.mission_date;const e=m.end_date||m.mission_date; const spanD=daysInclusive(new Date(s+'T00:00:00'),new Date(e+'T00:00:00')); const v=Number(m.vacations); const shownEnd=(v>0&&v<spanD)?iso(new Date(new Date(s+'T00:00:00').getTime()+(Math.ceil(v)-1)*86400000)):e; return day>=s&&day<=shownEnd;});}
 
   // Tri : la PROCHAINE mission en tête (à-venir du plus proche au plus loin),
   // puis les passées (la plus récente d'abord). Fini « la 1re du mois » quand on est le 18.
@@ -464,12 +489,12 @@ export default function Calendar(){
   function moveMonth(n:number){const d=new Date(current);d.setMonth(d.getMonth()+n);d.setDate(1);setCurrent(d);setPage(0);}
   function _showExcelInfo(){
     showAlert('Importer depuis un Excel',
-      "Garde ton fichier tel quel : c'est l'appli qui s'adapte au tien, pas l'inverse.\n\nUne ligne = une mission. Je cherche quatre choses :\n\n• Date — 05/07/2026, 5 juillet 2026, 05-07-26…\n• Production — l'employeur\n• Heures — 8, 8h, 7,5\n• Montant brut — 230, 230 €\n\nCOMMENT CA SE PASSE\nJe lis ton fichier et je te montre les colonnes que j'ai reconnues. Si je me trompe, tu touches la ligne et tu me designes la bonne : je te propose tes colonnes avec un exemple de leur contenu, donc tu t'y retrouves meme si ton tableau n'a aucun en-tete.\n\nLe nombre de missions trouvees s'affiche en direct pendant que tu corriges.\n\nPlusieurs onglets dans le fichier ? Tu choisis lequel.\n\nSeule la date est indispensable. Le reste se complete apres, ligne par ligne.",
+      "Garde ton fichier tel quel : c'est l'appli qui s'adapte au tien, pas l'inverse.\n\nUne ligne = une mission. Je cherche quatre choses :\n\n• Date — 05/07/2026, 5 juillet 2026, 05-07-26…\n• Production — l'employeur\n• Heures — 8, 8h, 7,5 (si la colonne manque : 8 h par jour pour un technicien, 1 cachet de 12 h pour un artiste)\n• Montant brut — 230, 230 € (virgule OU point pour les centimes : 250,00 = 250.00)\n\nCOMMENT CA SE PASSE\nJe lis ton fichier et je te montre les colonnes que j'ai reconnues. Si je me trompe, tu touches la ligne et tu me designes la bonne : je te propose tes colonnes avec un exemple de leur contenu, donc tu t'y retrouves meme si ton tableau n'a aucun en-tete.\n\nLe nombre de missions trouvees s'affiche en direct pendant que tu corriges.\n\nPlusieurs onglets dans le fichier ? Tu choisis lequel.\n\nSeule la date est indispensable. Le reste se complete apres, ligne par ligne.",
       [{text:'Compris'}]);
   }
   function _showCalInfo(){
     showAlert('Importer depuis ton agenda',
-      "Je lis les evenements de ton agenda (iPhone / Samsung) et j'en fais des missions. Ecris dans le TITRE :\n\nProduction   Heures   Prix\nEx : ENDEMOL 8h 350€\n\nL'ordre est libre : ENDEMOL 350€ 8h marche aussi.\n\nLES HEURES\n• Un seul horaire = un nombre d'heures.\n   ENDEMOL 12h  →  12 heures travaillees.\n• Deux horaires = un creneau, je calcule.\n   ENDEMOL 9h-17h  →  8 heures.\n   Mission de nuit : 20h-2h  →  6 heures.\n\nCe que tu ecris l'emporte sur la duree de l'evenement : si tu notes 12h sur un creneau d'une heure, je retiens 12 h.\n\nRien d'ecrit ? Je prends la duree du creneau, sinon 8 h par defaut.\n\nLa date vient de l'evenement. Tout reste modifiable avant l'import.",
+      "Je lis les evenements de ton agenda (iPhone / Samsung) et j'en fais des missions. Ecris dans le TITRE :\n\nProduction   Heures   Prix\nEx : ENDEMOL 8h 350€\n\nL'ordre est libre : ENDEMOL 350€ 8h marche aussi.\n\nLES HEURES\n• Un seul horaire = un nombre d'heures.\n   ENDEMOL 12h  →  12 heures travaillees.\n• Deux horaires = un creneau, je calcule.\n   ENDEMOL 9h-17h  →  8 heures.\n   Mission de nuit : 20h-2h  →  6 heures.\n\nCe que tu ecris l'emporte sur la duree de l'evenement : si tu notes 12h sur un creneau d'une heure, je retiens 12 h.\n\nRien d'ecrit ? Je prends la duree du creneau, sinon le repli selon ton statut : 8 h pour un technicien, 1 cachet de 12 h pour un artiste.\n\nLa date vient de l'evenement. Tout reste modifiable avant l'import.",
       [{text:'Compris'}]);
   }
 
@@ -628,7 +653,7 @@ export default function Calendar(){
                     {(first.production||'').slice(0,3).toUpperCase()}
                   </Text>
                   <Text style={[s.cellInfo,{color:subColor}]} numberOfLines={1}>
-                    {Math.round((Number(first.hours||0)/daysInclusive(new Date((first.mission_date)+'T00:00:00'),new Date((first.end_date||first.mission_date)+'T00:00:00')))*10)/10}h{ms.length>1?` · +${ms.length-1}`:''}
+                    {first.cachet_days&&first.cachet_days[dayISO]!=null?`${first.cachet_days[dayISO]} cach.`:`${Math.round((Number(first.hours||0)/daysInclusive(new Date((first.mission_date)+'T00:00:00'),new Date((first.end_date||first.mission_date)+'T00:00:00')))*10)/10}h`}{ms.length>1?` · +${ms.length-1}`:''}
                   </Text>
                 </>
               )}
@@ -1103,21 +1128,19 @@ export default function Calendar(){
           <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text style={s.modalTitle}>{fMode==='cachet'?'Quels jours de cachet ?':'Quels jours as-tu travaillés ?'}</Text>
-              <Text style={s.miniHint}>{fMode==='cachet'?'Coche tes jours de cachet — 1 cachet par jour.':'Coche les jours travaillés et ajuste les heures de chaque jour.'}</Text>
+              <Text style={s.miniHint}>{fMode==='cachet'?'Coche tes jours et indique le nombre de cachets par jour (plusieurs le même jour possible).':'Coche les jours travaillés et ajuste les heures de chaque jour.'}</Text>
               <View style={s.mdpTools}>
                 <TouchableOpacity style={s.mdpTool} onPress={()=>setAll(true)}><Text style={s.mdpToolTxt}>Tout cocher</Text></TouchableOpacity>
                 <TouchableOpacity style={s.mdpTool} onPress={()=>setAll(false)}><Text style={s.mdpToolTxt}>Tout décocher</Text></TouchableOpacity>
               </View>
-              {fMode!=='cachet' && (<>
               <Text style={s.mdpFillLbl}>Mettre tous les jours cochés à :</Text>
               <View style={{flexDirection:'row',flexWrap:'wrap',gap:8,marginBottom:12}}>
-                {[4,8,10,12].map(h=>(
-                  <TouchableOpacity key={h} style={s.mdpTool} onPress={()=>setMdpDays(ds=>ds.map(d=>d.checked?{...d,hours:h}:d))}>
-                    <Text style={s.mdpToolTxt}>{h}h</Text>
+                {(fMode==='cachet'?[1,2,3,4]:[4,8,10,12]).map(n=>(
+                  <TouchableOpacity key={n} style={s.mdpTool} onPress={()=>setMdpDays(ds=>ds.map(d=>d.checked?(fMode==='cachet'?{...d,cachets:n,hours:n*CACHET_H}:{...d,hours:n}):d))}>
+                    <Text style={s.mdpToolTxt}>{fMode==='cachet'?`${n} cachet${n>1?'s':''}`:`${n}h`}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
-              </>)}
               {mdpDays.map((d,i)=>(
                 <View key={d.date} style={[s.mdpDay,!d.checked&&{opacity:0.5}]}>
                   <TouchableOpacity style={[s.checkbox,d.checked&&s.checkboxOn]} onPress={()=>toggleDay(i)}>
@@ -1125,11 +1148,13 @@ export default function Calendar(){
                   </TouchableOpacity>
                   <Text style={s.mdpDayLabel} numberOfLines={1}>{frDay(d.date)}</Text>
                   {fMode==='cachet'
-                    ? <Text style={[s.mdpHoursU,{minWidth:64,textAlign:'right'}]}>{d.checked?'1 cachet':'—'}</Text>
+                    ? (d.checked
+                        ? <><NumInput style={s.mdpHours} value={String(d.cachets)} onChangeText={(v:string)=>setDayCachets(i,v)} editable={d.checked}/><Text style={s.mdpHoursU}>cachet{(Number(d.cachets)||0)>1?'s':''}</Text></>
+                        : <Text style={[s.mdpHoursU,{minWidth:64,textAlign:'right'}]}>—</Text>)
                     : <><NumInput style={s.mdpHours} value={String(d.hours)} onChangeText={(v:string)=>setDayHours(i,v)} editable={d.checked}/><Text style={s.mdpHoursU}>h</Text></>}
                 </View>
               ))}
-              <View style={s.mdpTotal}><Text style={s.mdpTotalTxt}>{fMode==='cachet'?`Total : ${mdpChecked.length} cachet${mdpChecked.length>1?'s':''}`:`Total : ${mdpTotalH} h sur ${mdpChecked.length} jour${mdpChecked.length>1?'s':''}`}</Text></View>
+              <View style={s.mdpTotal}><Text style={s.mdpTotalTxt}>{fMode==='cachet'?`Total : ${mdpTotalCachets} cachet${mdpTotalCachets>1?'s':''} sur ${mdpChecked.length} jour${mdpChecked.length>1?'s':''}`:`Total : ${mdpTotalH} h sur ${mdpChecked.length} jour${mdpChecked.length>1?'s':''}`}</Text></View>
               <GradientButton onPress={confirmDays} style={s.saveBtn} textStyle={s.saveBtnTxt} label="Continuer →" />
               <TouchableOpacity style={s.cancelBtn} onPress={()=>setShowMdp(false)}>
                 <Text style={s.cancelBtnTxt}>Annuler</Text>
@@ -1147,13 +1172,15 @@ export default function Calendar(){
               <Text style={s.modalTitle}>{dayMenu?(frDay(iso(dayMenu.date)).charAt(0).toUpperCase()+frDay(iso(dayMenu.date)).slice(1)):''}</Text>
               <Text style={s.dayMenuSub}>Que veux-tu faire ?</Text>
               {dayMenu?.missions.map((m:any)=>{
+                const _dISO=dayMenu?iso(dayMenu.date):'';
+                const cpj=(m.cachet_days&&m.cachet_days[_dISO]!=null)?m.cachet_days[_dISO]:null;
                 const hpj=Math.round((Number(m.hours||0)/daysInclusive(new Date((m.mission_date)+'T00:00:00'),new Date((m.end_date||m.mission_date)+'T00:00:00')))*10)/10;
                 return(
                   <View key={m.id} style={s.dayMenuItem}>
                     <TouchableOpacity style={{flex:1,flexDirection:'row',alignItems:'center'}} onPress={()=>{const mm=m;setDayMenu(null);openEdit(mm);}}>
                       <View style={{flex:1}}>
                         <Text style={s.dayMenuItemProd} numberOfLines={1}>{m.production||'Mission'}</Text>
-                        <Text style={s.dayMenuItemMeta}>{hpj}h/jour{m.mission_type?` · ${m.mission_type}`:''}</Text>
+                        <Text style={s.dayMenuItemMeta}>{cpj!=null?`${cpj} cachet${cpj>1?'s':''}`:`${hpj}h/jour`}{m.mission_type?` · ${m.mission_type}`:''}</Text>
                       </View>
                       <Text style={s.dayMenuChevron}>›</Text>
                     </TouchableOpacity>
