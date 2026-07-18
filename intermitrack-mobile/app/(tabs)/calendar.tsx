@@ -384,9 +384,13 @@ export default function Calendar(){
   // Ouvre le sélecteur de jours travaillés (au choix des dates).
   function openDayPicker(s:Date,e:Date){
     const per=fMode==='cachet'?CACHET_H:8; // heures : 8h/jour ; cachet : 1 cachet = 12h/jour
+    const nbDays=Math.round((e.getTime()-s.getTime())/86400000)+1;
+    // Seuil pratique : jusqu'à 6 jours d'affilée on travaille en général tous les jours → tout coché
+    // d'office (la personne décoche si besoin). Au-delà (ex : 1→31 avec seulement 2 jours bossés),
+    // rien coché → elle choisit ses vrais jours. Vaut pour artiste ET technicien.
+    const allByDefault=nbDays<=6;
     const days:{date:string;checked:boolean;hours:number;cachets:number}[]=[];
-    // Rien de coché par défaut : c'est à la personne de cocher ses vrais jours (artiste ET technicien).
-    for(let d=new Date(s); d<=e; d.setDate(d.getDate()+1)) days.push({date:iso(d),checked:false,hours:per,cachets:1});
+    for(let d=new Date(s); d<=e; d.setDate(d.getDate()+1)) days.push({date:iso(d),checked:allByDefault,hours:per,cachets:1});
     setMdpDays(days); setShowForm(false); setShowMdp(true);
   }
   // « Continuer » : on garde la sélection des jours et on revient au formulaire (pas de sauvegarde ici).

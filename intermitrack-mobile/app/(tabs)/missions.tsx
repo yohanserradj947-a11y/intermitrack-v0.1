@@ -189,6 +189,9 @@ export default function Missions(){
   // pas les jours de la période (sinon 10→25 compterait 16 au lieu de 3-4 cachets). Cohérent avec le dashboard.
   const _cd=(m:any)=>(m.cachet_days && typeof m.cachet_days==='object' && !Array.isArray(m.cachet_days))?m.cachet_days:null;
   const _cdVac=(m:any,winStart?:number,winEnd?:number)=>{ const cd=_cd(m); if(!cd)return null; let c=0; for(const k in cd){ if(winStart!=null){ const t=new Date(k+'T00:00:00').getTime(); if(t<winStart||t>winEnd!)continue; } c+=Number(cd[k])||0; } return c; };
+  // Nombre de vacations affiché SUR LA CARTE (mission entière) : vacations enregistrées (source de
+  // vérité, comme le total et le dashboard). Cachet = cachets réels ; repli sur la plage si champ vide.
+  const _cardVac=(m:any)=>{ const cv=_cdVac(m); if(cv!=null) return cv; const v=Number(m.vacations); return v>0?v:_fullVac(m); };
   const mv=(m:any)=>{ const fast=m.mission_type==='Saisie rapide'; const v=Number(m.vacations); if(isMonth){ const {inM,frac}=_mDays(m); const cv=_cdVac(m,_mS,_mE); return { gross:Number(m.gross_amount||0)*frac, hours:Number(m.hours||0)*frac, vac:cv!=null?cv:(fast?(v||1):(v>0?v*frac:inM)) }; } const cf=_cdVac(m); return { gross:Number(m.gross_amount||0), hours:Number(m.hours||0), vac:cf!=null?cf:(fast?(v||1):(v>0?v:_fullVac(m))) }; };
 
   const filtered=missions.filter((m:any)=>{
@@ -264,6 +267,46 @@ export default function Missions(){
     }catch(e:any){ Alert.alert('Erreur', e?.message||'Modification impossible.'); }
     setSavingProd(false);
   }
+  // Signature "anti-doublon" poussée : ignore casse, accents, espaces ET ponctuation.
+  // "Side INC" et "side .inc" -> "SIDEINC" (doublon) ; "Dushow" vs "Dushow TV" restent distincts.
+  const _sig=(v:string)=>String(v||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Z0-9]/g,'');
+  // Fusionner une production dans une autre : toutes ses missions sont rattachées à la cible.
+  async function mergeProdInto(prod:any, targetName:string){
+    setSavingProd(true);
+    try{
+      const ids=prod.list.map((m:any)=>m.id);
+      const { error }=await supabase.from('missions').update({production:targetName}).in('id',ids);
+      if(error) throw error;
+      // Couleur/tarif : la cible garde les siens ; sinon elle hérite de la source. On nettoie la source.
+      const c=getColor(prod.name); if(c && !getColor(targetName)){ addCustom(c); setColor(targetName,c); }
+      setColor(prod.name,null);
+      const r=getProdRate(prod.name); if(r && !getProdRate(targetName)) setProdRate(targetName,r);
+      setProdRate(prod.name,0);
+      setProdEditOpen(false); setSelected(targetName);
+      await loadMissions();
+    }catch(e:any){ Alert.alert('Erreur', e?.message||'Fusion impossible.'); }
+    setSavingProd(false);
+  }
+  function confirmMerge(prod:any, targetName:string){
+    Alert.alert('Fusionner les productions', `Rattacher les ${prod.count} mission${prod.count>1?'s':''} de « ${prod.name} » à « ${targetName} » ? Elles porteront toutes ce nom.`,
+      [{text:'Annuler',style:'cancel'},{text:'Fusionner',onPress:()=>mergeProdInto(prod,targetName)}]);
+  }
+  // Supprimer une production = supprimer toutes ses missions + couleur + tarif (définitif).
+  function deleteProd(prod:any){
+    Alert.alert('Supprimer la production', `Supprimer « ${prod.name} » et ses ${prod.count} mission${prod.count>1?'s':''} ? Cette action est définitive.`,
+      [{text:'Annuler',style:'cancel'},{text:'Supprimer',style:'destructive',onPress:async()=>{
+        setSavingProd(true);
+        try{
+          const ids=prod.list.map((m:any)=>m.id);
+          const { error }=await supabase.from('missions').delete().in('id',ids);
+          if(error) throw error;
+          setColor(prod.name,null); setProdRate(prod.name,0);
+          setProdEditOpen(false); setSelected(null);
+          await loadMissions();
+        }catch(e:any){ Alert.alert('Erreur', e?.message||'Suppression impossible.'); }
+        setSavingProd(false);
+      }}]);
+  }
   if(selected){
     const prod=sorted.find(p=>p.name===selected);
     if(!prod)return null;
@@ -277,8 +320,8 @@ export default function Missions(){
             <Text style={s.detailTitle}>{prod.name}</Text>
             <Text style={s.detailSub}>{prod.count} mission{prod.count>1?'s':''} enregistrée{prod.count>1?'s':''}</Text>
             <TouchableOpacity onPress={()=>{setRenameVal(prod.name);setTarifVal(getProdRate(prod.name)?String(getProdRate(prod.name)):'');setProdEditOpen(true);}} style={{flexDirection:'row',alignItems:'center',gap:5,marginTop:6}} hitSlop={6}>
-              <Ionicons name="color-palette-outline" size={14} color={C.petrol}/>
-              <Text style={{fontSize:12.5,fontWeight:'800',color:C.petrol,textDecorationLine:'underline'}}>Modifier nom / couleur</Text>
+              <Ionicons name="create-outline" size={14} color={C.petrol}/>
+              <Text style={{fontSize:12.5,fontWeight:'800',color:C.petrol,textDecorationLine:'underline'}}>Modifier nom / couleur · fusionner · supprimer</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -296,7 +339,7 @@ export default function Missions(){
                 {m.emission?<View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="videocam-outline" size={13} color={C.muted} /><Text style={s.meta}>{m.emission}</Text></View>:null}
                 {m.lieu?<View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="location-outline" size={13} color={C.muted} /><Text style={s.meta}>{m.lieu}</Text></View>:null}
                 <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="calendar-outline" size={13} color={C.muted} /><Text style={s.meta}>{fmtPeriod(m.mission_date,m.end_date)}</Text></View>
-                <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="time-outline" size={13} color={C.muted} /><Text style={s.meta}>{m.hours}h · </Text><Ionicons name="briefcase-outline" size={13} color={C.muted} /><Text style={s.meta}> {Math.max(1,Math.round((new Date((m.end_date||m.mission_date)+'T00:00:00').getTime()-new Date(m.mission_date+'T00:00:00').getTime())/86400000)+1)} vacation(s)</Text></View>
+                <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="time-outline" size={13} color={C.muted} /><Text style={s.meta}>{m.hours}h · </Text><Ionicons name="briefcase-outline" size={13} color={C.muted} /><Text style={s.meta}> {_cardVac(m)} vacation(s)</Text></View>
                 <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="cash-outline" size={13} color={C.muted} /><Text style={s.meta}>{money(m.gross_amount)}</Text></View>
               </View>
               <Text style={s.tapHint}>Toucher pour modifier</Text>
@@ -308,6 +351,7 @@ export default function Missions(){
           <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
           <View style={s.modalOverlay}>
             <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <View style={s.modalHeader}>
                 <Text style={[s.modalTitle,{marginBottom:0,flex:1,textAlign:'left'}]}>Modifier la production</Text>
                 <TouchableOpacity style={s.modalClose} onPress={()=>setProdEditOpen(false)} hitSlop={8}><Ionicons name="close" size={22} color={C.muted}/></TouchableOpacity>
@@ -330,6 +374,49 @@ export default function Missions(){
                 <TouchableOpacity style={s.colorAdd} onPress={()=>setProdColorPickOpen(true)}><Text style={s.colorAddTxt}>+</Text></TouchableOpacity>
               </View>
               <TouchableOpacity style={[s.saveBtn,savingProd&&{opacity:0.5}]} disabled={savingProd} onPress={()=>saveProdEdit(prod)}><Text style={s.saveBtnTxt}>{savingProd?'Enregistrement…':'Enregistrer'}</Text></TouchableOpacity>
+              {(() => {
+                // Score de ressemblance : exact (100) > préfixe commun (85) > inclusion (70) > lettres de début en commun.
+                const me=_sig(prod.name);
+                const score=(o:string)=>{ const a=me,b=_sig(o); if(!a||!b)return 0; if(a===b)return 100; if(a.startsWith(b)||b.startsWith(a))return 85; const ml=Math.min(a.length,b.length); if(ml>=3&&(a.includes(b)||b.includes(a)))return 70; let i=0; while(i<a.length&&i<b.length&&a[i]===b[i])i++; return i>=2?40+i:0; };
+                const others=sorted.filter((p:any)=>p.name!==prod.name).map((p:any)=>({...p,_sc:score(p.name)})).sort((a:any,b:any)=>b._sc-a._sc);
+                const dupes=others.filter((p:any)=>p._sc>=70);
+                return (
+                  <View style={{marginTop:18,borderTopWidth:1,borderTopColor:C.line,paddingTop:16}}>
+                    {dupes.length>0 && (
+                      <View style={{backgroundColor:C.petrol+'12',borderRadius:12,padding:12,marginBottom:12}}>
+                        <View style={{flexDirection:'row',alignItems:'center',gap:6,marginBottom:6}}>
+                          <Ionicons name="git-merge-outline" size={15} color={C.petrol}/>
+                          <Text style={{fontSize:12.5,fontWeight:'800',color:C.petrol}}>Doublon probable détecté</Text>
+                        </View>
+                        {dupes.map((d:any)=>(
+                          <TouchableOpacity key={d.name} onPress={()=>confirmMerge(prod,d.name)} style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',backgroundColor:C.card,borderRadius:9,paddingVertical:9,paddingHorizontal:11,marginTop:6}}>
+                            <Text style={{fontSize:13,fontWeight:'700',color:C.text,flex:1}} numberOfLines={1}>Fusionner dans « {d.name} »</Text>
+                            <Ionicons name="arrow-forward" size={15} color={C.petrol}/>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                    {others.length>0 && (
+                      <>
+                        <Text style={s.label}>Fusionner avec une autre production</Text>
+                        <Text style={{fontSize:11,color:C.muted,marginTop:4,marginBottom:8}}>Les missions de cette production seront rattachées à celle que tu choisis.</Text>
+                        <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>
+                          {others.map((o:any)=>(
+                            <TouchableOpacity key={o.name} onPress={()=>confirmMerge(prod,o.name)} style={{borderWidth:1,borderColor:C.line,borderRadius:20,paddingVertical:7,paddingHorizontal:13,backgroundColor:C.soft,maxWidth:'100%'}}>
+                              <Text style={{fontSize:12.5,fontWeight:'700',color:C.petrol}} numberOfLines={1}>{o.name}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </>
+                    )}
+                    <TouchableOpacity onPress={()=>deleteProd(prod)} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,marginTop:16,paddingVertical:11,borderRadius:11,borderWidth:1.5,borderColor:C.danger+'55'}}>
+                      <Ionicons name="trash-outline" size={16} color={C.danger}/>
+                      <Text style={{fontSize:13.5,fontWeight:'800',color:C.danger}}>Supprimer la production</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })()}
+              </ScrollView>
             </View>
           </View>
           </KeyboardAvoidingView>

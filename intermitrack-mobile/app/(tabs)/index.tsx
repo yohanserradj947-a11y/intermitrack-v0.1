@@ -210,9 +210,15 @@ export default function HomeScreen(){
     // Tout le récap du mois suit la MÊME logique : la part de chaque mission qui tombe DANS le mois (au prorata des jours).
     const _mvS=new Date(current.getFullYear(),current.getMonth(),1).getTime(), _mvE=new Date(current.getFullYear(),current.getMonth()+1,0).getTime();
     const monthDays=(m:any)=>{const s=new Date(m.mission_date+'T00:00:00').getTime(),e=new Date((m.end_date||m.mission_date)+'T00:00:00').getTime();const tot=Math.max(1,Math.round((e-s)/86400000)+1);const p=Math.max(s,_mvS),q=Math.min(e,_mvE);const inM=q<p?0:Math.round((q-p)/86400000)+1;return {inM,frac:inM/tot};};
-    // TOTAL du mois (toutes missions, régime général compris) : sert à l'estimation France Travail (tout revenu réduit tes jours indemnisables).
-    const monthH=Math.round(missions.reduce((a:number,m:any)=>a+Number(m.hours||0)*monthDays(m).frac,0)*10)/10;
-    const monthG=Math.round(missions.reduce((a:number,m:any)=>a+Number(m.gross_amount||0)*monthDays(m).frac,0));
+    // TOTAL du mois pour l'estimation France Travail (toutes missions, régime général compris : tout revenu
+    // réduit les jours indemnisables). Le MOIS D'OUVERTURE ne compte qu'À PARTIR de la date ARE : les heures
+    // et le brut d'avant le jour d'ouverture ne doivent pas réduire l'indemnisation de ce mois (cohérent avec
+    // daysInMonth dans `ft`). Les autres mois = mois plein. N'affecte QUE l'estimation FT (monthHi/monthGi restent pleins).
+    let _ftS=_mvS;
+    if(areDate){ const _a=new Date(areDate+'T00:00:00'); if(_a.getFullYear()===current.getFullYear()&&_a.getMonth()===current.getMonth()) _ftS=Math.max(_mvS,_a.getTime()); }
+    const monthDaysFt=(m:any)=>{const s=new Date(m.mission_date+'T00:00:00').getTime(),e=new Date((m.end_date||m.mission_date)+'T00:00:00').getTime();const tot=Math.max(1,Math.round((e-s)/86400000)+1);const p=Math.max(s,_ftS),q=Math.min(e,_mvE);const inM=q<p?0:Math.round((q-p)/86400000)+1;return {inM,frac:inM/tot};};
+    const monthH=Math.round(missions.reduce((a:number,m:any)=>a+Number(m.hours||0)*monthDaysFt(m).frac,0)*10)/10;
+    const monthG=Math.round(missions.reduce((a:number,m:any)=>a+Number(m.gross_amount||0)*monthDaysFt(m).frac,0));
     // Récap INTERMITTENCE : le régime général « pur » a sa propre case, il ne gonfle plus heures/brut/vacations.
     const notGen=(m:any)=>regOf(m)!=='general';
     const monthHi=Math.round(missions.filter(notGen).reduce((a:number,m:any)=>a+Number(m.hours||0)*monthDays(m).frac,0)*10)/10;
@@ -252,7 +258,16 @@ export default function HomeScreen(){
     if(!aj)return null;
     const artiste=profil.annexe==='artiste';
     const coef=artiste?1.3:1.4, divJ=artiste?10:8;
-    const daysInMonth=new Date(current.getFullYear(),current.getMonth()+1,0).getDate();
+    // Jours indemnisables du mois affiché. Le MOIS D'OUVERTURE des droits ne compte qu'À PARTIR
+    // de la date ARE (ex : admission le 14/01 → 18 jours en janvier, pas 31). Les mois AVANT
+    // l'ouverture ne sont pas indemnisables (0). Les mois suivants = mois plein.
+    const _lastDay=new Date(current.getFullYear(),current.getMonth()+1,0).getDate();
+    let daysInMonth=_lastDay;
+    if(areDate){
+      const _a=new Date(areDate+'T00:00:00');
+      if(_a.getFullYear()===current.getFullYear()&&_a.getMonth()===current.getMonth()) daysInMonth=_lastDay-_a.getDate()+1;
+      else if(new Date(current.getFullYear(),current.getMonth(),1)<new Date(_a.getFullYear(),_a.getMonth(),1)) daysInMonth=0;
+    }
     const clamp=(v:number)=>Math.max(0,Math.min(daysInMonth,v));
     // Jours non indemnisables (formule officielle France Travail) : heures × coef / diviseur.
     // On garde une petite fourchette (±1 jour d'arrondi) pour rester une estimation honnête.
@@ -268,7 +283,7 @@ export default function HomeScreen(){
     const fNet=1-tax/100, showNet=tax>0;
     const bas=Math.round(aj*dBas*fNet), haut=Math.round(aj*dHaut*fNet);
     return { bas, haut, showNet, tax, plafondActif, coefTxt:artiste?'1,3':'1,4', divTxt:artiste?'10':'8', plafond:Math.round(plafond), totalBas:monthNet+bas, totalHaut:monthNet+haut };
-  },[profil,monthH,monthG,current,monthNet]);
+  },[profil,monthH,monthG,current,monthNet,areDate]);
   const totalPages=Math.ceil(upcoming.length/6);
   const visibleM=useMemo(()=>upcoming.slice(missionPage*6,(missionPage+1)*6),[upcoming,missionPage]);
 
