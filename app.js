@@ -3010,6 +3010,10 @@ function showAppNotification(type, icon, title, text, progressPct, progressColor
 }
 
 function checkAndShowNotification(remaining, yearHours) {
+  // Cohérence : les notifs d'éligibilité se basent sur les heures RÉELLEMENT effectuées (yearHours),
+  // pas sur le prévisionnel. Sinon on affichait « 440h effectuées, plus que 0h » (le prévisionnel
+  // prévu+formation atteignait 507, mais pas le réalisé). Retour Xabi. On recalcule le restant ici.
+  remaining = Math.max(0, Math.round((507 - yearHours) * 10) / 10);
   const totalVac = Math.round(yearHours / 8);
   const remainingVac = Math.round(remaining / 8);
   const pct = Math.round((yearHours / 507) * 100);
