@@ -611,9 +611,11 @@ function _ensureProdColorsModal(){
   });
 }
 function _prodColorsList(){
-  const set = {};
-  (typeof missions !== 'undefined' ? missions : []).forEach(m=>{ const n = normalizeProductionName(m.production || 'SANS PRODUCTION'); set[n]=true; });
-  return Object.keys(set).sort();
+  // Tri par FRÉQUENCE (plus utilisée d'abord), pas alphabétique : on ne fouille plus dans une longue
+  // liste pour retrouver sa prod. Parité avec l'app. Retour Yohan.
+  const cnt = {};
+  (typeof missions !== 'undefined' ? missions : []).forEach(m=>{ const n = normalizeProductionName(m.production || 'SANS PRODUCTION'); cnt[n]=(cnt[n]||0)+1; });
+  return Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]);
 }
 function _refreshProdColorsList(){
   const list = document.getElementById('pcmList'); if(!list) return;
