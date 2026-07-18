@@ -1362,7 +1362,7 @@ async function loadMissions() {
     kmDistance: Number(x.km_distance || 0), kmRate: Number(x.km_rate || 0), kmAmount: Number(x.km_amount || 0),
     vacations: Number(x.vacations || Math.round((x.hours || 0) / 8)),
     emission: x.emission || "", lieu: x.lieu || "",
-    regime: x.regime || "intermittence",
+    regime: x.regime || "intermittence", cachet_days: x.cachet_days || null,
     // Adresses des frais km : enregistrées depuis le 15/07/2026 seulement. Avant, seuls
     // distance/taux/montant l'étaient — d'où « les adresses n'apparaissent pas à l'édition ».
     kmFrom: x.km_from || "", kmTo: x.km_to || "",
@@ -2645,7 +2645,21 @@ function missionDaysInMonth(m, ref) {
   const a = s > ms ? s : ms, b = e < me ? e : me;
   return b < a ? 0 : daysInclusive(a, b);
 }
-function sumMonthVac(list, ref) { return list.reduce((total, m) => { const inM = missionDaysInMonth(m, ref); return total + (m.type === "Saisie rapide" ? (inM > 0 ? (Number(m.vacations) || 1) : 0) : inM); }, 0); }
+function sumMonthVac(list, ref) {
+  // Régime général exclu (pas une vacation d'intermittence). Cachet : cachets réellement travailles dans le mois.
+  // Sinon : vacations SAISIES proratisees au mois (pas les jours de periode) — parite avec l'app.
+  const mS = new Date(ref.getFullYear(), ref.getMonth(), 1).getTime();
+  const mE = new Date(ref.getFullYear(), ref.getMonth() + 1, 0).getTime();
+  return Math.round(list.reduce((total, m) => {
+    if ((m.regime || "intermittence") === "general") return total;
+    const cd = m.cachet_days;
+    if (cd && typeof cd === "object" && !Array.isArray(cd)) { let c = 0; for (const k in cd) { const t = new Date(k + "T00:00:00").getTime(); if (t >= mS && t <= mE) c += Number(cd[k]) || 0; } return total + c; }
+    const inM = missionDaysInMonth(m, ref);
+    if (m.type === "Saisie rapide") return total + (inM > 0 ? (Number(m.vacations) || 1) : 0);
+    const v = Number(m.vacations);
+    return total + (v > 0 ? v * (inM / Math.max(1, missionDayCount(m))) : inM);
+  }, 0));
+}
 
 function getProductionInitials(name) {
   return String(name || "---").replace(/[^a-zA-ZÀ-ÿ0-9\s]/g," ").trim().split(/\s+/).join("").slice(0, 3).toUpperCase() || "---";
