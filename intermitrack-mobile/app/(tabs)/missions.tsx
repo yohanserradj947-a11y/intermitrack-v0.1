@@ -59,6 +59,9 @@ export default function Missions(){
   const [monthRef,setMonthRef]=useState(new Date()); // filtre « Mois »
   const [areDate,setAreDate]=useState(''); // date ARE pour le filtre « Année d'intermittence »
   useEffect(()=>{ AsyncStorage.getItem('intermitrack_are_date').then(v=>{ if(v) setAreDate(v); }); },[]);
+  // Si la production affichée n'a plus AUCUNE mission (on vient de supprimer la dernière), on revient à la
+  // liste au lieu de rester sur un écran vide jusqu'au redémarrage de l'appli (retour user).
+  useEffect(()=>{ if(selected && !missions.some((m:any)=>(m.production||'Sans production').toUpperCase().trim()===selected)) setSelected(null); },[missions,selected]);
   // Fenêtre de l'année d'intermittence en cours (12 mois depuis l'anniversaire de la date ARE).
   const aiWin=useMemo(()=>{
     if(!areDate) return null;
