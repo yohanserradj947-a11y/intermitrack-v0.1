@@ -3580,7 +3580,11 @@ function renderCalendar() {
       // 2 missions le même jour → case TOUJOURS coupée en diagonale (moitié/moitié), avec un fin trait de séparation visible même si les 2 couleurs sont identiques.
       if (missionsOfDay.length === 2) {
         const cA = _rep[0], cB = _rep[1];
-        box.style.setProperty('background', 'linear-gradient(135deg,' + cA + ' 0 49%, rgba(255,255,255,.6) 49% 51%,' + cB + ' 51% 100%)', 'important');
+        // Chaque moitié garde son VRAI dégradé (comme une case pleine), au lieu d'une couleur plate :
+        // couleur perso -> foncé/clair ; sinon dégradé par défaut passé (pétrole/vert) ou futur (orange).
+        const _halfGrad = (m) => { const hex = getProductionColorHex(normalizeProductionName(m.production)); if (hex) return [_darken(hex,0.14), _lighten(hex,0.36)]; const fut = new Date(m.date + "T00:00:00") >= todayDateOnly(); return fut ? ['#F97316','#FDBA74'] : ['#1F4E5F','#2F8F6B']; };
+        const pA = _halfGrad(missionsOfDay[0]), pB = _halfGrad(missionsOfDay[1]);
+        box.style.setProperty('background', 'linear-gradient(135deg,' + pA[0] + ' 0%,' + pA[1] + ' 49%,rgba(255,255,255,.6) 49% 51%,' + pB[0] + ' 51%,' + pB[1] + ' 100%)', 'important');
         box.classList.add('cal-split');
         const iA = getProductionInitials(missionsOfDay[0].production);
         const iB = getProductionInitials(missionsOfDay[1].production);
