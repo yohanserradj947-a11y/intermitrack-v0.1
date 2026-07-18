@@ -412,7 +412,7 @@ async function _xlDoImport(){
   const sel=_xlDrafts.filter(function(d){return d.selected;}); if(!sel.length)return;
   if(!currentUser){ toast('Connecte-toi.'); return; }
   const btn=document.getElementById('xlImport'); btn.disabled=true; btn.textContent='Import en cours…';
-  const payloads=sel.map(function(d){ return { user_id:currentUser.id, production:normalizeProductionName(d.prod), emission:'', lieu:d.lieu||'', mission_type:'Tournage', mission_date:d.date, end_date:d.date, hours:d.hours>0?d.hours:8, gross_amount:d.price||0, vacations:1, km_distance:0, km_rate:0, km_amount:0 }; });
+  const payloads=sel.map(function(d){ return { user_id:currentUser.id, production:normalizeProductionName(d.prod), emission:'', lieu:d.lieu||'', mission_type:((_profil&&_profil.annexe==='artiste')?'':'Tournage'), mission_date:d.date, end_date:d.date, hours:d.hours>0?d.hours:8, gross_amount:d.price||0, vacations:1, km_distance:0, km_rate:0, km_amount:0 }; });
   try{
     for(let i=0;i<payloads.length;i+=100){ const r=await sb.from('missions').insert(payloads.slice(i,i+100)); if(r.error)throw r.error; }
     document.getElementById('xlOverlay').classList.remove('open');
@@ -1803,7 +1803,7 @@ function editMission(id) {
   if ($("emission")) $("emission").value = mission.emission || "";
   if ($("lieu")) $("lieu").value = mission.lieu || "";
   if (typeof _syncFieldBtn === 'function'){ _syncFieldBtn('emission','emBtnLabel'); _syncFieldBtn('lieu','lieuBtnLabel'); }
-  _setTypeValue(mission.type || "Autres");
+  _setTypeValue(mission.type || "");
   $("date").value = mission.date || "";
   $("endDate").value = mission.endDate || mission.date || "";
   $("hours").value = mission.hours || 0;
@@ -3223,7 +3223,7 @@ function renderHistory() {
         <div class="mission-history-card">
           <div class="mission-history-head">
             <strong>${ICO.doc}${escapeHtml(mission.production)}</strong>
-            <span class="pill">${escapeHtml(mission.type)}</span>
+            ${mission.type ? `<span class="pill">${escapeHtml(mission.type)}</span>` : ''}
           </div>
           <div class="mission-history-info">
             <span>${ICO.cal}${formatPeriod(mission.date, mission.endDate)}</span>
@@ -3459,7 +3459,7 @@ const list = missions.filter((m) => normalizeProductionName(m.production || "San
     <div class="mission-card-grid">
       ${list.map((mission) => `
        <div class="mission-history-card">
-          <div class="mission-history-head"><strong>${ICO.doc}${escapeHtml(mission.production)}</strong><span class="pill">${escapeHtml(mission.type)}</span></div>
+          <div class="mission-history-head"><strong>${ICO.doc}${escapeHtml(mission.production)}</strong>${mission.type ? `<span class="pill">${escapeHtml(mission.type)}</span>` : ''}</div>
           <div class="mission-history-info">
             <span>${ICO.cal}${formatPeriod(mission.date, mission.endDate)}</span>
             ${mission.emission ? `<span>${ICO.camera}${escapeHtml(mission.emission)}</span>` : ""}${mission.lieu ? `<span>${ICO.pin}${escapeHtml(mission.lieu)}</span>` : ""}
@@ -3638,7 +3638,7 @@ cards.innerHTML = visible.map((m) => {
     return `
       <div class="new-mission-card ${isFuture ? "planned" : "done"}" data-calendar-date="${escapeHtml(m.date)}" style="cursor:pointer;${_ch ? `border-left-color:${_ch} !important;` : ''}">
         <div class="new-mission-body"><div class="new-mission-prod">${ICO.doc}${escapeHtml((m.production||'').toUpperCase())}</div>${(m.emission||'').trim() ? `<div class="new-mission-emission">${ICO.camera}${escapeHtml(m.emission.trim())}</div>` : ''}${(m.lieu||'').trim() ? `<div class="new-mission-lieu">${ICO.pin}${escapeHtml(m.lieu.trim())}</div>` : ''}<div class="new-mission-dates">${ICO.cal}${escapeHtml(formatPeriod(m.date, m.endDate))}</div></div>
-        <div class="new-mission-right"><span class="new-mission-hours">${ICO.clock}${m.hours}h</span><span class="new-mission-type ${isFuture ? "type-planned" : "type-done"}">${escapeHtml(m.type)}</span></div>
+        <div class="new-mission-right"><span class="new-mission-hours">${ICO.clock}${m.hours}h</span>${m.type ? `<span class="new-mission-type ${isFuture ? "type-planned" : "type-done"}">${escapeHtml(m.type)}</span>` : ''}</div>
         <button type="button" data-quick-del="${escapeHtml(m.id)}" title="Supprimer cette mission" aria-label="Supprimer" style="flex:0 0 auto;align-self:center;width:32px;height:32px;border:none;border-radius:9px;background:rgba(220,38,38,.1);color:#DC2626;font-size:15px;font-weight:800;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
       </div>
     `;
@@ -3662,7 +3662,7 @@ function renderCalendarDayPanel(dateStr) {
           const totalDays = missionDayCount(mission);
           const dailyHours = Math.round((Number(mission.hours || 0) / totalDays) * 10) / 10;
           const dailyGross = Math.round(Number(mission.gross || 0) / totalDays);
-          return `<div class="calendar-day-mission"><div><strong>${ICO.doc}${escapeHtml(mission.production)}</strong><span>${escapeHtml(mission.type)} · ${dailyHours}h · ${money(dailyGross)}</span></div><div class="calendar-day-actions"><button class="ghost" type="button" data-edit="${escapeHtml(mission.id)}">Modifier</button><button class="delete" type="button" data-delete="${escapeHtml(mission.id)}">X</button></div></div>`;
+          return `<div class="calendar-day-mission"><div><strong>${ICO.doc}${escapeHtml(mission.production)}</strong><span>${mission.type ? escapeHtml(mission.type)+' · ' : ''}${dailyHours}h · ${money(dailyGross)}</span></div><div class="calendar-day-actions"><button class="ghost" type="button" data-edit="${escapeHtml(mission.id)}">Modifier</button><button class="delete" type="button" data-delete="${escapeHtml(mission.id)}">X</button></div></div>`;
         }).join("")}
       </div>
     </div>
@@ -3679,7 +3679,7 @@ function resetMissionFormForDate(dateStr, regime) {
   if (typeof _syncFieldBtn === 'function'){ _syncFieldBtn('emission','emBtnLabel'); _syncFieldBtn('lieu','lieuBtnLabel'); }
   _setAddrValue('from', ''); _setAddrValue('to', '');
   _applyKmProfil(); // véhicule pré-rempli depuis « Mes informations » (retour JB)
-  if ($("type")) _setTypeValue((getCustomPostes()[0]) || "Montage");
+  if ($("type")) _setTypeValue((getCustomPostes()[0]) || _quickTypeChips()[0]);
   if ($("date")) $("date").value = dateStr;
   if ($("endDate")) $("endDate").value = dateStr;
   if ($("hours")) $("hours").value = "";
@@ -5176,11 +5176,18 @@ function _setTypeValue(v){
   if(typeof _syncTypeBtn === 'function') _syncTypeBtn();
   if(typeof _prefillLearnedPrice === 'function') _prefillLearnedPrice();
 }
+// Chips de base selon l'annexe (parité appli quickTypeChips) : « Montage/Démontage » n'a pas de sens en annexe 10.
+function _quickTypeChips(){
+  var ax = (typeof _profil!=='undefined' && _profil && _profil.annexe) || '';
+  if(ax==='artiste') return ['Comédien','Chanteur','Musicien','Danseur','Choriste'];
+  if(ax==='les_deux') return ['Montage','Tournage','Démontage','Comédien','Chanteur','Musicien','Danseur','Choriste'];
+  return ['Montage','Tournage','Démontage'];
+}
 function _renderTypePicker(ov){
-  var base = ['Montage','Tournage','Démontage'];
+  var base = _quickTypeChips();
   var customs = getCustomPostes();
   var html = '<div class="pf-box"><div class="pf-title">Type de mission</div>';
-  html += '<div class="pf-label">Touche pour cocher, retouche pour décocher — tu peux en cumuler (ex. Montage + Démontage).</div>';
+  html += '<div class="pf-label">Touche pour cocher, retouche pour décocher — tu peux en cumuler plusieurs.</div>';
   html += '<div class="pf-seg">' + base.map(function(p){ return '<button type="button" class="pf-opt" data-type="'+escapeHtml(p)+'">'+escapeHtml(p)+'</button>'; }).join('') + '</div>';
   if(customs.length){ html += '<div class="pf-label">Mes postes</div><div class="pf-seg">' + customs.map(function(p){ return '<button type="button" class="pf-opt pf-opt-custom" data-type="'+escapeHtml(p)+'">'+escapeHtml(p)+'<span class="pf-opt-del" data-delposte="'+escapeHtml(p)+'">×</span></button>'; }).join('') + '</div>'; }
   html += '<div class="pf-label">Ajouter un poste</div><div class="pf-addrow"><input type="text" id="newPosteInput" placeholder="Ex : Clown, Cascadeur…" autocomplete="off"><button type="button" id="addPosteBtn">Ajouter</button></div>';

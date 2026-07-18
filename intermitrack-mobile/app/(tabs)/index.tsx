@@ -68,7 +68,7 @@ export default function HomeScreen(){
   const [editId,setEditId]=useState<string|null>(null);
   const [fProduction,setFProduction]=useState('');
   const [fEmission,setFEmission]=useState('');
-  const [fType,setFType]=useState('Montage');
+  const [fType,setFType]=useState('');
   const [showTypePicker,setShowTypePicker]=useState(false);
   // true = le choix s'AJOUTE au type courant (« Rec + MIX ») ; false = il le remplace (cas courant).
   const [typeAddMode,setTypeAddMode]=useState(false);
@@ -112,7 +112,7 @@ export default function HomeScreen(){
 
   function openEdit(m:any){
     setEditId(m.id);
-    setFProduction(m.production||''); setFEmission(m.emission||''); setFType(m.mission_type||'Montage');
+    setFProduction(m.production||''); setFEmission(m.emission||''); setFType(m.mission_type||'');
     setFStart(new Date(m.mission_date+'T00:00:00'));
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
     setFHours(String(m.hours||'')); setFGross(String(m.gross_amount||'')); setFVacations(String(m.vacations||''));
@@ -427,7 +427,7 @@ export default function HomeScreen(){
               <TouchableOpacity key={m.id} style={s.missionCard} onPress={()=>openEdit(m)}>
                 <View style={s.missionHead}>
                   <Text style={s.missionProd} numberOfLines={1}>{m.production}</Text>
-                  <View style={s.pill}><Text style={s.pillTxt}>{m.mission_type}</Text></View>
+                  {!!m.mission_type && <View style={s.pill}><Text style={s.pillTxt}>{m.mission_type}</Text></View>}
                 </View>
                 <View style={s.missionInfo}>
                   {m.emission?<View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="videocam-outline" size={13} color={C.muted} /><Text style={s.meta}>{m.emission}</Text></View>:null}

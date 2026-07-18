@@ -78,7 +78,7 @@ export default function Missions(){
   const [editId,setEditId]=useState<string|null>(null);
   const [fProduction,setFProduction]=useState('');
   const [fEmission,setFEmission]=useState('');
-  const [fType,setFType]=useState('Montage');
+  const [fType,setFType]=useState('');
   const [showTypePicker,setShowTypePicker]=useState(false);
   // true = le choix s'AJOUTE au type courant (« Rec + MIX ») ; false = il le remplace (cas courant).
   const [typeAddMode,setTypeAddMode]=useState(false);
@@ -107,7 +107,7 @@ export default function Missions(){
 
   function openEdit(m:any){
     setEditId(m.id);
-    setFProduction(m.production||''); setFEmission(m.emission||''); setFLieu(m.lieu||''); setNewPoste(''); setShowLieuSuggest(false); setFType(m.mission_type||'Montage');
+    setFProduction(m.production||''); setFEmission(m.emission||''); setFLieu(m.lieu||''); setNewPoste(''); setShowLieuSuggest(false); setFType(m.mission_type||'');
     setFStart(new Date(m.mission_date+'T00:00:00'));
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
     // Relecture selon le mode : en cachet, le champ heures ne contient que les heures EN PLUS des cachets.
@@ -253,7 +253,7 @@ export default function Missions(){
             <TouchableOpacity key={m.id} style={[s.missionCard,{borderLeftColor:prod.color}]} onPress={()=>openEdit(m)}>
               <View style={s.missionHead}>
                 <View style={{flexDirection:'row',alignItems:'center',gap:5,flex:1}}><Ionicons name="document-text-outline" size={13} color={C.petrol}/><Text style={s.missionProd} numberOfLines={1}>{m.production}</Text></View>
-                <View style={s.pill}><Text style={s.pillTxt}>{m.mission_type}</Text></View>
+                {!!m.mission_type && <View style={s.pill}><Text style={s.pillTxt}>{m.mission_type}</Text></View>}
                 <TouchableOpacity style={s.quickDelBtn} onPress={()=>quickDelete(m)} hitSlop={6}>
                   <Ionicons name="close" size={17} color={C.danger}/>
                 </TouchableOpacity>

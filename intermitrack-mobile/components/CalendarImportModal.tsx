@@ -240,7 +240,9 @@ export default function CalendarImportModal({
       if (!user) throw new Error('Session expirée, reconnecte-toi.');
       const payloads = selected.map((d) => ({
         user_id: user.id, production: d.production, emission: null, lieu: d.lieu,
-        mission_type: 'Tournage', mission_date: d.mission_date, end_date: d.end_date,
+        // Pas de type technicien forcé pour un artiste (retour Emeric) : en mode cachet on laisse
+        // le type vide, l'artiste le choisira. Un technicien garde « Tournage » par défaut.
+        mission_type: cachetMode ? '' : 'Tournage', mission_date: d.mission_date, end_date: d.end_date,
         // Un cachet vaut 12 h : diviser par 8 pour un artiste comptait ses vacations en trop.
         hours: d.hours, vacations: Math.max(1, Math.round(d.hours / (cachetMode ? CACHET_H : 8))),
         gross_amount: d.gross_amount, status: 'effectue',

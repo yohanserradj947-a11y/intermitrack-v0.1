@@ -103,7 +103,7 @@ export default function Calendar(){
   const [editId,setEditId]=useState<string|null>(null);
   const [fProduction,setFProduction]=useState('');
   const [fEmission,setFEmission]=useState('');
-  const [fType,setFType]=useState('Montage');
+  const [fType,setFType]=useState('');
   const [showTypePicker,setShowTypePicker]=useState(false);
   // true = le choix s'AJOUTE au type courant (« Rec + MIX ») ; false = il le remplace (cas courant).
   const [fVacations,setFVacations]=useState('');
@@ -196,7 +196,7 @@ export default function Calendar(){
   function openEdit(m:any){
     setEditId(m.id);
     setFRegime(m.regime||'intermittence');
-    setFProduction(m.production||''); setFEmission(m.emission||''); setFLieu(m.lieu||''); setNewPoste(''); setFType(m.mission_type||'Montage');
+    setFProduction(m.production||''); setFEmission(m.emission||''); setFLieu(m.lieu||''); setNewPoste(''); setFType(m.mission_type||'');
     setShowTypePicker(false);
     setFStart(new Date((m.mission_date)+'T00:00:00'));
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
@@ -666,7 +666,7 @@ export default function Calendar(){
                 </View>
                 <View style={{alignItems:'flex-end',gap:6}}>
                   <View style={{flexDirection:'row',alignItems:'center',gap:4}}><Ionicons name="time-outline" size={14} color={col}/><Text style={[s.mHours,{color:col}]}>{m.hours}h</Text></View>
-                  <View style={s.mPill}><Text style={s.mPillTxt}>{m.mission_type}</Text></View>
+                  {!!m.mission_type && <View style={s.mPill}><Text style={s.mPillTxt}>{m.mission_type}</Text></View>}
                   {Number(m.gross_amount)>0 && (
                     <View style={{alignItems:'flex-end'}}>
                       <Text style={s.mBrut}>{Math.round(Number(m.gross_amount))} € brut</Text>
@@ -1107,7 +1107,7 @@ export default function Calendar(){
                     <TouchableOpacity style={{flex:1,flexDirection:'row',alignItems:'center'}} onPress={()=>{const mm=m;setDayMenu(null);openEdit(mm);}}>
                       <View style={{flex:1}}>
                         <Text style={s.dayMenuItemProd} numberOfLines={1}>{m.production||'Mission'}</Text>
-                        <Text style={s.dayMenuItemMeta}>{hpj}h/jour · {m.mission_type}</Text>
+                        <Text style={s.dayMenuItemMeta}>{hpj}h/jour{m.mission_type?` · ${m.mission_type}`:''}</Text>
                       </View>
                       <Text style={s.dayMenuChevron}>›</Text>
                     </TouchableOpacity>
