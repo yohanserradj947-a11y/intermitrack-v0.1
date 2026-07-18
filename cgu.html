@@ -7,99 +7,151 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CGU - Intermitrack</title>
 <style>
-* { box-sizing: border-box; }
-body { max-width: 860px; margin: 40px auto; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; line-height: 1.7; color: #2D3748; background: #F5F7F6; }
-.card { background: white; border-radius: 18px; padding: 36px 40px; box-shadow: 0 4px 20px rgba(31,78,95,.07); margin-bottom: 20px; }
-h1 { color: #1F4E5F; font-size: 28px; margin: 0 0 6px; letter-spacing: -.03em; }
-h2 { color: #1F4E5F; font-size: 17px; margin: 28px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #E2E8F0; }
-p { margin: 0 0 12px; font-size: 15px; }
-ul { margin: 0 0 12px; padding-left: 22px; font-size: 15px; }
-li { margin-bottom: 6px; }
-.badge { display: inline-flex; padding: 5px 12px; border-radius: 99px; background: rgba(31,78,95,.08); color: #1F4E5F; font-size: 12px; font-weight: 700; margin-bottom: 18px; }
-.warning { background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 12px; padding: 14px 16px; margin: 16px 0; font-size: 14px; color: #78350F; }
-.warning strong { display: block; margin-bottom: 4px; color: #92400E; }
-.footer-credit { text-align: center; margin-top: 32px; font-size: 11px; color: #A0AEC0; }
-.back { display: inline-flex; align-items: center; gap: 6px; color: #1F4E5F; text-decoration: none; font-size: 14px; font-weight: 700; margin-bottom: 20px; }
+:root{
+  --petrol:#1F4E5F; --petrol-d:#143038; --ink:#243244; --muted:#64748B;
+  --bg:#EAF0EE; --card:#ffffff; --line:#E2E9E7;
+  --warnbg:#FFFBEB; --warnln:#FCD34D; --warnink:#78350F;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.7;}
+a{color:var(--petrol);}
+.hero{background:linear-gradient(135deg,var(--petrol),var(--petrol-d));color:#fff;padding:clamp(26px,5vw,52px) clamp(20px,5vw,64px);}
+.hero .back{display:inline-flex;align-items:center;gap:7px;color:rgba(255,255,255,.85);text-decoration:none;font-size:14px;font-weight:700;margin-bottom:22px;}
+.hero .back:hover{color:#fff;}
+.hero .badge{display:inline-flex;padding:6px 14px;border-radius:99px;background:rgba(255,255,255,.15);color:#fff;font-size:12px;font-weight:800;letter-spacing:.04em;margin-bottom:14px;}
+.hero h1{margin:0 0 8px;font-size:clamp(26px,3.2vw,38px);letter-spacing:-.03em;line-height:1.1;}
+.hero .sub{margin:0;color:rgba(255,255,255,.72);font-size:14px;}
+.wrap{padding:clamp(22px,3.5vw,44px) clamp(20px,5vw,64px);}
+.grid{column-count:3;column-gap:20px;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px 30px;box-shadow:0 3px 16px rgba(31,78,95,.06);break-inside:avoid;-webkit-column-break-inside:avoid;margin:0 0 20px;}
+.card h2{color:var(--petrol);font-size:17px;margin:0 0 16px;padding-bottom:12px;border-bottom:2px solid var(--line);display:flex;align-items:center;gap:11px;letter-spacing:-.01em;}
+.card h2 .num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:9px;background:rgba(31,78,95,.09);color:var(--petrol);font-size:13px;font-weight:900;flex:none;}
+.card p{margin:0 0 12px;font-size:15px;}
+.card p:last-child{margin-bottom:0;}
+.card ul{margin:0;padding-left:20px;font-size:15px;}
+.card li{margin-bottom:8px;}
+.warning{background:var(--warnbg);border:1px solid var(--warnln);border-radius:12px;padding:16px 18px;margin:6px 0 12px;font-size:14px;color:var(--warnink);line-height:1.65;}
+.warning:last-child{margin-bottom:0;}
+.warning .wtitle{display:block;margin-bottom:6px;font-size:14px;font-weight:800;color:#92400E;}
+.warning strong{color:#92400E;}
+.foot{padding:8px clamp(20px,5vw,64px) 44px;text-align:center;font-size:12px;color:var(--muted);}
+.foot a{color:var(--muted);text-decoration:none;}
+.foot a:hover{color:var(--petrol);}
+@media(max-width:1100px){ .grid{column-count:2;} }
+@media(max-width:640px){
+  .grid{column-count:1;}
+  .card{padding:22px 20px;}
+}
 </style>
 </head>
 <body>
 
-<a href="/" class="back">← Retour à l'application</a>
-
-<div class="card">
+<header class="hero">
+  <a href="/" class="back">← Retour à l'application</a>
   <span class="badge">🚧 Version bêta</span>
   <h1>Conditions Générales d'Utilisation</h1>
-  <p style="color:#718096;font-size:14px;">Dernière mise à jour : juin 2026</p>
+  <p class="sub">Dernière mise à jour : juin 2026</p>
+</header>
 
-  <h2>1. Objet du service</h2>
-  <p>Intermitrack est un outil destiné à aider les intermittents du spectacle dans le suivi de leurs missions, documents, heures travaillées, prévisions ARE et informations administratives. Le service est proposé gratuitement dans le cadre d'une phase bêta de développement.</p>
+<main class="wrap">
+  <div class="grid">
 
-  <h2>2. Acceptation des conditions</h2>
-  <p>L'utilisation d'Intermitrack implique l'acceptation sans réserve des présentes CGU. L'éditeur se réserve le droit de les modifier à tout moment. Les utilisateurs seront informés des changements importants par email.</p>
+    <section class="card">
+      <h2><span class="num">1</span> Objet du service</h2>
+      <p>Intermitrack est un outil destiné à aider les intermittents du spectacle dans le suivi de leurs missions, documents, heures travaillées, prévisions ARE et informations administratives. Le service est proposé gratuitement dans le cadre d'une phase bêta de développement.</p>
+    </section>
 
-  <h2>3. Phase bêta — limitations importantes</h2>
-  <div class="warning">
-    <strong>⚠️ Service en phase de test</strong>
-    Intermitrack est actuellement en phase bêta. Certaines fonctionnalités peuvent évoluer, être modifiées ou contenir des erreurs. L'éditeur ne garantit pas une disponibilité permanente du service pendant cette phase.
+    <section class="card">
+      <h2><span class="num">2</span> Acceptation des conditions</h2>
+      <p>L'utilisation d'Intermitrack implique l'acceptation sans réserve des présentes CGU. L'éditeur se réserve le droit de les modifier à tout moment. Les utilisateurs seront informés des changements importants par email.</p>
+    </section>
+
+    <section class="card">
+      <h2><span class="num">3</span> Phase bêta : limitations importantes</h2>
+      <div class="warning">
+        <span class="wtitle">⚠️ Service en phase de test</span>
+        Intermitrack est actuellement en phase bêta. Certaines fonctionnalités peuvent évoluer, être modifiées ou contenir des erreurs. L'éditeur ne garantit pas une disponibilité permanente du service pendant cette phase.
+      </div>
+      <p>Les résultats fournis par Intermitrack (calculs d'heures, estimations ARE, fiscalité, franchises) ont une valeur <strong>purement informative et indicative</strong>. Ils ne remplacent en aucun cas les informations officielles fournies par France Travail, Audiens, les employeurs ou tout autre organisme compétent.</p>
+    </section>
+
+    <section class="card">
+      <h2><span class="num">4</span> Documents importés : avertissement</h2>
+      <div class="warning">
+        <span class="wtitle">⚠️ Avant d'importer des documents</span>
+        Les documents déposés dans Intermitrack sont stockés sur l'infrastructure Supabase. En tant qu'administrateur du service, l'éditeur dispose techniquement d'un accès aux fichiers stockés dans le cadre de la maintenance et du support. Il s'engage à ne pas consulter les données personnelles des utilisateurs en dehors de ce cadre.
+        <br><br>
+        <strong>Il est fortement déconseillé d'importer des documents contenant des données bancaires, médicales ou toute information très sensible.</strong> Les AEM, fiches de paie et contrats CDDU restent des documents courants pour lesquels le service est adapté.
+      </div>
+      <p>L'utilisateur reste propriétaire de ses documents et est responsable de la conservation de ses fichiers originaux. Intermitrack ne peut être tenu responsable en cas de perte de données.</p>
+    </section>
+
+    <section class="card">
+      <h2><span class="num">5</span> Analyse IA des documents</h2>
+      <p>La fonctionnalité d'import automatique par intelligence artificielle est en phase expérimentale. Les documents analysés transitent par des services tiers (OpenAI, Mistral AI). La confidentialité absolue des données lors de cette analyse ne peut être garantie. Cette fonctionnalité est clairement identifiée comme expérimentale dans l'application.</p>
+    </section>
+
+    <section class="card">
+      <h2><span class="num">6</span> Module de facturation (auto-entrepreneur)</h2>
+      <div class="warning">
+        <span class="wtitle">⚠️ Outil d'aide à la saisie, non certifié</span>
+        Le module de facturation n'est pas un logiciel de facturation certifié au sens de la réglementation anti-fraude et ne prend pas en charge la facturation électronique obligatoire entre professionnels (réforme en cours de déploiement). Il s'agit d'une aide à la saisie.
+      </div>
+      <p>Les estimations de cotisations URSSAF et de chiffre d'affaires sont <strong>purement indicatives</strong> et dépendent du taux et des informations saisis par l'utilisateur. Elles ne constituent pas un conseil comptable ou fiscal : Intermitrack n'exerce pas la profession d'expert-comptable.</p>
+      <ul>
+        <li>L'utilisateur est seul responsable de l'exactitude de ses factures, de leur numérotation chronologique et continue, des mentions légales obligatoires, de leur conservation (10 ans) et de leur déclaration auprès de l'URSSAF, de l'administration fiscale et de France Travail.</li>
+        <li>La suppression d'une facture pouvant rompre la continuité de la numérotation, il est recommandé d'établir une facture d'avoir plutôt que de supprimer une facture déjà émise.</li>
+        <li>Il appartient à l'utilisateur de déclarer ses revenus d'auto-entrepreneur à France Travail, ces revenus pouvant impacter ses droits ARE.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2><span class="num">7</span> Responsabilité de l'utilisateur</h2>
+      <ul>
+        <li>L'utilisateur est responsable de la vérification des informations affichées par l'application.</li>
+        <li>L'utilisateur s'engage à utiliser le service pour un usage personnel et professionnel légitime.</li>
+        <li>L'utilisateur est responsable de la confidentialité de ses identifiants de connexion.</li>
+        <li>Il appartient à l'utilisateur de conserver une copie de ses documents originaux indépendamment d'Intermitrack.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2><span class="num">8</span> Limitation de responsabilité</h2>
+      <p>L'éditeur d'Intermitrack ne pourra être tenu responsable :</p>
+      <ul>
+        <li>Des erreurs dans les calculs indicatifs fournis par l'application</li>
+        <li>D'une interruption de service pendant la phase bêta</li>
+        <li>De toute décision prise par l'utilisateur sur la base des informations affichées</li>
+        <li>De la perte de données en cas de défaillance technique</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2><span class="num">9</span> Propriété intellectuelle</h2>
+      <p>Le code, le design et les contenus d'Intermitrack sont la propriété de son éditeur. Toute reproduction sans autorisation est interdite.</p>
+    </section>
+
+    <section class="card">
+      <h2><span class="num">10</span> Évolution du service</h2>
+      <p>Les fonctionnalités peuvent être ajoutées, modifiées ou supprimées à tout moment afin d'améliorer le service. L'éditeur s'efforcera d'informer les utilisateurs des changements significatifs.</p>
+    </section>
+
+    <section class="card">
+      <h2><span class="num">11</span> Droit applicable</h2>
+      <p>Les présentes CGU sont soumises au droit français. En cas de litige, les tribunaux français seront compétents.</p>
+    </section>
+
+    <section class="card">
+      <h2>Contact</h2>
+      <p>Pour toute question relative aux présentes CGU :<br>
+      <a href="mailto:intermitrack@gmail.com">intermitrack@gmail.com</a></p>
+    </section>
+
   </div>
-  <p>Les résultats fournis par Intermitrack (calculs d'heures, estimations ARE, fiscalité, franchises) ont une valeur <strong>purement informative et indicative</strong>. Ils ne remplacent en aucun cas les informations officielles fournies par France Travail, Audiens, les employeurs ou tout autre organisme compétent.</p>
+</main>
 
-  <h2>4. Documents importés — avertissement</h2>
-  <div class="warning">
-    <strong>⚠️ Avant d'importer des documents</strong>
-    Les documents déposés dans Intermitrack sont stockés sur l'infrastructure Supabase. En tant qu'administrateur du service, l'éditeur dispose techniquement d'un accès aux fichiers stockés dans le cadre de la maintenance et du support. Il s'engage à ne pas consulter les données personnelles des utilisateurs en dehors de ce cadre.
-    <br><br>
-    <strong>Il est fortement déconseillé d'importer des documents contenant des données bancaires, médicales ou toute information très sensible.</strong> Les AEM, fiches de paie et contrats CDDU restent des documents courants pour lesquels le service est adapté.
-  </div>
-  <p>L'utilisateur reste propriétaire de ses documents et est responsable de la conservation de ses fichiers originaux. Intermitrack ne peut être tenu responsable en cas de perte de données.</p>
-
-  <h2>5. Analyse IA des documents</h2>
-  <p>La fonctionnalité d'import automatique par intelligence artificielle est en phase expérimentale. Les documents analysés transitent par des services tiers (OpenAI, Mistral AI). La confidentialité absolue des données lors de cette analyse ne peut être garantie. Cette fonctionnalité est clairement identifiée comme expérimentale dans l'application.</p>
-
-  <h2>6. Module de facturation (auto-entrepreneur)</h2>
-  <div class="warning">
-    <strong>⚠️ Outil d'aide à la saisie, non certifié</strong>
-    Le module de facturation n'est pas un logiciel de facturation certifié au sens de la réglementation anti-fraude et ne prend pas en charge la facturation électronique obligatoire entre professionnels (réforme en cours de déploiement). Il s'agit d'une aide à la saisie.
-  </div>
-  <p>Les estimations de cotisations URSSAF et de chiffre d'affaires sont <strong>purement indicatives</strong> et dépendent du taux et des informations saisis par l'utilisateur. Elles ne constituent pas un conseil comptable ou fiscal : Intermitrack n'exerce pas la profession d'expert-comptable.</p>
-  <ul>
-    <li>L'utilisateur est seul responsable de l'exactitude de ses factures, de leur numérotation chronologique et continue, des mentions légales obligatoires, de leur conservation (10 ans) et de leur déclaration auprès de l'URSSAF, de l'administration fiscale et de France Travail.</li>
-    <li>La suppression d'une facture pouvant rompre la continuité de la numérotation, il est recommandé d'établir une facture d'avoir plutôt que de supprimer une facture déjà émise.</li>
-    <li>Il appartient à l'utilisateur de déclarer ses revenus d'auto-entrepreneur à France Travail, ces revenus pouvant impacter ses droits ARE.</li>
-  </ul>
-
-  <h2>7. Responsabilité de l'utilisateur</h2>
-  <ul>
-    <li>L'utilisateur est responsable de la vérification des informations affichées par l'application.</li>
-    <li>L'utilisateur s'engage à utiliser le service pour un usage personnel et professionnel légitime.</li>
-    <li>L'utilisateur est responsable de la confidentialité de ses identifiants de connexion.</li>
-    <li>Il appartient à l'utilisateur de conserver une copie de ses documents originaux indépendamment d'Intermitrack.</li>
-  </ul>
-
-  <h2>8. Limitation de responsabilité</h2>
-  <p>L'éditeur d'Intermitrack ne pourra être tenu responsable :</p>
-  <ul>
-    <li>Des erreurs dans les calculs indicatifs fournis par l'application</li>
-    <li>D'une interruption de service pendant la phase bêta</li>
-    <li>De toute décision prise par l'utilisateur sur la base des informations affichées</li>
-    <li>De la perte de données en cas de défaillance technique</li>
-  </ul>
-
-  <h2>9. Propriété intellectuelle</h2>
-  <p>Le code, le design et les contenus d'Intermitrack sont la propriété de son éditeur. Toute reproduction sans autorisation est interdite.</p>
-
-  <h2>10. Évolution du service</h2>
-  <p>Les fonctionnalités peuvent être ajoutées, modifiées ou supprimées à tout moment afin d'améliorer le service. L'éditeur s'efforcera d'informer les utilisateurs des changements significatifs.</p>
-
-  <h2>11. Droit applicable</h2>
-  <p>Les présentes CGU sont soumises au droit français. En cas de litige, les tribunaux français seront compétents.</p>
-
-  <h2>Contact</h2>
-  <p>Pour toute question relative aux présentes CGU :<br><br>
-  <a href="mailto:intermitrack@gmail.com" style="color:#1F4E5F;">intermitrack@gmail.com</a></p>
-</div>
-
-<p class="footer-credit">Intermitrack — <a href="mentions-legales.html" style="color:#A0AEC0;">Mentions légales</a> · <a href="confidentialite.html" style="color:#A0AEC0;">Confidentialité</a> · <a href="securite.html" style="color:#A0AEC0;">Sécurité</a> · Éditeur : Y. Serradj</p>
+<footer class="foot">Intermitrack · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a> · <a href="securite.html">Sécurité</a> · Éditeur : Y. Serradj</footer>
 
 </body>
 </html>

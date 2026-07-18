@@ -7,72 +7,110 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mentions légales - Intermitrack</title>
 <style>
-* { box-sizing: border-box; }
-body { max-width: 860px; margin: 40px auto; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; line-height: 1.7; color: #2D3748; background: #F5F7F6; }
-.card { background: white; border-radius: 18px; padding: 36px 40px; box-shadow: 0 4px 20px rgba(31,78,95,.07); margin-bottom: 20px; }
-h1 { color: #1F4E5F; font-size: 28px; margin: 0 0 6px; letter-spacing: -.03em; }
-h2 { color: #1F4E5F; font-size: 17px; margin: 28px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #E2E8F0; }
-p { margin: 0 0 12px; font-size: 15px; }
-ul { margin: 0 0 12px; padding-left: 22px; font-size: 15px; }
-li { margin-bottom: 6px; }
-.badge { display: inline-flex; padding: 5px 12px; border-radius: 99px; background: rgba(31,78,95,.08); color: #1F4E5F; font-size: 12px; font-weight: 700; margin-bottom: 18px; }
-.info-block { background: #F8FAF9; border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px 18px; margin: 10px 0; font-size: 15px; }
-.footer-credit { text-align: center; margin-top: 32px; font-size: 11px; color: #A0AEC0; }
-.back { display: inline-flex; align-items: center; gap: 6px; color: #1F4E5F; text-decoration: none; font-size: 14px; font-weight: 700; margin-bottom: 20px; }
+:root{
+  --petrol:#1F4E5F; --petrol-d:#143038; --ink:#243244; --muted:#64748B;
+  --bg:#EAF0EE; --card:#ffffff; --line:#E2E9E7;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.7;}
+a{color:var(--petrol);}
+.hero{background:linear-gradient(135deg,var(--petrol),var(--petrol-d));color:#fff;padding:clamp(26px,5vw,52px) clamp(20px,5vw,64px);}
+.hero .back{display:inline-flex;align-items:center;gap:7px;color:rgba(255,255,255,.85);text-decoration:none;font-size:14px;font-weight:700;margin-bottom:22px;}
+.hero .back:hover{color:#fff;}
+.hero .badge{display:inline-flex;padding:6px 14px;border-radius:99px;background:rgba(255,255,255,.15);color:#fff;font-size:12px;font-weight:800;letter-spacing:.04em;margin-bottom:14px;}
+.hero h1{margin:0 0 8px;font-size:clamp(26px,3.2vw,38px);letter-spacing:-.03em;line-height:1.1;}
+.hero .sub{margin:0;color:rgba(255,255,255,.72);font-size:14px;max-width:720px;}
+.wrap{padding:clamp(22px,3.5vw,44px) clamp(20px,5vw,64px);}
+.grid{column-count:3;column-gap:20px;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px 30px;box-shadow:0 3px 16px rgba(31,78,95,.06);break-inside:avoid;-webkit-column-break-inside:avoid;margin:0 0 20px;}
+.card h2{color:var(--petrol);font-size:17px;margin:0 0 16px;padding-bottom:12px;border-bottom:2px solid var(--line);letter-spacing:-.01em;}
+.card p{margin:0 0 12px;font-size:15px;}
+.card p:last-child{margin-bottom:0;}
+.info-block{background:#F6FAF9;border:1px solid var(--line);border-radius:12px;padding:15px 17px;font-size:15px;line-height:1.75;}
+.foot{padding:8px clamp(20px,5vw,64px) 44px;text-align:center;font-size:12px;color:var(--muted);}
+.foot a{color:var(--muted);text-decoration:none;}
+.foot a:hover{color:var(--petrol);}
+@media(max-width:1100px){ .grid{column-count:2;} }
+@media(max-width:640px){
+  .grid{column-count:1;}
+  .card{padding:22px 20px;}
+}
 </style>
 </head>
 <body>
 
-<a href="/" class="back">← Retour à l'application</a>
-
-<div class="card">
+<header class="hero">
+  <a href="/" class="back">← Retour à l'application</a>
   <span class="badge">📄 Informations légales</span>
   <h1>Mentions légales</h1>
-  <p style="color:#718096;font-size:14px;">Conformément à la loi n°2004-575 du 21 juin 2004 pour la confiance dans l'économie numérique.</p>
+  <p class="sub">Conformément à la loi n°2004-575 du 21 juin 2004 pour la confiance dans l'économie numérique.</p>
+</header>
 
-  <h2>Éditeur du site</h2>
-  <div class="info-block">
-    Intermitrack est édité par un particulier à titre non commercial.<br><br>
-    <strong>Nom du site :</strong> Intermitrack<br>
-    <strong>URL :</strong> <a href="https://www.intermitrack.fr" style="color:#1F4E5F;">www.intermitrack.fr</a><br>
-    <strong>Email :</strong> <a href="mailto:intermitrack@gmail.com" style="color:#1F4E5F;">intermitrack@gmail.com</a>
+<main class="wrap">
+  <div class="grid">
+
+    <section class="card">
+      <h2>Éditeur du site</h2>
+      <div class="info-block">
+        Intermitrack est édité par un particulier à titre non commercial.<br><br>
+        <strong>Nom du site :</strong> Intermitrack<br>
+        <strong>URL :</strong> <a href="https://www.intermitrack.fr">www.intermitrack.fr</a><br>
+        <strong>Email :</strong> <a href="mailto:intermitrack@gmail.com">intermitrack@gmail.com</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Hébergement</h2>
+      <div class="info-block">
+        <strong>GitHub Pages</strong><br>
+        GitHub, Inc. · 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA<br>
+        <a href="https://pages.github.com" target="_blank">pages.github.com</a>
+        <br><br>
+        <strong>Supabase</strong><br>
+        Supabase Inc. · Base de données, authentification et stockage de fichiers<br>
+        Serveurs localisés en Europe (région EU)<br>
+        <a href="https://supabase.com" target="_blank">supabase.com</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Objet du service</h2>
+      <p>Intermitrack est une plateforme destinée à aider les intermittents du spectacle dans le suivi de leur activité professionnelle : missions, heures, documents administratifs, prévisions ARE, estimations fiscales indicatives et un module de facturation destiné aux utilisateurs exerçant une activité d'auto-entrepreneur.</p>
+      <p>Le service est proposé gratuitement dans le cadre d'une phase bêta de développement. Les informations affichées ont une valeur indicative et ne remplacent pas les organismes officiels (France Travail, Audiens, URSSAF, administration fiscale).</p>
+    </section>
+
+    <section class="card">
+      <h2>Module de facturation (auto-entrepreneur)</h2>
+      <p>Intermitrack propose un outil permettant aux utilisateurs auto-entrepreneurs d'établir des factures et de suivre leur chiffre d'affaires. Il s'agit d'une <strong>aide à la saisie</strong> : Intermitrack n'est pas un logiciel de facturation certifié au sens de la réglementation anti-fraude, et ne prend pas en charge la facturation électronique obligatoire entre professionnels (réforme en cours de déploiement). Les montants de cotisations URSSAF et de chiffre d'affaires affichés sont des <strong>estimations indicatives</strong> dépendant des informations saisies. Chaque utilisateur demeure seul responsable de la conformité, de la numérotation, de la conservation et de la déclaration de ses factures auprès des organismes compétents.</p>
+    </section>
+
+    <section class="card">
+      <h2>Propriété intellectuelle</h2>
+      <p>« Intermitrack » est une <strong>marque déposée auprès de l'INPI</strong> (Institut National de la Propriété Industrielle). Toute utilisation, reproduction ou imitation de la dénomination ou du logo, sans autorisation écrite préalable de l'éditeur, est interdite et susceptible de constituer une contrefaçon.</p>
+      <p>Le code source, le design et les contenus d'Intermitrack sont la propriété de l'éditeur et font l'objet d'un <strong>dépôt horodaté (enveloppe e-Soleau, INPI)</strong> attestant de leur antériorité. Toute reproduction totale ou partielle sans autorisation préalable est interdite.</p>
+    </section>
+
+    <section class="card">
+      <h2>Données personnelles</h2>
+      <p>Pour toute information sur le traitement de vos données personnelles, consultez notre <a href="confidentialite.html">politique de confidentialité</a>.</p>
+    </section>
+
+    <section class="card">
+      <h2>Responsabilité</h2>
+      <p>L'éditeur s'efforce d'assurer l'exactitude et la mise à jour des informations diffusées sur le site. Toutefois, il ne peut garantir l'exactitude, la complétude ou l'actualité des informations. En conséquence, l'éditeur décline toute responsabilité pour toute imprécision ou omission portant sur les informations disponibles sur ce site.</p>
+    </section>
+
+    <section class="card">
+      <h2>Contact</h2>
+      <p>Pour toute question ou réclamation :<br>
+      <a href="mailto:intermitrack@gmail.com">intermitrack@gmail.com</a></p>
+    </section>
+
   </div>
+</main>
 
-  <h2>Hébergement</h2>
-  <div class="info-block">
-    <strong>GitHub Pages</strong><br>
-    GitHub, Inc. — 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA<br>
-    <a href="https://pages.github.com" target="_blank" style="color:#1F4E5F;">pages.github.com</a>
-    <br><br>
-    <strong>Supabase</strong><br>
-    Supabase Inc. — Base de données, authentification et stockage de fichiers<br>
-    Serveurs localisés en Europe (région EU)<br>
-    <a href="https://supabase.com" target="_blank" style="color:#1F4E5F;">supabase.com</a>
-  </div>
-
-  <h2>Objet du service</h2>
-  <p>Intermitrack est une plateforme destinée à aider les intermittents du spectacle dans le suivi de leur activité professionnelle : missions, heures, documents administratifs, prévisions ARE, estimations fiscales indicatives et un module de facturation destiné aux utilisateurs exerçant une activité d'auto-entrepreneur.</p>
-  <p>Le service est proposé gratuitement dans le cadre d'une phase bêta de développement. Les informations affichées ont une valeur indicative et ne remplacent pas les organismes officiels (France Travail, Audiens, URSSAF, administration fiscale).</p>
-
-  <h2>Module de facturation (auto-entrepreneur)</h2>
-  <p>Intermitrack propose un outil permettant aux utilisateurs auto-entrepreneurs d'établir des factures et de suivre leur chiffre d'affaires. Il s'agit d'une <strong>aide à la saisie</strong> : Intermitrack n'est pas un logiciel de facturation certifié au sens de la réglementation anti-fraude, et ne prend pas en charge la facturation électronique obligatoire entre professionnels (réforme en cours de déploiement). Les montants de cotisations URSSAF et de chiffre d'affaires affichés sont des <strong>estimations indicatives</strong> dépendant des informations saisies. Chaque utilisateur demeure seul responsable de la conformité, de la numérotation, de la conservation et de la déclaration de ses factures auprès des organismes compétents.</p>
-
-  <h2>Propriété intellectuelle</h2>
-  <p>« Intermitrack » est une <strong>marque déposée auprès de l'INPI</strong> (Institut National de la Propriété Industrielle). Toute utilisation, reproduction ou imitation de la dénomination ou du logo, sans autorisation écrite préalable de l'éditeur, est interdite et susceptible de constituer une contrefaçon.</p>
-  <p>Le code source, le design et les contenus d'Intermitrack sont la propriété de l'éditeur et font l'objet d'un <strong>dépôt horodaté (enveloppe e-Soleau, INPI)</strong> attestant de leur antériorité. Toute reproduction totale ou partielle sans autorisation préalable est interdite.</p>
-
-  <h2>Données personnelles</h2>
-  <p>Pour toute information sur le traitement de vos données personnelles, consultez notre <a href="confidentialite.html" style="color:#1F4E5F;">politique de confidentialité</a>.</p>
-
-  <h2>Responsabilité</h2>
-  <p>L'éditeur s'efforce d'assurer l'exactitude et la mise à jour des informations diffusées sur le site. Toutefois, il ne peut garantir l'exactitude, la complétude ou l'actualité des informations. En conséquence, l'éditeur décline toute responsabilité pour toute imprécision ou omission portant sur les informations disponibles sur ce site.</p>
-
-  <h2>Contact</h2>
-  <p>Pour toute question ou réclamation :<br><br>
-  <a href="mailto:intermitrack@gmail.com" style="color:#1F4E5F;">intermitrack@gmail.com</a></p>
-</div>
-
-<p class="footer-credit">Intermitrack — <a href="cgu.html" style="color:#A0AEC0;">CGU</a> · <a href="confidentialite.html" style="color:#A0AEC0;">Confidentialité</a> · <a href="securite.html" style="color:#A0AEC0;">Sécurité</a> · Éditeur : Y. Serradj</p>
+<footer class="foot">Intermitrack · <a href="cgu.html">CGU</a> · <a href="confidentialite.html">Confidentialité</a> · <a href="securite.html">Sécurité</a> · Éditeur : Y. Serradj</footer>
 
 </body>
 </html>
