@@ -378,7 +378,15 @@ function _xlEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"
 function _xlFmtD(iso){ const p=String(iso||'').split('-'); return p.length===3 ? p[2]+'/'+p[1] : iso; }
 function _xlParseFrDate(s){ const m=String(s).toLowerCase().match(/(\d{1,2})\s+([a-zûéèàôç]+)\s+(\d{4})/i); if(m&&XL_MONTHS[m[2]]) return m[3]+'-'+String(XL_MONTHS[m[2]]).padStart(2,'0')+'-'+String(Number(m[1])).padStart(2,'0'); return null; }
 function _xlYmd(v){ if(v==null||v==='')return null; if(v instanceof Date&&!isNaN(v.getTime())) return v.getFullYear()+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+String(v.getDate()).padStart(2,'0'); if(typeof v==='number'){ const d=new Date(Math.round((v-25569)*86400*1000)); if(!isNaN(d.getTime())) return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0'); return null; } const s=String(v).trim(); const fr=_xlParseFrDate(s); if(fr)return fr; const dm=s.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/); if(dm){ let y=dm[3]; if(y.length===2)y='20'+y; return y+'-'+dm[2].padStart(2,'0')+'-'+dm[1].padStart(2,'0'); } return null; }
-function _xlNum(v){ if(v==null||v==='')return 0; if(typeof v==='number')return v; const n=Number(String(v).replace(/[^\d,.-]/g,'').replace(/\s/g,'').replace(',','.')); return isFinite(n)?n:0; }
+function _xlNum(v){
+  if(v==null||v==='')return 0;
+  if(typeof v==='number')return v;
+  // virgule OU point comme décimale + séparateurs de milliers, pour ne plus lire « 250,00 » comme 25000 (retour Tuu Coo).
+  var s=String(v).replace(/[^\d,.\-]/g,'').replace(/\s/g,'');
+  if(s.indexOf(',')>=0 && s.indexOf('.')>=0){ s = s.lastIndexOf(',')>s.lastIndexOf('.') ? s.replace(/\./g,'').replace(',','.') : s.replace(/,/g,''); }
+  else if(s.indexOf(',')>=0){ s = /,\d{1,2}$/.test(s) ? s.replace(',','.') : s.replace(/,/g,''); }
+  var n=Number(s); return isFinite(n)?n:0;
+}
 function _xlDetectCols(header){ const H=header.map(function(h){return String(h||'').toLowerCase().trim();}); const find=function(rx){ return H.findIndex(function(h){return rx.test(h);}); }; return { date:find(/date|jour/), prod:find(/prod|production|soci[ée]t[ée]|client|[ée]mission|nom|projet/), hours:find(/heure|hours|dur[ée]e/), price:find(/prix|tarif|montant|brut|cachet|salaire|€|euro/), lieu:find(/lieu|adresse|ville|salle|site/) }; }
 function _xlParseSheet(rows){ if(!rows.length)return []; let hi=rows.findIndex(function(r){return (r||[]).some(function(c){return /date/i.test(String(c||''));});}); if(hi<0)hi=0; const cols=_xlDetectCols(rows[hi]||[]); const out=[]; for(let i=hi+1;i<rows.length;i++){ const row=rows[i]||[]; const date=cols.date>=0?_xlYmd(row[cols.date]):null; if(!date)continue; const prod=cols.prod>=0?String(row[cols.prod]||'').trim():''; const hours=cols.hours>=0?_xlNum(row[cols.hours]):0; const price=cols.price>=0?_xlNum(row[cols.price]):0; const lieu=cols.lieu>=0?String(row[cols.lieu]||'').trim():''; const missing=[]; if(!prod)missing.push('prod'); if(!(hours>0))missing.push('heures'); if(!(price>0))missing.push('prix'); out.push({ date:date, prod:prod.toUpperCase(), hours:hours>0?hours:8, price:price, lieu:lieu, missing:missing, selected:true }); } return out; }
 // Lit TOUS les onglets du classeur (un fichier peut avoir un onglet vide "Feuil1" + les vraies données sur un 2e onglet).
@@ -427,7 +435,7 @@ async function _xlPickFile(){
   if(!inp){ inp=document.createElement('input'); inp.type='file'; inp.id='xlFileInput'; inp.accept='.xlsx,.xls,.csv'; inp.style.display='none'; document.body.appendChild(inp);
     inp.addEventListener('change', async function(){ const f=inp.files&&inp.files[0]; inp.value=''; if(!f)return;
       try{
-        const buf=await f.arrayBuffer(); const wb=XLSX.read(new Uint8Array(buf),{type:'array'}); /* pas de cellDates : dates lues en numéro de série + UTC (_xlYmd), sinon décalage d'un jour selon le fuseau */
+        const buf=await f.arrayBuffer(); const wb=XLSX.read(new Uint8Array(buf),{type:'array',raw:true}); /* raw:true : ne pas deviner les nombres (« 250,00 » CSV -> 25000) ; pas de cellDates : dates en numéro de série + UTC (_xlYmd) */
         let drafts=_xlParseWorkbook(wb);
         const rawCount=drafts.length;
         try{ const ex=await sb.from('missions').select('mission_date,production'); const seen=new Set((ex.data||[]).map(function(m){return m.mission_date+'|'+String(m.production||'').toUpperCase();})); drafts=drafts.filter(function(d){return !seen.has(d.date+'|'+d.prod);}); }catch(_){}
