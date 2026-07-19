@@ -473,7 +473,6 @@ export default function HomeScreen(){
               <View style={{flex:1,alignItems:'center'}}>
                 <Text style={s.aiPeriod}>{isoToDisplay(iso(winStart))} → {isoToDisplay(iso(winEnd))}</Text>
                 <Text style={s.aiPeriodSub}>{yearOffset===0?'Année d\'intermittence en cours':(yearOffset===-1?'Année précédente':'Il y a '+(-yearOffset)+' ans')}</Text>
-                <Text style={s.aiHours}>{doneH} h effectuées + {planH} h prévues = {Math.round((doneH+planH)*10)/10} h</Text>
               </View>
               <TouchableOpacity style={[s.aiNavBtn,yearOffset>=0?{opacity:0.25}:null]} disabled={yearOffset>=0} onPress={()=>setYearOffset(o=>Math.min(0,o+1))}><Ionicons name="chevron-forward" size={18} color={C.petrol}/></TouchableOpacity>
             </View>
@@ -871,7 +870,6 @@ const makeS=(C:any)=>StyleSheet.create({
   aiNavBtn:{width:34,height:34,borderRadius:17,alignItems:'center',justifyContent:'center',backgroundColor:C.soft},
   aiPeriod:{fontSize:13.5,fontWeight:'900',color:C.petrol},
   aiPeriodSub:{fontSize:10.5,color:C.muted,marginTop:1,fontWeight:'700'},
-  aiHours:{fontSize:10.5,color:C.petrol,marginTop:3,fontWeight:'800',textAlign:'center'},
   areValidateBtn:{backgroundColor:C.petrol,borderRadius:12,paddingVertical:13,alignItems:'center',marginTop:10},
   areValidateTxt:{color:'#FFFFFF',fontWeight:'800',fontSize:15},
   chartCard:{marginHorizontal:16,backgroundColor:C.card,borderRadius:22,padding:4,borderWidth:1,borderColor:C.line,marginTop:12,shadowColor:C.petrol,shadowOpacity:0.06,shadowRadius:16,elevation:3},

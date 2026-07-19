@@ -25,6 +25,7 @@ export default function Previsions(){
   const [c1Annexe,setC1Annexe]=useState<'technicien'|'artiste'>('technicien');
   const [c1Nht,setC1Nht]=useState('');
   const [c1Sr,setC1Sr]=useState('');
+  const [areDate,setAreDate]=useState(''); // date ARE (pour la fenêtre « année d'intermittence »)
   const [c1Csg,setC1Csg]=useState<'plein'|'reduit'|'exonere'>('plein');
   const [c1Res,setC1Res]=useState<any>(null);
   const [savedSr,setSavedSr]=useState<number|null>(null); // salaire de référence mémorisé dans le profil
@@ -81,6 +82,14 @@ export default function Previsions(){
   async function loadMissions(){
     const{data}=await supabase.from('missions').select('*');
     if(data)setMissions(data);
+    // Date ARE = le PROFIL fait foi (comme le tableau de bord), cache local en secours.
+    try{
+      const { data:{ user } }=await supabase.auth.getUser();
+      let ad='';
+      if(user){ const { data:pr }=await supabase.from('profiles').select('are_date').eq('id',user.id).maybeSingle(); if(pr?.are_date) ad=String(pr.are_date); }
+      if(!ad){ const s=await AsyncStorage.getItem('intermitrack_are_date'); if(s) ad=s; }
+      if(ad) setAreDate(ad);
+    }catch(e){}
     setLoading(false);
   }
   async function loadTaux(){
@@ -96,9 +105,12 @@ export default function Previsions(){
   const remaining=Math.max(0,Math.round((CONFIG.NH-doneH)*10)/10);
   const pct=Math.min(100,Math.round((doneH/CONFIG.NH)*100));
 
-  // Salaire de référence AUTO : total brut + heures des missions sur 12 mois glissants.
-  const _win12=new Date(today); _win12.setFullYear(today.getFullYear()-1);
-  const _refMissions=missions.filter((m:any)=>{ const d=new Date((m.mission_date||'')+'T00:00:00'); return d>=_win12 && d<=today; });
+  // Salaire de référence AUTO : brut + heures de TOUTES tes missions de l'année d'intermittence en
+  // cours (fenêtre de 12 mois à partir de la date ARE, comme le tableau de bord : effectué + prévu).
+  let _winS:Date, _winE:Date;
+  if(areDate){ const _a=new Date(areDate+'T00:00:00'); let _k=today.getFullYear()-_a.getFullYear(); const _an=new Date(_a); _an.setFullYear(_a.getFullYear()+_k); if(_an>today)_k-=1; _winS=new Date(_a); _winS.setFullYear(_a.getFullYear()+_k); _winE=new Date(_a); _winE.setFullYear(_a.getFullYear()+_k+1); }
+  else { _winS=new Date(today.getFullYear(),0,1); _winE=new Date(today.getFullYear()+1,0,1); }
+  const _refMissions=missions.filter((m:any)=>{ const d=new Date((m.mission_date||'')+'T00:00:00'); return d>=_winS && d<_winE; });
   const autoSr=Math.round(_refMissions.reduce((a,m:any)=>a+Number(m.gross_amount||0),0));
   const autoNht=Math.round(_refMissions.reduce((a,m:any)=>a+Number(m.hours||0),0)*10)/10;
   // Pré-remplissage « les deux » : valeur mémorisée en priorité, sinon l'auto depuis les missions.
@@ -111,8 +123,9 @@ export default function Previsions(){
     if(sr>0 || autoNht>0) setC1Prefilled(true);
   },[loading,profileLoaded,savedSr,autoSr,autoNht]);
 
-  function calcC1(){
-    const nht=num(c1Nht), sr=num(c1Sr);
+  function calcC1(srOverride?:number, nhtOverride?:number){
+    const nht=nhtOverride!==undefined?nhtOverride:num(c1Nht);
+    const sr=srOverride!==undefined?srOverride:num(c1Sr);
     if(!(nht>0)||!(sr>0)){setC1Res({err:true});return;}
     const k=c1Annexe==='artiste'?CONFIG.ARTISTE:CONFIG.TECHNICIEN;
     const brute=ajBrute(c1Annexe,nht,sr);
@@ -170,19 +183,20 @@ export default function Previsions(){
         </View>
         <Text style={s.label}>Nombre d'heures travaillées</Text>
         <NumInput style={s.input} value={c1Nht} onChangeText={setC1Nht} placeholder="507" placeholderTextColor={C.muted}/>
+        {autoNht>0 && <TouchableOpacity onPress={()=>{setC1Nht(String(autoNht)); calcC1(undefined,autoNht);}} hitSlop={6}><Text style={{fontSize:11.5,fontWeight:'700',color:C.petrol,marginTop:2,marginBottom:2}}>↺ Pré-remplir : {autoNht} h (mon année en cours)</Text></TouchableOpacity>}
         <Text style={s.label}>Salaire de référence brut (€)</Text>
         <NumInput style={s.input} value={c1Sr} onChangeText={setC1Sr} placeholder="20000" placeholderTextColor={C.muted}/>
         <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:-4,marginBottom:2}}>
           <Text style={{fontSize:11.5,color:C.muted,flex:1}}>
-            {savedSr!=null ? 'Valeur mémorisée dans ton profil' : (autoSr>0 ? `Pré-rempli depuis tes missions (12 mois) : ${autoSr} €` : 'Saisis-le, ou ajoute des missions pour le pré-remplir')}
+            {savedSr!=null ? 'Valeur mémorisée dans ton profil' : (autoSr>0 ? `Pré-rempli depuis ton année d'intermittence : ${autoSr} €` : 'Saisis-le, ou ajoute des missions pour le pré-remplir')}
           </Text>
           {num(c1Sr)>0 && num(c1Sr)!==savedSr && (
             <TouchableOpacity onPress={saveSr} hitSlop={8}><Text style={{fontSize:11.5,fontWeight:'800',color:C.petrol}}>Mémoriser</Text></TouchableOpacity>
           )}
           {srSaved && <Text style={{fontSize:11.5,fontWeight:'800',color:C.green}}>Mémorisé ✓</Text>}
         </View>
-        {savedSr!=null && autoSr>0 && Math.abs(autoSr-savedSr)>1 && (
-          <TouchableOpacity onPress={()=>{setC1Sr(String(autoSr));}} hitSlop={6}><Text style={{fontSize:11.5,fontWeight:'700',color:C.petrol,marginBottom:4}}>Recalculer depuis mes missions ({autoSr} €)</Text></TouchableOpacity>
+        {autoSr>0 && (
+          <TouchableOpacity onPress={()=>{setC1Sr(String(autoSr)); calcC1(autoSr,undefined);}} hitSlop={6}><Text style={{fontSize:11.5,fontWeight:'700',color:C.petrol,marginBottom:4}}>↺ Pré-remplir : {autoSr} € (mon année en cours)</Text></TouchableOpacity>
         )}
         <Text style={s.label}>Taux CSG</Text>
         <View style={s.toggleRow}>
@@ -192,7 +206,7 @@ export default function Previsions(){
             </TouchableOpacity>
           ))}
         </View>
-        <GradientButton label="Calculer" onPress={calcC1} style={s.calcBtn} textStyle={s.calcBtnTxt} />
+        <GradientButton label="Calculer" onPress={()=>calcC1()} style={s.calcBtn} textStyle={s.calcBtnTxt} />
         {c1Res?.err&&<Text style={s.err}>Renseigne les heures et le salaire de référence.</Text>}
         {c1Res&&!c1Res.err&&(
           <View style={s.result}>
