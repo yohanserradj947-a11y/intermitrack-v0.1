@@ -239,6 +239,16 @@ export default function Previsions(){
             </TouchableOpacity>
           ))}
         </View>
+        <Text style={s.label}>Ouverture de droits</Text>
+        <View style={s.toggleRow}>
+          <TouchableOpacity style={[s.toggle,!c2Deja&&s.toggleOn]} onPress={()=>setC2Deja(false)}>
+            <Text style={!c2Deja?s.toggleTxtOn:s.toggleTxt}>Première ouverture</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[s.toggle,c2Deja&&s.toggleOn]} onPress={()=>setC2Deja(true)}>
+            <Text style={c2Deja?s.toggleTxtOn:s.toggleTxt}>Réadmission</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={{fontSize:12,color:C.muted,lineHeight:16,marginTop:-2,marginBottom:6}}>Le délai d'attente de 7 j s'applique à la 1ʳᵉ ouverture. En réadmission (déjà indemnisé·e dans les 12 mois), il ne s'applique pas.</Text>
         <Text style={s.label}>Nombre d'heures travaillées</Text>
         <NumInput style={s.input} value={c2Nht} onChangeText={setC2Nht} placeholder="507" placeholderTextColor={C.muted}/>
         <Text style={s.label}>Salaire brut de référence (€)</Text>
@@ -257,10 +267,12 @@ export default function Previsions(){
         {c2Res?.err&&<Text style={s.err}>Renseigne les heures, le brut et les jours travaillés.</Text>}
         {c2Res&&!c2Res.err&&(
           <View style={s.result}>
-            <View style={s.resRow}><Text style={s.resLbl}>Total carence</Text><Text style={s.resVal}>{c2Res.total} j</Text></View>
-            <View style={s.resRow}><Text style={s.resLbl}>Délai d'attente</Text><Text style={s.resValSm}>{c2Res.delai} j</Text></View>
+            <View style={s.resRow}><Text style={s.resLbl}>Total avant versement</Text><Text style={s.resVal}>{c2Res.total} j</Text></View>
+            <Text style={{fontSize:11,fontWeight:'800',color:C.muted,marginTop:8,marginBottom:2,textTransform:'uppercase',letterSpacing:0.4}}>Carences (différés)</Text>
             <View style={s.resRow}><Text style={s.resLbl}>Franchise salaires</Text><Text style={s.resValSm}>{c2Res.franchiseSal} j</Text></View>
             <View style={s.resRow}><Text style={s.resLbl}>Franchise congés</Text><Text style={s.resValSm}>{c2Res.franchiseCP} j</Text></View>
+            <View style={[s.resRow,{marginTop:8}]}><Text style={s.resLbl}>+ Délai d'attente</Text><Text style={s.resValSm}>{c2Res.delai} j</Text></View>
+            <Text style={{fontSize:11.5,color:C.muted,lineHeight:16,marginTop:2}}>Délai administratif appliqué une seule fois à l'ouverture des droits (comme pour tout demandeur d'emploi). Ce n'est pas une carence liée à tes revenus.</Text>
             {c2Res.tableau&&c2Res.tableau.length>0&&(
               <View style={s.table}>
                 <Text style={s.projTitle}>Étalement mois par mois</Text>
