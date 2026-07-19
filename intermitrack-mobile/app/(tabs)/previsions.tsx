@@ -167,7 +167,7 @@ export default function Previsions(){
   return(
     <ScrollView style={s.container} contentContainerStyle={{paddingBottom:40}} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets>
       <View style={s.header}>
-        <Text style={s.title}>Prévisions</Text>
+        <Text style={s.title}>Simulation</Text>
         <Text style={s.sub}>Estimations indicatives. Ne remplacent pas les calculs officiels France Travail.</Text>
       </View>
 
