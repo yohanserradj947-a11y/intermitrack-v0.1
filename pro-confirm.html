@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://upeogpgczoghlfwblnkb.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="robots" content="noindex"/>
+<title>Ma proposition de planning — Intermitrack Pro</title>
+<style>
+@font-face{font-family:'Barlow';src:url('fonts/barlow-700.woff2') format('woff2');font-weight:700;font-display:swap;}
+@font-face{font-family:'Barlow';src:url('fonts/barlow-800.woff2') format('woff2');font-weight:800;font-display:swap;}
+@font-face{font-family:'Barlow';src:url('fonts/barlow-900.woff2') format('woff2');font-weight:900;font-display:swap;}
+@font-face{font-family:'Figtree';src:url('fonts/figtree.woff2') format('woff2');font-weight:400 700;font-display:swap;}
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--petrol:#1F4E5F;--orange:#F97316;--sage:#7A9E7E;--gold:#C79A3B;--ink:#17262E;--muted:#5E7078;--line:rgba(31,78,95,.14);--soft:rgba(31,78,95,.06);--ok:#12754A;--no:#DC2626;}
+body{font-family:'Figtree',-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#22515f,#0F2A33 70%);color:var(--ink);min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:18px 12px 60px;-webkit-font-smoothing:antialiased;}
+h1,h2,h3{font-family:'Barlow',sans-serif;letter-spacing:-.02em;}
+.phone{width:100%;max-width:460px;background:#EEF1F1;border-radius:24px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4);}
+.hero{background:linear-gradient(150deg,var(--petrol),#123c49);color:#fff;padding:18px 18px 20px;}
+.brand{display:flex;align-items:center;gap:9px;margin-bottom:14px;}
+.logo{width:29px;height:29px;border-radius:9px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-family:'Barlow';font-weight:900;font-size:12px;}
+.brand b{font-family:'Barlow';font-weight:800;font-size:14px;}.brand .pro{font-size:9px;font-weight:800;background:rgba(255,255,255,.2);padding:2px 7px;border-radius:99px;letter-spacing:.08em;}
+.kick{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#BFE3DC;}
+.hero h1{font-size:22px;font-weight:900;margin:3px 0 9px;}
+.hmeta{display:flex;flex-wrap:wrap;gap:5px 12px;font-size:12px;color:#D6E7E3;}
+.body{padding:18px;}
+.mecard{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:14px;}
+.meav{width:40px;height:40px;border-radius:12px;background:var(--petrol);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Barlow';font-weight:800;font-size:14px;flex-shrink:0;}
+.mename{font-family:'Barlow';font-weight:900;font-size:17px;color:var(--petrol);}
+.mepill{margin-left:auto;font-size:11px;font-weight:800;background:var(--soft);color:var(--petrol);padding:5px 10px;border-radius:99px;}
+.lead{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:14px;}
+.lead b{color:var(--ink);}
+.phase-group{margin-bottom:12px;}
+.phase-head{display:flex;align-items:center;gap:8px;color:#fff;border-radius:11px 11px 0 0;padding:8px 12px;cursor:pointer;}
+.ph-montage{background:var(--petrol);}.ph-explo{background:var(--sage);}.ph-demont{background:var(--gold);}.ph-autre{background:var(--muted);}
+.phase-name{font-family:'Barlow';font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.06em;}
+.phase-state{margin-left:auto;font-size:11px;font-weight:800;background:rgba(255,255,255,.22);padding:3px 9px;border-radius:99px;}
+.days{background:#fff;border:1px solid var(--line);border-top:none;border-radius:0 0 11px 11px;overflow:hidden;}
+.day{display:flex;align-items:center;gap:11px;padding:11px 13px;border-bottom:1px solid var(--line);cursor:pointer;}
+.day:last-child{border-bottom:none;}
+.day.off{opacity:.5;background:#FAFAF8;}
+.chk{width:22px;height:22px;border-radius:7px;border:2px solid var(--petrol);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:13px;}
+.day.on .chk{background:var(--petrol);}.day.off .chk{border-color:#CBD3D3;}
+.dinfo{flex:1;min-width:0;}
+.dtop{display:flex;align-items:baseline;gap:8px;}
+.ddate{font-family:'Barlow';font-weight:900;color:var(--petrol);font-size:15px;}
+.dwd{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;}.dwd.dim{color:var(--orange);}
+.dtask{font-size:12px;color:var(--muted);margin-top:1px;}
+.vbadge{font-weight:900;font-size:12px;color:var(--petrol);background:var(--soft);border-radius:7px;padding:3px 8px;}
+.vbadge.v15{color:#B45309;background:rgba(249,115,22,.16);}
+.cmt{width:100%;min-height:60px;border:1px solid var(--line);border-radius:11px;padding:10px 12px;font-family:'Figtree';font-size:13px;resize:vertical;outline:none;margin:6px 0 12px;}
+.cmt:focus{border-color:var(--petrol);}
+.btns{display:flex;flex-direction:column;gap:9px;}
+.b{border:none;border-radius:13px;padding:14px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Figtree';}
+.b-ok{background:var(--ok);color:#fff;}.b-part{background:#fff;color:var(--petrol);border:1.5px solid var(--line);}.b-no{background:#fff;color:var(--no);border:1.5px solid rgba(220,38,38,.35);}
+.b:disabled{opacity:.5;}
+.foot{text-align:center;font-size:11px;color:var(--muted);padding:14px 16px 20px;line-height:1.5;}
+.center{padding:50px 24px;text-align:center;color:var(--muted);}
+.done{display:none;text-align:center;padding:36px 24px 42px;}.done.show{display:block;}
+.done .ic{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:31px;margin:0 auto 14px;}
+.done.ok .ic{background:rgba(18,117,74,.12);}.done.no .ic{background:rgba(220,38,38,.1);}
+.done h2{font-size:21px;color:var(--petrol);margin-bottom:8px;}.done p{font-size:13.5px;color:var(--muted);line-height:1.55;}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="hero">
+    <div class="brand"><div class="logo">IT</div><b>Intermitrack</b><span class="pro">PRO</span></div>
+    <div class="kick" id="kick">Proposition de planning</div>
+    <h1 id="projTitle">…</h1>
+    <div class="hmeta" id="projMeta"></div>
+  </div>
+  <div id="app" class="body"><div class="center">Chargement…</div></div>
+  <div id="doneOk" class="done ok"><div class="ic">✅</div><h2>Merci, réponse envoyée !</h2><p id="okTxt"></p></div>
+  <div id="doneNo" class="done no"><div class="ic">🚫</div><h2>Réponse envoyée</h2><p>Tu as indiqué ne pas être disponible. Le chef est prévenu et pourra proposer la mission à quelqu'un d'autre. Merci de ta réactivité !</p></div>
+</div>
+
+<script>
+const SUPABASE_URL="https://upeogpgczoghlfwblnkb.supabase.co";
+const ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwZW9ncGdjem9naGxmd2JsbmtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MjkyMDQsImV4cCI6MjA5NjEwNTIwNH0.6535_0KMaEDLxTMhz_OX-4OqC_tpQsPJR5jkFQL7UqI";
+const $=id=>document.getElementById(id);
+const token=new URLSearchParams(location.search).get('t')||new URLSearchParams(location.search).get('token')||'';
+const _WD=['dim','lun','mar','mer','jeu','ven','sam'];
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const wd=iso=>_WD[new Date(iso+'T00:00:00').getDay()];
+const isDim=iso=>new Date(iso+'T00:00:00').getDay()===0;
+const ddm=iso=>{const p=iso.split('-');return p[2]+'/'+p[1];};
+function phCls(ph){return ph==='MONTAGE'?'ph-montage':ph==='EXPLOITATION'?'ph-explo':(ph==='DÉMONTAGE'||ph==='DEMONTAGE')?'ph-demont':'ph-autre';}
+
+async function rpc(fn,body){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':ANON,'Authorization':'Bearer '+ANON,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok) throw new Error(await r.text());
+  return await r.json();
+}
+
+let DATA=null, AVAIL={};
+async function load(){
+  if(!token){ $('app').innerHTML='<div class="center">Lien invalide. Demande un nouveau lien au chef.</div>'; return; }
+  let d; try{ d=await rpc('pro_get_planning',{p_token:token}); }catch(e){ $('app').innerHTML='<div class="center">Erreur de chargement. Réessaie plus tard.</div>'; return; }
+  if(!d){ $('app').innerHTML='<div class="center">Ce lien n\'est plus valide.</div>'; return; }
+  DATA=d;
+  const pr=d.projet||{};
+  $('kick').textContent=(pr.production||'')+' · Proposition de planning'+(pr.version?' · v'+pr.version:'');
+  $('projTitle').textContent=pr.nom||'Planning';
+  $('projMeta').innerHTML=[pr.lieu?'📍 '+esc(pr.lieu):'', (pr.date_debut?'🗓️ '+ddm(pr.date_debut)+(pr.date_fin?' → '+ddm(pr.date_fin):''):'')].filter(Boolean).map(x=>'<span>'+x+'</span>').join('');
+  // jours proposés au tech = clés de presence
+  const pres=d.presence||{};
+  const prevRep=(d.reponse&&d.reponse.available)||null;
+  (d.jours||[]).forEach(j=>{ if(pres[j.jour]!=null){ AVAIL[j.jour]= prevRep?(prevRep[j.jour]!==false):true; } });
+  render();
+}
+
+function proposedDays(){ const pres=DATA.presence||{}; return (DATA.jours||[]).filter(j=>pres[j.jour]!=null); }
+
+function render(){
+  const days=proposedDays();
+  const pres=DATA.presence||{};
+  const initials=(DATA.nom||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  let h=`<div class="mecard"><div class="meav">${esc(initials)}</div><div><div class="mename">${esc(DATA.nom||'')}</div><div style="font-size:12px;color:var(--muted)">On te propose ${days.length} date${days.length>1?'s':''}</div></div><span class="mepill">${esc(DATA.poste||'')}</span></div>`;
+  h+=`<p class="lead">Par défaut tu es noté <b>dispo sur tout</b> ✓. Tape un <b>bandeau de phase</b> ou un <b>jour</b> pour signaler une <b>indisponibilité</b> ✗, puis réponds en bas.</p>`;
+  // groupes par phase (dans l'ordre des jours proposés)
+  const groups=[]; let cur=null;
+  days.forEach(j=>{ const ph=j.phase||'—'; if(!cur||cur.phase!==ph){ cur={phase:ph,items:[]}; groups.push(cur);} cur.items.push(j); });
+  groups.forEach((g,gi)=>{
+    const on=g.items.filter(j=>AVAIL[j.jour]).length, tot=g.items.length;
+    const st=on===tot?'✓ dispo':on===0?'✗ indispo':'◐ partiel';
+    h+=`<div class="phase-group"><div class="phase-head ${phCls(g.phase)}" data-ph="${gi}"><span class="phase-name">${esc(g.phase)}</span><span class="phase-state">${st}</span></div><div class="days">`;
+    g.items.forEach(j=>{
+      const okv=AVAIL[j.jour]; const v=pres[j.jour]; const dim=isDim(j.jour)||v===1.5;
+      h+=`<div class="day ${okv?'on':'off'}" data-d="${esc(j.jour)}"><div class="chk">${okv?'✓':''}</div><div class="dinfo"><div class="dtop"><span class="ddate">${ddm(j.jour)}</span><span class="dwd ${dim?'dim':''}">${wd(j.jour)}</span></div><div class="dtask">${esc(j.tache||'—')}${j.horaire?' · '+esc(j.horaire):''}</div></div><span class="vbadge ${v===1.5?'v15':''}">${v===1.5?'1,5':'1'}</span></div>`;
+    });
+    h+=`</div></div>`;
+  });
+  h+=`<textarea class="cmt" id="cmt" placeholder="Un mot pour le chef ? (optionnel)"></textarea>`;
+  h+=`<div class="btns"><button class="b b-ok" id="bAll">✓ Je suis dispo sur tout</button><button class="b b-part" id="bPart">📩 Envoyer mes dispos</button><button class="b b-no" id="bNo">✗ Je ne suis pas disponible</button></div>`;
+  h+=`<div class="foot">Reçu par SMS / email · lien sécurisé personnel.</div>`;
+  $('app').innerHTML=h;
+}
+
+document.addEventListener('click',e=>{
+  const d=e.target.closest('[data-d]'); if(d){ const k=d.dataset.d; AVAIL[k]=!AVAIL[k]; render(); return; }
+  const p=e.target.closest('[data-ph]'); if(p){ const gi=+p.dataset.ph; const days=proposedDays(); const groups=[]; let cur=null; days.forEach(j=>{const ph=j.phase||'—'; if(!cur||cur.phase!==ph){cur={phase:ph,items:[]};groups.push(cur);} cur.items.push(j);}); const g=groups[gi]; if(!g)return; const allOn=g.items.every(j=>AVAIL[j.jour]); g.items.forEach(j=>AVAIL[j.jour]=!allOn); render(); return; }
+  if(e.target.id==='bAll'){ proposedDays().forEach(j=>AVAIL[j.jour]=true); submit(); return; }
+  if(e.target.id==='bPart'){ submit(); return; }
+  if(e.target.id==='bNo'){ submit(true); return; }
+});
+
+async function submit(refuseAll){
+  const days=proposedDays();
+  const yes=days.filter(j=>AVAIL[j.jour]).length;
+  const statut = refuseAll||yes===0 ? 'refuse' : 'confirme';
+  const message=($('cmt')?.value||'').trim();
+  const reponse={ available:AVAIL, message, jours_dispo:yes, jours_total:days.length };
+  document.querySelectorAll('.b').forEach(b=>b.disabled=true);
+  try{ await rpc('pro_respond',{p_token:token,p_statut:statut,p_reponse:reponse}); }
+  catch(e){ document.querySelectorAll('.b').forEach(b=>b.disabled=false); alert('Erreur, réessaie.'); return; }
+  $('app').style.display='none';
+  if(statut==='refuse'){ $('doneNo').classList.add('show'); }
+  else{
+    const noDays=days.filter(j=>!AVAIL[j.jour]).map(j=>ddm(j.jour));
+    $('okTxt').innerHTML = noDays.length ? `Tu es dispo sur <b>${yes} jour${yes>1?'s':''}</b>. Indispo signalée le <b>${noDays.join(', ')}</b> — le chef est prévenu.` : `Tu es confirmé·e sur <b>tes ${yes} jours</b>. À très vite sur le plateau !`;
+    $('doneOk').classList.add('show');
+  }
+}
+load();
+</script>
+</body>
+</html>
