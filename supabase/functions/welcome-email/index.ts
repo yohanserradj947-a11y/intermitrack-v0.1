@@ -55,8 +55,10 @@ function welcomeHtml() {
 }
 
 serve(async (req) => {
-  // Sécurité : le webhook doit envoyer le bon secret dans l'en-tête.
-  if (WEBHOOK_SECRET && req.headers.get("x-webhook-secret") !== WEBHOOK_SECRET) {
+  // Sécurité : le webhook DOIT envoyer le bon secret dans l'en-tête.
+  // Fail-closed : si le secret n'est pas configuré côté fonction, ou s'il ne
+  // correspond pas, on refuse. Jamais d'ouverture silencieuse.
+  if (!WEBHOOK_SECRET || req.headers.get("x-webhook-secret") !== WEBHOOK_SECRET) {
     return new Response("Unauthorized", { status: 401 });
   }
 

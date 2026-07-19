@@ -1,0 +1,18 @@
+# === Secrets — ne JAMAIS committer ===
+# Clés de service, certificats, variables d'environnement.
+*.pem
+*.p12
+*.key
+*.keystore
+*-key.json
+google-play-key.json
+service-account*.json
+.env
+.env.*
+!.env.example
+
+# === Divers ===
+.DS_Store
+Thumbs.db
+*.log
+node_modules/
