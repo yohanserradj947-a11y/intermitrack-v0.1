@@ -81,6 +81,11 @@ export default function HomeScreen(){
   const [showStartPicker,setShowStartPicker]=useState(false);
   const [showEndPicker,setShowEndPicker]=useState(false);
   const [saving,setSaving]=useState(false);
+  const [areVerse,setAreVerse]=useState<Record<string,number>>({}); // ARE réellement versé, par mois 'AAAA-MM'
+  const [areInput,setAreInput]=useState('');            // champ de saisie ARE versé du mois affiché
+  const [netInputs,setNetInputs]=useState<Record<string,string>>({}); // saisie du net réel par mission (id → texte)
+  const [reelPage,setReelPage]=useState(0);             // pagination de la liste des montants réels (7 / page)
+  const [savingReal,setSavingReal]=useState(false);     // enregistrement en cours des montants réels
 
   useEffect(()=>{loadData();},[]);
   useFocusEffect(useCallback(()=>{loadData(true);},[]));
@@ -90,6 +95,9 @@ export default function HomeScreen(){
   async function loadData(silent=false){
     const{data}=await supabase.from('missions').select('*').order('mission_date',{ascending:true});
     if(data)setMissions(data);
+    // ARE réellement versé par mois (table are_versements). try/catch : si la migration n'est pas encore
+    // passée, l'appli continue de tourner sans les montants réels.
+    try{ const{data:av}=await supabase.from('are_versements').select('mois,montant'); if(av){const map:Record<string,number>={};for(const r of av as any[])map[r.mois]=Number(r.montant)||0;setAreVerse(map);} }catch(e){}
     const saved=await AsyncStorage.getItem('intermitrack_are_date');
     if(saved)setAreDate(saved);
     const ch=await AsyncStorage.getItem('intermitrack_charge_rate');
@@ -246,12 +254,72 @@ export default function HomeScreen(){
     // Récap affiché = INTERMITTENCE (monthHi/monthGi) ; le régime général a sa propre case.
     const monthRate=monthHi>0?Math.round(monthGi/monthHi):0;
     // Net à payer estimé = brut − charges salariales − prélèvement à la source
-    const monthNet=Math.round(monthGi*(1-chargeRate/100)*(1-pasRate/100));
+    // Calibration silencieuse : ratio net/brut appris sur TES montants réels (≥ 2 productions renseignées).
+    // Le net réel = ce qui tombe sur le compte (après charges + impôt), donc il remplace tout le calcul.
+    const _reelM=missions.filter((m:any)=>Number(m.gross_amount)>0 && m.net_reel!=null);
+    const _reelProds=new Set(_reelM.map((m:any)=>(m.production||'').toUpperCase().trim()));
+    const _reelBrut=_reelM.reduce((a:number,m:any)=>a+Number(m.gross_amount||0),0);
+    const _reelNet=_reelM.reduce((a:number,m:any)=>a+Number(m.net_reel||0),0);
+    const calibrated=_reelProds.size>=2 && _reelBrut>0;
+    const learnedRatio=calibrated?_reelNet/_reelBrut:null;
+    const netFactor=calibrated?(learnedRatio as number):(1-chargeRate/100)*(1-pasRate/100);
+    const monthNet=Math.round(monthGi*netFactor);
     const monthRateNet=monthHi>0?Math.round(monthNet/monthHi):0;
-    return { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthNet, monthVac, monthRate, monthRateNet, upcoming, winStart, winEnd, hasARE };
+    // % de l'année d'intermittence écoulée vs % des 507 h atteintes (heures validées : effectuées + formation + enseignement).
+    const nowT=today.getTime();
+    const elapsedFrac=yearOffset<0?1:Math.max(0,Math.min(1,(nowT-winStartT)/(winEndT-winStartT)));
+    const progressH=Math.round((doneH+formH+ensH)*10)/10;
+    const hoursFrac=Math.max(0,Math.min(1,progressH/507));
+    // Montant réel du mois : somme des net réellement perçus des missions du mois (proratisés comme le brut).
+    const monthNetReel=Math.round(missions.filter(notGen).reduce((a:number,m:any)=>{const md=monthDays(m);return a+((m.net_reel!=null&&md.inM>0)?Number(m.net_reel)*md.frac:0);},0));
+    const monthHasNetReel=missions.some((m:any)=>notGen(m)&&m.net_reel!=null&&monthDays(m).inM>0);
+    return { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthNet, monthVac, monthRate, monthRateNet, upcoming, winStart, winEnd, hasARE, elapsedFrac, hoursFrac, progressH, monthNetReel, monthHasNetReel, calibrated, learnedRatio };
   },[missions,notes,areDate,yearOffset,current,chargeRate,pasRate]);
 
-  const { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthNet, monthVac, monthRate, monthRateNet, upcoming, winStart, winEnd, hasARE } = stats;
+  const { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthNet, monthVac, monthRate, monthRateNet, upcoming, winStart, winEnd, hasARE, elapsedFrac, hoursFrac, progressH, monthNetReel, monthHasNetReel, calibrated, learnedRatio } = stats;
+
+  // Comparaison rythme (avance/retard) + montants réels du mois affiché.
+  const moisKey=current.getFullYear()+'-'+String(current.getMonth()+1).padStart(2,'0');
+  const areVerseMonth=Number(areVerse[moisKey]||0);
+  const totalReelMonth=Math.round(monthNetReel+areVerseMonth);
+  const hasReel=monthHasNetReel||areVerseMonth>0;
+  const paceDiff=hoursFrac-elapsedFrac;
+  const paceLabel=Math.abs(paceDiff)<=0.03?'Dans les temps':(paceDiff>0?'En avance':'En retard');
+  // Vert = en avance (plus d'heures que de temps écoulé) · rouge = en retard · orange = dans les temps.
+  const paceColor=Math.abs(paceDiff)<=0.03?(C.orange||'#E8650A'):(paceDiff>0?(C.green||'#2F7A4F'):'#E53E3E');
+  // Repères des 12 mois de l'année d'intermittence, à partir du mois de début (ex : Fév).
+  const _monShort=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+  // Repères alignés sur les VRAIES limites de mois (1er du mois) dans la fenêtre, pas sur des 1/12 égaux :
+  // ainsi le remplissage (basé sur la date réelle) atteint le repère « Aoû » pile au 1er août.
+  const _paceSpan=hasARE?Math.max(1,winEnd.getTime()-winStart.getTime()):1;
+  const paceMarks:{frac:number,label:string}[]=[];
+  if(hasARE){
+    paceMarks.push({frac:0,label:_monShort[winStart.getMonth()]});
+    let _d=new Date(winStart.getFullYear(),winStart.getMonth()+1,1);
+    while(_d.getTime()<winEnd.getTime()){ paceMarks.push({frac:(_d.getTime()-winStart.getTime())/_paceSpan,label:_monShort[_d.getMonth()]}); _d=new Date(_d.getFullYear(),_d.getMonth()+1,1); }
+  }
+  const paceTickFracs=paceMarks.slice(1).map(m=>m.frac);
+  const paceLabelMarks:{frac:number,label:string}[]=[]; let _lastLF=-1;
+  for(const mk of paceMarks){ if(mk.frac-_lastLF>=0.05){ paceLabelMarks.push(mk); _lastLF=mk.frac; } }
+  useEffect(()=>{ setAreInput(areVerse[moisKey]?String(areVerse[moisKey]):''); setReelPage(0); setNetInputs({}); },[moisKey,areVerse]);
+  // Missions d'intermittence qui touchent le mois affiché (pour la saisie du net réel par mission).
+  const _mmS=new Date(current.getFullYear(),current.getMonth(),1).getTime();
+  const _mmE=new Date(current.getFullYear(),current.getMonth()+1,0).getTime();
+  const monthMissions=missions.filter((m:any)=>{ if((m.regime||'intermittence')==='general')return false; const s=new Date(m.mission_date+'T00:00:00').getTime(); const e=new Date((m.end_date||m.mission_date)+'T00:00:00').getTime(); return e>=_mmS && s<=_mmE; });
+  // Regroupement PAR PRODUCTION : une prod = un seul virement en général, pas un par mission.
+  const reelGroups=(()=>{
+    const map=new Map<string,{prodKey:string;prod:string;missions:any[];brut:number}>();
+    for(const m of monthMissions){
+      const key=(m.production||'Sans production').toUpperCase().trim();
+      let g=map.get(key);
+      if(!g){ g={prodKey:key,prod:(m.production||'Sans production'),missions:[],brut:0}; map.set(key,g); }
+      g.missions.push(m); g.brut+=Number(m.gross_amount||0);
+    }
+    return Array.from(map.values());
+  })();
+  const REEL_PER=7;
+  const totalReelPages=Math.max(1,Math.ceil(reelGroups.length/REEL_PER));
+  const visibleReel=reelGroups.slice(reelPage*REEL_PER,(reelPage+1)*REEL_PER);
 
   const ft=useMemo(()=>{
     const aj=(profil&&Number(profil.taux_journalier))||0;
@@ -297,6 +365,65 @@ export default function HomeScreen(){
     await AsyncStorage.setItem('intermitrack_are_date',isoStr);
     const { data:{ user } }=await supabase.auth.getUser();
     if(user) await supabase.from('profiles').upsert({id:user.id,are_date:isoStr},{onConflict:'id'});
+  }
+
+  // « Mettre à jour » : enregistre d'un coup tous les nets saisis + l'allocation du mois.
+  // Corrige net_reel sur chaque mission (donc calendrier / missions aussi) et l'ARE du mois.
+  const parseNet=(raw:string)=>String(raw).trim()===''?null:(Number(String(raw).replace(',','.'))||0);
+  async function saveAllReal(){
+    setSavingReal(true);
+    try{
+      const { data:{ user } }=await supabase.auth.getUser();
+      // Répartit le net saisi par PRODUCTION sur ses missions, au prorata du brut de chacune.
+      const updates:{id:string;net:number|null}[]=[];
+      for(const g of reelGroups){
+        const raw=netInputs[g.prodKey];
+        if(raw===undefined) continue;                 // production non touchée
+        const total=parseNet(raw);
+        if(total===null){ for(const m of g.missions) updates.push({id:m.id,net:null}); continue; }
+        const brutSum=g.missions.reduce((a:number,m:any)=>a+Number(m.gross_amount||0),0);
+        for(const m of g.missions){
+          const share=brutSum>0?Number(m.gross_amount||0)/brutSum:1/g.missions.length;
+          updates.push({id:m.id,net:Math.round(total*share*100)/100});
+        }
+      }
+      for(const u of updates){ const { error }=await supabase.from('missions').update({net_reel:u.net}).eq('id',u.id); if(error) throw error; }
+      const av=areInput.trim()===''?0:Number(areInput.replace(',','.'))||0;
+      if(user){
+        const r = av===0
+          ? await supabase.from('are_versements').delete().eq('user_id',user.id).eq('mois',moisKey)
+          : await supabase.from('are_versements').upsert({user_id:user.id,mois:moisKey,montant:av},{onConflict:'user_id,mois'});
+        if(r.error) throw r.error;
+      }
+      setMissions(prev=>prev.map((m:any)=>{ const u=updates.find(x=>x.id===m.id); return u?{...m,net_reel:u.net}:m; }));
+      setAreVerse(prev=>{const n={...prev}; if(av===0)delete n[moisKey]; else n[moisKey]=av; return n;});
+      setNetInputs({});
+      showAlert('Enregistré','Tes montants réels du mois ont été mis à jour.');
+    }catch(e:any){
+      showAlert('Oups', 'L\'enregistrement n\'a pas pu aboutir. Vérifie ta connexion et réessaie dans un instant.');
+    }finally{
+      setSavingReal(false);
+    }
+  }
+
+  // Réinitialise les montants réels du mois affiché (nets des missions + allocation).
+  function resetReal(){
+    showAlert('Réinitialiser ?','Cela efface les montants réels saisis pour ce mois (nets + allocation). Ton brut et tes missions ne changent pas.',[
+      {text:'Annuler',style:'cancel'},
+      {text:'Réinitialiser',style:'destructive',onPress:async()=>{
+        setSavingReal(true);
+        try{
+          const { data:{ user } }=await supabase.auth.getUser();
+          for(const m of monthMissions){ if(m.net_reel!=null){ const { error }=await supabase.from('missions').update({net_reel:null}).eq('id',m.id); if(error) throw error; } }
+          if(user){ const { error }=await supabase.from('are_versements').delete().eq('user_id',user.id).eq('mois',moisKey); if(error) throw error; }
+          const ids=new Set(monthMissions.map((m:any)=>m.id));
+          setMissions(prev=>prev.map((mm:any)=> ids.has(mm.id) ? {...mm,net_reel:null} : mm));
+          setAreVerse(prev=>{const n={...prev}; delete n[moisKey]; return n;});
+          setNetInputs({}); setAreInput('');
+        }catch(e:any){ showAlert('Oups','La réinitialisation n\'a pas pu aboutir. Réessaie.'); }
+        finally{ setSavingReal(false); }
+      }},
+    ]);
   }
 
   return(
@@ -378,6 +505,21 @@ export default function HomeScreen(){
 
       <View style={s.chartCard}>
         <Gauge done={doneH} planned={planH} total={507} formation={formH} enseignement={ensH}/>
+        {hasARE&&(
+          <View style={s.paceBox}>
+            <View style={s.paceHead}>
+              <Text style={s.paceHeadLbl}>Année d'intermittence</Text>
+            </View>
+            <View style={s.paceMonthsRow}>
+              {paceLabelMarks.map((mk,i)=>(<Text key={i} style={[s.paceMonth,{left:`${Math.min(94,mk.frac*100)}%`}]}>{mk.label}</Text>))}
+            </View>
+            <View style={s.paceTrack}>
+              <View style={[s.paceFill,{width:`${Math.round(elapsedFrac*100)}%`,backgroundColor:paceColor}]}/>
+              {paceTickFracs.map((f,i)=>(<View key={i} style={[s.paceTick,{left:`${f*100}%`}]}/>))}
+            </View>
+            <Text style={s.paceStatus}>{Math.round(elapsedFrac*100)}% de l'année écoulée · <Text style={{color:paceColor}}>{paceLabel}</Text></Text>
+          </View>
+        )}
         {formRaw>0&&(
           <View style={s.formNote}>
             <Ionicons name="school-outline" size={14} color="#7C3AED"/>
@@ -413,6 +555,9 @@ export default function HomeScreen(){
           <View style={s.statBox}><Text style={s.statVal}>{monthVac}</Text><Text style={s.statLbl}>Vacations</Text></View>
           <View style={s.statBox}><Text style={s.statVal}>{money(monthRateNet)}/h</Text><Text style={s.statSub}>Brut {money(monthRate)}/h</Text><Text style={s.statLbl}>Moyenne €/h (net est.)</Text></View>
         </View>
+        {calibrated&&(
+          <Text style={s.calibNote}>Net estimé ajusté d'après tes montants réels : tu encaisses ≈ {Math.round((learnedRatio||0)*100)} % du brut.</Text>
+        )}
         {(regGenCount>0 || monthFormH>0) && (
           <View style={[s.statsGrid,{marginTop:8}]}>
             {regGenCount>0 && (
@@ -466,6 +611,61 @@ export default function HomeScreen(){
             </View>
           )
         }
+      </View>
+
+      <View style={s.section}>
+        <View style={s.reelBox}>
+          <View style={s.reelHead}>
+            <Ionicons name="wallet-outline" size={14} color={C.petrol}/>
+            <Text style={s.reelTitle}>Montants réels du mois</Text>
+          </View>
+          <Text style={s.reelIntro}>Renseigne le net (une fois payé) et l'allocation reçue, puis appuie sur « Mettre à jour » : tu auras le total exact du mois.</Text>
+          {reelGroups.length>0 ? visibleReel.map((g:any)=>{
+            const saved=g.missions.reduce((a:number,m:any)=>a+(m.net_reel!=null?Number(m.net_reel):0),0);
+            const hasNet=g.missions.some((m:any)=>m.net_reel!=null);
+            const val=netInputs[g.prodKey]!==undefined?netInputs[g.prodKey]:(hasNet?String(Math.round(saved*100)/100):'');
+            return (
+              <View key={g.prodKey} style={s.reelRow}>
+                <View style={{flex:1}}>
+                  <Text style={s.reelProd} numberOfLines={1}>{g.prod}</Text>
+                  <Text style={s.reelBrut}>brut {money(Math.round(g.brut))}{g.missions.length>1?` · ${g.missions.length} missions`:''}</Text>
+                </View>
+                <NumInput
+                  style={s.reelInput}
+                  value={val}
+                  onChangeText={(t:string)=>setNetInputs(p=>({...p,[g.prodKey]:t}))}
+                  placeholder="net €" placeholderTextColor={C.muted}
+                />
+              </View>
+            );
+          }) : <Text style={s.reelEmpty}>Aucune mission ce mois-ci.</Text>}
+          {totalReelPages>1&&(
+            <View style={s.reelPager}>
+              <TouchableOpacity style={[s.navBtn,reelPage<=0&&{opacity:0.3}]} disabled={reelPage<=0} onPress={()=>setReelPage(p=>Math.max(0,p-1))}><Text style={s.navBtnTxt}>‹</Text></TouchableOpacity>
+              <Text style={s.pageInfo}>Page {reelPage+1}/{totalReelPages}</Text>
+              <TouchableOpacity style={[s.navBtn,reelPage>=totalReelPages-1&&{opacity:0.3}]} disabled={reelPage>=totalReelPages-1} onPress={()=>setReelPage(p=>Math.min(totalReelPages-1,p+1))}><Text style={s.navBtnTxt}>›</Text></TouchableOpacity>
+            </View>
+          )}
+          <View style={s.reelRow}>
+            <Text style={[s.reelProd,{flex:1}]}>Allocation France Travail versée</Text>
+            <NumInput style={s.reelInput} value={areInput} onChangeText={setAreInput} placeholder="ARE €" placeholderTextColor={C.muted}/>
+          </View>
+          <TouchableOpacity style={[s.reelSaveBtn,savingReal&&{opacity:0.6}]} onPress={saveAllReal} disabled={savingReal}>
+            <Text style={s.reelSaveTxt}>{savingReal?'Enregistrement…':'Mettre à jour'}</Text>
+          </TouchableOpacity>
+          {hasReel&&(
+            <TouchableOpacity style={s.reelResetBtn} onPress={resetReal} disabled={savingReal}>
+              <Text style={s.reelResetTxt}>Réinitialiser les montants du mois</Text>
+            </TouchableOpacity>
+          )}
+          {hasReel&&(
+            <View style={s.reelTotal}>
+              <Text style={s.reelTotalLbl}>Total réel du mois</Text>
+              <Text style={s.reelTotalVal}>{money(totalReelMonth)}</Text>
+            </View>
+          )}
+          {hasReel&&<Text style={s.reelSub}>net réel {money(monthNetReel)} + allocation versée {money(areVerseMonth)}</Text>}
+        </View>
       </View>
 
       {/* « Missions à venir » retiré du dashboard (redondant avec la liste sous le calendrier
@@ -657,7 +857,7 @@ const makeS=(C:any)=>StyleSheet.create({
   avatarBtn:{width:40,height:40,borderRadius:20,backgroundColor:C.petrol,justifyContent:'center',alignItems:'center'},
   avatarTxt:{color:'white',fontWeight:'900',fontSize:14},
   badgesRow:{flexDirection:'row',gap:12,padding:16},
-  badge:{flex:1,backgroundColor:C.card,borderRadius:16,padding:14,borderLeftWidth:4,shadowColor:'#000',shadowOpacity:0.05,shadowRadius:8,elevation:2},
+  badge:{flex:1,backgroundColor:C.card,borderRadius:16,padding:14,borderWidth:1,borderColor:C.line,borderLeftWidth:4,shadowColor:'#000',shadowOpacity:0.05,shadowRadius:8,elevation:2},
   badgeVal:{fontSize:20,fontWeight:'900',color:C.petrol,letterSpacing:-0.5},
   badgeLbl:{fontSize:11,color:C.muted,fontWeight:'700',marginTop:4},
   areBox:{marginHorizontal:16,backgroundColor:C.card,borderRadius:16,padding:14,borderWidth:1,borderColor:C.line},
@@ -686,10 +886,11 @@ const makeS=(C:any)=>StyleSheet.create({
   navBtnTxt:{fontSize:18,fontWeight:'900',color:C.petrol,lineHeight:20},
   monthLbl:{fontSize:13,fontWeight:'800',color:C.petrol,minWidth:110,textAlign:'center'},
   statsGrid:{flexDirection:'row',flexWrap:'wrap',gap:10},
-  statBox:{width:'47%',backgroundColor:C.card,borderRadius:14,padding:14,alignItems:'center',shadowColor:'#000',shadowOpacity:0.04,shadowRadius:6,elevation:2},
+  statBox:{width:'47%',backgroundColor:C.card,borderRadius:14,padding:14,alignItems:'center',borderWidth:1,borderColor:C.line,shadowColor:'#000',shadowOpacity:0.05,shadowRadius:6,elevation:2},
   statVal:{fontSize:17,fontWeight:'900',color:C.petrol},
   statSub:{fontSize:10,color:C.muted,fontWeight:'700',marginTop:1},
   statLbl:{fontSize:10,color:C.muted,fontWeight:'700',marginTop:3,textTransform:'uppercase'},
+  calibNote:{fontSize:10.5,color:C.muted,fontStyle:'italic',marginTop:8,textAlign:'center',lineHeight:15},
   empty:{textAlign:'center',color:C.muted,padding:20},
   missionCard:{backgroundColor:C.card,borderRadius:16,padding:14,marginBottom:10,borderWidth:1,borderColor:'rgba(31,78,95,0.12)',borderLeftWidth:4,borderLeftColor:C.petrol,shadowColor:C.petrol,shadowOpacity:0.05,shadowRadius:8,elevation:2},
   missionHead:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:8},
@@ -757,4 +958,32 @@ const makeS=(C:any)=>StyleSheet.create({
   ftNote:{fontSize:10,color:C.muted,lineHeight:15,marginTop:11},
   ftBtn:{backgroundColor:C.petrol,borderRadius:12,paddingVertical:12,alignItems:'center',marginTop:12},
   ftBtnTxt:{color:'white',fontWeight:'800',fontSize:14},
+  paceBox:{marginHorizontal:10,marginTop:4,marginBottom:10,paddingVertical:12,paddingHorizontal:14,borderRadius:12,backgroundColor:C.soft},
+  paceHead:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginBottom:8},
+  paceHeadLbl:{fontSize:12,fontWeight:'700',color:C.text},
+  paceHeadPct:{fontSize:16,fontWeight:'900'},
+  paceMonthsRow:{height:12,position:'relative',marginBottom:3},
+  paceMonth:{position:'absolute',fontSize:8.5,fontWeight:'700',color:C.muted},
+  paceTrack:{height:12,borderRadius:6,backgroundColor:C.line,overflow:'hidden'},
+  paceFill:{height:'100%',borderRadius:6},
+  paceTick:{position:'absolute',top:0,bottom:0,width:1,backgroundColor:'rgba(45,55,72,0.18)'},
+  paceStatus:{fontSize:10.5,fontWeight:'400',fontStyle:'italic',color:C.muted,marginTop:7},
+  reelBox:{marginTop:12,backgroundColor:C.card,borderRadius:14,padding:14,borderWidth:1,borderColor:C.line,shadowColor:'#000',shadowOpacity:0.05,shadowRadius:8,elevation:2},
+  reelHead:{flexDirection:'row',alignItems:'center',gap:6},
+  reelTitle:{fontSize:13,fontWeight:'900',color:C.petrol},
+  reelIntro:{fontSize:11.5,color:C.muted,fontWeight:'600',marginTop:6,marginBottom:4,lineHeight:16},
+  reelRow:{flexDirection:'row',alignItems:'center',gap:10,paddingVertical:8,borderTopWidth:1,borderTopColor:C.line},
+  reelProd:{fontSize:13,fontWeight:'700',color:C.text},
+  reelBrut:{fontSize:11,color:C.muted,fontWeight:'600',marginTop:1},
+  reelInput:{width:98,borderWidth:1.5,borderColor:C.muted+'55',borderRadius:10,paddingVertical:9,paddingHorizontal:10,fontSize:14,color:C.text,backgroundColor:C.soft,textAlign:'right'},
+  reelEmpty:{fontSize:12,color:C.muted,paddingVertical:8},
+  reelTotal:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginTop:10,paddingTop:10,borderTopWidth:1,borderTopColor:C.line},
+  reelTotalLbl:{fontSize:13,fontWeight:'800',color:C.petrol},
+  reelTotalVal:{fontSize:17,fontWeight:'900',color:C.petrol},
+  reelSub:{fontSize:11,color:C.muted,fontWeight:'600',marginTop:4},
+  reelPager:{flexDirection:'row',justifyContent:'center',alignItems:'center',gap:14,paddingVertical:8},
+  reelSaveBtn:{backgroundColor:C.petrol,borderRadius:12,paddingVertical:13,alignItems:'center',marginTop:12},
+  reelSaveTxt:{color:'#fff',fontWeight:'800',fontSize:14},
+  reelResetBtn:{alignItems:'center',paddingVertical:9,marginTop:4},
+  reelResetTxt:{color:C.muted,fontWeight:'700',fontSize:13,textDecorationLine:'underline'},
 });

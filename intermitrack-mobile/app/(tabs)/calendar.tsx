@@ -117,6 +117,7 @@ export default function Calendar(){
   const [fCachets,setFCachets]=useState('');
   const [fHours,setFHours]=useState('');
   const [fGross,setFGross]=useState('');
+  const [fNetReel,setFNetReel]=useState(''); // net réellement perçu (rempli une fois la mission payée)
   const [showStartPicker,setShowStartPicker]=useState(false);
   const [showEndPicker,setShowEndPicker]=useState(false);
   const [saving,setSaving]=useState(false);
@@ -191,7 +192,7 @@ export default function Calendar(){
     // Régime général et enseignement = toujours en HEURES (jamais de cachets, ce n'est pas du spectacle).
     // Sinon un artiste, forcé en mode cachet par son annexe, ne pouvait pas saisir ses heures d'enseignement.
     setFMode(regime==='intermittence' ? modeForNew(annexe) : 'heures'); setFCachets('');
-    setFHours(''); setFGross(salaireJour>0?String(salaireJour):''); setFVacations('1'); setMdpDays([]);
+    setFHours(''); setFGross(salaireJour>0?String(salaireJour):''); setFNetReel(''); setFVacations('1'); setMdpDays([]);
     setKmOpen(false); setKmFrom(''); setKmTo(''); setKmFromCoords(null); setKmToCoords(null); setKmRT(false); setKmEveryDay(false); setKmJustify(false); setKmDistance(''); setKmRate('');
     // Plus rien à pré-remplir ici : le taux vient directement de « Mes informations » (kmDefaults.taux).
     setShowFromPicker(false); setShowToPicker(false);
@@ -211,7 +212,7 @@ export default function Calendar(){
     setFMode(_mode);
     if(_mode==='cachet'){ setFCachets(String(_v||'')); setFHours(String(extraHoursOf(_h,_v)||'')); }
     else { setFCachets(''); setFHours(String(m.hours||'')); }
-    setFGross(String(m.gross_amount||'')); setFVacations(String(m.vacations||''));
+    setFGross(String(m.gross_amount||'')); setFNetReel(m.net_reel!=null?String(m.net_reel):''); setFVacations(String(m.vacations||''));
     // Les adresses sont enfin relues : elles n'etaient enregistrees NULLE PART avant le 15/07/2026,
     // d'ou le retour « les adresses n'apparaissent pas quand je modifie une mission ».
     setKmFrom(m.km_from||''); setKmTo(m.km_to||'');
@@ -261,7 +262,7 @@ export default function Calendar(){
       mission_date:startISO, end_date:endISO!==startISO?endISO:null,
       regime:fRegime,
       hours:hv.hours, vacations:hv.vacations,
-      gross_amount:Number(fGross)||0, status:'effectue',
+      gross_amount:Number(fGross)||0, net_reel:fNetReel===''?null:(Number(fNetReel)||0), status:'effectue',
       km_distance:Math.round(kmEff(kmWorkedDays)), km_rate:pf(kmRate),
       km_amount:Math.round(kmFraisFor(kmWorkedDays)*100)/100,
       // Adresses enfin enregistrees (+ coords) : elles alimentent le pop-up des prochaines missions
@@ -1027,6 +1028,12 @@ export default function Calendar(){
 
               <Text style={s.label}>Montant brut (€)</Text>
               <NumInput style={s.input} value={fGross} onChangeText={setFGross} placeholder="0" placeholderTextColor={C.muted}/>
+
+              {editId && (<>
+              <Text style={s.label}>Net réellement perçu (€) · une fois payé</Text>
+              <NumInput style={s.input} value={fNetReel} onChangeText={setFNetReel} placeholder="Facultatif, à remplir quand tu es payé" placeholderTextColor={C.muted}/>
+              <Text style={s.miniHint}>Laisse vide tant que la mission n'est pas payée. Sert à calculer tes totaux réels exacts.</Text>
+              </>)}
 
               <TouchableOpacity style={s.kmHead} onPress={()=>setKmOpen(o=>!o)}>
                 <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="car-outline" size={14} color={C.petrol} /><Text style={s.kmHeadTxt}>Frais kilométriques (optionnel)</Text></View>
