@@ -53,6 +53,7 @@ export default function HomeScreen(){
   const [current,setCurrent]=useState(new Date());
   const [missionPage,setMissionPage]=useState(0);
   const [areDate,setAreDate]=useState('');
+  const [clauseRattrapage,setClauseRattrapage]=useState(false);
   const [yearOffset,setYearOffset]=useState(0); // navigation dans l'historique des années d'intermittence (0 = année en cours)
   const [showDatePicker,setShowDatePicker]=useState(false);
   const [showMonthPicker,setShowMonthPicker]=useState(false);
@@ -100,7 +101,8 @@ export default function HomeScreen(){
     if(saved)setAreDate(saved);
     const { data:{ user } }=await supabase.auth.getUser();
     if(user){
-      const { data:prof }=await supabase.from('profiles').select('annexe,droits_ouverts,taux_journalier,taux_impot,are_date').eq('id',user.id).maybeSingle();
+      const { data:prof }=await supabase.from('profiles').select('annexe,droits_ouverts,taux_journalier,taux_impot,are_date,clause_rattrapage').eq('id',user.id).maybeSingle();
+      setClauseRattrapage(!!prof?.clause_rattrapage);
       setProfil(prof||null);
       // Date ARE : la base de données fait foi (persiste sur tous les appareils).
       // Sinon, on migre une éventuelle valeur locale (ancienne) vers la base.
@@ -277,6 +279,9 @@ export default function HomeScreen(){
   },[missions,notes,areDate,yearOffset,current,chargeRate,taxRate]);
 
   const { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthNetAvant, monthNetApres, monthVac, monthRate, monthRateNet, monthRateNetAvant, upcoming, winStart, winEnd, hasARE, elapsedFrac, hoursFrac, progressH, monthNetReel, monthHasNetReel, calibrated, learnedRatio } = stats;
+  // Clause de rattrapage : échéance = début de l'année d'intermittence + 6 mois.
+  const clauseDeadline = (clauseRattrapage && hasARE && winStart) ? (()=>{ const d=new Date(winStart); d.setMonth(d.getMonth()+6); return d; })() : null;
+  const clauseDaysLeft = clauseDeadline ? Math.ceil((clauseDeadline.getTime()-new Date(new Date().setHours(0,0,0,0)).getTime())/86400000) : null;
 
   // Comparaison rythme (avance/retard) + montants réels du mois affiché.
   const moisKey=current.getFullYear()+'-'+String(current.getMonth()+1).padStart(2,'0');
@@ -459,6 +464,19 @@ export default function HomeScreen(){
         </View>
       </View>
 
+      {clauseRattrapage && (
+        <View style={{backgroundColor:'#FFF7ED',borderWidth:1,borderColor:'#FDBA74',borderRadius:14,padding:14,marginBottom:12}}>
+          <View style={{flexDirection:'row',alignItems:'center',gap:6,marginBottom:6}}>
+            <Ionicons name="shield-checkmark-outline" size={16} color="#EA580C"/>
+            <Text style={{fontSize:12.5,fontWeight:'800',color:'#9A3412',textTransform:'uppercase',letterSpacing:0.4}}>Clause de rattrapage</Text>
+          </View>
+          <Text style={{fontSize:13.5,color:'#7C2D12',lineHeight:19}}>Il te reste <Text style={{fontWeight:'900'}}>{remaining} h</Text> pour atteindre 507 h et sécuriser tes droits.</Text>
+          {clauseDeadline && (
+            <Text style={{fontSize:13,color:'#7C2D12',lineHeight:19,marginTop:4}}>Échéance : <Text style={{fontWeight:'800'}}>{isoToDisplay(iso(clauseDeadline))}</Text>{clauseDaysLeft!=null?(clauseDaysLeft>0?` · ${clauseDaysLeft} jour${clauseDaysLeft>1?'s':''} restant${clauseDaysLeft>1?'s':''}`:' · délai dépassé'):''}</Text>
+          )}
+          <Text style={{fontSize:11.5,color:'#B45309',lineHeight:16,marginTop:6}}>Si tu atteins 507 h avant l'échéance, tes droits sont régularisés depuis ta date anniversaire.{!hasARE?' Renseigne ta date d\'admission ARE ci-dessous pour activer le compte à rebours.':''}</Text>
+        </View>
+      )}
       <View style={s.areBox}>
         <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="calendar-outline" size={13} color={C.petrol} /><Text style={s.areLabel}>Date d'admission ARE</Text></View>
         <TouchableOpacity style={s.arePickerBtn} onPress={()=>setShowDatePicker(true)}>

@@ -71,6 +71,7 @@ export function AccountMenu(){
   const [miNewPoste,setMiNewPoste]=useState('');
   const [miAnnexe,setMiAnnexe]=useState<'technicien'|'artiste'|'les_deux'|''>('');
   const [miDroits,setMiDroits]=useState<boolean|null>(null);
+  const [miClause,setMiClause]=useState(false);
   // Vehicule memorise : « je ne change pas ma voiture, et mon nombre de kilometres annuel ne change
   // pas d'une mission a l'autre ainsi que ma puissance fiscale » (retour JB).
   // Depuis le 16/07/2026 : type de vehicule + puissance + kilometrage annuel REEL (et non une
@@ -91,7 +92,7 @@ export function AccountMenu(){
 
   async function loadProfil(){
     const { data:{ user } }=await supabase.auth.getUser();
-    if(user){ const { data }=await supabase.from('profiles').select('annexe,droits_ouverts,taux_journalier,taux_impot,km_cv,km_tranche,km_vehicle,km_annual,km_electric').eq('id',user.id).maybeSingle(); setProfil(data||null);
+    if(user){ const { data }=await supabase.from('profiles').select('annexe,droits_ouverts,taux_journalier,taux_impot,km_cv,km_tranche,km_vehicle,km_annual,km_electric,clause_rattrapage').eq('id',user.id).maybeSingle(); setProfil(data||null);
       try { const r=await supabase.from('profiles').select('salaire_journalier').eq('id',user.id).maybeSingle();
         setProfilSalaireJour(r.data && r.data.salaire_journalier!=null ? Number(r.data.salaire_journalier) : null); } catch(e){}
     }
@@ -100,6 +101,7 @@ export function AccountMenu(){
   function openMesInfosModal(){
     setMiAnnexe(profil?.annexe||'');
     setMiDroits(profil?profil.droits_ouverts:null);
+    setMiClause(!!(profil&&(profil as any).clause_rattrapage));
     setMiAj(profil?.taux_journalier!=null?String(profil.taux_journalier):'');
     setMiImpot(profil?.taux_impot!=null?String(profil.taux_impot):'');
     // Nouveau format si present, sinon on MIGRE l'ancien (km_cv '3'..'7'|'moto' + km_tranche '1'|'2'|'3').
@@ -128,7 +130,7 @@ export function AccountMenu(){
     const { data:{ user } }=await supabase.auth.getUser();
     if(!user)return;
     const droits=miDroits===true;
-    const { error }=await supabase.from('profiles').upsert({ id:user.id, annexe:miAnnexe||null, droits_ouverts:miDroits, taux_journalier:droits?(Number(miAj)||null):null, taux_impot:Number(miImpot)||null, km_vehicle:miKmKind||null, km_cv:miKmCv||null, km_annual:Number(miKmAnnual)||null, km_electric:miKmElec },{onConflict:'id'});
+    const { error }=await supabase.from('profiles').upsert({ id:user.id, annexe:miAnnexe||null, droits_ouverts:miDroits, clause_rattrapage:miClause, taux_journalier:droits?(Number(miAj)||null):null, taux_impot:Number(miImpot)||null, km_vehicle:miKmKind||null, km_cv:miKmCv||null, km_annual:Number(miKmAnnual)||null, km_electric:miKmElec },{onConflict:'id'});
     if(error){ showAlert('Erreur',error.message); return; }
     // Écriture séparée et défensive : ne casse pas la sauvegarde du reste si la colonne n'existe pas encore.
     try { await supabase.from('profiles').upsert({ id:user.id, salaire_journalier:Number(miSalaireJour)||null },{onConflict:'id'}); } catch(e){}
@@ -326,6 +328,17 @@ export function AccountMenu(){
                   <Text style={s.ftDetail}>L'allocation journalière nette de ta notification France Travail.</Text>
                 </>
               )}
+
+              <Text style={s.label}>Es-tu en clause de rattrapage ?</Text>
+              <View style={s.typeWrap}>
+                <TouchableOpacity style={[s.typeChip,miClause===true&&s.typeChipActive]} onPress={()=>setMiClause(true)}>
+                  <Text style={miClause===true?s.typeChipTxtActive:s.typeChipTxt}>Oui</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[s.typeChip,miClause===false&&s.typeChipActive]} onPress={()=>setMiClause(false)}>
+                  <Text style={miClause===false?s.typeChipTxtActive:s.typeChipTxt}>Non</Text>
+                </TouchableOpacity>
+              </View>
+              {miClause && <Text style={s.ftDetail}>Un bandeau apparaîtra sur ton tableau de bord, avec le compte à rebours (6 mois après ta date anniversaire) pour atteindre 507 h.</Text>}
 
               <Text style={[s.label,{marginTop:16}]}>Ton salaire journalier brut <Text style={{fontWeight:'400',color:C.muted,fontSize:12}}>— pré-remplit le prix de tes missions</Text></Text>
               <NumInput style={s.input} value={miSalaireJour} onChangeText={setMiSalaireJour} placeholder="Ex : 230" placeholderTextColor={C.muted}/>
