@@ -103,7 +103,7 @@ export default function TabLayout() {
       />
       <MaterialTopTabs.Screen
         name="previsions"
-        options={{ title: 'Prévisions', tabBarIcon: tabIcon('trending-up-outline') }}
+        options={{ title: 'Simulateur', tabBarIcon: tabIcon('trending-up-outline') }}
       />
       <MaterialTopTabs.Screen
         name="documents"

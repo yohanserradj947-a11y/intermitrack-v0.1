@@ -128,7 +128,7 @@ export function AccountMenu(){
     const { data:{ user } }=await supabase.auth.getUser();
     if(!user)return;
     const droits=miDroits===true;
-    const { error }=await supabase.from('profiles').upsert({ id:user.id, annexe:miAnnexe||null, droits_ouverts:miDroits, taux_journalier:droits?(Number(miAj)||null):null, taux_impot:droits?(Number(miImpot)||null):null, km_vehicle:miKmKind||null, km_cv:miKmCv||null, km_annual:Number(miKmAnnual)||null, km_electric:miKmElec },{onConflict:'id'});
+    const { error }=await supabase.from('profiles').upsert({ id:user.id, annexe:miAnnexe||null, droits_ouverts:miDroits, taux_journalier:droits?(Number(miAj)||null):null, taux_impot:Number(miImpot)||null, km_vehicle:miKmKind||null, km_cv:miKmCv||null, km_annual:Number(miKmAnnual)||null, km_electric:miKmElec },{onConflict:'id'});
     if(error){ showAlert('Erreur',error.message); return; }
     // Écriture séparée et défensive : ne casse pas la sauvegarde du reste si la colonne n'existe pas encore.
     try { await supabase.from('profiles').upsert({ id:user.id, salaire_journalier:Number(miSalaireJour)||null },{onConflict:'id'}); } catch(e){}
@@ -200,14 +200,12 @@ export function AccountMenu(){
               <Text style={{fontSize:12.5,fontWeight:'800',color:'#B7791F'}}>⭐ Pionnier — gratuit à vie</Text>
             </View>
 
-            <TouchableOpacity style={s.accountReportBtn} onPress={()=>{setShowAccount(false);setShowTheme(true);}} activeOpacity={0.85}>
-              <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="color-palette-outline" size={13} color={C.petrol} /><Text style={s.accountReportTxt}>Thème — {themeLabel}</Text></View>
-            </TouchableOpacity>
-
-            <GradientButton onPress={()=>{setShowAccount(false);signOut();}} style={s.accountBtn} textStyle={s.accountBtnTxt} label="Se déconnecter" />
-
             <TouchableOpacity style={s.accountReportBtn} onPress={()=>{setShowAccount(false);openMesInfosModal();}}>
               <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="create-outline" size={13} color={C.petrol} /><Text style={s.accountReportTxt}>Mes informations</Text></View>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={s.accountReportBtn} onPress={()=>{setShowAccount(false);setShowTheme(true);}} activeOpacity={0.85}>
+              <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="color-palette-outline" size={13} color={C.petrol} /><Text style={s.accountReportTxt}>Thème — {themeLabel}</Text></View>
             </TouchableOpacity>
 
             {isAdmin && (
@@ -219,6 +217,8 @@ export function AccountMenu(){
             <TouchableOpacity style={s.accountReportBtn} onPress={reportBug}>
               <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="bug-outline" size={13} color={C.petrol} /><Text style={s.accountReportTxt}>Signaler un bug</Text></View>
             </TouchableOpacity>
+
+            <GradientButton onPress={()=>{setShowAccount(false);signOut();}} style={s.accountBtn} textStyle={s.accountBtnTxt} label="Se déconnecter" />
 
             <TouchableOpacity style={s.accountDeleteBtn} onPress={()=>{setShowAccount(false);deleteAccount();}}>
               <Text style={s.accountDeleteTxt}>Supprimer mon compte</Text>
@@ -293,8 +293,45 @@ export function AccountMenu(){
         <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
         <View style={s.modalOverlay}>
           <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
+            <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+              <Text style={[s.modalTitle,{marginBottom:0}]}>Mes informations</Text>
+              <TouchableOpacity onPress={()=>setShowMesInfos(false)} hitSlop={10} style={{width:34,height:34,borderRadius:17,backgroundColor:C.soft,alignItems:'center',justifyContent:'center'}}>
+                <Ionicons name="close" size={20} color={C.petrol}/>
+              </TouchableOpacity>
+            </View>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <Text style={s.modalTitle}>Mes informations</Text>
+
+              <Text style={[s.label,{marginTop:16}]}>Tu es plutôt…</Text>
+              <View style={s.typeWrap}>
+                {([['technicien','Technicien (annexe 8)'],['artiste','Artiste (annexe 10)'],['les_deux','Les deux']] as ['technicien'|'artiste'|'les_deux',string][]).map(([val,lbl])=>(
+                  <TouchableOpacity key={val} style={[s.typeChip,miAnnexe===val&&s.typeChipActive]} onPress={()=>setMiAnnexe(val)}>
+                    <Text style={miAnnexe===val?s.typeChipTxtActive:s.typeChipTxt}>{lbl}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={s.label}>As-tu déjà ouvert tes droits ?</Text>
+              <View style={s.typeWrap}>
+                <TouchableOpacity style={[s.typeChip,miDroits===true&&s.typeChipActive]} onPress={()=>setMiDroits(true)}>
+                  <Text style={miDroits===true?s.typeChipTxtActive:s.typeChipTxt}>Oui</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[s.typeChip,miDroits===false&&s.typeChipActive]} onPress={()=>setMiDroits(false)}>
+                  <Text style={miDroits===false?s.typeChipTxtActive:s.typeChipTxt}>Pas encore</Text>
+                </TouchableOpacity>
+              </View>
+              {miDroits===true&&(
+                <>
+                  <Text style={s.label}>Ton taux journalier (AJ)</Text>
+                  <NumInput style={s.input} value={miAj} onChangeText={setMiAj} placeholder="67.60" placeholderTextColor={C.muted}/>
+                  <Text style={s.ftDetail}>L'allocation journalière nette de ta notification France Travail.</Text>
+                </>
+              )}
+
+              <Text style={[s.label,{marginTop:16}]}>Ton salaire journalier brut <Text style={{fontWeight:'400',color:C.muted,fontSize:12}}>— pré-remplit le prix de tes missions</Text></Text>
+              <NumInput style={s.input} value={miSalaireJour} onChangeText={setMiSalaireJour} placeholder="Ex : 230" placeholderTextColor={C.muted}/>
+
+              <Text style={[s.label,{marginTop:16}]}>Ton taux d'imposition (%)</Text>
+              <NumInput style={s.input} value={miImpot} onChangeText={setMiImpot} placeholder="8.6" placeholderTextColor={C.muted}/>
 
               <Text style={s.label}>Tes postes <Text style={{fontWeight:'400',color:C.muted,fontSize:12}}>— le 1er est proposé par défaut dans tes missions</Text></Text>
               {postes.length===0 ? <Text style={{fontSize:12,color:C.muted,marginBottom:4}}>Aucun poste — ajoute le tien ci-dessous.</Text> : (
@@ -310,18 +347,6 @@ export function AccountMenu(){
               <View style={{flexDirection:'row',gap:8,marginTop:8}}>
                 <TextInput style={[s.input,{flex:1}]} value={miNewPoste} onChangeText={setMiNewPoste} placeholder="Ex : Clown, Cascadeur…" placeholderTextColor={C.muted}/>
                 <TouchableOpacity style={{backgroundColor:C.petrol,borderRadius:12,paddingHorizontal:16,justifyContent:'center',alignItems:'center'}} onPress={()=>{const v=miNewPoste.trim();if(v){addPoste(v);setMiNewPoste('');}}}><Text style={{color:'#fff',fontWeight:'800',fontSize:13}}>Ajouter</Text></TouchableOpacity>
-              </View>
-
-              <Text style={[s.label,{marginTop:16}]}>Ton salaire journalier brut <Text style={{fontWeight:'400',color:C.muted,fontSize:12}}>— pré-remplit le prix de tes missions</Text></Text>
-              <NumInput style={s.input} value={miSalaireJour} onChangeText={setMiSalaireJour} placeholder="Ex : 230" placeholderTextColor={C.muted}/>
-
-              <Text style={[s.label,{marginTop:16}]}>Tu es plutôt…</Text>
-              <View style={s.typeWrap}>
-                {([['technicien','Technicien (annexe 8)'],['artiste','Artiste (annexe 10)'],['les_deux','Les deux']] as ['technicien'|'artiste'|'les_deux',string][]).map(([val,lbl])=>(
-                  <TouchableOpacity key={val} style={[s.typeChip,miAnnexe===val&&s.typeChipActive]} onPress={()=>setMiAnnexe(val)}>
-                    <Text style={miAnnexe===val?s.typeChipTxtActive:s.typeChipTxt}>{lbl}</Text>
-                  </TouchableOpacity>
-                ))}
               </View>
 
               {/* Vehicule memorise -> pre-remplit les frais km de chaque mission (retour JB).
@@ -365,27 +390,6 @@ export function AccountMenu(){
                   Barème {new Date().getFullYear()-1} : {Math.round(fraisAnnuels(miKmKind,miKmCv,Number(miKmAnnual),miKmElec)).toLocaleString('fr-FR')} € pour {Number(miKmAnnual).toLocaleString('fr-FR')} km,
                   soit {(fraisAnnuels(miKmKind,miKmCv,Number(miKmAnnual),miKmElec)/Number(miKmAnnual)).toFixed(3).replace('.',',')} €/km appliqués à tes missions.
                 </Text>
-              )}
-
-              <Text style={s.label}>As-tu déjà ouvert tes droits ?</Text>
-              <View style={s.typeWrap}>
-                <TouchableOpacity style={[s.typeChip,miDroits===true&&s.typeChipActive]} onPress={()=>setMiDroits(true)}>
-                  <Text style={miDroits===true?s.typeChipTxtActive:s.typeChipTxt}>Oui</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[s.typeChip,miDroits===false&&s.typeChipActive]} onPress={()=>setMiDroits(false)}>
-                  <Text style={miDroits===false?s.typeChipTxtActive:s.typeChipTxt}>Pas encore</Text>
-                </TouchableOpacity>
-              </View>
-
-              {miDroits===true&&(
-                <>
-                  <Text style={s.label}>Ton taux journalier (AJ)</Text>
-                  <NumInput style={s.input} value={miAj} onChangeText={setMiAj} placeholder="67.60" placeholderTextColor={C.muted}/>
-                  <Text style={s.ftDetail}>L'allocation journalière nette de ta notification France Travail.</Text>
-
-                  <Text style={s.label}>Ton taux d'imposition (%)</Text>
-                  <NumInput style={s.input} value={miImpot} onChangeText={setMiImpot} placeholder="8.6" placeholderTextColor={C.muted}/>
-                </>
               )}
 
               <GradientButton onPress={saveMesInfos} style={s.saveBtn} textStyle={s.saveBtnTxt} label="Enregistrer" />

@@ -145,8 +145,7 @@ export default function Previsions(){
     if(!(brut>0)){setC4Res({err:true});return;}
     if(!(charge>=0))charge=0;
     if(!(pas>=0))pas=0;
-    await AsyncStorage.setItem('intermitrack_charge_rate',String(charge)); // réutilisé par le tableau de bord
-    await AsyncStorage.setItem('intermitrack_pas_rate',String(pas));
+    // Prévisions = simulateur pur : on n'enregistre RIEN qui affecterait le tableau de bord.
     setC4Res({...netAPayer(brut,charge,pas),charge,pas});
   }
 

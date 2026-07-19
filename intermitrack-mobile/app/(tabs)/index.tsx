@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../lib/supabase';
 import { useTrackView } from '../../lib/analytics';
-import { CONFIG } from '../../lib/calcul';
+import { CONFIG, CHARGE_DEFAUT } from '../../lib/calcul';
 import Gauge from '../../components/Gauge';
 import NumInput from '../../components/NumInput';
 import KmSection, { KmHandle } from '../../components/KmSection';
@@ -54,8 +54,6 @@ export default function HomeScreen(){
   const [missionPage,setMissionPage]=useState(0);
   const [areDate,setAreDate]=useState('');
   const [yearOffset,setYearOffset]=useState(0); // navigation dans l'historique des années d'intermittence (0 = année en cours)
-  const [chargeRate,setChargeRate]=useState(22.5); // % charges salariales (réglé dans Prévisions)
-  const [pasRate,setPasRate]=useState(0);          // % prélèvement à la source
   const [showDatePicker,setShowDatePicker]=useState(false);
   const [showMonthPicker,setShowMonthPicker]=useState(false);
   const [pickerYear,setPickerYear]=useState(new Date().getFullYear());
@@ -100,10 +98,6 @@ export default function HomeScreen(){
     try{ const{data:av}=await supabase.from('are_versements').select('mois,montant'); if(av){const map:Record<string,number>={};for(const r of av as any[])map[r.mois]=Number(r.montant)||0;setAreVerse(map);} }catch(e){}
     const saved=await AsyncStorage.getItem('intermitrack_are_date');
     if(saved)setAreDate(saved);
-    const ch=await AsyncStorage.getItem('intermitrack_charge_rate');
-    setChargeRate(ch!==null?Number(ch):22.5);
-    const pas=await AsyncStorage.getItem('intermitrack_pas_rate');
-    setPasRate(pas!==null?Number(pas):0);
     const { data:{ user } }=await supabase.auth.getUser();
     if(user){
       const { data:prof }=await supabase.from('profiles').select('annexe,droits_ouverts,taux_journalier,taux_impot,are_date').eq('id',user.id).maybeSingle();
@@ -165,6 +159,9 @@ export default function HomeScreen(){
     return Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
   },[missions]);
 
+  // Taux unifiés : charges sociales selon le statut, impôt = le taux unique de « Mes informations ».
+  const chargeRate = CHARGE_DEFAUT[profil?.annexe==='artiste'?'artiste':'technicien'] ?? 22.5;
+  const taxRate = Number(profil?.taux_impot)||0;
   const stats=useMemo(()=>{
     const today=new Date();today.setHours(0,0,0,0);
     // Fenêtre « année d'intermittence » : 12 mois à partir de la date ARE (anniversaire), navigable via yearOffset.
@@ -256,15 +253,18 @@ export default function HomeScreen(){
     // Net à payer estimé = brut − charges salariales − prélèvement à la source
     // Calibration silencieuse : ratio net/brut appris sur TES montants réels (≥ 2 productions renseignées).
     // Le net réel = ce qui tombe sur le compte (après charges + impôt), donc il remplace tout le calcul.
-    const _reelM=missions.filter((m:any)=>Number(m.gross_amount)>0 && m.net_reel!=null);
+    const _reelM=missions.filter((m:any)=>Number(m.gross_amount)>0 && Number(m.net_reel)>0);
     const _reelProds=new Set(_reelM.map((m:any)=>(m.production||'').toUpperCase().trim()));
     const _reelBrut=_reelM.reduce((a:number,m:any)=>a+Number(m.gross_amount||0),0);
     const _reelNet=_reelM.reduce((a:number,m:any)=>a+Number(m.net_reel||0),0);
     const calibrated=_reelProds.size>=2 && _reelBrut>0;
     const learnedRatio=calibrated?_reelNet/_reelBrut:null;
-    const netFactor=calibrated?(learnedRatio as number):(1-chargeRate/100)*(1-pasRate/100);
-    const monthNet=Math.round(monthGi*netFactor);
-    const monthRateNet=monthHi>0?Math.round(monthNet/monthHi):0;
+    // Net AVANT impôt (net du bulletin) = brut − charges. Net APRÈS impôt = ce qui tombe sur le compte
+    // (calibré sur tes montants réels si dispo, sinon net avant impôt − ton taux d'imposition).
+    const monthNetAvant=Math.round(monthGi*(1-chargeRate/100));
+    const monthNetApres=calibrated?Math.round(monthGi*(learnedRatio as number)):Math.round(monthNetAvant*(1-taxRate/100));
+    const monthRateNet=monthHi>0?Math.round(((calibrated||taxRate>0)?monthNetApres:monthNetAvant)/monthHi):0;
+    const monthRateNetAvant=monthHi>0?Math.round(monthNetAvant/monthHi):0;
     // % de l'année d'intermittence écoulée vs % des 507 h atteintes (heures validées : effectuées + formation + enseignement).
     const nowT=today.getTime();
     const elapsedFrac=yearOffset<0?1:Math.max(0,Math.min(1,(nowT-winStartT)/(winEndT-winStartT)));
@@ -273,10 +273,10 @@ export default function HomeScreen(){
     // Montant réel du mois : somme des net réellement perçus des missions du mois (proratisés comme le brut).
     const monthNetReel=Math.round(missions.filter(notGen).reduce((a:number,m:any)=>{const md=monthDays(m);return a+((m.net_reel!=null&&md.inM>0)?Number(m.net_reel)*md.frac:0);},0));
     const monthHasNetReel=missions.some((m:any)=>notGen(m)&&m.net_reel!=null&&monthDays(m).inM>0);
-    return { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthNet, monthVac, monthRate, monthRateNet, upcoming, winStart, winEnd, hasARE, elapsedFrac, hoursFrac, progressH, monthNetReel, monthHasNetReel, calibrated, learnedRatio };
-  },[missions,notes,areDate,yearOffset,current,chargeRate,pasRate]);
+    return { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthNetAvant, monthNetApres, monthVac, monthRate, monthRateNet, monthRateNetAvant, upcoming, winStart, winEnd, hasARE, elapsedFrac, hoursFrac, progressH, monthNetReel, monthHasNetReel, calibrated, learnedRatio };
+  },[missions,notes,areDate,yearOffset,current,chargeRate,taxRate]);
 
-  const { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthNet, monthVac, monthRate, monthRateNet, upcoming, winStart, winEnd, hasARE, elapsedFrac, hoursFrac, progressH, monthNetReel, monthHasNetReel, calibrated, learnedRatio } = stats;
+  const { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthNetAvant, monthNetApres, monthVac, monthRate, monthRateNet, monthRateNetAvant, upcoming, winStart, winEnd, hasARE, elapsedFrac, hoursFrac, progressH, monthNetReel, monthHasNetReel, calibrated, learnedRatio } = stats;
 
   // Comparaison rythme (avance/retard) + montants réels du mois affiché.
   const moisKey=current.getFullYear()+'-'+String(current.getMonth()+1).padStart(2,'0');
@@ -349,9 +349,10 @@ export default function HomeScreen(){
     const plafondActif=daysPlafond<daysHaut; // le plafond rabote l'allocation ce mois-ci
     const tax=(profil&&Number(profil.taux_impot))||0;
     const fNet=1-tax/100, showNet=tax>0;
+    const basAvant=Math.round(aj*dBas), hautAvant=Math.round(aj*dHaut);
     const bas=Math.round(aj*dBas*fNet), haut=Math.round(aj*dHaut*fNet);
-    return { bas, haut, showNet, tax, plafondActif, coefTxt:artiste?'1,3':'1,4', divTxt:artiste?'10':'8', plafond:Math.round(plafond), totalBas:monthNet+bas, totalHaut:monthNet+haut };
-  },[profil,monthH,monthG,current,monthNet,areDate]);
+    return { bas, haut, basAvant, hautAvant, showNet, tax, plafondActif, coefTxt:artiste?'1,3':'1,4', divTxt:artiste?'10':'8', plafond:Math.round(plafond), totalBas:monthNetApres+bas, totalHaut:monthNetApres+haut };
+  },[profil,monthH,monthG,current,monthNetApres,areDate]);
   const totalPages=Math.ceil(upcoming.length/6);
   const visibleM=useMemo(()=>upcoming.slice(missionPage*6,(missionPage+1)*6),[upcoming,missionPage]);
 
@@ -472,6 +473,7 @@ export default function HomeScreen(){
               <View style={{flex:1,alignItems:'center'}}>
                 <Text style={s.aiPeriod}>{isoToDisplay(iso(winStart))} → {isoToDisplay(iso(winEnd))}</Text>
                 <Text style={s.aiPeriodSub}>{yearOffset===0?'Année d\'intermittence en cours':(yearOffset===-1?'Année précédente':'Il y a '+(-yearOffset)+' ans')}</Text>
+                <Text style={s.aiHours}>{doneH} h effectuées + {planH} h prévues = {Math.round((doneH+planH)*10)/10} h</Text>
               </View>
               <TouchableOpacity style={[s.aiNavBtn,yearOffset>=0?{opacity:0.25}:null]} disabled={yearOffset>=0} onPress={()=>setYearOffset(o=>Math.min(0,o+1))}><Ionicons name="chevron-forward" size={18} color={C.petrol}/></TouchableOpacity>
             </View>
@@ -551,9 +553,9 @@ export default function HomeScreen(){
         </View>
         <View style={s.statsGrid}>
           <View style={s.statBox}><Text style={s.statVal}>{monthHi}h</Text><Text style={s.statLbl}>Heures</Text></View>
-          <View style={s.statBox}><Text style={s.statVal}>{money(monthNet)}</Text><Text style={s.statSub}>Brut {money(monthGi)}</Text><Text style={s.statLbl}>Net à payer (est.)</Text></View>
+          <View style={s.statBox}><Text style={s.statVal}>{money((taxRate>0||calibrated)?monthNetApres:monthNetAvant)}</Text><Text style={s.statSub}>Brut {money(monthGi)}{(taxRate>0||calibrated)?` · net ${money(monthNetAvant)}`:''}</Text><Text style={s.statLbl}>{(taxRate>0||calibrated)?'Net après impôt (est.)':'Net à payer (est.)'}</Text></View>
           <View style={s.statBox}><Text style={s.statVal}>{monthVac}</Text><Text style={s.statLbl}>Vacations</Text></View>
-          <View style={s.statBox}><Text style={s.statVal}>{money(monthRateNet)}/h</Text><Text style={s.statSub}>Brut {money(monthRate)}/h</Text><Text style={s.statLbl}>Moyenne €/h (net est.)</Text></View>
+          <View style={s.statBox}><Text style={s.statVal}>{money(monthRateNet)}/h</Text><Text style={s.statSub}>Brut {money(monthRate)}/h{(taxRate>0||calibrated)?` · net ${money(monthRateNetAvant)}/h`:''}</Text><Text style={s.statLbl}>{(taxRate>0||calibrated)?'€/h après impôt (est.)':'Moyenne €/h (net est.)'}</Text></View>
         </View>
         {calibrated&&(
           <Text style={s.calibNote}>Net estimé ajusté d'après tes montants réels : tu encaisses ≈ {Math.round((learnedRatio||0)*100)} % du brut.</Text>
@@ -586,7 +588,7 @@ export default function HomeScreen(){
                 <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="cash-outline" size={13} color={C.petrol} /><Text style={s.ftLabel}>Estimation France Travail (ce mois)</Text></View>
                 <Text style={s.ftVal}>{ft.bas===ft.haut?`≈ ${money(ft.haut)}`:`≈ ${ft.bas.toLocaleString('fr-FR')} – ${money(ft.haut)}`}</Text>
               </View>
-              <Text style={s.ftDetail}>{ft.showNet?`fourchette nette (après ${ft.tax} % d'impôt)`:'fourchette brute'} · sur {monthH} h</Text>
+              <Text style={s.ftDetail}>{ft.showNet?`avant impôt ≈ ${ft.basAvant===ft.hautAvant?money(ft.hautAvant):`${ft.basAvant.toLocaleString('fr-FR')} – ${money(ft.hautAvant)}`} · après ${ft.tax} % d'impôt`:'fourchette brute'} · sur {monthH} h</Text>
               {ft.plafondActif&&(
                 <View style={{flexDirection:'row',alignItems:'flex-start',gap:5,marginTop:6}}>
                   <Ionicons name="information-circle-outline" size={13} color={C.orange} style={{marginTop:1}} />
@@ -598,7 +600,7 @@ export default function HomeScreen(){
                   <Text style={s.ftTotalLabel}>Revenu total estimé ce mois</Text>
                   <Text style={s.ftTotalVal}>{ft.totalBas===ft.totalHaut?`≈ ${money(ft.totalHaut)}`:`≈ ${ft.totalBas.toLocaleString('fr-FR')} – ${money(ft.totalHaut)}`}</Text>
                 </View>
-                <Text style={s.ftTotalSub}>salaire net {money(monthNet)} + allocation France Travail</Text>
+                <Text style={s.ftTotalSub}>salaire net {money(monthNetApres)} + allocation France Travail</Text>
               </View>
               <View style={s.ftFormula}>
                 <Text style={s.ftFormulaTitle}>Comment on calcule (annexe {ft.divTxt==='8'?'8 · technicien':'10 · artiste'})</Text>
@@ -653,11 +655,9 @@ export default function HomeScreen(){
           <TouchableOpacity style={[s.reelSaveBtn,savingReal&&{opacity:0.6}]} onPress={saveAllReal} disabled={savingReal}>
             <Text style={s.reelSaveTxt}>{savingReal?'Enregistrement…':'Mettre à jour'}</Text>
           </TouchableOpacity>
-          {hasReel&&(
-            <TouchableOpacity style={s.reelResetBtn} onPress={resetReal} disabled={savingReal}>
-              <Text style={s.reelResetTxt}>Réinitialiser les montants du mois</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity style={s.reelResetBtn} onPress={resetReal} disabled={savingReal}>
+            <Text style={s.reelResetTxt}>Réinitialiser les montants du mois</Text>
+          </TouchableOpacity>
           {hasReel&&(
             <View style={s.reelTotal}>
               <Text style={s.reelTotalLbl}>Total réel du mois</Text>
@@ -871,6 +871,7 @@ const makeS=(C:any)=>StyleSheet.create({
   aiNavBtn:{width:34,height:34,borderRadius:17,alignItems:'center',justifyContent:'center',backgroundColor:C.soft},
   aiPeriod:{fontSize:13.5,fontWeight:'900',color:C.petrol},
   aiPeriodSub:{fontSize:10.5,color:C.muted,marginTop:1,fontWeight:'700'},
+  aiHours:{fontSize:10.5,color:C.petrol,marginTop:3,fontWeight:'800',textAlign:'center'},
   areValidateBtn:{backgroundColor:C.petrol,borderRadius:12,paddingVertical:13,alignItems:'center',marginTop:10},
   areValidateTxt:{color:'#FFFFFF',fontWeight:'800',fontSize:15},
   chartCard:{marginHorizontal:16,backgroundColor:C.card,borderRadius:22,padding:4,borderWidth:1,borderColor:C.line,marginTop:12,shadowColor:C.petrol,shadowOpacity:0.06,shadowRadius:16,elevation:3},

@@ -34,6 +34,12 @@ export default function Gauge({ done, planned, total, formation = 0, enseignemen
   const planPct = Math.round((Math.max(0, planned) / total) * 100);
   const totalPct = Math.round(((Math.max(0, done) + Math.max(0, formation) + Math.max(0, enseignement) + Math.max(0, planned)) / total) * 100);
   const reached = totalPct >= 100;
+  // Heures AFFICHÉES (chiffres exacts, pas que des %)
+  const doneH = Math.round(Math.max(0, done));
+  const planH = Math.round(Math.max(0, planned));
+  const formH = Math.round(Math.max(0, formation));
+  const ensH = Math.round(Math.max(0, enseignement));
+  const totalH = doneH + formH + ensH + planH;
 
   const W = 260, H = 150, cx = 130, cy = 138, r = 108, sw = 22;
 
@@ -57,7 +63,7 @@ export default function Gauge({ done, planned, total, formation = 0, enseignemen
         </Svg>
         <View style={g.center}>
           <Text style={[g.pct, reached && { color: C.petrol }]}>{totalPct}%</Text>
-          <Text style={[g.sub, reached && { color: C.petrol, fontWeight: '800' }]}>{reached ? '507 h atteint' : 'potentiel total'}</Text>
+          <Text style={[g.sub, reached && { color: C.petrol, fontWeight: '800' }]}>{totalH} h / {total} h</Text>
         </View>
       </View>
       <View style={g.legends}>
