@@ -626,12 +626,6 @@ export default function Calendar(){
         <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}}>Coller mes notes</Text>
       </TouchableOpacity>
 
-      <Text style={{fontSize:12.5,fontWeight:'700',color:C.muted,marginHorizontal:16,marginTop:4,marginBottom:6}}>Exporter</Text>
-      <TouchableOpacity onPress={()=>setShowExport(true)} activeOpacity={0.85} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,marginHorizontal:14,marginBottom:12,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
-        <Ionicons name="download-outline" size={17} color={C.petrol}/>
-        <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}}>Exporter mon année (PDF)</Text>
-      </TouchableOpacity>
-
       <Modal visible={showExport} transparent animationType="fade" onRequestClose={()=>setShowExport(false)}>
         <TouchableOpacity activeOpacity={1} onPress={()=>setShowExport(false)} style={{flex:1,backgroundColor:'rgba(0,0,0,.5)',justifyContent:'center',alignItems:'center',padding:24}}>
           <TouchableOpacity activeOpacity={1} onPress={()=>{}} style={{backgroundColor:C.card,borderRadius:20,padding:20,width:'100%',maxWidth:360}}>
@@ -770,6 +764,9 @@ export default function Calendar(){
         )}
         <TouchableOpacity onPress={resetCalendar} hitSlop={8} style={{paddingVertical:5,paddingHorizontal:6}}>
           <Text style={{fontSize:11.5,color:C.muted,textDecorationLine:'underline'}}>Tout le calendrier</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={()=>setShowExport(true)} hitSlop={8} style={{paddingVertical:5,paddingHorizontal:6}}>
+          <Text style={{fontSize:11.5,color:C.petrol,textDecorationLine:'underline',fontWeight:'700'}}>Exporter (PDF)</Text>
         </TouchableOpacity>
       </View>
 

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   Modal, View, Text, TouchableOpacity, FlatList, ActivityIndicator,
-  StyleSheet, Platform, Linking, TextInput, ScrollView,
+  StyleSheet, Platform, Linking, TextInput, ScrollView, useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../lib/theme';
@@ -60,6 +60,7 @@ export default function CalendarImportModal({
   // Mode « coller mes notes » : le texte collé + l'année à confirmer (jamais écrite dans les notes).
   const [notesText, setNotesText] = useState('');
   const { effectiveTier } = usePremium();
+  const { height: winH } = useWindowDimensions();
   const [notesYear, setNotesYear] = useState(new Date().getFullYear());
   // Prix des notes sans montant : pré-rempli avec le TARIF JOURNALIER MOYEN calculé sur les
   // missions déjà saisies (avgDaily), passé par le calendrier. PAS le taux journalier du profil,
@@ -349,8 +350,14 @@ export default function CalendarImportModal({
             </TouchableOpacity>
           </View>
 
+          {effectiveTier === 'gratuit' && (phase === 'intro' || phase === 'mapping' || phase === 'preview') && (
+            <View style={{ backgroundColor: '#FFF7ED', borderColor: '#FDBA74', borderWidth: 1, borderRadius: 10, padding: 10, marginHorizontal: 16, marginTop: 2 }}>
+              <Text style={{ fontSize: 12, color: '#9A3412', fontWeight: '700', lineHeight: 17 }}>⚠️ Version Gratuite : l'import est limité à 1 mois. Passe en Premium pour importer toute ta période d'un coup.</Text>
+            </View>
+          )}
+
           {phase === 'intro' && mode === 'notes' && (
-            <View style={s.pad}>
+            <ScrollView style={{ maxHeight: winH * 0.66 }} contentContainerStyle={s.pad} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <Text style={s.body}>Colle tes notes telles que tu les écris : un en-tête de mois, puis une ligne par date. Les heures et le prix peuvent être sur la même ligne ou sur celle du dessous (les montants acceptent la virgule ou le point : 230,50 comme 230.50).</Text>
               <Text style={[s.bodyMuted, { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>MARS{'\n'}18 vdlm 8h 230{'\n'}19 endemol{'\n'}12h 450{'\n'}20 24 canal 16h 400</Text>
               <Text style={s.bodyMuted}>Plusieurs jours d'un coup : « 20 24 canal 16h 400 » crée 2 missions (les 20 et 24). Pour un contrat sur des dates espacées, écris les vrais jours travaillés — pas « du 20 au 24 » : l'appli ne peut pas deviner lesquels.</Text>
@@ -379,7 +386,7 @@ export default function CalendarImportModal({
               </View>
               {!!error && <Text style={s.err}>{error}</Text>}
               <GradientButton onPress={analyze} label="Analyser mes notes" style={[s.cta, !notesText.trim() && { opacity: 0.4 }]} textStyle={s.ctaTxt} />
-            </View>
+            </ScrollView>
           )}
 
           {phase === 'intro' && mode !== 'notes' && (

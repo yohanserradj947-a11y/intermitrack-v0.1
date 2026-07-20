@@ -1,6 +1,7 @@
 import { showAlert } from "../../lib/dialog";
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert, Platform, KeyboardAvoidingView } from 'react-native';
+import ExportPdfButton from '../../components/ExportPdfButton';
 import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -637,6 +638,8 @@ export default function Missions(){
         <Text style={s.pageTitle}>Mes missions</Text>
         <Text style={s.pageSub}>Répartition du brut par production</Text>
       </View>
+
+      <ExportPdfButton missions={missions} />
 
       <View style={s.periodBar}>
         <TouchableOpacity style={[s.periodChip,period==='all'&&s.periodOn]} onPress={()=>setPeriod('all')}>
