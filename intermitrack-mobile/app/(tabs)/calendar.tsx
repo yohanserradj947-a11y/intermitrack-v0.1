@@ -6,6 +6,7 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Modal, ActivityIn
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import ExportPdfButton from '../../components/ExportPdfButton';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
@@ -765,9 +766,7 @@ export default function Calendar(){
         <TouchableOpacity onPress={resetCalendar} hitSlop={8} style={{paddingVertical:5,paddingHorizontal:6}}>
           <Text style={{fontSize:11.5,color:C.muted,textDecorationLine:'underline'}}>Tout le calendrier</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={()=>setShowExport(true)} hitSlop={8} style={{paddingVertical:5,paddingHorizontal:6}}>
-          <Text style={{fontSize:11.5,color:C.petrol,textDecorationLine:'underline',fontWeight:'700'}}>Exporter (PDF)</Text>
-        </TouchableOpacity>
+        <ExportPdfButton missions={missions} discreet />
       </View>
 
       <View style={s.calTabs}>
