@@ -18,6 +18,8 @@ import {
   Workbook, ColMap, ColKey,
 } from '../lib/excelImport';
 import { trackEvent } from '../lib/analytics';
+import { usePremium } from '../lib/premium';
+import { showAlert } from '../lib/dialog';
 
 type Phase = 'intro' | 'calendars' | 'loading' | 'mapping' | 'preview' | 'importing' | 'done' | 'denied' | 'empty';
 type CalInfo = { id: string; title: string; color: string; suggested: boolean };
@@ -57,6 +59,7 @@ export default function CalendarImportModal({
   const [openKey, setOpenKey] = useState<string | null>(null);
   // Mode « coller mes notes » : le texte collé + l'année à confirmer (jamais écrite dans les notes).
   const [notesText, setNotesText] = useState('');
+  const { effectiveTier } = usePremium();
   const [notesYear, setNotesYear] = useState(new Date().getFullYear());
   // Prix des notes sans montant : pré-rempli avec le TARIF JOURNALIER MOYEN calculé sur les
   // missions déjà saisies (avgDaily), passé par le calendrier. PAS le taux journalier du profil,
@@ -238,7 +241,15 @@ export default function CalendarImportModal({
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Session expirée, reconnecte-toi.');
-      const payloads = selected.map((d) => ({
+      // Version Gratuit : import plafonné à 1 mois (à partir de la 1re date importée).
+      let toImport = selected; let capped = false;
+      if (effectiveTier === 'gratuit' && selected.length) {
+        const sorted = [...selected].sort((a: any, b: any) => (a.mission_date < b.mission_date ? -1 : 1));
+        const first = new Date(sorted[0].mission_date + 'T00:00:00'); const lim = new Date(first); lim.setMonth(lim.getMonth() + 1);
+        const kept = sorted.filter((d: any) => new Date(d.mission_date + 'T00:00:00') < lim);
+        if (kept.length < selected.length) { toImport = kept; capped = true; }
+      }
+      const payloads = toImport.map((d) => ({
         user_id: user.id, production: d.production, emission: null, lieu: d.lieu,
         // Pas de type technicien forcé pour un artiste (retour Emeric) : en mode cachet on laisse
         // le type vide, l'artiste le choisira. Un technicien garde « Tournage » par défaut.
@@ -252,9 +263,10 @@ export default function CalendarImportModal({
         const { error: err } = await supabase.from('missions').insert(payloads.slice(i, i + 100));
         if (err) throw err;
       }
-      trackEvent('import_done', { mode, count: selected.length, incomplets: incompleteCount });
-      setImportedCount(selected.length); setPhase('done');
+      trackEvent('import_done', { mode, count: toImport.length, incomplets: incompleteCount });
+      setImportedCount(toImport.length); setPhase('done');
       onImported && onImported();
+      if (capped) showAlert('Import limité à 1 mois', "En version Gratuite, l'import est limité à 1 mois : seul le premier mois a été importé. Passe en Premium pour importer toute ta période d'un coup.");
     } catch (e: any) {
       trackEvent('import_failed', { mode, raison: 'insert', message: String(e?.message || e).slice(0, 120) });
       setError(e?.message || 'Import échoué, réessaie.'); setPhase('preview');
@@ -348,9 +360,13 @@ export default function CalendarImportModal({
                 onChangeText={setNotesText}
                 multiline
                 textAlignVertical="top"
+                maxLength={effectiveTier === 'gratuit' ? 700 : undefined}
                 placeholder={'Colle ici…'}
                 placeholderTextColor={C.muted}
               />
+              {effectiveTier === 'gratuit' && (
+                <Text style={[s.bodyMuted, { color: '#B45309' }]}>Version Gratuite : le collage est limité (~1 mois). Passe en Premium pour importer toute ta période.</Text>
+              )}
               <Text style={s.bodyMuted}>
                 Ce qui manque sera pré-rempli : les heures ({cachetMode ? '1 cachet de 12 h, car ton profil est artiste' : '8 h, car ton profil est technicien'}){dailyRate > 0 ? `, et ${dailyRate} € pour le prix (ton tarif journalier)` : ''}. Tu vérifies et corriges chaque ligne avant de valider.
               </Text>

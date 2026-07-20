@@ -4,6 +4,8 @@ import { useTheme, useThemeControls } from '../../lib/theme';
 import { useFocusEffect } from 'expo-router';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Modal, ActivityIndicator, Platform, Alert, KeyboardAvoidingView, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
@@ -77,6 +79,7 @@ export default function Calendar(){
   const [colorPickerOpen,setColorPickerOpen]=useState(false);
   const [managerOpen,setManagerOpen]=useState(false);
   const [showImport,setShowImport]=useState(false);
+  const [showExport,setShowExport]=useState(false);
   const [importMode,setImportMode]=useState<'calendar'|'excel'|'notes'>('calendar');
   const { notes, notesForDate } = useNotes();
   const [noteFormOpen,setNoteFormOpen]=useState(false);
@@ -504,6 +507,64 @@ export default function Calendar(){
       [{text:'Compris'}]);
   }
 
+  async function exportPdf(layout:'liste'|'calendrier'){
+    setShowExport(false);
+    const esc=(v:any)=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const money=(n:any)=>(Math.round(Number(n)||0)).toLocaleString('fr-FR')+' €';
+    const MN=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    const all=missions.filter((m:any)=>m.mission_date).slice().sort((a:any,b:any)=>a.mission_date<b.mission_date?-1:1);
+    if(!all.length){ showAlert('Rien à exporter','Aucune mission enregistrée pour le moment.'); return; }
+    const groups:Record<string,any[]>={};
+    for(const m of all){ const k=String(m.mission_date).slice(0,7); (groups[k]=groups[k]||[]).push(m); }
+    const keys=Object.keys(groups).sort();
+    const PAL=['#1F4E5F','#F97316','#7A9E7E','#C79A3B','#8B5CF6','#DC2626','#0D9488','#2563EB'];
+    const colorFor=(p:string)=>{ let h=0; const s=String(p||''); for(let i=0;i<s.length;i++)h=s.charCodeAt(i)+((h<<5)-h); return PAL[Math.abs(h)%PAL.length]; };
+    let body=''; let totMiss=0,totH=0,totG=0;
+    if(layout==='liste'){
+      for(const k of keys){
+        const ms=groups[k]; let mH=0,mG=0,rows='';
+        for(const m of ms){ const h=Number(m.hours)||0, g=Number(m.gross_amount)||0; mH+=h; mG+=g;
+          const d=String(m.mission_date).split('-').reverse().join('/');
+          const end=m.end_date&&m.end_date!==m.mission_date?(' → '+String(m.end_date).split('-').reverse().join('/')):'';
+          rows+=`<tr><td>${d}${end}</td><td>${esc(m.production||'—')}</td><td class="r">${h?h+' h':''}</td><td class="r">${g?money(g):''}</td></tr>`;
+        }
+        totMiss+=ms.length; totH+=mH; totG+=mG;
+        const [y,mo]=k.split('-');
+        body+=`<div class="month"><h2>${MN[+mo-1]} ${y}</h2><table><thead><tr><th>Date</th><th>Production</th><th class="r">Heures</th><th class="r">Brut</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="2">Total : ${ms.length} mission${ms.length>1?'s':''}</td><td class="r">${mH} h</td><td class="r">${money(mG)}</td></tr></tfoot></table></div>`;
+      }
+    } else {
+      for(const k of keys){
+        const [y,mo]=k.split('-').map(Number);
+        const startWd=(new Date(y,mo-1,1).getDay()+6)%7;
+        const dim=new Date(y,mo,0).getDate();
+        const byDay:Record<number,any[]>={}; let mH=0,mG=0;
+        for(const m of groups[k]){ const dd=Number(String(m.mission_date).split('-')[2]); (byDay[dd]=byDay[dd]||[]).push(m); mH+=Number(m.hours)||0; mG+=Number(m.gross_amount)||0; }
+        totMiss+=groups[k].length; totH+=mH; totG+=mG;
+        let cells=''; for(let i=0;i<startWd;i++) cells+='<td class="empty"></td>';
+        for(let d=1;d<=dim;d++){ const ms=byDay[d]||[]; let inner='';
+          for(const m of ms) inner+=`<div class="ev" style="background:${colorFor(m.production)}">${esc(String(m.production||'').slice(0,11))}${m.hours?' · '+Number(m.hours)+'h':''}</div>`;
+          cells+=`<td><div class="dn">${d}</div>${inner}</td>`; if((startWd+d)%7===0) cells+='</tr><tr>';
+        }
+        body+=`<div class="month"><h2>${MN[mo-1]} ${y} <span class="sub">${groups[k].length} mission(s) · ${mH} h · ${money(mG)}</span></h2><table class="cal"><thead><tr><th>Lun</th><th>Mar</th><th>Mer</th><th>Jeu</th><th>Ven</th><th>Sam</th><th>Dim</th></tr></thead><tbody><tr>${cells}</tr></tbody></table></div>`;
+      }
+    }
+    const html=`<!doctype html><html lang="fr"><head><meta charset="utf-8"><style>
+      *{box-sizing:border-box;margin:0;padding:0;} body{font-family:Arial,Helvetica,sans-serif;color:#17262E;font-size:12px;padding:22px;}
+      .hd{background:#1F4E5F;color:#fff;padding:16px 20px;border-radius:12px;margin-bottom:18px;} .hd h1{font-size:20px;} .hd p{font-size:12px;opacity:.9;margin-top:3px;}
+      .month{margin-bottom:20px;} .month h2{font-size:14px;color:#1F4E5F;border-bottom:2px solid #E7E3DA;padding-bottom:5px;margin-bottom:8px;} .month h2 .sub{font-size:11px;color:#5E7078;font-weight:normal;}
+      table{width:100%;border-collapse:collapse;} th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #eee;font-size:11.5px;} th{background:#F7F5F0;color:#5E7078;text-transform:uppercase;font-size:10px;} td.r,th.r{text-align:right;} tfoot td{font-weight:bold;color:#1F4E5F;border-top:2px solid #E7E3DA;background:#FAFAF8;}
+      table.cal td{vertical-align:top;height:62px;width:14.28%;border:1px solid #E7E3DA;} table.cal td.empty{background:#FAFAF8;} .dn{font-weight:bold;color:#1F4E5F;font-size:11px;} .ev{color:#fff;font-size:8px;font-weight:bold;border-radius:4px;padding:2px 4px;margin-top:2px;}
+      .foot{margin-top:16px;padding-top:12px;border-top:2px solid #1F4E5F;font-weight:bold;color:#1F4E5F;font-size:13px;} .gen{margin-top:14px;text-align:center;color:#94A3B8;font-size:10px;}
+    </style></head><body>
+      <div class="hd"><h1>Mon année d'intermittence</h1><p>Récapitulatif de mes missions · Intermitrack</p></div>
+      ${body}
+      <div class="foot">TOTAL : ${totMiss} mission${totMiss>1?'s':''} · ${totH} h · ${money(totG)}</div>
+      <div class="gen">Généré avec Intermitrack · intermitrack.fr</div>
+    </body></html>`;
+    try{ const { uri }=await Print.printToFileAsync({ html }); if(await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri,{mimeType:'application/pdf',UTI:'com.adobe.pdf'}); }
+    catch(e){ showAlert('Erreur','Impossible de générer le PDF.'); }
+  }
+
   function onCellPress(d:Date){
     setDayMenu({date:d,missions:missionsOn(d).filter((m:any)=>m.regime!=='general')});
   }
@@ -564,6 +625,30 @@ export default function Calendar(){
         <Ionicons name="create-outline" size={17} color={C.petrol}/>
         <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}}>Coller mes notes</Text>
       </TouchableOpacity>
+
+      <Text style={{fontSize:12.5,fontWeight:'700',color:C.muted,marginHorizontal:16,marginTop:4,marginBottom:6}}>Exporter</Text>
+      <TouchableOpacity onPress={()=>setShowExport(true)} activeOpacity={0.85} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,marginHorizontal:14,marginBottom:12,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
+        <Ionicons name="download-outline" size={17} color={C.petrol}/>
+        <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}}>Exporter mon année (PDF)</Text>
+      </TouchableOpacity>
+
+      <Modal visible={showExport} transparent animationType="fade" onRequestClose={()=>setShowExport(false)}>
+        <TouchableOpacity activeOpacity={1} onPress={()=>setShowExport(false)} style={{flex:1,backgroundColor:'rgba(0,0,0,.5)',justifyContent:'center',alignItems:'center',padding:24}}>
+          <TouchableOpacity activeOpacity={1} onPress={()=>{}} style={{backgroundColor:C.card,borderRadius:20,padding:20,width:'100%',maxWidth:360}}>
+            <Text style={{fontSize:18,fontWeight:'900',color:C.petrol,marginBottom:4}}>Exporter en PDF</Text>
+            <Text style={{fontSize:13,color:C.muted,marginBottom:16}}>Choisis la mise en page de ton récapitulatif.</Text>
+            <TouchableOpacity onPress={()=>exportPdf('liste')} activeOpacity={0.85} style={{flexDirection:'row',alignItems:'center',gap:12,borderWidth:1.5,borderColor:C.line,borderRadius:14,padding:14,marginBottom:10}}>
+              <Ionicons name="list-outline" size={22} color={C.petrol}/>
+              <View style={{flex:1}}><Text style={{fontWeight:'800',color:C.text,fontSize:14.5}}>Liste par mois</Text><Text style={{fontSize:12,color:C.muted}}>Tableau : date, production, heures, brut + totaux</Text></View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={()=>exportPdf('calendrier')} activeOpacity={0.85} style={{flexDirection:'row',alignItems:'center',gap:12,borderWidth:1.5,borderColor:C.line,borderRadius:14,padding:14}}>
+              <Ionicons name="calendar-outline" size={22} color={C.petrol}/>
+              <View style={{flex:1}}><Text style={{fontWeight:'800',color:C.text,fontSize:14.5}}>Calendrier</Text><Text style={{fontSize:12,color:C.muted}}>Grille mensuelle, missions colorées par jour</Text></View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={()=>setShowExport(false)} style={{paddingVertical:12,marginTop:8}}><Text style={{textAlign:'center',color:C.muted,fontWeight:'700'}}>Annuler</Text></TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       <CalendarImportModal visible={showImport} mode={importMode} avgDaily={salaireJour>0?salaireJour:(()=>{const g=missions.reduce((a:number,m:any)=>a+Number(m.gross_amount||0),0);const v=missions.reduce((a:number,m:any)=>a+Number(m.vacations||0),0);return g>0&&v>0?Math.round(g/v):0;})()} onClose={()=>setShowImport(false)} onImported={()=>loadMissions()}/>
 
