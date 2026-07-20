@@ -16,3 +16,9 @@ service-account*.json
 Thumbs.db
 *.log
 node_modules/
+
+# Fichiers de travail locaux (ne pas déployer)
+MOCKUP-*.html
+VIDEO PUB/
+STICKERS/
+PHOTOS DESCRIPTION APP/
