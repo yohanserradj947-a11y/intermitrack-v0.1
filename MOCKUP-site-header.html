@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Intermitrack — Aperçu header site</title>
+<style>
+  :root{--petrol:#1F4E5F;--orange:#F97316;--soft:#F4F7F8;--card:#fff;--line:#E7ECEF;--ink:#1A2330;--muted:#6B7A87;}
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',system-ui,Segoe UI,sans-serif;}
+  body{background:linear-gradient(160deg,#EAF1F3,#F7FAFB);min-height:100vh;color:var(--ink);padding:26px 16px 90px;}
+  h1{color:var(--petrol);text-align:center;font-size:23px;font-weight:800;}
+  .lead{text-align:center;color:var(--muted);max-width:620px;margin:8px auto 4px;font-size:14px;line-height:1.5;}
+  .badge-nc{display:block;width:max-content;margin:6px auto 28px;background:#FFF4E6;color:#B45309;font-weight:700;font-size:12px;padding:5px 12px;border-radius:20px;}
+  .grid{display:flex;flex-wrap:wrap;gap:30px;justify-content:center;align-items:flex-start;}
+  .col{width:340px;max-width:100%;}
+  .col h2{font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--petrol);text-align:center;margin-bottom:14px;font-weight:800;}
+  /* fake app header */
+  .top{background:var(--card);border:1px solid var(--line);border-radius:18px 18px 0 0;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 8px 26px rgba(31,78,95,.10);}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .logo{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#1F4E5F,#2F8F6B);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;}
+  .brand b{font-size:16px;color:var(--petrol);}
+  .brand small{display:block;color:var(--muted);font-size:11px;}
+  .avatar{width:40px;height:40px;border-radius:50%;background:var(--petrol);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px;}
+  /* dropdown */
+  .dd{background:var(--card);border:1px solid var(--line);border-radius:0 0 18px 18px;border-top:none;padding:14px;box-shadow:0 14px 30px rgba(31,78,95,.12);}
+  .dd-email{font-size:12.5px;color:var(--muted);padding:2px 4px 10px;border-bottom:1px solid var(--line);margin-bottom:10px;}
+  .dd-plan{background:var(--soft);border-radius:11px;padding:9px 12px;margin-bottom:12px;}
+  .dd-plan small{display:block;color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;}
+  .dd-plan b{color:#B8860B;font-size:13px;}
+  .dd-btn{width:100%;display:flex;align-items:center;gap:9px;background:var(--soft);color:var(--petrol);border:none;border-radius:11px;padding:11px 13px;font-size:13.5px;font-weight:700;margin-bottom:8px;cursor:default;font-family:inherit;}
+  .dd-btn .em{font-size:15px;}
+  .dd-new{outline:2px solid var(--orange);outline-offset:1px;}
+  .dd-theme{background:var(--soft);border-radius:11px;padding:10px 12px;margin-bottom:8px;}
+  .dd-theme small{display:block;color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px;}
+  .dd-theme .btns{display:flex;gap:8px;}
+  .dd-theme .tb{flex:1;border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px;font-size:15px;text-align:center;cursor:default;}
+  .dd-theme .tb.on{border-color:var(--petrol);background:#EAF1F3;}
+  .dd-quiet{background:transparent;font-size:12.5px;opacity:.8;}
+  .tagnew{margin-left:auto;background:var(--orange);color:#fff;font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:20px;letter-spacing:.4px;}
+  /* download float preview (static, in a phone corner) */
+  .screen{position:relative;background:var(--card);border:1px solid var(--line);border-radius:22px;height:300px;overflow:hidden;box-shadow:0 10px 30px rgba(31,78,95,.12);}
+  .screen .fake{position:absolute;inset:0;background:
+     radial-gradient(120px 80px at 20% 20%,rgba(31,78,95,.06),transparent),
+     repeating-linear-gradient(0deg,#fff,#fff 46px,#F7FAFB 46px,#F7FAFB 92px);}
+  .screen .cap{position:absolute;top:14px;left:16px;font-weight:800;color:var(--petrol);font-size:15px;}
+  /* the real .dl-float style, copied 1:1 */
+  .dl-float{position:absolute;bottom:16px;right:14px;z-index:5;display:flex;align-items:center;gap:7px;padding:7px 8px 7px 14px;border-radius:99px;background:#fff;border:1px solid var(--line);box-shadow:0 6px 20px rgba(13,79,108,.18);}
+  .dl-float-label{font-size:12px;font-weight:800;color:var(--petrol);white-space:nowrap;}
+  .dl-float-btn{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--petrol);color:#fff;text-decoration:none;}
+  .dl-float-btn svg{width:19px;height:19px;fill:currentColor;}
+  .note{max-width:700px;margin:34px auto 0;background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px;color:var(--muted);font-size:13.5px;line-height:1.6;text-align:center;}
+  .note b{color:var(--petrol);}
+  .gone{color:#B4351F;text-decoration:line-through;}
+  @media(max-width:760px){.col{width:100%;max-width:380px;}}
+</style>
+</head>
+<body>
+  <h1>Header du site — nouvelle organisation</h1>
+  <p class="lead">« Donner mon avis » et « Thème » ne sont plus des boutons flottants : ils passent dans le menu des initiales. À la place, un bouton <b>télécharger l'app</b> (Apple + Google Play) reste toujours visible.</p>
+  <span class="badge-nc">⚠️ Aperçu — rien n'est déployé, tu valides d'abord</span>
+
+  <div class="grid">
+    <!-- COL 1 : le menu des initiales -->
+    <div class="col">
+      <h2>Clic sur tes initiales</h2>
+      <div class="top">
+        <div class="brand">
+          <div class="logo">IT</div>
+          <div><b>Intermitrack</b><small>Le tableau de bord des intermittents.</small></div>
+        </div>
+        <div class="avatar">YS</div>
+      </div>
+      <div class="dd">
+        <div class="dd-email">yohanserradj947@gmail.com</div>
+        <div class="dd-plan"><small>Offre actuelle</small><b>⭐ Pionnier — gratuit à vie</b></div>
+        <button class="dd-btn"><span class="em">📝</span> Mes informations</button>
+        <button class="dd-btn dd-new"><span class="em">💬</span> Donner mon avis <span class="tagnew">ICI MAINTENANT</span></button>
+        <div class="dd-theme">
+          <small>Apparence</small>
+          <div class="btns"><div class="tb on">☀️</div><div class="tb">🌙</div></div>
+        </div>
+        <button class="dd-btn" style="background:transparent;"><span class="em">🚪</span> Se déconnecter</button>
+        <button class="dd-btn dd-quiet"><span class="em">🗑️</span> Supprimer mon compte</button>
+      </div>
+    </div>
+
+    <!-- COL 2 : le bouton de téléchargement toujours visible -->
+    <div class="col">
+      <h2>Toujours visible (en bas à droite)</h2>
+      <div class="screen">
+        <div class="fake"></div>
+        <div class="cap">Ton dashboard…</div>
+        <div class="dl-float">
+          <span class="dl-float-label">Télécharger l'app</span>
+          <a class="dl-float-btn" title="App Store (iOS)"><svg viewBox="0 0 24 24"><path d="M16.5 1.5c0 1.2-.5 2.3-1.3 3.1-.9.9-2 1.5-3.1 1.4-.1-1.1.5-2.3 1.3-3 .8-.8 2.1-1.4 3.1-1.5zM20.5 17c-.5 1.2-.8 1.7-1.5 2.7-.9 1.4-2.3 3.1-3.9 3.1-1.5 0-1.9-1-3.9-1-2 0-2.4 1-3.9 1-1.6 0-2.9-1.6-3.8-2.9-2.5-3.7-2.8-8.1-1.2-10.4 1.1-1.7 2.8-2.6 4.5-2.6 1.7 0 2.7 1 4.1 1 1.3 0 2.1-1 4.1-1 1.5 0 3.1.8 4.2 2.2-3.7 2-3.1 7.3.9 8.9z"/></svg></a>
+          <a class="dl-float-btn" title="Google Play (Android)"><svg viewBox="0 0 24 24"><path d="M3 3l16 9-16 9V3z"/></svg></a>
+        </div>
+      </div>
+      <p style="text-align:center;color:var(--muted);font-size:12px;margin-top:10px;">🍎 = App Store (iOS) · ▶ = Google Play (Android). Un clic → page de téléchargement.<br>Sur mobile, le texte se cache et il ne reste que les 2 petits logos.</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Ce qui change :</b> on retire les 2 boutons flottants <span class="gone">💬 Donner mon avis</span> et <span class="gone">☀️ Thème</span>. « Donner mon avis » rejoint le menu (le thème y était déjà). Le coin bas-droit affiche maintenant en permanence le <b>téléchargement de l'app</b> (Apple + Google Play) — pour que les visiteurs qui ne savent pas que l'app existe puissent l'installer en un clic.<br>
+    Dis-moi si ça te va (position, taille, textes) et je déploie. Tu veux le garder <b>en bas à droite</b> ou plutôt <b>en bas à gauche</b> ?
+  </div>
+</body>
+</html>

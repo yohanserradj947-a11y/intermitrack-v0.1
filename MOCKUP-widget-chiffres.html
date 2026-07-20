@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Widget calendrier — chiffres illisibles</title>
+<style>
+  :root{
+    --petrol:#1F4E5F; --green:#12754A; --orange:#F97316;
+    --orange-dark:#d66313; --orange-light:#fba56a;
+    --bg:#F5F7F6; --card:#FFFFFF; --text:#2D3748; --muted:#718096; --line:#E2E8F0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:28px 18px 60px;background:#eceff0;color:var(--text);
+       font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:920px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 26px;font-size:14px}
+  h2{font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+     margin:34px 0 12px;padding-bottom:8px;border-bottom:1px solid #dfe3e4}
+  .pair{display:flex;gap:18px;flex-wrap:wrap}
+  .col{flex:1 1 300px;min-width:280px}
+  .tag{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+       margin-bottom:8px;display:inline-block;padding:3px 9px;border-radius:99px}
+  .bad{background:#fde8e8;color:#c0392b}
+  .good{background:#e3f6e9;color:#12754A}
+
+  /* --- le widget --- */
+  .widget{background:var(--card);border-radius:20px;padding:13px 14px;
+          box-shadow:0 8px 22px rgba(0,0,0,.13)}
+  .wtitle{font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:9px}
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+  .dow{font-size:9.5px;color:var(--muted);text-align:center;font-weight:600;padding-bottom:2px}
+  .cell{height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;
+        font-size:12.5px;font-weight:500;color:var(--text)}
+  .cell.m{font-weight:800}
+  /* mission passée : dégradé pétrole → vert (GRAD_PAST) */
+  .past{background:linear-gradient(135deg,var(--petrol),var(--green))}
+  /* mission future : dégradé orange (GRAD_FUTURE) */
+  .fut{background:linear-gradient(135deg,var(--orange-dark),var(--orange) 50%,var(--orange-light))}
+  .today{background:var(--orange);border-radius:50%;color:#fff;font-weight:800}
+  /* LE bug : txt='#fff' que Swift ne sait pas lire → il retombe sur #1F4E5F */
+  .txt-bug{color:#1F4E5F}
+  .txt-fix{color:#FFFFFF}
+
+  .note{background:#fff;border:1px solid var(--line);border-left:3px solid var(--orange);
+        border-radius:8px;padding:12px 14px;margin-top:14px;font-size:14px}
+  .note b{color:#c0392b}
+  .zoom{display:flex;align-items:center;gap:14px;margin-top:12px;font-size:13px;color:var(--muted)}
+  .swatch{width:52px;height:52px;border-radius:8px;display:flex;align-items:center;
+          justify-content:center;font-size:22px;font-weight:800;flex:0 0 auto}
+
+  /* --- grand widget --- */
+  .bigcell{display:flex;flex-direction:column;align-items:center;gap:2px}
+  .bignum{font-size:11px;font-weight:500;color:#000}
+  .bigband{height:11px;border-radius:3px;width:100%;display:flex;align-items:center;
+           justify-content:center;font-size:8px;font-weight:800}
+  .grid-big{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+
+  .ask{background:#1F4E5F;color:#fff;border-radius:14px;padding:18px 20px;margin-top:34px}
+  .ask h3{margin:0 0 8px;font-size:16px}
+  .ask p{margin:0;opacity:.9;font-size:14.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Widget calendrier — pourquoi les chiffres sont pétrole</h1>
+  <p class="sub">Reproduit avec tes couleurs réelles : pétrole #1F4E5F · vert #12754A · orange #F97316</p>
+
+  <h2>Widget MOYEN — c'est ce que je corrige</h2>
+  <div class="pair">
+    <div class="col">
+      <span class="tag bad">Avant — ce que tu vois</span>
+      <div class="widget">
+        <div class="wtitle">Juillet 2026</div>
+        <div class="grid">
+          <div class="dow">L</div><div class="dow">M</div><div class="dow">M</div><div class="dow">J</div><div class="dow">V</div><div class="dow">S</div><div class="dow">D</div>
+          <div class="cell"></div><div class="cell"></div><div class="cell">1</div><div class="cell">2</div><div class="cell">3</div><div class="cell">4</div><div class="cell">5</div>
+          <div class="cell past m txt-bug">6</div><div class="cell past m txt-bug">7</div><div class="cell">8</div><div class="cell past m txt-bug">9</div><div class="cell past m txt-bug">10</div><div class="cell">11</div><div class="cell">12</div>
+          <div class="cell past m txt-bug">13</div><div class="cell past m txt-bug">14</div><div class="cell past m txt-bug">15</div><div class="cell today">16</div><div class="cell fut m txt-bug">17</div><div class="cell fut m txt-bug">18</div><div class="cell">19</div>
+          <div class="cell fut m txt-bug">20</div><div class="cell fut m txt-bug">21</div><div class="cell">22</div><div class="cell fut m txt-bug">23</div><div class="cell fut m txt-bug">24</div><div class="cell">25</div><div class="cell">26</div>
+          <div class="cell">27</div><div class="cell fut m txt-bug">28</div><div class="cell fut m txt-bug">29</div><div class="cell">30</div><div class="cell">31</div><div class="cell"></div><div class="cell"></div>
+        </div>
+      </div>
+      <div class="zoom">
+        <div class="swatch" style="background:#F97316;color:#1F4E5F">17</div>
+        <div>Chiffre <b>#1F4E5F</b> sur orange :<br>on dirait du noir.</div>
+      </div>
+      <div class="zoom">
+        <div class="swatch" style="background:linear-gradient(135deg,#1F4E5F,#12754A);color:#1F4E5F">10</div>
+        <div>Chiffre <b>#1F4E5F</b> sur pétrole/vert :<br>quasi invisible.</div>
+      </div>
+    </div>
+
+    <div class="col">
+      <span class="tag good">Après — l'OTA publié</span>
+      <div class="widget">
+        <div class="wtitle">Juillet 2026</div>
+        <div class="grid">
+          <div class="dow">L</div><div class="dow">M</div><div class="dow">M</div><div class="dow">J</div><div class="dow">V</div><div class="dow">S</div><div class="dow">D</div>
+          <div class="cell"></div><div class="cell"></div><div class="cell">1</div><div class="cell">2</div><div class="cell">3</div><div class="cell">4</div><div class="cell">5</div>
+          <div class="cell past m txt-fix">6</div><div class="cell past m txt-fix">7</div><div class="cell">8</div><div class="cell past m txt-fix">9</div><div class="cell past m txt-fix">10</div><div class="cell">11</div><div class="cell">12</div>
+          <div class="cell past m txt-fix">13</div><div class="cell past m txt-fix">14</div><div class="cell past m txt-fix">15</div><div class="cell today">16</div><div class="cell fut m txt-fix">17</div><div class="cell fut m txt-fix">18</div><div class="cell">19</div>
+          <div class="cell fut m txt-fix">20</div><div class="cell fut m txt-fix">21</div><div class="cell">22</div><div class="cell fut m txt-fix">23</div><div class="cell fut m txt-fix">24</div><div class="cell">25</div><div class="cell">26</div>
+          <div class="cell">27</div><div class="cell fut m txt-fix">28</div><div class="cell fut m txt-fix">29</div><div class="cell">30</div><div class="cell">31</div><div class="cell"></div><div class="cell"></div>
+        </div>
+      </div>
+      <div class="zoom">
+        <div class="swatch" style="background:#F97316;color:#FFFFFF">17</div>
+        <div>Chiffre <b style="color:#12754A">#FFFFFF</b> sur orange :<br>lisible.</div>
+      </div>
+      <div class="zoom">
+        <div class="swatch" style="background:linear-gradient(135deg,#1F4E5F,#12754A);color:#FFFFFF">10</div>
+        <div>Chiffre <b style="color:#12754A">#FFFFFF</b> sur pétrole/vert :<br>lisible.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Les couleurs des cases ne bougent pas d'un poil.</b> Vert et orange restent exactement
+    comme tu les as. Seul le chiffre change de couleur.
+  </div>
+
+  <h2>Widget GRAND — celui-ci, ma correction ne le touche PAS</h2>
+  <div class="pair">
+    <div class="col" style="flex:1 1 100%">
+      <div class="widget" style="max-width:330px">
+        <div class="wtitle">Juillet 2026</div>
+        <div class="grid-big">
+          <div class="dow">L</div><div class="dow">M</div><div class="dow">M</div><div class="dow">J</div><div class="dow">V</div><div class="dow">S</div><div class="dow">D</div>
+          <div class="bigcell"><span class="bignum">6</span><span class="bigband past" style="color:#1F4E5F">PRO</span></div>
+          <div class="bigcell"><span class="bignum">7</span><span class="bigband past" style="color:#1F4E5F">PRO</span></div>
+          <div class="bigcell"><span class="bignum">8</span><span class="bigband" style="background:transparent"></span></div>
+          <div class="bigcell"><span class="bignum">9</span><span class="bigband past" style="color:#1F4E5F">PRO</span></div>
+          <div class="bigcell"><span class="bignum">10</span><span class="bigband past" style="color:#1F4E5F">PRO</span></div>
+          <div class="bigcell"><span class="bignum">11</span><span class="bigband" style="background:transparent"></span></div>
+          <div class="bigcell"><span class="bignum">12</span><span class="bigband" style="background:transparent"></span></div>
+          <div class="bigcell"><span class="bignum">17</span><span class="bigband fut" style="color:#1F4E5F">MIX</span></div>
+          <div class="bigcell"><span class="bignum">18</span><span class="bigband fut" style="color:#1F4E5F">MIX</span></div>
+          <div class="bigcell"><span class="bignum">19</span><span class="bigband" style="background:transparent"></span></div>
+          <div class="bigcell"><span class="bignum">20</span><span class="bigband fut" style="color:#1F4E5F">REC</span></div>
+          <div class="bigcell"><span class="bignum">21</span><span class="bigband fut" style="color:#1F4E5F">REC</span></div>
+          <div class="bigcell"><span class="bignum">22</span><span class="bigband" style="background:transparent"></span></div>
+          <div class="bigcell"><span class="bignum">23</span><span class="bigband fut" style="color:#1F4E5F">REC</span></div>
+        </div>
+      </div>
+      <div class="note" style="border-left-color:#c0392b">
+        Ici le chiffre est <b>au-dessus</b> de la bande colorée, et il est toujours
+        <b>noir</b> — il n'utilise pas du tout la couleur calculée. Ce sont les
+        <b>initiales dans la bande</b> (PRO, MIX, REC) qui sortent en pétrole.
+      </div>
+    </div>
+  </div>
+
+  <div class="ask">
+    <h3>La question à laquelle j'ai besoin que tu répondes</h3>
+    <p>Sur ton écran d'accueil, ton widget calendrier ressemble à quoi : un
+    <b>mini-calendrier avec une liste de missions à côté</b> (le moyen), ou un
+    <b>mois entier avec des bandes de couleur sous les chiffres</b> (le grand) ?</p>
+  </div>
+
+</div>
+</body>
+</html>

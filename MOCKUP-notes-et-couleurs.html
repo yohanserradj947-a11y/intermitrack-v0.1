@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — Notes perso + couleurs cohérentes</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
+  body{background:linear-gradient(160deg,#ECF3F0,#E6EEF1);color:#2D3748;padding:28px 16px 60px;}
+  .wrap{max-width:1000px;margin:0 auto;}
+  .banner{text-align:center;margin-bottom:24px;}
+  .banner h1{font-size:23px;color:#1F4E5F;letter-spacing:-.03em;}
+  .banner p{color:#718096;font-size:14px;margin-top:6px;}
+  .tag{display:inline-block;background:#FFF7E6;color:#B7791F;border:1px solid #F5C97A;font-size:12px;font-weight:800;padding:4px 12px;border-radius:99px;margin-bottom:10px;}
+  .sec-title{font-size:13px;font-weight:800;color:#1F4E5F;text-transform:uppercase;letter-spacing:.05em;margin:30px 0 14px;display:flex;align-items:center;gap:8px;}
+  .sec-title .n{width:24px;height:24px;border-radius:50%;background:#1F4E5F;color:#fff;font-size:13px;display:inline-flex;align-items:center;justify-content:center;}
+  .grid{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;}
+  .col{flex:1;min-width:300px;}
+  .card{background:#fff;border:1px solid #E2E8F0;border-radius:22px;padding:22px;box-shadow:0 8px 28px rgba(13,27,42,.08);}
+  .cap{font-size:12px;color:#94A3B8;text-align:center;margin-top:8px;}
+
+  /* menu choix au clic */
+  .choose{max-width:330px;margin:0 auto;}
+  .choose h3{font-size:15px;font-weight:900;color:#1F4E5F;margin-bottom:4px;}
+  .choose .sub{font-size:12.5px;color:#718096;margin-bottom:16px;}
+  .opt{display:flex;align-items:center;gap:12px;border:1.5px solid #E2E8F0;border-radius:15px;padding:14px;margin-bottom:10px;cursor:pointer;}
+  .opt:hover{border-color:#1F4E5F;}
+  .opt .ic{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+  .opt .ic.m{background:linear-gradient(150deg,#1F4E5F,#2F8F6B);}
+  .opt .ic.n{background:linear-gradient(150deg,#F59E0B,#FBBF24);}
+  .opt .t{font-size:14.5px;font-weight:800;color:#2D3748;}
+  .opt .d{font-size:12px;color:#94A3B8;margin-top:1px;}
+
+  /* tabs pop-up */
+  .tabs{display:flex;gap:8px;background:#F1F4F3;border-radius:14px;padding:5px;margin-bottom:18px;}
+  .tab{flex:1;text-align:center;padding:10px;border-radius:10px;font-size:14px;font-weight:800;color:#718096;cursor:pointer;}
+  .tab.on{background:#fff;color:#1F4E5F;box-shadow:0 2px 6px rgba(13,27,42,.08);}
+  .field-label{font-size:13px;font-weight:700;color:#2D3748;margin:14px 0 6px;}
+  .input{border:1px solid #E2E8F0;border-radius:13px;padding:13px 14px;font-size:15px;color:#2D3748;background:#fff;}
+  .input.full{display:block;width:100%;}
+  .input.ph{color:#A0AEC0;}
+  .textarea{min-height:90px;}
+  .row2{display:flex;gap:10px;}.row2>div{flex:1;}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px;}
+  .chip{padding:8px 13px;border-radius:99px;background:#EEF4F1;color:#1F4E5F;font-size:12.5px;font-weight:700;cursor:pointer;}
+  .chip.on{background:#1F4E5F;color:#fff;}
+  .save{margin-top:20px;width:100%;padding:15px;border:none;border-radius:14px;color:#fff;font-size:15px;font-weight:800;cursor:pointer;background:#1F4E5F;}
+  .save.note{background:linear-gradient(150deg,#F59E0B,#FBBF24);}
+  .muted-list{font-size:12.5px;color:#94A3B8;line-height:1.7;margin-top:4px;}
+  .muted-list s{opacity:.7;}
+
+  /* mes missions couleurs */
+  .mcard{border:1px solid #E2E8F0;border-radius:16px;padding:14px 16px;margin-bottom:10px;border-left-width:5px;display:flex;justify-content:space-between;align-items:center;}
+  .mcard .nm{font-size:14px;font-weight:900;color:#1F4E5F;display:flex;align-items:center;gap:8px;}
+  .mcard .dot{width:14px;height:14px;border-radius:5px;}
+  .mcard .stat{font-size:12px;color:#718096;margin-top:3px;}
+  .mcard .amt{font-size:15px;font-weight:900;color:#2D3748;}
+  .donutwrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:center;}
+  .donut{width:150px;height:150px;border-radius:50%;background:conic-gradient(#1E5FA8 0 50%,#C99700 50% 80%,#5E3A9E 80% 100%);position:relative;flex-shrink:0;}
+  .donut::after{content:"";position:absolute;inset:26px;background:#fff;border-radius:50%;}
+  .donut .ctr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;}
+  .donut .ctr b{font-size:20px;color:#1F4E5F;}
+  .donut .ctr span{font-size:11px;color:#94A3B8;}
+  .dleg{display:flex;flex-direction:column;gap:8px;}
+  .dleg .l{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#2D3748;}
+  .dleg .l .dot{width:16px;height:16px;border-radius:5px;}
+  .good{background:#E3F6E9;border:1px solid #9AE6B4;color:#22663F;border-radius:12px;padding:12px 14px;font-size:12.5px;font-weight:600;margin-top:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner">
+    <span class="tag">🎨 MOCKUP — juste un aperçu, rien n'est codé</span>
+    <h1>Notes perso + couleurs cohérentes partout</h1>
+    <p>Au clic sur un jour : Mission OU Note · et la couleur d'une prod la suit dans « Mes missions » et le graphique.</p>
+  </div>
+
+  <!-- 1. CHOIX AU CLIC -->
+  <div class="sec-title"><span class="n">1</span> Au clic sur un jour du calendrier</div>
+  <div class="card choose">
+    <h3>Ajouter le 14 juin</h3>
+    <div class="sub">Qu'est-ce que tu veux ajouter ?</div>
+    <div class="opt"><div class="ic m">📋</div><div><div class="t">Une mission</div><div class="d">Travail : heures, brut, vacations, frais km…</div></div></div>
+    <div class="opt"><div class="ic n">📝</div><div><div class="t">Une note perso</div><div class="d">Hors travail : congés, RDV, rappel, perso…</div></div></div>
+  </div>
+
+  <!-- 2. POP-UP 2 ONGLETS -->
+  <div class="sec-title"><span class="n">2</span> Pop-up à 2 onglets — exemple : onglet « Note »</div>
+  <div class="grid">
+    <div class="col">
+      <div class="card">
+        <div class="tabs"><div class="tab">📋 Mission</div><div class="tab on">📝 Note</div></div>
+
+        <div class="field-label">Titre de la note</div>
+        <input class="input full ph" value="Congés / RDV médecin / Rappel…">
+
+        <div class="row2">
+          <div><div class="field-label">Début</div><div class="input">14/06/2026</div></div>
+          <div><div class="field-label">Fin</div><div class="input">14/06/2026</div></div>
+        </div>
+
+        <div class="field-label">Texte (libre)</div>
+        <div class="input full textarea ph">Écris ce que tu veux ici…</div>
+
+        <div class="field-label">Couleur / repère (optionnel)</div>
+        <div class="chips">
+          <div class="chip on">🟠 Note</div><div class="chip">🔵</div><div class="chip">🟣</div><div class="chip">🟢</div><div class="chip">🔴</div>
+        </div>
+
+        <button class="save note">Enregistrer la note</button>
+      </div>
+      <div class="cap">Onglet « Note » : simple, aucune formalité de travail.</div>
+    </div>
+
+    <div class="col">
+      <div class="card">
+        <div class="tabs"><div class="tab on">📋 Mission</div><div class="tab">📝 Note</div></div>
+        <div class="field-label">Production <span style="font-weight:400;color:#A0AEC0">(+ couleur)</span></div>
+        <div class="input full">ITV 🔵</div>
+        <div class="muted-list">
+          ✓ Type &nbsp;·&nbsp; ✓ Heures &nbsp;·&nbsp; ✓ Vacations / cachets<br>
+          ✓ Montant brut &nbsp;·&nbsp; ✓ Frais kilométriques
+        </div>
+        <button class="save">Enregistrer la mission</button>
+      </div>
+      <div class="cap">Onglet « Mission » : tous les champs habituels (inchangé).</div>
+    </div>
+  </div>
+
+  <!-- 3. COULEURS COHERENTES -->
+  <div class="sec-title"><span class="n">3</span> Onglet « Mes missions » — couleurs cohérentes</div>
+  <div class="grid">
+    <div class="col">
+      <div class="card">
+        <div class="mcard" style="border-left-color:#1E5FA8">
+          <div><div class="nm"><span class="dot" style="background:#1E5FA8"></span>ITV</div><div class="stat">5 missions · 24 h</div></div>
+          <div class="amt">6 000 €</div>
+        </div>
+        <div class="mcard" style="border-left-color:#C99700">
+          <div><div class="nm"><span class="dot" style="background:#C99700"></span>ENDEMOL</div><div class="stat">3 missions · 18 h</div></div>
+          <div class="amt">3 600 €</div>
+        </div>
+        <div class="mcard" style="border-left-color:#5E3A9E">
+          <div><div class="nm"><span class="dot" style="background:#5E3A9E"></span>DUSHOW</div><div class="stat">2 missions · 12 h</div></div>
+          <div class="amt">2 400 €</div>
+        </div>
+      </div>
+      <div class="cap">Chaque prod garde SA couleur (ITV bleu, ENDEMOL jaune, DUSHOW violet).</div>
+    </div>
+
+    <div class="col">
+      <div class="card">
+        <div class="donutwrap">
+          <div class="donut"><div class="ctr"><b>12 000 €</b><span>total</span></div></div>
+          <div class="dleg">
+            <div class="l"><span class="dot" style="background:#1E5FA8"></span> ITV — bleu</div>
+            <div class="l"><span class="dot" style="background:#C99700"></span> ENDEMOL — jaune</div>
+            <div class="l"><span class="dot" style="background:#5E3A9E"></span> DUSHOW — violet</div>
+          </div>
+        </div>
+        <div class="good">✓ Le graphique utilise <b>exactement les mêmes couleurs</b> que tes productions. Si ITV = bleu, sa part du camembert est bleue — plus jamais de vert au hasard.</div>
+      </div>
+      <div class="cap">Graphique « Mes missions » — couleurs alignées sur les prods.</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

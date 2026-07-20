@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — Centre de personnalisation</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
+  body{background:linear-gradient(160deg,#ECF3F0,#E6EEF1);color:#2D3748;padding:24px 16px 70px;}
+  .wrap{max-width:1020px;margin:0 auto;}
+  .banner{text-align:center;margin-bottom:22px;}
+  .tag{display:inline-block;background:#FFF7E6;color:#B7791F;border:1px solid #F5C97A;font-size:12px;font-weight:800;padding:4px 12px;border-radius:99px;margin-bottom:10px;}
+  .banner h1{font-size:23px;color:#1F4E5F;letter-spacing:-.03em;}
+  .banner p{color:#718096;font-size:14px;margin-top:6px;}
+  .layout{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;}
+  .pane{flex:1;min-width:300px;}
+
+  /* ===== APERÇU LIVE ===== */
+  .preview-wrap{position:sticky;top:16px;}
+  #preview{--accent:#1F4E5F;--accent-light:#3A8FA0;--bg:#F5F7F6;--card:#fff;--text:#2D3748;--muted:#718096;--line:#E2E8F0;--radius:18px;
+    background:var(--bg);border:1px solid var(--line);border-radius:22px;padding:18px;position:relative;overflow:hidden;transition:background .2s;}
+  #blobs{position:absolute;inset:0;z-index:0;display:none;pointer-events:none;}
+  #blobs .bl{position:absolute;border-radius:50%;filter:blur(6px);opacity:.5;}
+  .pv-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;position:relative;z-index:1;}
+  .pv-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .pv-logo{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--accent),var(--accent-light));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;}
+  .pv-title{font-size:15px;font-weight:800;color:var(--accent);}
+  .pv-sub{font-size:11px;color:var(--muted);}
+  .pv-btns{display:flex;gap:9px;margin-bottom:14px;flex-wrap:wrap;}
+  .pv-primary{background:var(--accent);color:#fff;border:none;border-radius:calc(var(--radius) - 6px);padding:10px 15px;font-weight:800;font-size:12.5px;cursor:pointer;}
+  .pv-ghost{background:var(--card);color:var(--accent);border:1px solid var(--accent);border-radius:calc(var(--radius) - 6px);padding:10px 15px;font-weight:800;font-size:12.5px;cursor:pointer;}
+  .pv-graph{display:flex;align-items:center;gap:16px;margin-bottom:14px;}
+  .donut{width:104px;height:104px;border-radius:50%;flex-shrink:0;position:relative;}
+  .donut::after{content:"";position:absolute;inset:20px;background:var(--card);border-radius:50%;}
+  .pv-legend{display:flex;flex-direction:column;gap:6px;}
+  .pv-legend .lg{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--text);}
+  .pv-legend .dot{width:13px;height:13px;border-radius:4px;}
+  .pv-cal{display:flex;gap:8px;margin-bottom:12px;}
+  .pv-day{flex:1;height:42px;border-radius:calc(var(--radius) - 8px);background:linear-gradient(135deg,var(--accent),var(--accent-light));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;}
+  .pv-tabs{display:flex;gap:6px;}
+  .pv-pill{padding:7px 13px;border-radius:99px;font-size:11.5px;font-weight:700;background:var(--line);color:var(--muted);}
+  .pv-pill.on{background:var(--accent);color:#fff;}
+
+  /* ===== ÉTAPES ===== */
+  .step{background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:16px 18px;margin-bottom:14px;box-shadow:0 4px 16px rgba(13,27,42,.05);}
+  .step-h{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+  .step-n{width:24px;height:24px;border-radius:50%;background:#1F4E5F;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+  .step-t{font-size:14px;font-weight:800;color:#1F4E5F;}
+  .opts{display:flex;gap:9px;flex-wrap:wrap;}
+  .sw{width:30px;height:30px;border-radius:9px;cursor:pointer;border:2px solid transparent;box-shadow:0 0 0 1px #E2E8F0;}
+  .sw.sel{border-color:#0D1B2A;}
+  .sw-add{width:30px;height:30px;border-radius:9px;border:1px dashed #CBD5E0;display:inline-flex;align-items:center;justify-content:center;font-weight:800;color:#94A3B8;position:relative;overflow:hidden;cursor:pointer;}
+  .sw-add input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  .opt{padding:9px 13px;border:1px solid #E2E8F0;background:#fff;color:#475569;border-radius:10px;font-size:12.5px;font-weight:700;cursor:pointer;}
+  .opt.sel{background:#1F4E5F;color:#fff;border-color:#1F4E5F;}
+  .reset{margin-top:6px;padding:9px 14px;border:1px solid #E2E8F0;background:#F5F7F6;color:#1F4E5F;border-radius:10px;font-weight:700;font-size:12.5px;cursor:pointer;}
+  .biz{margin-top:6px;background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:16px;font-size:12.5px;color:#475569;line-height:1.6;}
+  .biz b{color:#1F4E5F;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner">
+    <span class="tag">🎨 MOCKUP interactif — rien n'est codé dans le site</span>
+    <h1>Centre de personnalisation</h1>
+    <p>Chaque réglage met l'aperçu à jour <b>en direct</b> — couleur, graphique, fond, ambiance.</p>
+  </div>
+
+  <div class="layout">
+    <!-- APERÇU -->
+    <div class="pane">
+      <div class="preview-wrap">
+        <div id="preview">
+          <div id="blobs"></div>
+          <div class="pv-card">
+            <div class="pv-head"><div class="pv-logo">iT</div><div><div class="pv-title">Intermitrack</div><div class="pv-sub">Aperçu live</div></div></div>
+            <div class="pv-btns"><button class="pv-primary">Créer une mission</button><button class="pv-ghost">Calendrier</button></div>
+            <div class="pv-graph"><div class="donut" id="donut"></div><div class="pv-legend" id="legend"></div></div>
+            <div class="pv-cal"><span class="pv-day">12</span><span class="pv-day">13</span><span class="pv-day">14</span></div>
+            <div class="pv-tabs"><span class="pv-pill on">Tableau</span><span class="pv-pill">Missions</span><span class="pv-pill">Calendrier</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ÉTAPES -->
+    <div class="pane">
+      <div class="step">
+        <div class="step-h"><span class="step-n">1</span><span class="step-t">🎨 Couleur principale</span></div>
+        <div class="opts" id="accents">
+          <span class="sw sel" data-a="#1F4E5F" style="background:#1F4E5F"></span>
+          <span class="sw" data-a="#0F7A52" style="background:#0F7A52"></span>
+          <span class="sw" data-a="#4F46E5" style="background:#4F46E5"></span>
+          <span class="sw" data-a="#7C3AED" style="background:#7C3AED"></span>
+          <span class="sw" data-a="#DB2777" style="background:#DB2777"></span>
+          <span class="sw" data-a="#EA580C" style="background:#EA580C"></span>
+          <span class="sw" data-a="#0E7490" style="background:#0E7490"></span>
+          <label class="sw-add" title="Perso">+<input type="color" id="accPick" value="#1F4E5F"></label>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-h"><span class="step-n">2</span><span class="step-t">📊 Style du graphique</span></div>
+        <div class="opts" id="graphs">
+          <button class="opt sel" data-g="nuances">Nuances de la couleur</button>
+          <button class="opt" data-g="vif">Vif multicolore</button>
+          <button class="opt" data-g="pastel">Camaïeu pastel</button>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-h"><span class="step-n">3</span><span class="step-t">🖼️ Décor de fond</span></div>
+        <div class="opts" id="decors">
+          <button class="opt sel" data-d="none">Aucun</button>
+          <button class="opt" data-d="gradient">Dégradé doux</button>
+          <button class="opt" data-d="dots">Motif points</button>
+          <button class="opt" data-d="blobs">Formes</button>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-h"><span class="step-n">4</span><span class="step-t">🌗 Ambiance</span></div>
+        <div class="opts" id="ambs">
+          <button class="opt sel" data-amb="light">☀️ Clair</button>
+          <button class="opt" data-amb="dark">🌙 Sombre</button>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-h"><span class="step-n">5</span><span class="step-t">✨ Coins</span></div>
+        <div class="opts" id="rads">
+          <button class="opt sel" data-r="18">Arrondis</button>
+          <button class="opt" data-r="10">Doux</button>
+          <button class="opt" data-r="4">Nets</button>
+        </div>
+      </div>
+
+      <button class="reset" id="reset">↺ Réinitialiser le thème (apparence uniquement)</button>
+
+      <div class="biz"><b>💡 Idée business :</b> couleurs simples = incluses · thèmes/décors <b>premium</b> (Coucher de soleil, Océan, Néon, Or&Noir…) = vendus à l'unité, en pack, ou via abonnement « Pionnier+ ». Toujours réinitialisable, apparence seulement.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let accent='#1F4E5F', graph='nuances', decor='none', amb='light', rad=18;
+  function hexRgb(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');const n=parseInt(h,16);return[(n>>16)&255,(n>>8)&255,n&255];}
+  function lighten(h,a){const c=hexRgb(h);return '#'+c.map(x=>Math.round(x+(255-x)*a).toString(16).padStart(2,'0')).join('');}
+  function rgba(h,a){const c=hexRgb(h);return 'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')';}
+  function render(){
+    const p=document.getElementById('preview');
+    p.style.setProperty('--accent',accent);
+    p.style.setProperty('--accent-light',lighten(accent,.34));
+    p.style.setProperty('--radius',rad+'px');
+    if(amb==='dark'){p.style.setProperty('--bg','#0C1726');p.style.setProperty('--card','#132338');p.style.setProperty('--text','#E8EDEF');p.style.setProperty('--muted','#9AA8B2');p.style.setProperty('--line','rgba(255,255,255,.10)');}
+    else{p.style.setProperty('--bg','#F5F7F6');p.style.setProperty('--card','#fff');p.style.setProperty('--text','#2D3748');p.style.setProperty('--muted','#718096');p.style.setProperty('--line','#E2E8F0');}
+    let cols;
+    if(graph==='nuances')cols=[accent,lighten(accent,.30),lighten(accent,.55)];
+    else if(graph==='vif')cols=['#1E6FE0','#15B86B','#FB8C00'];
+    else cols=[lighten(accent,.30),lighten('#DB2777',.4),lighten('#15B86B',.4)];
+    document.getElementById('donut').style.background='conic-gradient('+cols[0]+' 0 45%,'+cols[1]+' 45% 75%,'+cols[2]+' 75% 100%)';
+    document.getElementById('legend').innerHTML=cols.map((c,i)=>'<span class="lg"><span class="dot" style="background:'+c+'"></span>Production '+(i+1)+'</span>').join('');
+    p.style.backgroundImage='';p.style.backgroundSize='';
+    document.getElementById('blobs').style.display='none';
+    if(decor==='gradient'){p.style.backgroundImage='radial-gradient(circle at 12% 8%,'+rgba(accent,.16)+',transparent 45%),radial-gradient(circle at 90% 95%,'+rgba(lighten(accent,.3),.16)+',transparent 45%)';}
+    else if(decor==='dots'){p.style.backgroundImage='radial-gradient('+rgba(accent,.18)+' 1.6px,transparent 1.6px)';p.style.backgroundSize='15px 15px';}
+    else if(decor==='blobs'){const b=document.getElementById('blobs');b.style.display='block';b.innerHTML='<div class="bl" style="width:120px;height:120px;left:-30px;top:-20px;background:'+rgba(accent,.5)+'"></div><div class="bl" style="width:90px;height:90px;right:-20px;bottom:10px;background:'+rgba(lighten(accent,.3),.5)+'"></div>';}
+  }
+  function bind(id,attr,setter){document.querySelectorAll('#'+id+' [data-'+attr+']').forEach(function(el){el.onclick=function(){document.querySelectorAll('#'+id+' [data-'+attr+']').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');setter(el.getAttribute('data-'+attr));render();};});}
+  bind('accents','a',v=>accent=v);
+  bind('graphs','g',v=>graph=v);
+  bind('decors','d',v=>decor=v);
+  bind('ambs','amb',v=>amb=v);
+  bind('rads','r',v=>rad=+v);
+  document.getElementById('accPick').oninput=function(){accent=this.value;document.querySelectorAll('#accents .sw').forEach(x=>x.classList.remove('sel'));render();};
+  document.getElementById('reset').onclick=function(){accent='#1F4E5F';graph='nuances';decor='none';amb='light';rad=18;document.querySelectorAll('.opt,.sw').forEach(x=>x.classList.remove('sel'));document.querySelector('#accents .sw').classList.add('sel');document.querySelector('#graphs .opt').classList.add('sel');document.querySelector('#decors .opt').classList.add('sel');document.querySelector('#ambs .opt').classList.add('sel');document.querySelector('#rads .opt').classList.add('sel');render();};
+  render();
+</script>
+</body>
+</html>
