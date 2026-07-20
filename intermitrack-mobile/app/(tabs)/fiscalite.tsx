@@ -1,3 +1,4 @@
+import PremiumGate from "../../components/PremiumGate";
 import { showAlert } from "../../lib/dialog";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -32,7 +33,7 @@ const money0 = (n: number) => (n ?? 0).toLocaleString('fr-FR', { style: 'currenc
 const fmtDate = (d: string) => d ? new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
 const iso = (d: Date) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 
-export default function Fiscalite() {
+function FiscaliteInner() {
   useTrackView('fiscalite');
   const C = useTheme();
   const { scheme } = useThemeControls();
@@ -329,3 +330,5 @@ const makeS = (C: any) => StyleSheet.create({
   cancelBtn: { paddingVertical: 14, alignItems: 'center', marginTop: 4 },
   cancelBtnTxt: { color: C.muted, fontWeight: '700', fontSize: 14 },
 });
+
+export default function Fiscalite(){ return (<PremiumGate title="Fiscalité"><FiscaliteInner/></PremiumGate>); }

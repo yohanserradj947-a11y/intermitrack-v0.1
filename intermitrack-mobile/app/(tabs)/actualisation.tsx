@@ -1,3 +1,4 @@
+import PremiumGate from "../../components/PremiumGate";
 import { showAlert } from "../../lib/dialog";
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFocusEffect } from 'expo-router';
@@ -15,7 +16,7 @@ function money(n:number){return(n??0).toLocaleString('fr-FR',{style:'currency',c
 function fmtDate(d:string){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});}
 function monthLabel(d:Date){const l=d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});return l.charAt(0).toUpperCase()+l.slice(1);}
 
-export default function Actualisation(){
+function ActualisationInner(){
   useTrackView('actualisation');
   const C=useTheme();
   const s=useMemo(()=>makeS(C),[C]);
@@ -172,3 +173,4 @@ const makeS=(C:any)=>StyleSheet.create({
   rGross:{fontSize:15,fontWeight:'900',color:C.petrol},
   rHours:{fontSize:12,color:C.orange,fontWeight:'700',marginTop:2},
 });
+export default function Actualisation(){ return (<PremiumGate title="Actualisation"><ActualisationInner/></PremiumGate>); }

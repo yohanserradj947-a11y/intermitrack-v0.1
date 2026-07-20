@@ -1,3 +1,4 @@
+import PremiumGate from "../../components/PremiumGate";
 import { showAlert } from "../../lib/dialog";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -34,7 +35,7 @@ function iso(d: Date) { return d.getFullYear() + '-' + String(d.getMonth() + 1).
 
 type Ligne = { designation: string; quantite: number; unite: string; prixUnitaire: number };
 
-export default function AutoEntrepreneur() {
+function AutoEntrepreneurInner() {
   const C = useTheme();
   const { scheme } = useThemeControls();
   const s = useMemo(() => makeS(C), [C]);
@@ -735,3 +736,5 @@ const makeS = (C: any) => StyleSheet.create({
   cancelBtnTxt: { color: C.muted, fontWeight: '700', fontSize: 14 },
   disclaimer: { fontSize: 11, color: C.muted, lineHeight: 16, marginTop: 14, paddingHorizontal: 4 },
 });
+
+export default function AutoEntrepreneur(){ return (<PremiumGate title="Auto-entrepreneur"><AutoEntrepreneurInner/></PremiumGate>); }

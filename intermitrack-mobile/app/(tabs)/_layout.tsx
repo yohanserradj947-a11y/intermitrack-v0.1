@@ -10,6 +10,7 @@ import ProfileSetupModal from '@/components/ProfileSetupModal';
 import OnboardingTour from '@/components/OnboardingTour';
 import ThemeBackdrop from '@/components/ThemeBackdrop';
 import { useTheme } from '@/lib/theme';
+import { PremiumProvider } from '@/lib/premium';
 
 // Onglets "material top tabs" → permettent le swipe gauche/droite,
 // mais positionnés en bas (tabBarPosition="bottom") pour garder le look actuel.
@@ -47,6 +48,7 @@ export default function TabLayout() {
     </View>
   );
   return (
+    <PremiumProvider>
     <View style={{ flex: 1, backgroundColor: C.bg }}>
     <ThemeBackdrop />
     <MaterialTopTabs
@@ -127,5 +129,6 @@ export default function TabLayout() {
     <ProfileSetupModal />
     <OnboardingTour />
     </View>
+    </PremiumProvider>
   );
 }

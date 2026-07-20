@@ -1,3 +1,4 @@
+import PremiumGate from "../../components/PremiumGate";
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
@@ -15,7 +16,7 @@ import { onProfilChanged } from '../../components/AccountMenu';
 function eur(n:number){return(n??0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
 function num(v:string){if(!v)return NaN;return parseFloat(String(v).replace(/\s/g,'').replace(',','.'));}
 
-export default function Previsions(){
+function PrevisionsInner(){
   useTrackView('previsions');
   const C = useTheme();
   const s = useMemo(()=>makeS(C),[C]);
@@ -391,3 +392,4 @@ const makeS=(C:any)=>StyleSheet.create({
   bigValMuted:{fontSize:15,fontWeight:'700',color:C.orange},
   footer:{fontSize:11,color:C.muted,fontStyle:'italic',textAlign:'center',margin:16,marginTop:20},
 });
+export default function Previsions(){ return (<PremiumGate title="Simulation"><PrevisionsInner/></PremiumGate>); }

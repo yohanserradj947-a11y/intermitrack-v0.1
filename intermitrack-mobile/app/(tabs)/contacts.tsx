@@ -1,3 +1,4 @@
+import PremiumGate from "../../components/PremiumGate";
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo } from 'react';
@@ -66,7 +67,7 @@ function open(line: Line) {
 
 const LINE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = { tel: 'call-outline', mail: 'mail-outline', url: 'link-outline' };
 
-export default function Contacts() {
+function ContactsInner() {
   useTrackView('contacts');
   const C = useTheme();
   const s = useMemo(() => makeS(C), [C]);
@@ -128,3 +129,5 @@ const makeS = (C: any) => StyleSheet.create({
   lineIcSvg: { marginTop: 2 },
   lineLink: { flex: 1, fontSize: 13, color: C.petrol, fontWeight: '700', lineHeight: 19 },
 });
+
+export default function Contacts(){ return (<PremiumGate title="Contacts"><ContactsInner/></PremiumGate>); }

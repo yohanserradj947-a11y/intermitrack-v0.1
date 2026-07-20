@@ -1,3 +1,4 @@
+import PremiumGate from "../../components/PremiumGate";
 import { showAlert } from "../../lib/dialog";
 import { useState, useEffect, useMemo } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert, Linking, Platform, KeyboardAvoidingView } from 'react-native';
@@ -18,7 +19,7 @@ function safeFileName(name:string){
   return String(name||'document').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,90);
 }
 
-export default function Documents(){
+function DocumentsInner(){
   useTrackView('documents');
   const C=useTheme();
   const s=useMemo(()=>makeS(C),[C]);
@@ -267,3 +268,4 @@ const makeS=(C:any)=>StyleSheet.create({
   cancelBtn:{paddingVertical:14,alignItems:'center',marginTop:4},
   cancelBtnTxt:{color:C.muted,fontWeight:'700',fontSize:14},
 });
+export default function Documents(){ return (<PremiumGate title="Documents"><DocumentsInner/></PremiumGate>); }

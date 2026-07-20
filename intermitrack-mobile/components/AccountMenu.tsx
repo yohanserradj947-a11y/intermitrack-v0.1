@@ -9,6 +9,7 @@ import { GradientButton } from './GradientButton';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemeControls, THEME_META } from '../lib/theme';
 import { usePostes } from '../lib/postes';
+import { usePremium } from '../lib/premium';
 import ThemeModal from './ThemeModal';
 import { usePathname } from 'expo-router';
 import { VEHICLES, CAR_CV, MOTO_CV, migrerVehicule, fraisAnnuels, type VehicleKind } from '../lib/kmBareme';
@@ -72,6 +73,7 @@ export function AccountMenu(){
   const [miAnnexe,setMiAnnexe]=useState<'technicien'|'artiste'|'les_deux'|''>('');
   const [miDroits,setMiDroits]=useState<boolean|null>(null);
   const [miClause,setMiClause]=useState(false);
+  const { previewFree, setPreviewFree } = usePremium();
   // Vehicule memorise : « je ne change pas ma voiture, et mon nombre de kilometres annuel ne change
   // pas d'une mission a l'autre ainsi que ma puissance fiscale » (retour JB).
   // Depuis le 16/07/2026 : type de vehicule + puissance + kilometrage annuel REEL (et non une
@@ -218,6 +220,10 @@ export function AccountMenu(){
 
             <TouchableOpacity style={s.accountReportBtn} onPress={reportBug}>
               <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="bug-outline" size={13} color={C.petrol} /><Text style={s.accountReportTxt}>Signaler un bug</Text></View>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={s.accountReportBtn} onPress={()=>setPreviewFree(!previewFree)}>
+              <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name={previewFree?'lock-open-outline':'eye-outline'} size={13} color={C.petrol} /><Text style={s.accountReportTxt}>{previewFree?'Revenir en accès complet':'Aperçu version Gratuit (test)'}</Text></View>
             </TouchableOpacity>
 
             <GradientButton onPress={()=>{setShowAccount(false);signOut();}} style={s.accountBtn} textStyle={s.accountBtnTxt} label="Se déconnecter" />
