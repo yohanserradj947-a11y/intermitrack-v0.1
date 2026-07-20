@@ -3,6 +3,7 @@ import { Modal, View, Text, TouchableOpacity, ScrollView, StyleSheet, TextInput,
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemeControls, THEME_META, DEFAULT_CUSTOM, type CustomSettings, type CustomTheme } from '../lib/theme';
 import ColorPickerModal from './ColorPickerModal';
+import { usePremium } from '../lib/premium';
 
 function lum(hex: string) {
   const h = (hex || '').replace('#', ''); const f = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
@@ -12,6 +13,9 @@ function lum(hex: string) {
 export default function ThemeModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const C = useTheme();
   const { themeId, setTheme, customs, saveCustom, deleteCustom } = useThemeControls();
+  const { effectiveTier } = usePremium();
+  const locked = effectiveTier === 'gratuit';
+  function lockedTheme() { Alert.alert('🔒 Thème Premium', 'Ce thème est réservé aux abonnés Premium (et aux Pionniers). En version Gratuit, tu as les thèmes Clair et Sombre.'); }
   const [picker, setPicker] = useState<null | 'a' | 'b'>(null);
   const ink = (hex: string) => (lum(hex) > 0.6 ? '#0A0A0A' : '#FFFFFF');
 
@@ -44,12 +48,14 @@ export default function ThemeModal({ visible, onClose }: { visible: boolean; onC
             <View style={st.grid}>
               {THEME_META.map(t => {
                 const on = themeId === t.id;
+                const tlocked = locked && t.premium;
                 return (
-                  <TouchableOpacity key={t.id} activeOpacity={0.85} onPress={() => setTheme(t.id)}
-                    style={[st.tcard, { borderColor: on ? C.petrol : C.line, backgroundColor: on ? C.soft : 'transparent' }]}>
+                  <TouchableOpacity key={t.id} activeOpacity={0.85} onPress={() => tlocked ? lockedTheme() : setTheme(t.id)}
+                    style={[st.tcard, { borderColor: on ? C.petrol : C.line, backgroundColor: on ? C.soft : 'transparent', opacity: tlocked ? 0.5 : 1 }]}>
                     <View style={[st.swatch, { backgroundColor: t.colors[2] }]}>
                       <View style={[st.dot, { backgroundColor: t.colors[0], left: 12 }]} />
                       <View style={[st.dot, { backgroundColor: t.colors[1], right: 12 }]} />
+                      {tlocked && <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}><Ionicons name="lock-closed" size={18} color="#fff" /></View>}
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 }}>
                       <Text style={[st.tlabel, { color: C.text }]} numberOfLines={1}>{t.label}</Text>
@@ -68,9 +74,9 @@ export default function ThemeModal({ visible, onClose }: { visible: boolean; onC
               {customs.map(t => {
                 const on = themeId === `custom:${t.id}`;
                 return (
-                  <TouchableOpacity key={t.id} activeOpacity={0.85} onPress={() => setTheme(`custom:${t.id}`)}
+                  <TouchableOpacity key={t.id} activeOpacity={0.85} onPress={() => locked ? lockedTheme() : setTheme(`custom:${t.id}`)}
                     onLongPress={() => confirmDelete(t)}
-                    style={[st.tcard, { borderColor: on ? C.petrol : C.line, backgroundColor: on ? C.soft : 'transparent' }]}>
+                    style={[st.tcard, { borderColor: on ? C.petrol : C.line, backgroundColor: on ? C.soft : 'transparent', opacity: locked ? 0.5 : 1 }]}>
                     <View style={[st.swatch, { backgroundColor: t.settings.base === 'dark' ? '#1A2329' : '#FFFFFF' }]}>
                       <View style={[st.dot, { backgroundColor: t.settings.accent, left: 12 }]} />
                       <View style={[st.dot, { backgroundColor: t.settings.accent2, right: 12 }]} />
@@ -86,8 +92,8 @@ export default function ThemeModal({ visible, onClose }: { visible: boolean; onC
                 );
               })}
               {/* Créer : même forme que les autres tuiles, pour que ce soit évident. */}
-              <TouchableOpacity activeOpacity={0.85} onPress={openCreate}
-                style={[st.tcard, { borderColor: C.line, borderStyle: 'dashed', justifyContent: 'center' }]}>
+              <TouchableOpacity activeOpacity={0.85} onPress={() => locked ? lockedTheme() : openCreate()}
+                style={[st.tcard, { borderColor: C.line, borderStyle: 'dashed', justifyContent: 'center', opacity: locked ? 0.5 : 1 }]}>
                 <View style={[st.swatch, { backgroundColor: C.soft, alignItems: 'center', justifyContent: 'center' }]}>
                   <Ionicons name="add" size={24} color={C.petrol} />
                 </View>
