@@ -212,11 +212,11 @@ function FiscaliteInner() {
       <View style={s.sectionHead}><Text style={s.sectionTitle}>Résultats estimés</Text></View>
       <View style={s.card}>
         <Row label="Net imposable estimé" value={money0(r.netTotal)} hl />
-        <Row label="Forfait (abattement)" value={money0(r.forfait)} />
-        <Row label="Frais réels (km + dépenses + autres)" value={money0(r.totalFraisReels)} />
+        <Row label="Forfait 10 %" value={money0(r.forfait)} />
+        <Row label="Frais réels (14 %+5 % + tes dépenses)" value={money0(r.totalFraisReels)} />
         <View style={s.compareRow}>
           <View style={[s.compareCard, r.useForfait && s.compareWin]}>
-            <Text style={s.compareTitle}>Forfait</Text>
+            <Text style={s.compareTitle}>Forfait 10 %</Text>
             <Text style={s.compareAmount}>{money0(r.forfait)}</Text>
             <Text style={s.compareTag}>{r.useForfait ? '✓ Recommandé' : 'Alternative'}</Text>
           </View>
@@ -226,6 +226,9 @@ function FiscaliteInner() {
             <Text style={s.compareTag}>{!r.useForfait && r.totalFraisReels > 0 ? '✓ Recommandé' : 'Alternative'}</Text>
           </View>
         </View>
+        <Text style={{ fontSize: 11, color: C.muted, lineHeight: 16, marginTop: 4 }}>
+          Deux régimes, jamais cumulés : le forfait 10 % OU les frais réels. Pour un artiste, les frais réels = 14 % + 5 % (forfaits spécifiques) + tes autres frais (transport, repas, local, cotisations…). L'appli additionne et garde le plus avantageux. N'y remets pas les instruments/vestimentaire (déjà dans le 14 %/5 %).
+        </Text>
         <Row label="Base imposable estimée" value={money0(r.bestBase)} hl />
         <View style={s.sep} />
         <View style={[s.resultRow, s.bigRow]}>

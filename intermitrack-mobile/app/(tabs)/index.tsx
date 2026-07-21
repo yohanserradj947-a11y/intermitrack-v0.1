@@ -205,6 +205,12 @@ export default function HomeScreen(){
     const interM=yearM.filter((m:any)=>regOf(m)==='intermittence');
     const doneH=Math.round(interM.reduce((a:number,m:any)=>a+splitT(m).done,0)*10)/10;
     const planH=Math.round(interM.reduce((a:number,m:any)=>a+splitT(m).planned,0)*10)/10;
+    // Répartition ARTISTE (cachet) vs TECHNICIEN (heures) — déduite du mode de chaque mission
+    // (cachet : heures ≈ vacations × 12). Retour user : savoir vers quel statut on penche (ARE).
+    let techSplitH=0, artSplitH=0, artSplitCachets=0;
+    interM.forEach((m:any)=>{ const h=Number(m.hours)||0, v=Number(m.vacations)||0;
+      if(v>0 && h>=v*12-0.6){ artSplitH+=h; artSplitCachets+=v; } else { techSplitH+=h; } });
+    techSplitH=Math.round(techSplitH*10)/10; artSplitH=Math.round(artSplitH*10)/10; artSplitCachets=Math.round(artSplitCachets*10)/10;
     // Heures de formation dans la période de droits (plafonnées à 338 h pour le calcul des 507 h).
     const formRaw=Math.round((notes||[]).filter((n:any)=>n.kind==='formation'&&inWin(n.date)).reduce((a:number,n:any)=>a+(Number(n.hours)||0),0)*10)/10;
     const formH=Math.min(formRaw,FORM_CAP);
@@ -284,10 +290,10 @@ export default function HomeScreen(){
     // Montant réel du mois : somme des net réellement perçus des missions du mois (proratisés comme le brut).
     const monthNetReel=Math.round(missions.filter(notGen).reduce((a:number,m:any)=>{const md=monthDays(m);return a+((m.net_reel!=null&&md.inM>0)?Number(m.net_reel)*md.frac:0);},0));
     const monthHasNetReel=missions.some((m:any)=>notGen(m)&&m.net_reel!=null&&monthDays(m).inM>0);
-    return { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, arretH, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthArretH, monthArretCount, monthNetAvant, monthNetApres, monthVac, monthRate, monthRateNet, monthRateNetAvant, upcoming, winStart, winEnd, hasARE, elapsedFrac, hoursFrac, progressH, monthNetReel, monthHasNetReel, calibrated, learnedRatio };
+    return { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, arretH, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthArretH, monthArretCount, monthNetAvant, monthNetApres, monthVac, monthRate, monthRateNet, monthRateNetAvant, upcoming, winStart, winEnd, hasARE, elapsedFrac, hoursFrac, progressH, monthNetReel, monthHasNetReel, calibrated, learnedRatio, techSplitH, artSplitH, artSplitCachets };
   },[missions,notes,areDate,yearOffset,current,chargeRate,taxRate]);
 
-  const { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, arretH, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthArretH, monthArretCount, monthNetAvant, monthNetApres, monthVac, monthRate, monthRateNet, monthRateNetAvant, upcoming, winStart, winEnd, hasARE, elapsedFrac, hoursFrac, progressH, monthNetReel, monthHasNetReel, calibrated, learnedRatio } = stats;
+  const { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, arretH, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthArretH, monthArretCount, monthNetAvant, monthNetApres, monthVac, monthRate, monthRateNet, monthRateNetAvant, upcoming, winStart, winEnd, hasARE, elapsedFrac, hoursFrac, progressH, monthNetReel, monthHasNetReel, calibrated, learnedRatio, techSplitH, artSplitH, artSplitCachets } = stats;
   // Clause de rattrapage : échéance = début de l'année d'intermittence + 6 mois.
   const clauseDeadline = (clauseRattrapage && hasARE && winStart) ? (()=>{ const d=new Date(winStart); d.setMonth(d.getMonth()+6); return d; })() : null;
   const clauseDaysLeft = clauseDeadline ? Math.ceil((clauseDeadline.getTime()-new Date(new Date().setHours(0,0,0,0)).getTime())/86400000) : null;
@@ -560,6 +566,23 @@ export default function HomeScreen(){
               {paceTickFracs.map((f,i)=>(<View key={i} style={[s.paceTick,{left:`${f*100}%`}]}/>))}
             </View>
             <Text style={s.paceStatus}>{Math.round(elapsedFrac*100)}% de l'année écoulée · <Text style={{color:paceColor}}>{paceLabel}</Text></Text>
+          </View>
+        )}
+        {(techSplitH>0||artSplitH>0)&&(
+          <View style={s.paceBox}>
+            <Text style={{fontSize:12,fontWeight:'800',color:C.text,marginBottom:8}}>Artiste vs Technicien (cette année)</Text>
+            <View style={{flexDirection:'row',gap:10}}>
+              <View style={{flex:1,alignItems:'center',backgroundColor:C.orange+'22',borderRadius:12,paddingVertical:10}}>
+                <Text style={{fontSize:16,fontWeight:'900',color:C.text}}>{Math.round(artSplitH/((techSplitH+artSplitH)||1)*100)} %</Text>
+                <Text style={{fontSize:11,fontWeight:'700',color:C.orange,marginTop:2}}>🎭 Artiste</Text>
+                <Text style={{fontSize:10.5,color:C.muted,marginTop:1}}>{artSplitH} h · {artSplitCachets} cachets</Text>
+              </View>
+              <View style={{flex:1,alignItems:'center',backgroundColor:C.petrol+'22',borderRadius:12,paddingVertical:10}}>
+                <Text style={{fontSize:16,fontWeight:'900',color:C.text}}>{Math.round(techSplitH/((techSplitH+artSplitH)||1)*100)} %</Text>
+                <Text style={{fontSize:11,fontWeight:'700',color:C.petrol,marginTop:2}}>🔧 Technicien</Text>
+                <Text style={{fontSize:10.5,color:C.muted,marginTop:1}}>{techSplitH} h</Text>
+              </View>
+            </View>
           </View>
         )}
         {formRaw>0&&(

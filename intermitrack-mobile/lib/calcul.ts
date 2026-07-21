@@ -146,11 +146,11 @@ export function migrerProfilFiscal(v:string|null|undefined):ProfilFiscal{
 export const PROFILS_FISCAUX:Record<ProfilFiscal,{label:string;forfaitLabel:string;netCoeff:number;a14:boolean;a5:boolean;forfait:(net:number)=>number}>={
   technicien:{label:'Technicien du spectacle',forfaitLabel:'Forfait 10 % standard',netCoeff:0.775,a14:false,a5:false,
     forfait:(net)=>Math.max(forfait10(net), fraisReelsSpec(net,false,false))},
-  musicien:{label:'Musicien / choriste',forfaitLabel:'14 % + 5 % (ou forfait 10 % si plus avantageux)',netCoeff:0.775,a14:true,a5:true,
+  musicien:{label:'Musicien / choriste',forfaitLabel:'14 % + 5 % + frais réels (ou forfait 10 %)',netCoeff:0.775,a14:true,a5:true,
     forfait:(net)=>Math.max(forfait10(net), fraisReelsSpec(net,true,true))},
-  lyrique:{label:'Artiste lyrique',forfaitLabel:'14 % + 5 % (ou forfait 10 % si plus avantageux)',netCoeff:0.79,a14:true,a5:true,
+  lyrique:{label:'Artiste lyrique',forfaitLabel:'14 % + 5 % + frais réels (ou forfait 10 %)',netCoeff:0.79,a14:true,a5:true,
     forfait:(net)=>Math.max(forfait10(net), fraisReelsSpec(net,true,true))},
-  danseur:{label:'Danseur (artiste chorégraphique)',forfaitLabel:'14 % + 5 % (ou forfait 10 % si plus avantageux)',netCoeff:0.79,a14:true,a5:true,
+  danseur:{label:'Danseur (artiste chorégraphique)',forfaitLabel:'14 % + 5 % + frais réels (ou forfait 10 %)',netCoeff:0.79,a14:true,a5:true,
     forfait:(net)=>Math.max(forfait10(net), fraisReelsSpec(net,true,true))},
   // Artiste dramatique : 5 % seulement (§ 480), pas de 14 % — il n'a pas d'instrument. Son 5 % étant
   // toujours inférieur au forfait de 10 %, c'est ce dernier qui gagne en pratique.
@@ -164,8 +164,13 @@ export function fiscalite(i:{profil:ProfilFiscal;yearGross:number;arePercue:numb
   const netAre=i.arePercue;
   const netConges=Math.round(i.congesSpec*0.88);
   const netTotal=netSalaires+netAre+netConges+i.otherIncome;
-  const totalFraisReels=i.totalKmAmount+i.autresFrais+i.fraisSaisis;
-  const forfait=Math.round(p.forfait(netSalaires));
+  // FORFAIT 10 %  vs  FRAIS RÉELS. Pour un artiste, les frais réels = 14 %+5 % (forfaits spécifiques A+B,
+  // source SNAM-CGT / BOFiP) + les AUTRES frais réels saisis (transport, repas, local, cotisations… = C+D).
+  // Ils s'ADDITIONNENT (avant : max → sous-déduction). Les deux régimes ne se cumulent jamais.
+  const fraisReelsSaisis=i.totalKmAmount+i.autresFrais+i.fraisSaisis;
+  const specForfait=Math.round(fraisReelsSpec(netSalaires,p.a14,p.a5)); // 14 % + 5 %
+  const forfait=Math.round(forfait10(netSalaires)); // le seul « forfait » au sens fiscal, c'est le 10 %
+  const totalFraisReels=specForfait+fraisReelsSaisis; // total frais réels (specs artiste INCLUS)
   const baseAvecForfait=Math.max(0,netTotal-forfait);
   const baseAvecReels=Math.max(0,netTotal-totalFraisReels);
   const bestBase=Math.min(baseAvecForfait,baseAvecReels);
