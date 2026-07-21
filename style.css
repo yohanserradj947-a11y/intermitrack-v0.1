@@ -543,10 +543,14 @@ html, body { overflow-x: hidden; max-width: 100%; }
 .new-cal-empty:hover { background: transparent !important; }
 /* Site plein écran : le calendrier prend quasi toute la page sur ordinateur (grandes cases comme un vrai calendrier web). Mobile garde des cases compactes. */
 @media (min-width: 721px) {
-  #view-calendar .new-cal-day { height: 108px; padding: 8px 10px; border-radius: 11px; }
+  #view-calendar .new-cal-day { height: 118px; padding: 8px 10px; border-radius: 11px; }
   #view-calendar .new-cal-num { font-size: 15px; }
   #view-calendar .new-cal-daynames div { font-size: 12px; padding: 8px 0; }
   #view-calendar .new-cal-grid { gap: 5px; }
+  /* Contenu des cases plus GROS + nom de production ENTIER (jusqu'à 2 lignes) sur le web. */
+  #view-calendar .new-cal-tag { gap: 2px; margin-top: 3px; }
+  #view-calendar .new-cal-tag-prod { font-size: 13px; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.15; }
+  #view-calendar .new-cal-tag-meta { font-size: 11px; }
 }
 
 /* ── Panneau "missions du jour" (clic sur une case) ──────────────── */
