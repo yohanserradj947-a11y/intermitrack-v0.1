@@ -3148,7 +3148,8 @@ function render() {
       const h = Number(m.hours) || 0, v = Number(m.vacations) || 0;
       if (v > 0 && h >= v * CACHET_H - 0.6) { artH += h; artCachets += v; } else { techH += h; }
     });
-    if (techH <= 0 && artH <= 0) { box.style.display = "none"; return; }
+    // On n'affiche le split QUE si l'utilisateur fait LES DEUX (sinon inutile pour un pur technicien/artiste). Retour Yohan.
+    if (!(techH > 0 && artH > 0)) { box.style.display = "none"; return; }
     box.style.display = "block";
     if ($("splitTech")) $("splitTech").textContent = (Math.round(techH * 10) / 10) + " h";
     if ($("splitArt")) $("splitArt").textContent = (Math.round(artCachets * 10) / 10) + " cachet" + (artCachets > 1 ? "s" : "") + " (" + (Math.round(artH * 10) / 10) + " h)";
@@ -3562,18 +3563,21 @@ let _missionsPeriod = "all";              // 'all' | 'month' | 'year' | 'ai' | '
 let _missionsCustomYear = new Date().getFullYear();
 let _missionsMonthRef = new Date();       // filtre « Mois »
 
-// Fenêtre de l'année d'intermittence en cours (12 mois depuis l'anniversaire de la date ARE).
-function _aiWindowCurrent(){
+// Fenêtre d'une année d'intermittence (12 mois depuis l'anniversaire de la date ARE).
+// offset 0 = en cours, -1 = précédente, etc. (navigation « année précédente », retour Isabelle).
+function _aiWindowCurrent(offset){
   if (!areAdmissionDate) return null;
   const a = new Date(areAdmissionDate + "T00:00:00");
   const today = new Date(); today.setHours(0, 0, 0, 0);
   let k = today.getFullYear() - a.getFullYear();
   const anniv = new Date(a); anniv.setFullYear(a.getFullYear() + k);
   if (anniv > today) k -= 1;
+  k += (offset || 0);
   const start = new Date(a); start.setFullYear(a.getFullYear() + k);
   const end = new Date(a);   end.setFullYear(a.getFullYear() + k + 1);
   return { start: start.getTime(), end: end.getTime(), startDate: start, endDate: end };
 }
+let _missionsAiOffset = 0; // 0 = année d'intermittence en cours, -1 = précédente…
 
 function _lastDayOfMonth(ym){
   const parts = ym.split("-"); const y = +parts[0], m = +parts[1];
@@ -3593,7 +3597,7 @@ function _missionsInPeriod(){
     return missions.filter(function(mm){ const d = new Date((mm.date) + "T00:00:00"); return d.getFullYear() === y && d.getMonth() === m; });
   }
   if (_missionsPeriod === "ai") {
-    const w = _aiWindowCurrent();
+    const w = _aiWindowCurrent(_missionsAiOffset);
     if (!w) return missions.slice();
     return missions.filter(function(mm){ const t = new Date((mm.date) + "T00:00:00").getTime(); return t >= w.start && t < w.end; });
   }
@@ -3629,10 +3633,16 @@ function _missionsPeriodBar(){
       '</div>';
   }
   if (_missionsPeriod === 'ai') {
-    const w = _aiWindowCurrent();
+    const w = _aiWindowCurrent(_missionsAiOffset);
     const fmtD = function(d){ const p = function(n){ return String(n).padStart(2, '0'); }; return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear(); };
-    html += '<div style="margin-bottom:14px;padding:10px 12px;border-radius:11px;background:var(--soft);font-size:12.5px;font-weight:700;color:var(--petrol);text-align:center;">' +
-      (w ? ('Du ' + fmtD(w.startDate) + ' au ' + fmtD(w.endDate) + ' · année d\'intermittence en cours') : 'Renseigne ta date ARE dans le Tableau de bord pour activer ce filtre.') +
+    const nav = 'width:34px;height:34px;flex:0 0 auto;border-radius:50%;border:none;background:var(--soft);color:var(--petrol);font-size:18px;font-weight:800;cursor:pointer;font-family:inherit;';
+    const subLbl = _missionsAiOffset === 0 ? "année d'intermittence en cours" : (_missionsAiOffset === -1 ? "année précédente" : "il y a " + (-_missionsAiOffset) + " ans");
+    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">' +
+      '<button type="button" class="mai-nav" data-mai="-1" style="' + nav + '">‹</button>' +
+      '<div style="flex:1;text-align:center;padding:8px 10px;border-radius:11px;background:var(--soft);font-size:12px;font-weight:800;color:var(--petrol);line-height:1.35;">' +
+        (w ? (fmtD(w.startDate) + ' → ' + fmtD(w.endDate) + '<br><span style="font-size:10.5px;color:var(--muted);font-weight:600;">' + subLbl + '</span>') : "Renseigne ta date ARE dans le Tableau de bord pour activer ce filtre.") +
+      '</div>' +
+      '<button type="button" class="mai-nav" data-mai="1" style="' + nav + (_missionsAiOffset >= 0 ? 'opacity:.3;pointer-events:none;' : '') + '">›</button>' +
       '</div>';
   }
   return html;
@@ -3644,6 +3654,7 @@ function _bindMissionsPeriod(){
   container.querySelectorAll(".mperiod-chip").forEach(function(b){
     b.addEventListener("click", function(){
       _missionsPeriod = b.dataset.mp;
+      if (_missionsPeriod === 'ai') _missionsAiOffset = 0; // on repart sur l'année en cours
       if (_missionsPeriod === 'custom') { const ys = _missionsYears(); if (ys.indexOf(_missionsCustomYear) < 0 && ys.length) _missionsCustomYear = ys[0]; }
       renderAllMissions();
     });
@@ -3653,6 +3664,9 @@ function _bindMissionsPeriod(){
   });
   container.querySelectorAll(".mmonth-nav").forEach(function(b){
     b.addEventListener("click", function(){ const n = new Date(_missionsMonthRef); n.setDate(1); n.setMonth(n.getMonth() + Number(b.dataset.mm)); _missionsMonthRef = n; renderAllMissions(); });
+  });
+  container.querySelectorAll(".mai-nav").forEach(function(b){
+    b.addEventListener("click", function(){ _missionsAiOffset = Math.min(0, _missionsAiOffset + Number(b.dataset.mai)); renderAllMissions(); });
   });
 }
 
@@ -3707,6 +3721,8 @@ function renderAllMissions() {
     gross: Math.round(groups[name].reduce((a, x) => a + _mvSite(x).gross, 0)),
     hours: Math.round(groups[name].reduce((a, x) => a + _mvSite(x).hours, 0) * 10) / 10,
     vacations: groups[name].reduce((a, x) => a + _mvSite(x).vac, 0), // 1 vacation = 1 jour (prorata du mois en mode Mois)
+    // Cachets = somme des vacations des missions en mode cachet (heures ≈ vacations × 12) — pour « cachets par employeur ».
+    cachets: groups[name].reduce((a, x) => { const h = Number(x.hours) || 0, v = Number(x.vacations) || 0; return a + ((v > 0 && h >= v * CACHET_H - 0.6) ? v : 0); }, 0),
     count: groups[name].length
   })).sort((a, b) => b.gross - a.gross);
   const totalGross = sorted.reduce((a, x) => a + x.gross, 0);
@@ -3745,7 +3761,7 @@ function renderAllMissions() {
             <div class="missions-legend-dot" style="background:${prodSolid(p.name, i)}"></div>
             <div class="missions-legend-body">
               <div class="missions-legend-name">${escapeHtml(p.name)}</div>
-              <div class="missions-legend-detail">${p.count} mission${p.count > 1 ? "s" : ""} · ${p.hours}h</div>
+              <div class="missions-legend-detail">${p.count} mission${p.count > 1 ? "s" : ""} · ${p.hours}h${p.cachets > 0 ? ` · ${Math.round(p.cachets * 10) / 10} cachet${p.cachets > 1 ? "s" : ""}` : ""}</div>
             </div>
             <div class="missions-legend-pct">${totalGross > 0 ? Math.round((p.gross / totalGross) * 100) : 0}%</div>
             <div class="missions-legend-amount">${money(p.gross)}</div>
