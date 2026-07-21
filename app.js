@@ -2945,8 +2945,9 @@ function render() {
 
   if ($("yearHours")) $("yearHours").textContent = yearHours;
   if ($("monthHours")) $("monthHours").textContent = monthHours + "h";
-  // Net à payer estimé = brut − charges salariales − prélèvement à la source (taux réglés dans Prévisions)
-  const monthNet = Math.round(monthGross * (1 - getChargeRate() / 100) * (1 - getPasRate() / 100));
+  // Net à payer estimé = brut − charges salariales − impôt (taux d'impôt du PROFIL, comme l'appli — synchro app↔site).
+  const _tauxImpotDash = (typeof _profil !== "undefined" && _profil && Number(_profil.taux_impot)) || 0;
+  const monthNet = Math.round(monthGross * (1 - getChargeRate() / 100) * (1 - _tauxImpotDash / 100));
   if ($("monthNet")) $("monthNet").textContent = money(monthNet);
   if ($("monthGross")) $("monthGross").textContent = "Brut " + money(monthGross);
   renderPoleEmploi(selectedMonthMissions, monthNet);
