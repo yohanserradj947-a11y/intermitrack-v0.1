@@ -17,7 +17,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=31" />
+  <link rel="stylesheet" href="style.css?v=32" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js" integrity="sha384-wgi7s9Y2xefdDru3II6Xb11y/YNoKVbuydTikWejwId9z2xRd8SveCTrJjj/QAnH" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
   <style>
@@ -765,8 +765,12 @@ z-index: 500 !important;
             </div>
             <label for="vacations" id="cachetLabel" style="display:none;">Nombre de cachets</label>
             <input id="cachetInput" type="number" min="0" step="1" placeholder="Ex : 2" style="display:none;" />
-            <label for="hours" id="hoursLabel">Nombre d'heures cumulées sur la période</label>
-            <input id="hours" type="number" min="0" step="0.5" placeholder="Ex : 8" required />
+            <!-- En mode CACHET (artiste), ce champ « heures payées à l'heure » est facultatif et prêtait à confusion → dépliable, replié par défaut -->
+            <button type="button" id="hoursToggle" class="hours-toggle" style="display:none;">＋ Heures payées à l'heure (répétitions, ateliers…) — facultatif</button>
+            <div id="hoursBlock">
+              <label for="hours" id="hoursLabel">Nombre d'heures cumulées sur la période</label>
+              <input id="hours" type="number" min="0" step="0.5" placeholder="Ex : 8" required />
+            </div>
             <div class="hour-quick" id="hourQuick">
               <button type="button" class="hour-chip" data-h="4">4h</button>
               <button type="button" class="hour-chip" data-h="8">8h</button>
@@ -1514,7 +1518,7 @@ z-index: 500 !important;
   </main>
 
   <script src="document-parser.js?v=5"></script>
-  <script src="app.js?v=100"></script>
+  <script src="app.js?v=101"></script>
 
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>

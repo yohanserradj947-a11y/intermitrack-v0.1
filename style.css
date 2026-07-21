@@ -747,6 +747,9 @@ body.theme-dark .calendar-day-panel-head span, body.theme-dark .calendar-day-mis
 .ot-mainbtn { width: 100%; margin-top: 12px; padding: 12px; border: none; border-radius: 11px; background: var(--petrol); color: #fff; font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; }
 .ot-mainbtn:disabled { opacity: .45; cursor: default; }
 .ot-warn { font-size: 11px; color: var(--muted); line-height: 1.4; margin: 8px 0 0; }
+/* Champ « heures payées à l'heure » dépliable (mode cachet, facultatif) */
+.hours-toggle { background: var(--soft); border: 1px dashed var(--line-2); color: var(--petrol); font-weight: 700; font-size: 13px; padding: 11px 13px; border-radius: 10px; cursor: pointer; font-family: inherit; width: 100%; text-align: left; margin: 4px 0 10px; }
+.hours-toggle:active { transform: scale(.995); }
 /* Responsive : la rangée de couleurs reste dans l'écran sur mobile */
 .prod-color-row, .prod-color-swatches, .prod-color-preview { max-width: 100%; }
 .prod-color-swatches { overflow: visible; }

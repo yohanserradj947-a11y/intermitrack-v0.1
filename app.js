@@ -1959,7 +1959,8 @@ function editMission(id) {
     if ($("hours")) $("hours").value = Math.max(0, Math.round((Number(mission.hours||0)-Number(mission.vacations||0)*CACHET_H)*10)/10) || "";
   }
   if ($("kmDistance")) $("kmDistance").value = mission.kmDistance || "";
-  if ($("kmRate")) $("kmRate").value = mission.kmRate || "";
+  // Sans km réel, on n'affiche pas un taux stocké (d'anciennes missions gardaient 0,495 = barème) → champ vide.
+  if ($("kmRate")) $("kmRate").value = (Number(mission.kmDistance) > 0 ? (mission.kmRate || "") : "");
   // Les adresses sont enfin relues : elles n'étaient enregistrées nulle part avant le 15/07/2026,
   // d'où « les adresses n'apparaissent pas quand je modifie une mission ».
   _setAddrValue('from', mission.kmFrom || "", mission.kmFromLng, mission.kmFromLat);
@@ -4205,12 +4206,32 @@ function applyMissionMode(mode){
   show('cachetLabel',cachet); show('cachetInput',cachet);
   const hl=$("hoursLabel"); if(hl) hl.textContent = cachet ? "Heures payées en heures (répétitions, ateliers… facultatif)" : "Nombre d'heures cumulées sur la période";
   const hi=$("hours"); if(hi) hi.required = !cachet;
+  // Cachet (artiste) : les « heures payées à l'heure » sont facultatives → repliées par défaut (déroulées si déjà remplies).
+  const hb=$("hoursBlock"), ht=$("hoursToggle"), hasH = hi && hi.value && Number(hi.value)>0;
+  if(cachet){
+    if(ht) ht.style.display='block';
+    if(hb) hb.style.display = hasH ? 'block' : 'none';
+    if(ht) ht.textContent = (hb && hb.style.display!=='none') ? "− Masquer les heures payées à l'heure" : "＋ Heures payées à l'heure (répétitions, ateliers…) — facultatif";
+  } else {
+    if(ht) ht.style.display='none';
+    if(hb) hb.style.display='block';
+  }
   show('vacationsLabel',!cachet); show('vacations',!cachet); show('vacationsHint',!cachet);
   document.querySelectorAll('#missionModeRow .mm-opt').forEach(function(b){
     const on=b.dataset.mm===_missionMode;
     b.style.background=on?'var(--petrol)':'var(--card)'; b.style.color=on?'#fff':'var(--petrol)'; b.style.borderColor=on?'var(--petrol)':'var(--line)';
   });
 }
+// Déplier/replier les « heures payées à l'heure » (mode cachet, facultatif).
+document.addEventListener('click', function(e){
+  if(e.target && e.target.id==='hoursToggle'){
+    var hb=document.getElementById("hoursBlock"), ht=document.getElementById("hoursToggle"); if(!hb||!ht) return;
+    var open = hb.style.display!=='none';
+    hb.style.display = open ? 'none' : 'block';
+    ht.textContent = open ? "＋ Heures payées à l'heure (répétitions, ateliers…) — facultatif" : "− Masquer les heures payées à l'heure";
+    if(!open){ var hi=document.getElementById("hours"); if(hi) hi.focus(); }
+  }
+});
 // Choisit le mode selon l'annexe du profil (toggle visible seulement pour « les deux »)
 function setMissionModeForOpen(forceMode){
   const ax=(typeof _profil!=='undefined' && _profil && _profil.annexe) || 'technicien';
@@ -5465,13 +5486,14 @@ function _openProdPicker(){
       var b = e.target.closest && e.target.closest('[data-prod]');
       if(b){ _setProdValue(b.dataset.prod); ov.style.display='none'; }
     });
-    // Filtrage au fil de la frappe. On re-rend et on redonne le focus + le curseur en fin de champ.
+    // Filtrage au fil de la frappe. On re-rend, mais on RESTAURE la position réelle du curseur
+    // (avant : forcé en fin de champ → éditer au milieu d'un mot renvoyait la lettre à la fin — bug Camille).
     ov.addEventListener('input', function(e){
       if(e.target.id==='prodSearchInput'){
-        var v=e.target.value;
+        var pos=e.target.selectionStart;
         _renderProdPicker(ov);
         var i=document.getElementById('prodSearchInput');
-        if(i){ i.focus(); i.setSelectionRange(v.length, v.length); }
+        if(i){ i.focus(); try{ i.setSelectionRange(pos, pos); }catch(_){} }
       }
     });
     ov.addEventListener('keydown', function(e){
@@ -5549,10 +5571,10 @@ function _openFieldPicker(cfg){
     });
     ov.addEventListener('input', function(e){
       if(e.target.id === 'fieldSearchInput'){
-        var val = e.target.value;
+        var pos = e.target.selectionStart;
         _renderFieldPicker(ov);
         var i = document.getElementById('fieldSearchInput');
-        if(i){ i.focus(); i.value = val; try{ i.setSelectionRange(val.length, val.length); }catch(_){} }
+        if(i){ i.focus(); try{ i.setSelectionRange(pos, pos); }catch(_){} }
       }
     });
   }
