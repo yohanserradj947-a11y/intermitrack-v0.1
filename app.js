@@ -3988,12 +3988,16 @@ function _confirmModal(opts) {
 }
 // Aide contextuelle « ? » à côté des libellés de champs (retour Lila) : explique chaque champ
 // (ex « nom de l'émission » = le nom du show/tournée/événement, incompréhensible pour un pur « tourne »).
+// Style des « ? » injecté DÈS LE CHARGEMENT (sinon, avant le 1er clic, ils s'affichent en bouton
+// navigateur par défaut : gros et blancs — retour Yohan). L'overlay, lui, reste créé à la volée.
+(function () {
+  const st = document.createElement('style');
+  st.textContent = '.field-help{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-left:6px;border:none;border-radius:50%;background:var(--soft);color:var(--petrol);font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;vertical-align:middle;line-height:1;padding:0;}';
+  (document.head || document.documentElement).appendChild(st);
+})();
 function _fieldHelp(title, text) {
   let ov = document.getElementById('fieldHelpOverlay');
   if (!ov) {
-    const st = document.createElement('style');
-    st.textContent = '.field-help{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-left:6px;border:none;border-radius:50%;background:var(--soft);color:var(--petrol);font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;vertical-align:middle;line-height:1;padding:0;}';
-    document.head.appendChild(st);
     ov = document.createElement('div');
     ov.id = 'fieldHelpOverlay';
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:100010;padding:16px;';
