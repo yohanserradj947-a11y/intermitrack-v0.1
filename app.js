@@ -1951,7 +1951,7 @@ function editMission(id) {
   $("endDate").value = mission.endDate || mission.date || "";
   $("hours").value = mission.hours || 0;
   if ($("vacations")) $("vacations").value = mission.vacations || "";
-  $("gross").value = mission.gross || 0;
+  $("gross").value = mission.gross || 0; _grossTouched = true; // édition : le brut stocké est le total final
   // Mode Heures/Cachet selon l'annexe (en édition). « Les deux » : on devine (heures ≈ cachets×12 → cachet).
   const _ax=(typeof _profil!=='undefined' && _profil && _profil.annexe)||'technicien';
   const _mode = _ax==='artiste' ? 'cachet'
@@ -4133,6 +4133,7 @@ function resetMissionFormForDate(dateStr, regime) {
   if ($("endDate")) $("endDate").value = dateStr;
   if ($("hours")) $("hours").value = "";
   if ($("cachetInput")) $("cachetInput").value = "";
+  _grossTouched = false; // nouvelle mission : le brut se pré-remplit (tarif × vacations)
   if ($("gross")) $("gross").value = (typeof _profil!=='undefined' && _profil && Number(_profil.salaire_journalier)>0) ? _profil.salaire_journalier : "";
   if (typeof setMissionModeForOpen === 'function') setMissionModeForOpen();  // Heures/Cachet selon l'annexe
   const submitBtn = document.querySelector("#missionForm button[type='submit']");
@@ -4223,6 +4224,8 @@ function applyMissionMode(mode){
     if(ht) ht.style.display='none';
     if(hb) hb.style.display='block';
   }
+  // Boutons rapides d'heures (4/8/12) : masqués en cachet ET pour les artistes (retour Yohan).
+  const hq=$("hourQuick"); if(hq) hq.style.display = (cachet || (typeof _profil!=='undefined' && _profil && _profil.annexe==='artiste')) ? 'none' : 'flex';
   show('vacationsLabel',!cachet); show('vacations',!cachet); show('vacationsHint',!cachet);
   document.querySelectorAll('#missionModeRow .mm-opt').forEach(function(b){
     const on=b.dataset.mm===_missionMode;
@@ -5653,14 +5656,31 @@ function _learnedPrice(prod, poste){
   if(cand.length){ cand.sort(function(a,b){return a.date<b.date?1:-1;}); return perDay(cand[0]); }
   return null;
 }
-// Pré-remplit le prix dès qu'on a une prod ET un poste (nouvelle mission uniquement).
+// Vrai dès que l'utilisateur saisit le prix à la main → on arrête le pré-remplissage automatique.
+var _grossTouched = false;
+// Pré-remplit le BRUT = tarif PAR VACATION × nombre de vacations (ou cachets). Fini la calculette :
+// 230 €/vac × 5 vacations = 1 150 € (retour Yohan). Tarif = prix appris (prod+poste) > salaire journalier.
+// On n'écrase jamais un prix saisi à la main, ni en édition.
 function _prefillLearnedPrice(){
   var pe=document.getElementById('production'), te=document.getElementById('type'), ge=document.getElementById('gross');
   if(!pe||!te||!ge) return;
-  if(typeof editingMissionId!=='undefined' && editingMissionId) return; // en édition : on ne touche pas au prix saisi
-  var p=_learnedPrice(pe.value, te.value);
-  if(p!=null) ge.value=p;
+  if(typeof editingMissionId!=='undefined' && editingMissionId) return; // en édition : le prix stocké est le total
+  if(_grossTouched) return;
+  var rate=_learnedPrice(pe.value, te.value);
+  if(rate==null){ var sj=(typeof _profil!=='undefined' && _profil && Number(_profil.salaire_journalier)) || 0; rate = sj>0 ? sj : null; }
+  if(rate==null) return;
+  var cachet=(typeof _missionMode!=='undefined' && _missionMode==='cachet');
+  var cntEl=document.getElementById(cachet ? 'cachetInput' : 'vacations');
+  var cnt=cntEl ? (Number(cntEl.value)||0) : 0;
+  var mult = cnt>0 ? cnt : 1;
+  ge.value = Math.round(rate*mult*100)/100;
 }
+// Recalcule le brut quand le nombre de vacations / cachets change (si prix pas saisi à la main).
+document.addEventListener('input', function(e){
+  if(!e.target) return;
+  if(e.target.id==='gross'){ _grossTouched = true; return; }
+  if(e.target.id==='vacations' || e.target.id==='cachetInput'){ if(typeof _prefillLearnedPrice==='function') _prefillLearnedPrice(); }
+});
 // Tarif par jour AU NIVEAU DE LA PRODUCTION (clé PROD|__ALL__, comme l'app getProdRate/setProdRate).
 function _getProdRate(prod){
   var mem=(typeof _profil!=='undefined'&&_profil&&_profil.price_memory)?_profil.price_memory:{};
