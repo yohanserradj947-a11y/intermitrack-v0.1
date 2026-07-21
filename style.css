@@ -704,6 +704,14 @@ body.theme-dark .calendar-day-panel-head span, body.theme-dark .calendar-day-mis
 .cal-sec-tabs { display: flex; gap: 8px; background: var(--soft); border-radius: 12px; padding: 5px; margin-bottom: 14px; }
 .cal-sec-tab { flex: 1; padding: 9px; border: none; background: none; border-radius: 9px; font-size: 12.5px; font-weight: 800; color: var(--muted); cursor: pointer; }
 .cal-sec-tab.on { background: var(--card); color: var(--petrol); box-shadow: 0 2px 6px rgba(13,27,42,.08); }
+/* Sous le calendrier : export PDF + réinitialiser + titre « Mes évènements du mois » */
+.cal-below { margin-top: 14px; }
+.cal-export-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 11px; border: 1px solid var(--line); border-radius: 11px; background: var(--card); color: var(--petrol); font-weight: 800; font-size: 13.5px; cursor: pointer; font-family: inherit; box-shadow: 0 2px 6px rgba(13,27,42,.06); }
+.cal-export-btn:hover { background: var(--soft); }
+.cal-export-btn svg { flex-shrink: 0; }
+.cal-reset-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-top: 12px; }
+.cal-reset-link { background: none; border: none; color: var(--danger); font-size: 12px; font-weight: 700; text-decoration: underline; cursor: pointer; font-family: inherit; padding: 4px 2px; }
+.cal-sec-title { font-size: 15px; font-weight: 800; color: var(--petrol); margin-bottom: 12px; }
 /* Responsive : la rangée de couleurs reste dans l'écran sur mobile */
 .prod-color-row, .prod-color-swatches, .prod-color-preview { max-width: 100%; }
 .prod-color-swatches { overflow: visible; }

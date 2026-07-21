@@ -3704,35 +3704,28 @@ function renderCalendar() {
       <button class="cal-tool-btn" type="button" id="importExcelBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8"/></svg>Importer un Excel/CSV</button>
       <button class="cal-tool-btn" type="button" id="xlInfoBtn" title="Comment préparer mon fichier Excel ?" style="flex:0 0 auto;padding:9px 12px;">ⓘ Format Excel</button>
       <button class="cal-tool-btn" type="button" id="importNotesBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Coller mes notes</button>
-      <button class="cal-tool-btn" type="button" id="resetMonthBtn" style="color:#DC2626;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>Réinitialiser le mois</button>
-      <button class="cal-tool-btn" type="button" id="resetYearBtn" style="color:#DC2626;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>Réinitialiser l'année</button>
-      <button class="cal-tool-btn" type="button" id="resetCalendarBtn" style="color:#DC2626;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>Réinitialiser le calendrier</button>
     </div>
     <div class="new-cal-daynames"><div>L</div><div>M</div><div>M</div><div>J</div><div>V</div><div>S</div><div>D</div></div>
     <div class="new-cal-grid" id="calendar"></div>
     <div id="calendarDayPanel"></div>
+    <!-- Sous le calendrier : Exporter en PDF, puis Réinitialiser (comme l'app) -->
+    <div class="cal-below">
+      <button type="button" id="calExportPdfBtn" class="cal-export-btn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Exporter le mois en PDF</button>
+      <div class="cal-reset-row">
+        <button type="button" id="resetMonthBtn" class="cal-reset-link">Réinitialiser le mois</button>
+        <button type="button" id="resetYearBtn" class="cal-reset-link">Réinitialiser l'année</button>
+        <button type="button" id="resetCalendarBtn" class="cal-reset-link">Réinitialiser le calendrier</button>
+      </div>
+    </div>
+    <!-- Mes évènements du mois = missions + notes fusionnés, triés par date (comme l'app) -->
     <div class="new-mission-section">
-      <div class="cal-sec-tabs">
-        <button type="button" class="cal-sec-tab on" data-calsec="missions">Mes missions du mois</button>
-        <button type="button" class="cal-sec-tab" data-calsec="notes">Notes perso</button>
-      </div>
-      <div id="calMissionsPane">
-        <div class="new-mission-header">
-          <span class="new-mission-page" id="calMissionPageInfo"></span>
-        </div>
-        <div id="calMissionCards"></div>
-        <div class="new-mission-pagination">
-          <button class="new-pag-btn" id="calMissionPrev" type="button">‹</button>
-          <button class="new-pag-btn" id="calMissionNext" type="button">›</button>
-        </div>
-      </div>
-      <div id="calNotesPane" style="display:none;">
-        <div id="calNoteCards"></div>
-      </div>
+      <div class="cal-sec-title">Mes évènements du mois</div>
+      <div id="calEventCards"></div>
     </div>
   `;
   $("calendarPrevBtn").addEventListener("click", () => moveMonth(-1));
   $("calendarNextBtn").addEventListener("click", () => moveMonth(1));
+  if ($("calExportPdfBtn")) $("calExportPdfBtn").addEventListener("click", generateActualisationPDF);
   $("calendarMonthPicker").addEventListener("change", () => {
     const value = $("calendarMonthPicker").value;
     if (!value) return;
@@ -3815,33 +3808,39 @@ function renderCalendar() {
   }
   const usedSlots = start + days;
   for (let i = usedSlots; i < totalSlots; i++) { const empty = document.createElement("div"); empty.className = "new-cal-day new-cal-empty"; calendar.appendChild(empty); }
-  calMissionPage = 0;
-  renderCalMissions();
+  renderCalEvents();
 }
 
-function renderCalMissions() {
-  const list = monthMissions(current).sort((a, b) => new Date(a.date) - new Date(b.date));
-  const total = Math.max(1, Math.ceil(list.length / CAL_MISSIONS_PER_PAGE));
-  if (calMissionPage >= total) calMissionPage = total - 1;
-  if (calMissionPage < 0) calMissionPage = 0;
-  const pageInfo = $("calMissionPageInfo"), cards = $("calMissionCards"), prevBtn = $("calMissionPrev"), nextBtn = $("calMissionNext");
-  if (!cards) return;
-  if (pageInfo) pageInfo.textContent = total > 1 ? `${calMissionPage + 1} / ${total}` : "";
-  if (prevBtn) { prevBtn.disabled = calMissionPage === 0; prevBtn.onclick = () => { calMissionPage--; renderCalMissions(); }; }
-  if (nextBtn) { nextBtn.disabled = calMissionPage >= total - 1; nextBtn.onclick = () => { calMissionPage++; renderCalMissions(); }; }
-  const visible = list.slice(calMissionPage * CAL_MISSIONS_PER_PAGE, (calMissionPage + 1) * CAL_MISSIONS_PER_PAGE);
-  if (!visible.length) { cards.innerHTML = `<div class="empty">Aucune mission ce mois.</div>`; return; }
-cards.innerHTML = visible.map((m) => {
-    const isFuture = new Date(m.date + "T00:00:00") >= todayDateOnly();
-    const _ch = getProductionColorHex(normalizeProductionName(m.production));
-    return `
+// Carte d'une MISSION dans « Mes évènements du mois ».
+function _calMissionCardHtml(m) {
+  const isFuture = new Date(m.date + "T00:00:00") >= todayDateOnly();
+  const _ch = getProductionColorHex(normalizeProductionName(m.production));
+  return `
       <div class="new-mission-card ${isFuture ? "planned" : "done"}" data-calendar-date="${escapeHtml(m.date)}" style="cursor:pointer;${_ch ? `border-left-color:${_ch} !important;` : ''}">
         <div class="new-mission-body"><div class="new-mission-prod">${ICO.doc}${escapeHtml((m.production||'').toUpperCase())}</div>${(m.emission||'').trim() ? `<div class="new-mission-emission">${ICO.camera}${escapeHtml(m.emission.trim())}</div>` : ''}${(m.lieu||'').trim() ? `<div class="new-mission-lieu">${ICO.pin}${escapeHtml(m.lieu.trim())}</div>` : ''}<div class="new-mission-dates">${ICO.cal}${escapeHtml(formatPeriod(m.date, m.endDate))}</div></div>
         <div class="new-mission-right"><span class="new-mission-hours">${ICO.clock}${m.hours}h</span>${m.type ? `<span class="new-mission-type ${isFuture ? "type-planned" : "type-done"}">${escapeHtml(m.type)}</span>` : ''}</div>
         <button type="button" data-quick-del="${escapeHtml(m.id)}" title="Supprimer cette mission" aria-label="Supprimer" style="flex:0 0 auto;align-self:center;width:32px;height:32px;border:none;border-radius:9px;background:rgba(220,38,38,.1);color:#DC2626;font-size:15px;font-weight:800;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
       </div>
     `;
-  }).join("");
+}
+// Carte d'une NOTE dans « Mes évènements du mois ».
+function _calNoteCardHtml(n) {
+  return '<div class="new-mission-card" data-note-detail="' + escapeHtml(n.id) + '" style="cursor:pointer;border-left-color:' + (n.color || '#1E6FE0') + ' !important;"><div class="new-mission-body"><div class="new-mission-prod">' + escapeHtml((n.title || 'NOTE').toUpperCase()) + '</div>' + ((n.text || '').trim() ? '<div class="new-mission-emission" style="font-style:normal;">' + escapeHtml(n.text.trim()) + '</div>' : '') + '<div class="new-mission-dates">' + escapeHtml(formatPeriod(n.date, n.endDate)) + '</div></div></div>';
+}
+// « Mes évènements du mois » = missions + notes fusionnés, triés par date (mission avant note à date égale).
+function renderCalEvents() {
+  const wrap = $("calEventCards"); if (!wrap) return;
+  const y = current.getFullYear(), m = current.getMonth();
+  const items = [];
+  monthMissions(current).forEach((mi) => items.push({ kind: "mission", date: mi.date, html: _calMissionCardHtml(mi) }));
+  getNotes().filter((n) => { const d = new Date(n.date + "T00:00:00"); return d.getFullYear() === y && d.getMonth() === m; })
+    .forEach((n) => items.push({ kind: "note", date: n.date, html: _calNoteCardHtml(n) }));
+  items.sort((a, b) => {
+    const d = new Date(a.date) - new Date(b.date);
+    if (d !== 0) return d;
+    return a.kind === b.kind ? 0 : (a.kind === "mission" ? -1 : 1);
+  });
+  wrap.innerHTML = items.length ? items.map((it) => it.html).join("") : '<div class="empty">Aucun évènement ce mois.</div>';
 }
 
 function renderCalendarDayPanel(dateStr) {
