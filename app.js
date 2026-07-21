@@ -1895,11 +1895,14 @@ async function _mdpSaveBreakdown(){
   let cur = null;
   for (const d of _mdpData.days){
     if (!d.checked){ cur = null; continue; }
-    if (cur && d.hours === cur.hours && _isNextDay(cur.end, d.date)){ cur.end = d.date; cur.days++; }
-    else { cur = { start: d.date, end: d.date, hours: d.hours, days: 1 }; runs.push(cur); }
+    // On regroupe les jours CONSÉCUTIFS en UNE seule mission même si un jour a des heures différentes
+    // (retour Youn/Timothée : « 1 ligne suffit »). On SOMME les heures au lieu de supposer un nombre
+    // d'heures uniforme. Seul un jour décoché coupe la plage et crée une nouvelle ligne.
+    if (cur && _isNextDay(cur.end, d.date)){ cur.end = d.date; cur.days++; cur.hours += Number(d.hours) || 0; }
+    else { cur = { start: d.date, end: d.date, hours: Number(d.hours) || 0, days: 1 }; runs.push(cur); }
   }
   const payloads = runs.map(function(r, idx){
-    const runHours = r.hours * r.days;
+    const runHours = r.hours; // total d'heures de la plage (somme des jours cochés)
     // Au centime près (retour Benjamin) : l'arrondi à l'euro faussait le brut journalier, donc la déclaration.
     const gross = sumHours > 0 ? Math.round(totalGross * (runHours / sumHours) * 100) / 100 : Math.round(totalGross / runs.length * 100) / 100;
     return {
