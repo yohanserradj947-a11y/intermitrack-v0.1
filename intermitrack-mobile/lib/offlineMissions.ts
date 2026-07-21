@@ -25,6 +25,75 @@ export async function getCachedMissions(): Promise<any[] | null> {
   catch (e) { return null; }
 }
 
+// ── File d'attente d'ÉCRITURE (V1b) : ajouter une mission hors ligne → elle apparaît tout de suite,
+//    puis se synchronise dès le retour du réseau, SANS doublon (upsert idempotent sur client_token). ──
+
+const QUEUE_PREFIX = 'intermitrack_write_queue_';
+
+// UUID v4 (Math.random suffit pour un jeton client ; pas besoin de module natif crypto).
+function uuid(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+async function queueKey(): Promise<string> {
+  try { const { data } = await supabase.auth.getUser(); return QUEUE_PREFIX + (data?.user?.id || 'anon'); }
+  catch { return QUEUE_PREFIX + 'anon'; }
+}
+async function getQueue(): Promise<any[]> {
+  try { const v = await AsyncStorage.getItem(await queueKey()); return v ? JSON.parse(v) : []; } catch { return []; }
+}
+async function setQueue(q: any[]) {
+  try { await AsyncStorage.setItem(await queueKey(), JSON.stringify(q || [])); } catch (e) {}
+}
+
+// Compteur « en attente de synchro » partagé (pour le bandeau).
+let _pending = 0;
+const _pListeners = new Set<(n: number) => void>();
+function setPending(n: number) { _pending = n; _pListeners.forEach((l) => { try { l(n); } catch (e) {} }); }
+export function usePending() {
+  const [n, setN] = useState(_pending);
+  useEffect(() => { _pListeners.add(setN); setN(_pending); getQueue().then((q) => setPending(q.length)); return () => { _pListeners.delete(setN); }; }, []);
+  return n;
+}
+
+// Ajoute une mission hors ligne : la stocke dans la file (avec un client_token) ET l'ajoute au cache
+// local pour qu'elle apparaisse immédiatement. Retourne la mission « optimiste » à afficher.
+export async function queueInsert(payload: any): Promise<any> {
+  const token = uuid();
+  const optimistic = { ...payload, id: 'local_' + token, client_token: token, _pending: true };
+  const q = await getQueue();
+  q.push({ payload: { ...payload, client_token: token } });
+  await setQueue(q);
+  setPending(q.length);
+  // Ajoute au cache pour qu'un rechargement hors ligne la montre aussi.
+  const cached = (await getCachedMissions()) || [];
+  cached.push(optimistic);
+  await cacheMissions(cached);
+  return optimistic;
+}
+
+// Vide la file quand le réseau est là : upsert idempotent (onConflict client_token → jamais de doublon,
+// même si on rejoue). Les items qui échouent restent en file pour le prochain essai.
+export async function flushQueue(): Promise<number> {
+  const q = await getQueue();
+  if (!q.length) return 0;
+  const remaining: any[] = [];
+  let done = 0;
+  for (const item of q) {
+    try {
+      const { error } = await supabase.from('missions').upsert(item.payload, { onConflict: 'client_token' });
+      if (error) remaining.push(item); else done++;
+    } catch (e) { remaining.push(item); }
+  }
+  await setQueue(remaining);
+  setPending(remaining.length);
+  return done;
+}
+async function queueLength(): Promise<number> { return (await getQueue()).length; }
+
 // État hors-ligne partagé (observable minimal, sans dépendance native comme NetInfo qui casserait l'OTA).
 let _offline = false;
 const _listeners = new Set<(v: boolean) => void>();
@@ -50,9 +119,20 @@ export async function loadMissionsCached(
   const ascending = opts?.ascending !== false;
   const { data, error } = await supabase.from('missions').select('*').order('mission_date', { ascending });
   if (data) {
+    setOffline(false);
+    // Réseau OK : on synchronise d'abord les missions saisies hors ligne, puis on recharge frais
+    // (ainsi les missions synchronisées remplacent leurs versions « locales » optimistes).
+    if ((await queueLength()) > 0) {
+      await flushQueue();
+      const re = await supabase.from('missions').select('*').order('mission_date', { ascending });
+      const list = re.data || data;
+      setMissions(list);
+      cacheMissions(list);
+      opts?.onData?.(list);
+      return list;
+    }
     setMissions(data);
     cacheMissions(data);
-    setOffline(false);
     opts?.onData?.(data);
     return data;
   }

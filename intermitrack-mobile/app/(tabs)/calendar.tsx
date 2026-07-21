@@ -11,7 +11,7 @@ import FieldLabel from '../../components/FieldLabel';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
-import { loadMissionsCached } from '../../lib/offlineMissions';
+import { loadMissionsCached, queueInsert } from '../../lib/offlineMissions';
 import { useTrackView, trackEvent } from '../../lib/analytics';
 import NumInput from '../../components/NumInput';
 import TxtInput from '../../components/TxtInput';
@@ -301,10 +301,21 @@ export default function Calendar(){
       : await supabase.from('missions').insert(payload);
     setSaving(false);
     if(error){
-      // Coupure réseau (plateau sans signal) : message clair, et on garde l'écran ouvert pour réessayer.
       const netish=/fetch|network|timeout|réseau|Failed to/i.test(String(error.message||''));
+      // Nouvelle mission + coupure réseau (plateau sans signal) : on l'enregistre EN LOCAL, elle apparaît
+      // tout de suite dans le calendrier, et se synchronisera au retour du réseau (sans doublon).
+      if(netish && !editId){
+        const optimistic=await queueInsert(payload);
+        setMissions((prev:any[])=>[...prev, optimistic]);
+        syncWidgets([...missions, optimistic], getColor, notes);
+        rememberPrice(fProduction, fType, (Number(fGross)||0)/Math.max(1, hv.vacations||1));
+        setShowForm(false); setEditId(null);
+        showAlert('Enregistré hors ligne', "Ta mission est enregistrée sur ton téléphone et apparaît dans ton calendrier. Elle se synchronisera automatiquement dès que tu auras du réseau.");
+        return;
+      }
+      // Édition hors ligne (plus rare) : on garde l'écran ouvert pour réessayer.
       showAlert(netish?'Hors ligne':'Erreur', netish
-        ? "Pas de réseau : ta mission n'a pas pu être enregistrée. Garde cet écran ouvert et réappuie sur Enregistrer dès que tu as de la connexion."
+        ? "Pas de réseau : ta modification n'a pas pu être enregistrée. Garde cet écran ouvert et réessaie dès que tu as de la connexion."
         : error.message);
       return;
     }

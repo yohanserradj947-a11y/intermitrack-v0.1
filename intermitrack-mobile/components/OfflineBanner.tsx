@@ -1,19 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import { View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useOffline } from '../lib/offlineMissions';
+import { useOffline, usePending } from '../lib/offlineMissions';
 
-// Bandeau discret affiché en haut quand l'appli fonctionne sur les données en cache
-// (réseau indisponible). Se masque tout seul dès qu'un chargement réussit.
+// Bandeau discret affiché en haut : « Hors ligne » quand on tourne sur le cache, et/ou
+// « X en attente de synchro » quand des missions saisies hors ligne restent à envoyer.
 export default function OfflineBanner() {
   const offline = useOffline();
+  const pending = usePending();
   const insets = useSafeAreaInsets();
-  if (!offline) return null;
+  if (!offline && pending === 0) return null;
+  const label = offline
+    ? (pending > 0 ? `Hors ligne — ${pending} mission${pending > 1 ? 's' : ''} en attente de synchro` : 'Hors ligne — affichage de tes dernières données')
+    : `${pending} mission${pending > 1 ? 's' : ''} en attente de synchro…`;
   return (
     <View style={[s.wrap, { paddingTop: (insets.top || 0) + 6 }]} pointerEvents="none">
-      <View style={s.pill}>
-        <Ionicons name="cloud-offline-outline" size={14} color="#fff" />
-        <Text style={s.txt}>Hors ligne — affichage de tes dernières données</Text>
+      <View style={[s.pill, !offline && { backgroundColor: '#1F4E5F' }]}>
+        <Ionicons name={offline ? 'cloud-offline-outline' : 'sync-outline'} size={14} color="#fff" />
+        <Text style={s.txt}>{label}</Text>
       </View>
     </View>
   );
