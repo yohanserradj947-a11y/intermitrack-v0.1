@@ -9,10 +9,13 @@ import { supabase } from './supabase';
 
 const PREFIX = 'intermitrack_missions_cache_';
 
-async function cacheKey(): Promise<string> {
-  try { const { data } = await supabase.auth.getUser(); return PREFIX + (data?.user?.id || 'anon'); }
-  catch { return PREFIX + 'anon'; }
+// IMPORTANT : getSession() lit la session LOCALE (AsyncStorage), SANS réseau — contrairement à getUser()
+// qui appelle le serveur et échoue hors ligne (→ clé « anon » → cache introuvable → tout à zéro).
+async function userId(): Promise<string> {
+  try { const { data } = await supabase.auth.getSession(); return data?.session?.user?.id || 'anon'; }
+  catch { return 'anon'; }
 }
+async function cacheKey(): Promise<string> { return PREFIX + (await userId()); }
 
 // Cache la liste de missions du user courant (appelé après un chargement réussi).
 export async function cacheMissions(list: any[]) {
@@ -38,10 +41,7 @@ function uuid(): string {
     return v.toString(16);
   });
 }
-async function queueKey(): Promise<string> {
-  try { const { data } = await supabase.auth.getUser(); return QUEUE_PREFIX + (data?.user?.id || 'anon'); }
-  catch { return QUEUE_PREFIX + 'anon'; }
-}
+async function queueKey(): Promise<string> { return QUEUE_PREFIX + (await userId()); }
 async function getQueue(): Promise<any[]> {
   try { const v = await AsyncStorage.getItem(await queueKey()); return v ? JSON.parse(v) : []; } catch { return []; }
 }
@@ -59,34 +59,73 @@ export function usePending() {
   return n;
 }
 
-// Ajoute une mission hors ligne : la stocke dans la file (avec un client_token) ET l'ajoute au cache
-// local pour qu'elle apparaisse immédiatement. Retourne la mission « optimiste » à afficher.
+// Item de file : { op:'insert', token, payload } | { op:'update', id, payload } | { op:'delete', id }
+// Toutes les opérations sont idempotentes (rejouables sans dégât) : upsert(client_token), update(id), delete(id).
+
+async function patchCache(fn: (list: any[]) => any[]) {
+  const cached = (await getCachedMissions()) || [];
+  await cacheMissions(fn([...cached]));
+}
+
+// AJOUTER une mission hors ligne : file + cache → apparaît tout de suite. Retourne la mission optimiste.
 export async function queueInsert(payload: any): Promise<any> {
   const token = uuid();
   const optimistic = { ...payload, id: 'local_' + token, client_token: token, _pending: true };
   const q = await getQueue();
-  q.push({ payload: { ...payload, client_token: token } });
+  q.push({ op: 'insert', token, payload: { ...payload, client_token: token } });
   await setQueue(q);
   setPending(q.length);
-  // Ajoute au cache pour qu'un rechargement hors ligne la montre aussi.
-  const cached = (await getCachedMissions()) || [];
-  cached.push(optimistic);
-  await cacheMissions(cached);
+  await patchCache((list) => { list.push(optimistic); return list; });
   return optimistic;
 }
 
-// Vide la file quand le réseau est là : upsert idempotent (onConflict client_token → jamais de doublon,
-// même si on rejoue). Les items qui échouent restent en file pour le prochain essai.
+// MODIFIER une mission hors ligne. Si c'est une mission encore locale (pas synchronisée),
+// on édite directement son insert en attente au lieu de créer un update sur un id qui n'existe pas côté serveur.
+export async function queueUpdate(id: any, payload: any): Promise<any> {
+  const q = await getQueue();
+  const local = String(id).startsWith('local_');
+  if (local) {
+    const token = String(id).slice(6);
+    for (const it of q) if (it.op === 'insert' && it.token === token) it.payload = { ...it.payload, ...payload, client_token: token };
+  } else {
+    q.push({ op: 'update', id, payload });
+  }
+  await setQueue(q);
+  setPending(q.length);
+  await patchCache((list) => list.map((m) => (m.id === id ? { ...m, ...payload, _pending: true } : m)));
+  return { ...payload, id, _pending: true };
+}
+
+// SUPPRIMER une mission hors ligne. Si elle est encore locale, on retire simplement son insert en attente.
+export async function queueDelete(id: any): Promise<void> {
+  let q = await getQueue();
+  const local = String(id).startsWith('local_');
+  if (local) {
+    const token = String(id).slice(6);
+    q = q.filter((it) => !(it.op === 'insert' && it.token === token));
+  } else {
+    q.push({ op: 'delete', id });
+  }
+  await setQueue(q);
+  setPending(q.length);
+  await patchCache((list) => list.filter((m) => m.id !== id));
+}
+
+// Vide la file quand le réseau est là. Ordre FIFO conservé ; opérations idempotentes → aucun doublon/dégât
+// même si un flush repart. Les items qui échouent restent en file pour le prochain essai.
 export async function flushQueue(): Promise<number> {
   const q = await getQueue();
   if (!q.length) return 0;
   const remaining: any[] = [];
   let done = 0;
-  for (const item of q) {
+  for (const it of q) {
     try {
-      const { error } = await supabase.from('missions').upsert(item.payload, { onConflict: 'client_token' });
-      if (error) remaining.push(item); else done++;
-    } catch (e) { remaining.push(item); }
+      let error: any = null;
+      if (it.op === 'insert') ({ error } = await supabase.from('missions').upsert(it.payload, { onConflict: 'client_token' }));
+      else if (it.op === 'update') ({ error } = await supabase.from('missions').update(it.payload).eq('id', it.id));
+      else if (it.op === 'delete') ({ error } = await supabase.from('missions').delete().eq('id', it.id));
+      if (error) remaining.push(it); else done++;
+    } catch (e) { remaining.push(it); }
   }
   await setQueue(remaining);
   setPending(remaining.length);

@@ -11,7 +11,7 @@ import FieldLabel from '../../components/FieldLabel';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
-import { loadMissionsCached, queueInsert } from '../../lib/offlineMissions';
+import { loadMissionsCached, queueInsert, queueUpdate, queueDelete } from '../../lib/offlineMissions';
 import { useTrackView, trackEvent } from '../../lib/analytics';
 import NumInput from '../../components/NumInput';
 import TxtInput from '../../components/TxtInput';
@@ -313,10 +313,16 @@ export default function Calendar(){
         showAlert('Enregistré hors ligne', "Ta mission est enregistrée sur ton téléphone et apparaît dans ton calendrier. Elle se synchronisera automatiquement dès que tu auras du réseau.");
         return;
       }
-      // Édition hors ligne (plus rare) : on garde l'écran ouvert pour réessayer.
-      showAlert(netish?'Hors ligne':'Erreur', netish
-        ? "Pas de réseau : ta modification n'a pas pu être enregistrée. Garde cet écran ouvert et réessaie dès que tu as de la connexion."
-        : error.message);
+      // Modification d'une mission existante hors ligne : on l'applique en local, elle se synchronise au retour du réseau.
+      if(netish && editId){
+        const optimistic=await queueUpdate(editId, payload);
+        setMissions((prev:any[])=>prev.map((m:any)=>m.id===editId?{...m,...optimistic}:m));
+        syncWidgets(missions.map((m:any)=>m.id===editId?{...m,...optimistic}:m), getColor, notes);
+        setShowForm(false); setEditId(null);
+        showAlert('Modifié hors ligne', "Ta modification est enregistrée sur ton téléphone. Elle se synchronisera automatiquement dès que tu auras du réseau.");
+        return;
+      }
+      showAlert('Erreur', error.message);
       return;
     }
     // Mémorise le prix/jour pour ce couple (prod + poste), pré-remplira la prochaine fois.
@@ -347,7 +353,16 @@ export default function Calendar(){
       {text:'Annuler',style:'cancel'},
       {text:'Supprimer',style:'destructive',onPress:async()=>{
         const { error, count }=await supabase.from('missions').delete({count:'exact'}).eq('id',editId);
-        if(error){ showAlert('Erreur',error.message); return; }
+        if(error){
+          if(/fetch|network|timeout|réseau|Failed to/i.test(String(error.message||''))){
+            await queueDelete(editId);
+            setMissions((prev:any[])=>prev.filter((m:any)=>m.id!==editId));
+            setShowForm(false); setEditId(null);
+            showAlert('Supprimé hors ligne', "La mission a été retirée de ton téléphone. La suppression se synchronisera dès que tu auras du réseau.");
+            return;
+          }
+          showAlert('Erreur',error.message); return;
+        }
         if(count===0){ showAlert('Bloqué','La suppression a été refusée (droits Supabase / RLS).'); return; }
         setShowForm(false); setEditId(null); loadMissions(true);
       }},
@@ -360,7 +375,16 @@ export default function Calendar(){
       {text:'Annuler',style:'cancel'},
       {text:'Supprimer',style:'destructive',onPress:async()=>{
         const { error, count }=await supabase.from('missions').delete({count:'exact'}).eq('id',m.id);
-        if(error){ showAlert('Erreur',error.message); return; }
+        if(error){
+          if(/fetch|network|timeout|réseau|Failed to/i.test(String(error.message||''))){
+            await queueDelete(m.id);
+            setMissions((prev:any[])=>prev.filter((x:any)=>x.id!==m.id));
+            setDayMenu((dm:any)=>dm?{...dm,missions:dm.missions.filter((x:any)=>x.id!==m.id)}:dm);
+            showAlert('Supprimé hors ligne', "La mission a été retirée de ton téléphone. La suppression se synchronisera dès que tu auras du réseau.");
+            return;
+          }
+          showAlert('Erreur',error.message); return;
+        }
         if(count===0){ showAlert('Bloqué','La suppression a été refusée (droits Supabase / RLS).'); return; }
         setDayMenu((dm:any)=>dm?{...dm,missions:dm.missions.filter((x:any)=>x.id!==m.id)}:dm);
         loadMissions(true);
