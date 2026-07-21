@@ -52,6 +52,16 @@ const CONTACTS: Contact[] = [
     { type: 'tel', label: '0 805 41 40 41 (gratuit, lun-ven 9h-17h)', value: '0805414041' },
     { type: 'url', label: 'guso.fr', value: 'https://www.guso.fr' },
   ] },
+  { ic: 'medical-outline', name: 'Assurance Maladie (CPAM)', role: 'Arrêts maladie, maternité, indemnités journalières', lines: [
+    { type: 'tel', label: '3646 (service + prix appel)', value: '3646' },
+    { type: 'url', label: 'ameli.fr', value: 'https://www.ameli.fr' },
+  ] },
+  { ic: 'people-outline', name: 'CIP-IDF / La Cité', role: 'Coordination des Intermittents et Précaires : droits, permanences', lines: [
+    { type: 'url', label: 'cip-idf.org', value: 'https://www.cip-idf.org' },
+  ] },
+  { ic: 'happy-outline', name: 'Matermittentes', role: 'Maternité & maladie des intermittentes : démarches, simulateurs', lines: [
+    { type: 'url', label: 'matermittentes.com', value: 'https://www.matermittentes.com' },
+  ] },
   { ic: 'globe-outline', name: 'Autres liens utiles', role: 'Démarches en ligne', lines: [
     { type: 'url', label: 'autoentrepreneur.urssaf.fr (micro-entreprise)', value: 'https://www.autoentrepreneur.urssaf.fr' },
     { type: 'url', label: 'impots.gouv.fr (déclaration, impôt)', value: 'https://www.impots.gouv.fr' },
@@ -74,7 +84,7 @@ function ContactsInner() {
   return (
     <ScrollView style={s.container} contentContainerStyle={{ paddingBottom: 40 }}>
       <View style={s.pageHeader}>
-        <Text style={s.pageTitle}>Contacts utiles</Text>
+        <Text style={s.pageTitle}>Liens utiles</Text>
         <Text style={s.pageSub}>Les organismes clés de l&apos;intermittent du spectacle</Text>
       </View>
 
@@ -130,4 +140,4 @@ const makeS = (C: any) => StyleSheet.create({
   lineLink: { flex: 1, fontSize: 13, color: C.petrol, fontWeight: '700', lineHeight: 19 },
 });
 
-export default function Contacts(){ return (<PremiumGate title="Contacts"><ContactsInner/></PremiumGate>); }
+export default function Contacts(){ return (<PremiumGate title="Liens utiles"><ContactsInner/></PremiumGate>); }

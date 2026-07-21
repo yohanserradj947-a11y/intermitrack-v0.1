@@ -29,7 +29,7 @@ const ICON = 22;
 // Largeur des onglets quand la barre défile (téléphone). 8 onglets x 86 pt = 688 pt : au-delà de ce
 // seuil, tout tient à l'écran et le défilement n'a plus lieu d'être.
 const TAB_W = 86;
-const TABS_TOTAL = 8 * TAB_W;
+const TABS_TOTAL = 10 * TAB_W;
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -122,7 +122,11 @@ export default function TabLayout() {
       />
       <MaterialTopTabs.Screen
         name="contacts"
-        options={{ title: 'Contacts', tabBarIcon: tabIcon('call-outline') }}
+        options={{ title: 'Liens utiles', tabBarIcon: tabIcon('link-outline') }}
+      />
+      <MaterialTopTabs.Screen
+        name="asavoir"
+        options={{ title: 'À savoir', tabBarIcon: tabIcon('book-outline') }}
       />
     </MaterialTopTabs>
     <SwipeHint />
