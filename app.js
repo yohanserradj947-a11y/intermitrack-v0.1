@@ -3209,12 +3209,14 @@ function renderChart(doneHours, plannedHours = 0, formationHours = 0, enseigneme
   const plannedDash = Math.min(plannedFrac * CIRC, CIRC - doneDash - formDash - ensDash);
   if (!$("chart")) return;
  // Le graphique suit le THÈME : on lit les couleurs réelles de la palette (var --petrol/--orange/…).
-  const bodyCS = getComputedStyle(document.body);
-  const cPetrol = (bodyCS.getPropertyValue('--petrol') || '').trim() || '#1F4E5F';
-  const cOrange = (bodyCS.getPropertyValue('--orange') || '').trim() || '#F97316';
-  const cText = (bodyCS.getPropertyValue('--text') || '').trim() || '#2D3748';
-  const cMuted = (bodyCS.getPropertyValue('--muted') || '').trim() || '#718096';
-  const cSoft = (bodyCS.getPropertyValue('--soft') || '').trim() || '#EEF4F1';
+  // Repli si pas de DOM (garde-fou _sitecheck tourne en Node, sans getComputedStyle).
+  const bodyCS = (typeof getComputedStyle !== 'undefined' && typeof document !== 'undefined' && document.body) ? getComputedStyle(document.body) : null;
+  const cvar = (name, fb) => { try { const v = bodyCS ? bodyCS.getPropertyValue(name).trim() : ''; return v || fb; } catch (e) { return fb; } };
+  const cPetrol = cvar('--petrol', '#1F4E5F');
+  const cOrange = cvar('--orange', '#F97316');
+  const cText = cvar('--text', '#2D3748');
+  const cMuted = cvar('--muted', '#718096');
+  const cSoft = cvar('--soft', '#EEF4F1');
   const isDark = document.body.classList.contains('theme-dark') || document.body.classList.contains('dark-scheme');
   const FORM_HEX = '#7C3AED';
   const ENS_HEX = '#0EA5E9'; // enseignement — même bleu que la jauge de l'appli
