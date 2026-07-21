@@ -277,7 +277,10 @@ export default function Calendar(){
 
   async function saveSimple(){
     setSaving(true);
-    const { data:{ user } } = await supabase.auth.getUser();
+    // getSession() = session LOCALE (marche hors ligne) ; getUser() faisait un appel réseau qui
+    // échouait sur un plateau sans signal → « tu n'es plus connecté » avant même la file d'attente.
+    const { data:{ session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if(!user){ showAlert('Erreur','Tu n\'es plus connecté.'); setSaving(false); return; }
     const startISO=iso(fStart), endISO=iso(fEnd);
     // En cachet : heures = cachets x 12 + heures payées en heures ; vacations = nb de cachets.
@@ -472,7 +475,8 @@ export default function Calendar(){
   async function commitMultiDay(){
     if(mdpChecked.length===0){ showAlert('Aucun jour','Coche au moins un jour travaillé.'); return; }
     setSaving(true);
-    const { data:{ user } } = await supabase.auth.getUser();
+    const { data:{ session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if(!user){ showAlert('Erreur','Tu n\'es plus connecté.'); setSaving(false); return; }
     const totalGross=Number(fGross)||0;
     if(fMode==='cachet'){

@@ -11,9 +11,13 @@ const PREFIX = 'intermitrack_missions_cache_';
 
 // IMPORTANT : getSession() lit la session LOCALE (AsyncStorage), SANS réseau — contrairement à getUser()
 // qui appelle le serveur et échoue hors ligne (→ clé « anon » → cache introuvable → tout à zéro).
+// Mémorisé : on ne rappelle pas getSession à chaque chargement d'onglet (c'était la cause de la lenteur).
+let _uid: string | null = null;
 async function userId(): Promise<string> {
-  try { const { data } = await supabase.auth.getSession(); return data?.session?.user?.id || 'anon'; }
-  catch { return 'anon'; }
+  if (_uid) return _uid;
+  try { const { data } = await supabase.auth.getSession(); const id = data?.session?.user?.id; if (id) { _uid = id; return id; } }
+  catch (e) {}
+  return 'anon'; // pas encore de session : on ne mémorise pas 'anon' (on réessaiera au prochain appel)
 }
 async function cacheKey(): Promise<string> { return PREFIX + (await userId()); }
 

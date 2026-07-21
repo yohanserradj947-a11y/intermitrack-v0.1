@@ -99,7 +99,10 @@ export default function HomeScreen(){
     try{ const{data:av}=await supabase.from('are_versements').select('mois,montant'); if(av){const map:Record<string,number>={};for(const r of av as any[])map[r.mois]=Number(r.montant)||0;setAreVerse(map);} }catch(e){}
     const saved=await AsyncStorage.getItem('intermitrack_are_date');
     if(saved)setAreDate(saved);
-    const { data:{ user } }=await supabase.auth.getUser();
+    // getSession() = local/instantané (getUser() faisait un aller-retour réseau à chaque affichage
+    // du tableau de bord → lenteur, et null hors ligne). L'are_date est déjà relu du cache ci-dessus.
+    const { data:{ session } }=await supabase.auth.getSession();
+    const user = session?.user;
     if(user){
       const { data:prof }=await supabase.from('profiles').select('annexe,droits_ouverts,taux_journalier,taux_impot,are_date,clause_rattrapage').eq('id',user.id).maybeSingle();
       setClauseRattrapage(!!prof?.clause_rattrapage);
