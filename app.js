@@ -3139,6 +3139,23 @@ function render() {
   // Seules les missions d'intermittence (annexes 8/10) alimentent les heures effectuées / prévues.
   const _interMissions = yearMissions.filter((m) => _regOf(m) === "intermittence");
   const yearHours = Math.round(sumDone(_interMissions) * 10) / 10;
+  // Répartition ARTISTE (cachet) vs TECHNICIEN (heures) — déduite du mode de saisie de chaque mission
+  // (cachet : heures ≈ vacations × 12 ; heures : sinon). Retour user : savoir vers quel statut on penche.
+  (function () {
+    const box = $("regimeSplitBox"); if (!box) return;
+    let techH = 0, artH = 0, artCachets = 0;
+    _interMissions.forEach((m) => {
+      const h = Number(m.hours) || 0, v = Number(m.vacations) || 0;
+      if (v > 0 && h >= v * CACHET_H - 0.6) { artH += h; artCachets += v; } else { techH += h; }
+    });
+    if (techH <= 0 && artH <= 0) { box.style.display = "none"; return; }
+    box.style.display = "block";
+    if ($("splitTech")) $("splitTech").textContent = (Math.round(techH * 10) / 10) + " h";
+    if ($("splitArt")) $("splitArt").textContent = (Math.round(artCachets * 10) / 10) + " cachet" + (artCachets > 1 ? "s" : "") + " (" + (Math.round(artH * 10) / 10) + " h)";
+    if ($("splitHint")) $("splitHint").textContent =
+      (artH > 0 && techH > 0) ? (artH >= techH ? "Tu fais surtout de l'artiste — tu penches vers l'annexe 10." : "Tu fais surtout du technicien — tu penches vers l'annexe 8.")
+      : (artH > 0 ? "100 % artiste (annexe 10)." : "100 % technicien (annexe 8).");
+  })();
   const plannedHours = Math.round(sumPlanned(_interMissions) * 10) / 10;
   // Heures de formation dans la période de droits (plafonnées à 338 h pour les 507 h).
   const formationRaw = Math.round((typeof getNotes === "function" ? getNotes() : []).filter((n) => n.kind === "formation" && inWin(n.date)).reduce((a, n) => a + (Number(n.hours) || 0), 0) * 10) / 10;
