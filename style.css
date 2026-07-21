@@ -712,6 +712,16 @@ body.theme-dark .calendar-day-panel-head span, body.theme-dark .calendar-day-mis
 .cal-reset-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-top: 12px; }
 .cal-reset-link { background: none; border: none; color: var(--danger); font-size: 12px; font-weight: 700; text-decoration: underline; cursor: pointer; font-family: inherit; padding: 4px 2px; }
 .cal-sec-title { font-size: 15px; font-weight: 800; color: var(--petrol); margin-bottom: 12px; }
+/* Options d'une production (onglet Missions) : couleur / renommer / fusionner / supprimer */
+.prod-opts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.prod-opt-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--petrol); font-weight: 800; font-size: 12.5px; cursor: pointer; font-family: inherit; box-shadow: 0 2px 6px rgba(13,27,42,.06); }
+.prod-opt-btn:hover { background: var(--soft); }
+.prod-opt-btn.danger { color: var(--danger); }
+.prod-opt-btn svg { flex-shrink: 0; }
+.prod-merge-box { margin-bottom: 14px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--soft); display: flex; flex-wrap: wrap; gap: 8px; }
+.prod-merge-title { width: 100%; font-size: 13px; font-weight: 800; color: var(--text); margin-bottom: 2px; }
+.prod-merge-target { padding: 8px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--card); color: var(--petrol); font-weight: 700; font-size: 12.5px; cursor: pointer; font-family: inherit; }
+.prod-merge-target:hover { background: var(--petrol); color: #fff; }
 /* Responsive : la rangée de couleurs reste dans l'écran sur mobile */
 .prod-color-row, .prod-color-swatches, .prod-color-preview { max-width: 100%; }
 .prod-color-swatches { overflow: visible; }

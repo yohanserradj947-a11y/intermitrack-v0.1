@@ -3649,8 +3649,16 @@ function openProductionMissions(productionName) {
 const list = missions.filter((m) => normalizeProductionName(m.production || "Sans production") === productionName).sort((a, b) => new Date(b.date) - new Date(a.date));  allMissionsEl.innerHTML = `
     <div class="production-detail-head" style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
       <button class="ghost" type="button" data-production-back>‹ Retour</button>
-      <div><h2 style="margin:0;color:#1F4E5F;">${escapeHtml(productionName)}</h2><p class="sub" style="margin:2px 0 0;">${list.length} mission${list.length > 1 ? "s" : ""} enregistrée${list.length > 1 ? "s" : ""}</p></div>
+      <div><h2 style="margin:0;color:var(--petrol);">${escapeHtml(productionName)}</h2><p class="sub" style="margin:2px 0 0;">${list.length} mission${list.length > 1 ? "s" : ""} enregistrée${list.length > 1 ? "s" : ""}</p></div>
     </div>
+    <!-- Options de la production (comme l'app : couleur / renommer / fusionner / supprimer) -->
+    <div class="prod-opts">
+      <button class="prod-opt-btn" type="button" data-prod-color="${escapeHtml(productionName)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.564C22 6.05 17.5 2 12 2z"/></svg>Couleur</button>
+      <button class="prod-opt-btn" type="button" data-prod-rename="${escapeHtml(productionName)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Renommer</button>
+      <button class="prod-opt-btn" type="button" data-prod-merge="${escapeHtml(productionName)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m0 8v3a2 2 0 0 0 2 2h3m8-18h3a2 2 0 0 1 2 2v3m0 8v3a2 2 0 0 1-2 2h-3"/><path d="M9 12h6"/></svg>Fusionner</button>
+      <button class="prod-opt-btn danger" type="button" data-prod-delete="${escapeHtml(productionName)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>Supprimer</button>
+    </div>
+    <div id="prodMergeBox" class="prod-merge-box" style="display:none;"></div>
     <div class="mission-card-grid">
       ${list.map((mission) => `
        <div class="mission-history-card">
@@ -3669,6 +3677,67 @@ const list = missions.filter((m) => normalizeProductionName(m.production || "San
       `).join("")}
     </div>
   `;
+}
+// ===== Options d'une production (onglet Missions) — parité app : couleur / renommer / fusionner / supprimer =====
+function _prodMissions(normName) { return missions.filter((m) => normalizeProductionName(m.production || "Sans production") === normName); }
+function _otherProductions(normName) {
+  const set = {};
+  missions.forEach((m) => { const n = normalizeProductionName(m.production || "Sans production"); if (n !== normName) set[n] = true; });
+  return Object.keys(set).sort();
+}
+function _prodColor(normName) {
+  openCustomColorPicker(getProductionColorHex(normName) || '#1E6FE0', function (hex) {
+    setProductionColorHex(normName, hex);
+    if (typeof renderCalendar === 'function') renderCalendar();
+    openProductionMissions(normName);
+    toast("Couleur mise à jour.");
+  });
+}
+async function _prodRename(normName) {
+  const nv = prompt("Nouveau nom de la production :", normName);
+  if (nv == null) return;
+  const newName = normalizeProductionName(nv.trim());
+  if (!newName) { toast("Nom vide."); return; }
+  if (newName === normName) return;
+  const list = _prodMissions(normName);
+  try {
+    for (const m of list) { const { error } = await sb.from('missions').update({ production: newName }).eq('id', m.id); if (error) throw error; }
+    const col = getProductionColorHex(normName); if (col) setProductionColorHex(newName, col);
+    toast("Production renommée.");
+    await loadMissions();
+    openProductionMissions(newName);
+  } catch (e) { toast("Le renommage a échoué. Réessaie."); }
+}
+function _prodMergeShow(normName) {
+  const box = $("prodMergeBox"); if (!box) return;
+  if (box.style.display !== "none" && box.dataset.for === normName) { box.style.display = "none"; return; }
+  const others = _otherProductions(normName);
+  box.dataset.for = normName;
+  box.style.display = "";
+  box.innerHTML = others.length
+    ? '<div class="prod-merge-title">Fusionner « ' + escapeHtml(normName) + ' » dans :</div>' + others.map((o) => '<button type="button" class="prod-merge-target" data-prod-merge-into="' + escapeHtml(o) + '" data-prod-merge-from="' + escapeHtml(normName) + '">' + escapeHtml(o) + '</button>').join("")
+    : '<div class="prod-merge-title">Aucune autre production à fusionner.</div>';
+}
+async function _prodMergeInto(fromName, targetName) {
+  const list = _prodMissions(fromName);
+  if (!confirm("Rattacher les " + list.length + " mission(s) de « " + fromName + " » à « " + targetName + " » ? Elles porteront toutes ce nom.")) return;
+  try {
+    for (const m of list) { const { error } = await sb.from('missions').update({ production: targetName }).eq('id', m.id); if (error) throw error; }
+    toast("Productions fusionnées.");
+    await loadMissions();
+    openProductionMissions(targetName);
+  } catch (e) { toast("La fusion a échoué. Réessaie."); }
+}
+async function _prodDelete(normName) {
+  const list = _prodMissions(normName);
+  if (!confirm("Supprimer « " + normName + " » et ses " + list.length + " mission(s) ? Cette action est définitive.")) return;
+  try {
+    for (const m of list) { const { error } = await sb.from('missions').delete().eq('id', m.id); if (error) throw error; }
+    toast("Production supprimée.");
+    if ($("allMissions")) $("allMissions").innerHTML = "";
+    if ($("missionsGraphContainer")) $("missionsGraphContainer").style.display = "";
+    await loadMissions();
+  } catch (e) { toast("La suppression a échoué. Réessaie."); }
 }
 function moveMonth(amount) {
   current.setMonth(current.getMonth() + amount);
@@ -4591,6 +4660,16 @@ function setupEvents() {
     if (calendarAddButton) { addMissionReturnView = "calendar"; activateView("add-mission"); resetMissionFormForDate(calendarAddButton.dataset.calendarAddDate); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
     const productionOpenButton = event.target.closest("[data-production-open]");
     if (productionOpenButton) { openProductionMissions(productionOpenButton.dataset.productionOpen); return; }
+    const prodColorBtn = event.target.closest("[data-prod-color]");
+    if (prodColorBtn) { _prodColor(prodColorBtn.dataset.prodColor); return; }
+    const prodRenameBtn = event.target.closest("[data-prod-rename]");
+    if (prodRenameBtn) { _prodRename(prodRenameBtn.dataset.prodRename); return; }
+    const prodMergeIntoBtn = event.target.closest("[data-prod-merge-into]");
+    if (prodMergeIntoBtn) { _prodMergeInto(prodMergeIntoBtn.dataset.prodMergeFrom, prodMergeIntoBtn.dataset.prodMergeInto); return; }
+    const prodMergeBtn = event.target.closest("[data-prod-merge]");
+    if (prodMergeBtn) { _prodMergeShow(prodMergeBtn.dataset.prodMerge); return; }
+    const prodDeleteBtn = event.target.closest("[data-prod-delete]");
+    if (prodDeleteBtn) { _prodDelete(prodDeleteBtn.dataset.prodDelete); return; }
     const productionBackButton = event.target.closest("[data-production-back]");
     if (productionBackButton) { if ($("allMissions")) $("allMissions").innerHTML = ""; if ($("missionsGraphContainer")) $("missionsGraphContainer").style.display = ""; renderAllMissions(); return; }
     const openButton = event.target.closest("[data-doc-open]");
