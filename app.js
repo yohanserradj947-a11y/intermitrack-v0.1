@@ -3208,15 +3208,22 @@ function renderChart(doneHours, plannedHours = 0, formationHours = 0, enseigneme
   const ensDash = Math.min(ensFrac * CIRC, CIRC - doneDash - formDash);
   const plannedDash = Math.min(plannedFrac * CIRC, CIRC - doneDash - formDash - ensDash);
   if (!$("chart")) return;
- const isDark = document.body.classList.contains('theme-dark');
+ // Le graphique suit le THÈME : on lit les couleurs réelles de la palette (var --petrol/--orange/…).
+  const bodyCS = getComputedStyle(document.body);
+  const cPetrol = (bodyCS.getPropertyValue('--petrol') || '').trim() || '#1F4E5F';
+  const cOrange = (bodyCS.getPropertyValue('--orange') || '').trim() || '#F97316';
+  const cText = (bodyCS.getPropertyValue('--text') || '').trim() || '#2D3748';
+  const cMuted = (bodyCS.getPropertyValue('--muted') || '').trim() || '#718096';
+  const cSoft = (bodyCS.getPropertyValue('--soft') || '').trim() || '#EEF4F1';
+  const isDark = document.body.classList.contains('theme-dark') || document.body.classList.contains('dark-scheme');
   const FORM_HEX = '#7C3AED';
   const ENS_HEX = '#0EA5E9'; // enseignement — même bleu que la jauge de l'appli
   // Légende dynamique (Formation / Enseignement ajoutés seulement si des heures existent)
-  const legend = [{ c: isDark ? '#7ACCE0' : '#1F4E5F', t: `Effectué · ${donePercent}%` }];
+  const legend = [{ c: cPetrol, t: `Effectué · ${donePercent}%` }];
   if (formRaw > 0) legend.push({ c: FORM_HEX, t: 'Formation' });
   if (ensRaw > 0) legend.push({ c: ENS_HEX, t: 'Enseignement' });
-  legend.push({ c: '#F97316', t: `Prévu · ${plannedPercent}%` });
-  legend.push({ c: isDark ? 'rgba(255,255,255,.08)' : '#D8E4DF', t: 'Restant', muted: true });
+  legend.push({ c: cOrange, t: `Prévu · ${plannedPercent}%` });
+  legend.push({ c: isDark ? 'rgba(255,255,255,.10)' : '#D8E4DF', t: 'Restant', muted: true });
   // Légende : 3 à 5 entrées selon les cas. À pas fixe, 5 entrées se chevauchaient et débordaient du cadre.
   // → on estime la largeur de chaque entrée, on remplit des lignes de 340 max, et on centre chaque ligne.
   // Le SVG s'agrandit d'autant : rien ne sort jamais du viewBox (identique sur Chrome, Firefox et Safari).
@@ -3234,7 +3241,7 @@ function renderChart(doneHours, plannedHours = 0, formationHours = 0, enseigneme
     let x = -20 + (340 - rowW) / 2; // centrage de la ligne dans le viewBox
     const y = LEG_Y + ri * ROW_H;
     return row.map(function (it) {
-      const tc = it.muted ? (isDark ? 'rgba(255,255,255,.4)' : '#718096') : (isDark ? '#E0F4FF' : '#2D3748');
+      const tc = it.muted ? cMuted : cText;
       const s = `<rect x="${x}" y="${y}" width="10" height="10" rx="3" fill="${it.c}"/><text x="${x + 14}" y="${y + 9}" font-size="9.5" font-weight="700" fill="${tc}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${it.t}</text>`;
       x += LEG_W(it.t);
       return s;
@@ -3245,25 +3252,25 @@ function renderChart(doneHours, plannedHours = 0, formationHours = 0, enseigneme
  <svg viewBox="-20 0 340 ${vbH}" width="100%" style="max-height:${300 + (vbH - 210)}px;display:block;" role="img" aria-label="Arc progression heures">
       <defs>
         <linearGradient id="g3done" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stop-color="${isDark ? '#1F6E8F' : '#1F4E5F'}"/>
-          <stop offset="100%" stop-color="${isDark ? '#7ACCE0' : '#1F4E5F'}"/>
+          <stop offset="0%" stop-color="${cPetrol}"/>
+          <stop offset="100%" stop-color="${cPetrol}"/>
         </linearGradient>
         <linearGradient id="g3plan" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stop-color="#FDBA74"/>
-          <stop offset="100%" stop-color="#F97316"/>
+          <stop offset="0%" stop-color="${cOrange}"/>
+          <stop offset="100%" stop-color="${cOrange}"/>
         </linearGradient>
         <filter id="arcShadow"><feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.15"/></filter>
       </defs>
-      <path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="${isDark ? 'rgba(255,255,255,.12)' : '#EEF4F1'}" stroke-width="30" stroke-linecap="butt"/>
+      <path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="${isDark ? 'rgba(255,255,255,.12)' : cSoft}" stroke-width="30" stroke-linecap="butt"/>
       ${doneDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3done)" stroke-width="30" stroke-linecap="butt" stroke-dasharray="${doneDash} ${CIRC}"/>` : ""}
       ${formDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="${FORM_HEX}" stroke-width="30" stroke-linecap="butt" stroke-dasharray="${formDash} ${CIRC}" stroke-dashoffset="${-doneDash}"/>` : ""}
       ${ensDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="${ENS_HEX}" stroke-width="30" stroke-linecap="butt" stroke-dasharray="${ensDash} ${CIRC}" stroke-dashoffset="${-(doneDash + formDash)}"/>` : ""}
       ${plannedDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3plan)" stroke-width="30" stroke-linecap="butt" stroke-dasharray="${plannedDash} ${CIRC}" stroke-dashoffset="${-(doneDash + formDash + ensDash)}"/>` : ""}
-      <text x="150" y="132" text-anchor="middle" font-size="44" font-weight="900" fill="${isDark ? '#7ACCE0' : '#1F4E5F'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${totalPercent}%</text>
-      <text x="150" y="155" text-anchor="middle" font-size="13" fill="${isDark ? 'rgba(255,255,255,.4)' : '#718096'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${Math.round(doneRaw + formCapped + ensRaw + plannedRaw)} h / ${total} h</text>
+      <text x="150" y="132" text-anchor="middle" font-size="44" font-weight="900" fill="${cPetrol}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${totalPercent}%</text>
+      <text x="150" y="155" text-anchor="middle" font-size="13" fill="${cMuted}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${Math.round(doneRaw + formCapped + ensRaw + plannedRaw)} h / ${total} h</text>
       ${legendSvg}
     </svg>
-    ${formRaw > 0 ? `<div style="display:flex;align-items:flex-start;gap:6px;margin:2px 10px 10px;padding:9px 11px;border-radius:11px;background:${isDark ? 'rgba(255,255,255,.05)' : '#F4F7F8'};font-size:11px;line-height:1.45;color:${isDark ? 'rgba(255,255,255,.6)' : '#6B7A87'};"><span>🎓</span><span>Formation comptée : <strong style="color:${isDark ? '#E0F4FF' : '#1A2330'};">${formCapped} h / ${FORM_CAP} h max</strong>${formRaw > FORM_CAP ? ` (${formRaw} h saisies, plafonnées)` : ''}. Uniquement si tu n'es pas indemnisé pendant la formation.</span></div>` : ''}
+    ${formRaw > 0 ? `<div style="display:flex;align-items:flex-start;gap:6px;margin:2px 10px 10px;padding:9px 11px;border-radius:11px;background:${cSoft};font-size:11px;line-height:1.45;color:${cMuted};"><span>🎓</span><span>Formation comptée : <strong style="color:${cText};">${formCapped} h / ${FORM_CAP} h max</strong>${formRaw > FORM_CAP ? ` (${formRaw} h saisies, plafonnées)` : ''}. Uniquement si tu n'es pas indemnisé pendant la formation.</span></div>` : ''}
   `;}
 function renderHistory() {
   const missionsEl = $("missions");

@@ -957,7 +957,7 @@ body.theme-dark .ae-add-presta { color: #8FD3EA; }
 .itk-calc .itk-card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 18px; box-shadow: var(--shadow-md); }
 .itk-calc .itk-h2 { margin: 0 0 12px; color: var(--petrol); font-size: 20px; letter-spacing: -.03em; font-weight: 800; }
 .itk-calc .itk-label { display: block; font-weight: 700; font-size: 13px; margin: 12px 0 6px; color: var(--text); }
-.itk-calc .itk-in, .itk-calc .itk-sel { width: 100%; padding: 12px 14px; border: 1px solid var(--line-2, rgba(13,27,42,.14)); border-radius: 11px; background: #fff; font-size: 15px; color: var(--text); outline: none; font-family: inherit; }
+.itk-calc .itk-in, .itk-calc .itk-sel { width: 100%; padding: 12px 14px; border: 1px solid var(--line-2, rgba(13,27,42,.14)); border-radius: 11px; background: var(--card); font-size: 15px; color: var(--text); outline: none; font-family: inherit; }
 .itk-calc .itk-in:focus, .itk-calc .itk-sel:focus { border-color: var(--petrol-2, #1A7FA8); box-shadow: 0 0 0 3px rgba(26,127,168,.12); }
 .itk-calc .itk-in::placeholder { color: var(--muted); font-style: italic; opacity: .8; }
 .itk-calc .itk-hint { color: var(--muted); font-size: 12px; margin: 6px 0 0; line-height: 1.4; }
@@ -965,7 +965,7 @@ body.theme-dark .ae-add-presta { color: #8FD3EA; }
 .itk-calc .itk-btn { border: 0; border-radius: 11px; padding: 13px 16px; font-weight: 800; font-size: 15px; cursor: pointer; width: 100%; background: var(--petrol); color: #fff; margin-top: 14px; font-family: inherit; }
 .itk-calc .itk-btn:hover { filter: brightness(1.08); }
 .itk-calc .itk-tabs { display: flex; gap: 8px; margin-bottom: 6px; }
-.itk-calc .itk-tab { flex: 1; background: #fff; color: var(--petrol); border: 1px solid rgba(13,27,42,.12); border-radius: 11px; padding: 11px 8px; font-size: 13.5px; font-weight: 700; cursor: pointer; font-family: inherit; }
+.itk-calc .itk-tab { flex: 1; background: var(--soft); color: var(--petrol); border: 1px solid var(--line); border-radius: 11px; padding: 11px 8px; font-size: 13.5px; font-weight: 700; cursor: pointer; font-family: inherit; }
 .itk-calc .itk-tab.itk-on { background: var(--petrol); color: #fff; border-color: var(--petrol); }
 .itk-calc .itk-out { margin-top: 16px; }
 .itk-calc .itk-hide { display: none !important; }
@@ -973,12 +973,12 @@ body.theme-dark .ae-add-presta { color: #8FD3EA; }
 .itk-calc .itk-hero b { display: block; font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -.04em; }
 .itk-calc .itk-hero span { display: block; font-size: 12px; color: rgba(255,255,255,.65); margin-top: 4px; }
 .itk-calc .itk-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.itk-calc .itk-mini { background: #F7F9FB; border: 1px solid var(--line); border-radius: 11px; padding: 12px; text-align: center; }
+.itk-calc .itk-mini { background: var(--soft); border: 1px solid var(--line); border-radius: 11px; padding: 12px; text-align: center; }
 .itk-calc .itk-mini b { display: block; font-size: 16px; font-weight: 800; color: var(--petrol); }
 .itk-calc .itk-mini span { display: block; font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-top: 3px; }
-.itk-calc .itk-info { background: rgba(13,79,108,.05); border: 1px solid rgba(13,79,108,.10); border-radius: 11px; padding: 12px 14px; font-size: 12px; color: var(--petrol); line-height: 1.6; margin-top: 8px; }
+.itk-calc .itk-info { background: var(--soft); border: 1px solid var(--line); border-radius: 11px; padding: 12px 14px; font-size: 12px; color: var(--petrol); line-height: 1.6; margin-top: 8px; }
 .itk-calc .itk-info b { color: var(--petrol); }
-.itk-calc .itk-proj { margin-top: 12px; padding: 12px; border-radius: 12px; background: rgba(13,79,108,.05); border: 1px solid rgba(13,79,108,.10); }
+.itk-calc .itk-proj { margin-top: 12px; padding: 12px; border-radius: 12px; background: var(--soft); border: 1px solid var(--line); }
 .itk-calc .itk-proj b { display: block; color: var(--petrol); margin-bottom: 6px; }
 .itk-calc .itk-proj p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
 .itk-calc .itk-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-radius: 11px; background: #F7F9FB; border: 1px solid var(--line); margin-bottom: 6px; gap: 12px; }
