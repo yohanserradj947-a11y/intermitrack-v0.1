@@ -2872,6 +2872,27 @@ function sumMonthVac(list, ref) {
     return total + (v > 0 ? v * (inM / Math.max(1, missionDayCount(m))) : inM);
   }, 0));
 }
+// Sépare, pour le mois, les jours « technicien » (heures) des « cachets » (artiste), demi-cachets inclus.
+// Sert au Dashboard : afficher les cachets dès qu'il y en a (artiste seul → Cachets ; les deux → Vacations + Cachets).
+function sumMonthSplit(list, ref) {
+  const mS = new Date(ref.getFullYear(), ref.getMonth(), 1).getTime();
+  const mE = new Date(ref.getFullYear(), ref.getMonth() + 1, 0).getTime();
+  let techVac = 0, cachets = 0;
+  list.forEach((m) => {
+    if ((m.regime || "intermittence") === "general") return;
+    const cd = m.cachet_days;
+    if (cd && typeof cd === "object" && !Array.isArray(cd)) {
+      let c = 0; for (const k in cd) { const t = new Date(k + "T00:00:00").getTime(); if (t >= mS && t <= mE) c += Number(cd[k]) || 0; }
+      cachets += c; return;
+    }
+    const inM = missionDaysInMonth(m, ref);
+    const val = m.type === "Saisie rapide" ? (inM > 0 ? (Number(m.vacations) || 1) : 0)
+      : (Number(m.vacations) > 0 ? Number(m.vacations) * (inM / Math.max(1, missionDayCount(m))) : inM);
+    const h = Number(m.hours) || 0, vv = Number(m.vacations) || 0;
+    if (vv > 0 && h >= vv * CACHET_H - 0.6) cachets += val; else techVac += val;
+  });
+  return { techVac: Math.round(techVac * 10) / 10, cachets: Math.round(cachets * 10) / 10 };
+}
 
 function getProductionInitials(name) {
   return String(name || "---").replace(/[^a-zA-ZÀ-ÿ0-9\s]/g," ").trim().split(/\s+/).join("").slice(0, 3).toUpperCase() || "---";
@@ -3204,9 +3225,16 @@ function render() {
   if ($("remainingHours")) $("remainingHours").textContent = remaining;
   if ($("plannedHours")) $("plannedHours").textContent = plannedHours;
   if ($("missionCount")) {
-  const totalVac = sumMonthVac(selectedMonthMissions, current); // 1 vacation = 1 jour de mission (borné au mois)
-  $("missionCount").textContent = totalVac;
-  if($("vacLabelDash")){ const _art=(typeof _profil!=="undefined" && _profil && _profil.annexe==="artiste"); $("vacLabelDash").textContent = _art ? "Cachets" : "Vacations"; }
+  const sp = sumMonthSplit(selectedMonthMissions, current); // { techVac, cachets } du mois (demi-cachets inclus)
+  const _artProfile = (typeof _profil !== "undefined" && _profil && _profil.annexe === "artiste");
+  const lesDeux = sp.cachets > 0 && sp.techVac > 0;
+  // Case principale = Cachets si l'utilisateur ne fait QUE du cachet (ou profil artiste sans mission ce mois), sinon Vacations.
+  const showCachetMain = (sp.cachets > 0 && sp.techVac === 0) || (sp.cachets === 0 && sp.techVac === 0 && _artProfile);
+  $("missionCount").textContent = showCachetMain ? sp.cachets : sp.techVac;
+  if ($("vacLabelDash")) $("vacLabelDash").textContent = showCachetMain ? "Cachets" : "Vacations";
+  // Case Cachets EN PLUS : uniquement quand il fait les deux (technicien + cachets), pour qu'il voie ses cachets à part.
+  if ($("cachetStatDash")) $("cachetStatDash").style.display = lesDeux ? "" : "none";
+  if (lesDeux && $("cachetCountDash")) $("cachetCountDash").textContent = sp.cachets;
 }
   if ($("progressText")) $("progressText").textContent = percent + "% de ton objectif intermittent" + (plannedHours > 0 ? (" · " + Math.round(((yearHours + plannedHours + formationHours + enseignementHours) / OBJECTIVE_HOURS) * 100) + "% en comptant tes dates à venir") : "");
   // Barre "année d'intermittence" : % de l'année écoulée + avance/retard (parité app).
