@@ -4079,12 +4079,16 @@ function renderCalEvents() {
   const wrap = $("calEventCards"); if (!wrap) return;
   const y = current.getFullYear(), m = current.getMonth();
   const items = [];
-  monthMissions(current).forEach((mi) => items.push({ kind: "mission", date: mi.date, html: _calMissionCardHtml(mi) }));
+  monthMissions(current).forEach((mi) => items.push({ kind: "mission", date: mi.date, end: mi.endDate || mi.date, html: _calMissionCardHtml(mi) }));
   getNotes().filter((n) => { const d = new Date(n.date + "T00:00:00"); return d.getFullYear() === y && d.getMonth() === m; })
-    .forEach((n) => items.push({ kind: "note", date: n.date, html: _calNoteCardHtml(n) }));
+    .forEach((n) => items.push({ kind: "note", date: n.date, end: n.endDate || n.date, html: _calNoteCardHtml(n) }));
+  // Même ordre que l'app : à venir d'abord (date croissante), puis passés (date décroissante), selon la date de FIN.
+  const _tD = todayDateOnly();
   items.sort((a, b) => {
-    const d = new Date(a.date) - new Date(b.date);
-    if (d !== 0) return d;
+    const fa = new Date(a.end + "T00:00:00") >= _tD, fb = new Date(b.end + "T00:00:00") >= _tD;
+    if (fa !== fb) return fa ? -1 : 1;
+    const da = new Date(a.date + "T00:00:00").getTime(), db = new Date(b.date + "T00:00:00").getTime();
+    if (da !== db) return fa ? da - db : db - da;
     return a.kind === b.kind ? 0 : (a.kind === "mission" ? -1 : 1);
   });
   wrap.innerHTML = items.length ? items.map((it) => it.html).join("") : '<div class="empty">Aucun évènement ce mois.</div>';
