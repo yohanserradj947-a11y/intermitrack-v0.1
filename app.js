@@ -6057,6 +6057,11 @@ function _openTypePicker(){
     [].forEach.call(this.children,function(x){x.classList.toggle("itk-on",x===b);});
   });
   $("itk-c1-go").addEventListener("click",function(){
+    // On relit l'annexe RÉELLEMENT affichée (bouton .itk-on) au moment du calcul : _syncPrevAnnexe
+    // change l'apparence sans toucher la variable annexe1 -> sinon un artiste voyait « annexe 10 »
+    // mais obtenait le calcul annexe 8 tant qu'il n'avait pas recliqué (retour Isabelle).
+    var _selA=document.querySelector("#itk-c1-annexe .itk-on");
+    if(_selA && _selA.dataset.a) annexe1=_selA.dataset.a;
     var nht=num($("itk-c1-nht").value), sr=num($("itk-c1-sr").value), csgKey=$("itk-c1-csg").value;
     if(!(nht>0)||!(sr>0)){ $("itk-c1-err").style.display="block"; return; }
     $("itk-c1-err").style.display="none";
