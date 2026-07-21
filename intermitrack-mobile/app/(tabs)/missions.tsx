@@ -23,6 +23,7 @@ import ProductionPickerModal from '../../components/ProductionPickerModal';
 import { knownAddresses } from '../../lib/kmAddresses';
 import { usePostes, quickTypeChips } from '../../lib/postes';
 import { usePriceMemory } from '../../lib/priceMemory';
+import { exportBilanPdf } from '../../lib/exportMissions';
 import { LinearGradient } from 'expo-linear-gradient';
 import ColorPickerModal from '../../components/ColorPickerModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -63,6 +64,7 @@ export default function Missions(){
   const [customYear,setCustomYear]=useState(new Date().getFullYear());
   const [monthRef,setMonthRef]=useState(new Date()); // filtre « Mois »
   const [areDate,setAreDate]=useState(''); // date ARE pour le filtre « Année d'intermittence »
+  const [aiOffset,setAiOffset]=useState(0); // 0 = année d'intermittence en cours, -1 = précédente…
   useEffect(()=>{ AsyncStorage.getItem('intermitrack_are_date').then(v=>{ if(v) setAreDate(v); }); },[]);
   // Si la production affichée n'a plus AUCUNE mission (on vient de supprimer la dernière), on revient à la
   // liste au lieu de rester sur un écran vide jusqu'au redémarrage de l'appli (retour user).
@@ -75,10 +77,11 @@ export default function Missions(){
     let k=today.getFullYear()-a.getFullYear();
     const anniv=new Date(a); anniv.setFullYear(a.getFullYear()+k);
     if(anniv>today) k-=1;
+    k+=aiOffset; // décalage : -1 = année précédente, -2 = il y a 2 ans…
     const start=new Date(a); start.setFullYear(a.getFullYear()+k);
     const end=new Date(a);   end.setFullYear(a.getFullYear()+k+1);
     return { start:start.getTime(), end:end.getTime(), startISO:iso(start), endISO:iso(end) };
-  },[areDate]);
+  },[areDate,aiOffset]);
 
   const kmRef=useRef<KmHandle>(null);
   const [editKmDist,setEditKmDist]=useState(0);
@@ -224,12 +227,42 @@ export default function Missions(){
     gross:Math.round(groups[name].reduce((a:number,m:any)=>a+mv(m).gross,0)),
     hours:Math.round(groups[name].reduce((a:number,m:any)=>a+mv(m).hours,0)*10)/10,
     vac:groups[name].reduce((a:number,m:any)=>a+mv(m).vac,0), // 1 vacation = 1 jour (prorata du mois en mode Mois)
+    // Cachets = somme des vacations des missions en mode cachet (heures ≈ vacations × 12) — pour « cachets par employeur ».
+    cachets:groups[name].reduce((a:number,m:any)=>{const h=Number(m.hours)||0,v=Number(m.vacations)||0;return a+((v>0&&h>=v*CACHET_H-0.6)?v:0);},0),
     count:groups[name].length,
   })).sort((a,b)=>b.gross-a.gross);
 
   const totalGross=sorted.reduce((a,x)=>a+x.gross,0);
   const totalHours=Math.round(sorted.reduce((a,x)=>a+x.hours,0)*10)/10;
   const totalVac=sorted.reduce((a,x)=>a+x.vac,0);
+
+  // Split Artiste (cachet) vs Technicien (heures) sur la période — donut au-dessus des productions,
+  // affiché UNIQUEMENT si l'utilisateur a les DEUX types (sinon inutile pour un pur technicien/artiste).
+  let atArtH=0,atTechH=0,atArtCachets=0;
+  filtered.forEach((m:any)=>{
+    if((m.regime||'intermittence')!=='intermittence')return;
+    const h=Number(m.hours)||0,v=Number(m.vacations)||0;
+    if(v>0&&h>=v*CACHET_H-0.6){atArtH+=h;atArtCachets+=v;}else{atTechH+=h;}
+  });
+  atArtH=Math.round(atArtH*10)/10;atTechH=Math.round(atTechH*10)/10;atArtCachets=Math.round(atArtCachets*10)/10;
+  const atTot=atArtH+atTechH;
+  const showAtDonut=atArtH>0&&atTechH>0; // les deux types présents
+
+  // Libellé de la période affichée (titre du PDF de bilan).
+  const bilanLabel=period==='month'?monthLabel(monthRef)
+    :period==='year'?('Année civile '+new Date().getFullYear())
+    :period==='custom'?('Année '+customYear)
+    :period==='ai'?(aiWin?("Année d'intermittence "+isoDisp(aiWin.startISO)+' → '+isoDisp(aiWin.endISO)):"Année d'intermittence")
+    :'Toutes périodes';
+  const exportBilan=async()=>{
+    const r=await exportBilanPdf({
+      label:bilanLabel,
+      sorted:sorted.map((p)=>({name:p.name,count:p.count,hours:p.hours,cachets:Math.round(p.cachets*10)/10,gross:p.gross})),
+      totalGross,totalHours,totalVacations:totalVac,
+      artH:atArtH,techH:atTechH,artCachets:atArtCachets,
+    });
+    if(r&&(r as any).error) showAlert('Export impossible',"Le PDF n'a pas pu être généré. Réessaie.");
+  };
 
   // Suggestions de production : productions déjà saisies (dans `missions`),
   // sans doublons, insensible à la casse, filtrées sur le texte tapé.
@@ -668,7 +701,7 @@ export default function Missions(){
         <TouchableOpacity style={[s.periodChip,period==='year'&&s.periodOn]} onPress={()=>setPeriod('year')}>
           <Text style={period==='year'?s.periodTxtOn:s.periodTxt}>Année civile</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[s.periodChip,period==='ai'&&s.periodOn]} onPress={()=>setPeriod('ai')}>
+        <TouchableOpacity style={[s.periodChip,period==='ai'&&s.periodOn]} onPress={()=>{setPeriod('ai');setAiOffset(0);}}>
           <Text style={period==='ai'?s.periodTxtOn:s.periodTxt}>Année interm.</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[s.periodChip,period==='custom'&&s.periodOn]} onPress={()=>setPeriod('custom')}>
@@ -695,11 +728,20 @@ export default function Missions(){
       )}
 
       {period==='ai'&&(
-        <View style={s.aiInfo}>
-          {aiWin
-            ? <Text style={s.aiInfoTxt}>Du {isoDisp(aiWin.startISO)} au {isoDisp(aiWin.endISO)} · année d&apos;intermittence en cours</Text>
-            : <Text style={s.aiInfoTxt}>Renseigne ta date ARE dans le Tableau de bord pour activer ce filtre.</Text>}
-        </View>
+        aiWin?(
+          <View style={s.monthNav}>
+            <TouchableOpacity style={s.monthNavBtn} onPress={()=>setAiOffset(o=>o-1)}><Ionicons name="chevron-back" size={18} color={C.petrol}/></TouchableOpacity>
+            <View style={s.aiNavLbl}>
+              <Text style={s.aiNavDates}>{isoDisp(aiWin.startISO)} → {isoDisp(aiWin.endISO)}</Text>
+              <Text style={s.aiNavSub}>{aiOffset===0?"année d'intermittence en cours":aiOffset===-1?'année précédente':'il y a '+(-aiOffset)+' ans'}</Text>
+            </View>
+            <TouchableOpacity style={[s.monthNavBtn,aiOffset>=0&&{opacity:0.3}]} disabled={aiOffset>=0} onPress={()=>setAiOffset(o=>Math.min(0,o+1))}><Ionicons name="chevron-forward" size={18} color={C.petrol}/></TouchableOpacity>
+          </View>
+        ):(
+          <View style={s.aiInfo}>
+            <Text style={s.aiInfoTxt}>Renseigne ta date ARE dans le Tableau de bord pour activer ce filtre.</Text>
+          </View>
+        )
       )}
 
       <View style={s.statsRow}>
@@ -708,6 +750,38 @@ export default function Missions(){
         <View style={s.statBox}><Text style={s.statVal}>{money(totalGross)}</Text><Text style={s.statLbl}>BRUT TOTAL</Text></View>
         <View style={s.statBox}><Text style={s.statVal}>{sorted.length}</Text><Text style={s.statLbl}>PROD.</Text></View>
       </View>
+
+      {sorted.length>0&&(
+        <TouchableOpacity style={s.bilanPdfBtn} onPress={()=>exportBilan()}>
+          <Ionicons name="download-outline" size={17} color={C.petrol}/>
+          <Text style={s.bilanPdfTxt}>Exporter ce bilan en PDF</Text>
+        </TouchableOpacity>
+      )}
+
+      {showAtDonut&&(
+        <View style={s.atCard}>
+          <Text style={s.atTitle}>Artiste vs Technicien</Text>
+          <DonutChart
+            slices={[{name:'Artiste',value:atArtH,color:'#F97316'},{name:'Technicien',value:atTechH,color:'#1F4E5F'}]}
+            centerTop={`${totalHours}h`}
+            centerBottom="au total"
+          />
+          <View style={{gap:4,marginTop:4}}>
+            <View style={s.atLegRow}>
+              <View style={[s.legendDot,{backgroundColor:'#F97316'}]}/>
+              <Text style={s.atLegName}>🎭 Artiste</Text>
+              <Text style={s.atLegPct}>{Math.round(atArtH/atTot*100)}%</Text>
+            </View>
+            <Text style={s.atLegSub}>{atArtH} h · {atArtCachets} cachet{atArtCachets>1?'s':''}</Text>
+            <View style={s.atLegRow}>
+              <View style={[s.legendDot,{backgroundColor:'#1F4E5F'}]}/>
+              <Text style={s.atLegName}>🔧 Technicien</Text>
+              <Text style={s.atLegPct}>{Math.round(atTechH/atTot*100)}%</Text>
+            </View>
+            <Text style={s.atLegSub}>{atTechH} h</Text>
+          </View>
+        </View>
+      )}
 
       {totalGross>0&&(
         <View style={s.chartWrap}>
@@ -727,7 +801,7 @@ export default function Missions(){
               <View style={[s.legendDot,{backgroundColor:p.color}]}/>
               <View style={s.legendBody}>
                 <Text style={s.legendName}>{p.name}</Text>
-                <Text style={s.legendDetail}>{p.count} mission{p.count>1?'s':''} · {p.hours}h</Text>
+                <Text style={s.legendDetail}>{p.count} mission{p.count>1?'s':''} · {p.hours}h{p.cachets>0?` · ${Math.round(p.cachets*10)/10} cachet${p.cachets>1?'s':''}`:''}</Text>
               </View>
               <Text style={s.legendPct}>{totalGross>0?Math.round((p.gross/totalGross)*100):0}%</Text>
               <Text style={s.legendAmount}>{money(p.gross)}</Text>
@@ -753,6 +827,17 @@ const makeS=(C:any)=>StyleSheet.create({
   monthNavLbl:{flex:1,textAlign:'center',fontSize:14,fontWeight:'800',color:C.petrol,backgroundColor:C.card,borderWidth:1,borderColor:C.line,borderRadius:12,paddingVertical:10},
   aiInfo:{marginHorizontal:16,marginTop:10,padding:11,borderRadius:12,backgroundColor:C.soft},
   aiInfoTxt:{fontSize:12,fontWeight:'700',color:C.petrol,textAlign:'center'},
+  aiNavLbl:{flex:1,alignItems:'center',backgroundColor:C.soft,borderRadius:12,paddingVertical:8,paddingHorizontal:8},
+  aiNavDates:{fontSize:12.5,fontWeight:'800',color:C.petrol,textAlign:'center'},
+  aiNavSub:{fontSize:10.5,fontWeight:'600',color:C.muted,marginTop:2,textAlign:'center'},
+  bilanPdfBtn:{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8,marginHorizontal:16,marginTop:12,paddingVertical:12,borderRadius:12,backgroundColor:C.soft,borderWidth:1,borderColor:C.line},
+  bilanPdfTxt:{fontSize:14,fontWeight:'800',color:C.petrol},
+  atCard:{marginHorizontal:16,marginTop:14,padding:14,borderRadius:16,backgroundColor:C.soft,borderWidth:1,borderColor:C.line},
+  atTitle:{fontSize:13,fontWeight:'800',color:C.petrol,marginBottom:4},
+  atLegRow:{flexDirection:'row',alignItems:'center',gap:8},
+  atLegName:{fontSize:13,fontWeight:'800',color:C.text},
+  atLegPct:{marginLeft:'auto',fontSize:13,fontWeight:'800',color:C.text},
+  atLegSub:{fontSize:11.5,color:C.muted,marginLeft:19,marginTop:-2,marginBottom:2},
   periodOn:{backgroundColor:C.petrol,borderColor:C.petrol},
   periodTxt:{fontSize:13,fontWeight:'700',color:C.petrol},
   periodTxtOn:{fontSize:13,fontWeight:'700',color:'white'},

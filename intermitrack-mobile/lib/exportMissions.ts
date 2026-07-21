@@ -1,6 +1,29 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
+// Bilan de la période affichée (onglet Missions) : totaux + split artiste/technicien + tableau par production.
+// Identique au PDF du site (generateMissionsBilanPDF).
+export async function exportBilanPdf(b: {
+  label: string;
+  sorted: { name: string; count: number; hours: number; cachets: number; gross: number }[];
+  totalGross: number; totalHours: number; totalVacations: number;
+  artH: number; techH: number; artCachets: number;
+}) {
+  const esc = (v: any) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const money2 = (n: any) => (Math.round(Number(n) || 0)).toLocaleString('fr-FR') + ' €';
+  const tot = b.artH + b.techH;
+  const splitHtml = tot > 0
+    ? `<div class="split"><div class="split-row"><span class="dot" style="background:#F97316"></span>Artiste <b>${Math.round(b.artH / tot * 100)}%</b> · ${b.artH} h · ${b.artCachets} cachet${b.artCachets > 1 ? 's' : ''}</div><div class="split-row"><span class="dot" style="background:#1F4E5F"></span>Technicien <b>${Math.round(b.techH / tot * 100)}%</b> · ${b.techH} h</div></div>`
+    : '';
+  const rows = b.sorted.map((p) => `<tr><td>${esc(p.name)}</td><td>${p.count}</td><td>${p.hours} h</td><td>${p.cachets > 0 ? Math.round(p.cachets * 10) / 10 : '—'}</td><td>${money2(p.gross)}</td></tr>`).join('');
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"/><title>Bilan ${esc(b.label)}</title><style>*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#2D3748;background:#fff;padding:24px}.header{border-bottom:3px solid #1F4E5F;padding-bottom:14px;margin-bottom:18px}h1{margin:0;color:#1F4E5F;font-size:23px;letter-spacing:-.03em}.subtitle{color:#718096;margin:6px 0 0;font-size:13px}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:18px 0 16px}.summary-box{border:1px solid #E2E8F0;border-radius:12px;padding:11px;background:#F8FAF9}.summary-box strong{display:block;color:#1F4E5F;font-size:19px;line-height:1.1}.summary-box span{display:block;margin-top:4px;color:#718096;font-size:10px;text-transform:uppercase;font-weight:700}.split{display:flex;flex-wrap:wrap;gap:8px 20px;margin:0 0 18px;padding:12px;border:1px solid #E2E8F0;border-radius:12px;background:#F8FAF9;font-size:13px}.split-row{display:flex;align-items:center;gap:8px}.dot{width:11px;height:11px;border-radius:4px;display:inline-block}table{width:100%;border-collapse:collapse;margin-top:6px}th{text-align:left;color:#718096;font-size:11px;text-transform:uppercase;letter-spacing:.03em;padding:9px 7px;border-bottom:2px solid #E2E8F0}td{padding:10px 7px;border-bottom:1px solid #E2E8F0;font-size:13px}tr:nth-child(even) td{background:#FBFCFC}tfoot td{font-weight:800;color:#1F4E5F;border-top:2px solid #1F4E5F;background:#fff!important}.footer{margin-top:22px;padding-top:12px;border-top:1px solid #E2E8F0;font-size:11px;color:#718096;line-height:1.45}</style></head><body><div class="header"><h1>Bilan des missions</h1><p class="subtitle">${esc(b.label)} · Généré avec Intermitrack</p></div><div class="summary"><div class="summary-box"><strong>${b.totalVacations}</strong><span>Vacations</span></div><div class="summary-box"><strong>${b.totalHours} h</strong><span>Heures</span></div><div class="summary-box"><strong>${esc(money2(b.totalGross))}</strong><span>Brut total</span></div><div class="summary-box"><strong>${b.sorted.length}</strong><span>Productions</span></div></div>${splitHtml}${b.sorted.length ? `<table><thead><tr><th>Production</th><th>Missions</th><th>Heures</th><th>Cachets</th><th>Brut</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>Total</td><td>${b.sorted.reduce((a, p) => a + p.count, 0)}</td><td>${b.totalHours} h</td><td>${Math.round(b.artCachets * 10) / 10}</td><td>${money2(b.totalGross)}</td></tr></tfoot></table>` : '<div class="empty">Aucune mission sur cette période.</div>'}<p class="footer">Bilan personnel destiné à faciliter le suivi de ton activité (heures, cachets, brut par employeur). À vérifier avant toute démarche officielle auprès de France Travail.</p></body></html>`;
+  try {
+    const { uri } = await Print.printToFileAsync({ html });
+    if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' });
+    return { ok: true };
+  } catch (e) { return { error: true }; }
+}
+
 // Génère un PDF du récap des missions, groupé par mois, en 2 mises en page.
 // Retourne { empty } si aucune mission, { error } en cas d'échec, { ok } sinon.
 export async function exportMissionsPdf(missions: any[], layout: 'liste' | 'calendrier') {
