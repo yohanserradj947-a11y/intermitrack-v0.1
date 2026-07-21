@@ -3578,6 +3578,20 @@ function _aiWindowCurrent(offset){
   return { start: start.getTime(), end: end.getTime(), startDate: start, endDate: end };
 }
 let _missionsAiOffset = 0; // 0 = année d'intermittence en cours, -1 = précédente…
+let _missionsLastBilan = null; // dernier bilan calculé (pour l'export PDF)
+
+// Libellé humain de la période affichée dans l'onglet Missions (titre du PDF).
+function _missionsPeriodLabel(){
+  if (_missionsPeriod === 'month') { const l = _missionsMonthRef.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }); return l.charAt(0).toUpperCase() + l.slice(1); }
+  if (_missionsPeriod === 'year') return "Année civile " + new Date().getFullYear();
+  if (_missionsPeriod === 'custom') return "Année " + _missionsCustomYear;
+  if (_missionsPeriod === 'ai') {
+    const w = _aiWindowCurrent(_missionsAiOffset);
+    const fmtD = function(d){ const p = function(n){ return String(n).padStart(2, '0'); }; return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear(); };
+    return w ? ("Année d'intermittence " + fmtD(w.startDate) + " → " + fmtD(w.endDate)) : "Année d'intermittence";
+  }
+  return "Toutes périodes";
+}
 
 function _lastDayOfMonth(ym){
   const parts = ym.split("-"); const y = +parts[0], m = +parts[1];
@@ -3778,6 +3792,7 @@ function renderAllMissions() {
       <div class="mstat-box highlight"><strong>${money(totalGross)}</strong><span>Brut total</span></div>
       <div class="mstat-box"><strong>${sorted.length}</strong><span>Productions</span></div>
     </div>
+    <button type="button" id="missionsBilanPdfBtn" class="cal-export-btn" style="width:100%;justify-content:center;margin-bottom:14px;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Exporter ce bilan en PDF</button>
     ${_atCard}
     <div class="missions-graph-layout">
       <div class="missions-arc-wrap">
@@ -3802,8 +3817,32 @@ function renderAllMissions() {
       </div>
     </div>
   `;
+  // On garde le bilan courant sous la main pour l'export PDF.
+  _missionsLastBilan = {
+    label: _missionsPeriodLabel(),
+    sorted: sorted.map(function (p) { return { name: p.name, count: p.count, hours: p.hours, cachets: Math.round(p.cachets * 10) / 10, gross: p.gross }; }),
+    totalGross: totalGross, totalHours: totalHours, totalVacations: totalVacations,
+    artH: _atArtH, techH: _atTechH, artCachets: _atArtCachets
+  };
   bindAddBtn();
   _bindMissionsPeriod();
+  const _pdfBtn = $("missionsBilanPdfBtn");
+  if (_pdfBtn) _pdfBtn.addEventListener("click", generateMissionsBilanPDF);
+}
+
+// Export PDF du bilan Missions (période affichée) : totaux + split artiste/tech + tableau par production.
+function generateMissionsBilanPDF() {
+  const b = _missionsLastBilan;
+  if (!b) return;
+  const tot = b.artH + b.techH;
+  const splitHtml = tot > 0 ? `<div class="split"><div class="split-row"><span class="dot" style="background:#F97316"></span>Artiste <b>${Math.round(b.artH / tot * 100)}%</b> · ${b.artH} h · ${b.artCachets} cachet${b.artCachets > 1 ? "s" : ""}</div><div class="split-row"><span class="dot" style="background:#1F4E5F"></span>Technicien <b>${Math.round(b.techH / tot * 100)}%</b> · ${b.techH} h</div></div>` : "";
+  const rows = b.sorted.map(function (p) {
+    return `<tr><td>${escapeHtml(p.name)}</td><td>${p.count}</td><td>${p.hours} h</td><td>${p.cachets > 0 ? Math.round(p.cachets * 10) / 10 : "—"}</td><td>${money2(p.gross)}</td></tr>`;
+  }).join("");
+  const win = window.open("", "_blank");
+  if (!win) { alert("Autorise les pop-ups pour générer le PDF."); return; }
+  win.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"/><title>Bilan ${escapeHtml(b.label)}</title><style>*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#2D3748;background:#fff;padding:34px}.header{border-bottom:3px solid #1F4E5F;padding-bottom:16px;margin-bottom:22px}h1{margin:0;color:#1F4E5F;font-size:26px;letter-spacing:-.03em}.subtitle{color:#718096;margin:6px 0 0;font-size:14px}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0 20px}.summary-box{border:1px solid #E2E8F0;border-radius:14px;padding:14px;background:#F8FAF9}.summary-box strong{display:block;color:#1F4E5F;font-size:22px;line-height:1.1}.summary-box span{display:block;margin-top:4px;color:#718096;font-size:11px;text-transform:uppercase;font-weight:700}.split{display:flex;flex-wrap:wrap;gap:10px 22px;margin:0 0 22px;padding:14px;border:1px solid #E2E8F0;border-radius:14px;background:#F8FAF9;font-size:14px}.split-row{display:flex;align-items:center;gap:8px}.dot{width:12px;height:12px;border-radius:4px;display:inline-block}table{width:100%;border-collapse:collapse;margin-top:6px}th{text-align:left;color:#718096;font-size:12px;text-transform:uppercase;letter-spacing:.03em;padding:10px 8px;border-bottom:2px solid #E2E8F0}td{padding:11px 8px;border-bottom:1px solid #E2E8F0;font-size:14px}tr:nth-child(even) td{background:#FBFCFC}tfoot td{font-weight:800;color:#1F4E5F;border-top:2px solid #1F4E5F;background:#fff!important}.footer{margin-top:26px;padding-top:12px;border-top:1px solid #E2E8F0;font-size:12px;color:#718096;line-height:1.45}@media print{body{padding:20px}.summary-box,.split,tr:nth-child(even) td{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body><div class="header"><h1>Bilan des missions</h1><p class="subtitle">${escapeHtml(b.label)} · Généré avec Intermitrack</p></div><div class="summary"><div class="summary-box"><strong>${b.totalVacations}</strong><span>Vacations</span></div><div class="summary-box"><strong>${b.totalHours} h</strong><span>Heures</span></div><div class="summary-box"><strong>${escapeHtml(money2(b.totalGross))}</strong><span>Brut total</span></div><div class="summary-box"><strong>${b.sorted.length}</strong><span>Productions</span></div></div>${splitHtml}${b.sorted.length ? `<table><thead><tr><th>Production</th><th>Missions</th><th>Heures</th><th>Cachets</th><th>Brut</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>Total</td><td>${b.sorted.reduce(function(a,p){return a+p.count;},0)}</td><td>${b.totalHours} h</td><td>${Math.round(b.artCachets * 10) / 10}</td><td>${money2(b.totalGross)}</td></tr></tfoot></table>` : `<div class="empty">Aucune mission sur cette période.</div>`}<p class="footer">Bilan personnel destiné à faciliter le suivi de ton activité (heures, cachets, brut par employeur). À vérifier avant toute démarche officielle auprès de France Travail.</p></body></html>`);
+  win.document.close(); win.focus(); win.print();
 }
 
 function openProductionMissions(productionName) {
