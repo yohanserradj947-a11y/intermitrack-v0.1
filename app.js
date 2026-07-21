@@ -2972,22 +2972,25 @@ function render() {
       const elapsed = aiYearOffset < 0 ? 1 : Math.max(0, Math.min(1, (_now - _winS) / (_winE - _winS)));
       const prog = Math.max(0, Math.min(1, (yearHours + formationHours + enseignementHours) / OBJECTIVE_HOURS));
       const diff = prog - elapsed;
-      let col = "#7A9E7E", lbl = "dans les temps";
-      if (diff >= 0.03) { col = "#15B86B"; lbl = "en avance"; }
-      else if (diff <= -0.08) { col = "#F97316"; lbl = "en retard"; }
-      $("aiPaceBox").style.display = "block";
+      // Vert = en avance · rouge = en retard · orange = dans les temps (mêmes seuils/couleurs que l'app).
+      const lbl = Math.abs(diff) <= 0.03 ? "Dans les temps" : (diff > 0 ? "En avance" : "En retard");
+      const col = Math.abs(diff) <= 0.03 ? "#E8650A" : (diff > 0 ? "#2F7A4F" : "#E53E3E");
+      // Repères des mois aux VRAIES limites de mois (1er du mois) dans la fenêtre, comme l'app.
+      const _MON = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
+      const _span = Math.max(1, _winE - _winS);
+      const _marks = [{ frac: 0, label: _MON[winStart.getMonth()] }];
+      let _md = new Date(winStart.getFullYear(), winStart.getMonth() + 1, 1);
+      while (_md.getTime() < _winE) { _marks.push({ frac: (_md.getTime() - _winS) / _span, label: _MON[_md.getMonth()] }); _md = new Date(_md.getFullYear(), _md.getMonth() + 1, 1); }
+      let _mh = "", _lastLF = -1;
+      for (const _mk of _marks) { if (_mk.frac - _lastLF >= 0.05) { _mh += '<span style="position:absolute;left:' + Math.min(94, _mk.frac * 100) + '%;font-size:8.5px;font-weight:700;color:var(--muted);">' + _mk.label + "</span>"; _lastLF = _mk.frac; } }
+      if ($("aiPaceMonths")) $("aiPaceMonths").innerHTML = _mh;
+      // Traits verticaux à chaque mois (l'effet « hachuré » de l'app).
+      let _th = "";
+      for (let _t = 1; _t < _marks.length; _t++) { _th += '<span style="position:absolute;top:0;bottom:0;width:1px;background:rgba(45,55,72,0.18);left:' + (_marks[_t].frac * 100) + '%;"></span>'; }
+      if ($("aiPaceTicks")) $("aiPaceTicks").innerHTML = _th;
       if ($("aiPaceFill")) { $("aiPaceFill").style.width = Math.round(elapsed * 100) + "%"; $("aiPaceFill").style.background = col; }
-      if ($("aiPaceStatus")) $("aiPaceStatus").innerHTML = Math.round(elapsed * 100) + "% de l'année écoulée · <b style=\"color:" + col + "\">" + lbl + "</b>";
-      if ($("aiPaceMonths")) {
-        const _MN = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
-        let _mh = "";
-        for (let _i = 0; _i <= 12; _i += 3) {
-          const _d = new Date(winStart); _d.setMonth(_d.getMonth() + _i);
-          const _f = _i / 12;
-          _mh += '<span style="position:absolute;left:' + Math.min(96, _f * 100) + '%;transform:translateX(-50%);font-size:9px;color:var(--muted);opacity:.85;">' + _MN[_d.getMonth()] + "</span>";
-        }
-        $("aiPaceMonths").innerHTML = _mh;
-      }
+      if ($("aiPaceStatus")) $("aiPaceStatus").innerHTML = Math.round(elapsed * 100) + "% de l'année écoulée · <span style=\"color:" + col + "\">" + lbl + "</span>";
+      $("aiPaceBox").style.display = "block";
     } else { $("aiPaceBox").style.display = "none"; }
   }
   renderFiscalite(fiscalGross, fiscalMissions);
@@ -3253,7 +3256,7 @@ function renderChart(doneHours, plannedHours = 0, formationHours = 0, enseigneme
       ${ensDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="${ENS_HEX}" stroke-width="30" stroke-linecap="butt" stroke-dasharray="${ensDash} ${CIRC}" stroke-dashoffset="${-(doneDash + formDash)}"/>` : ""}
       ${plannedDash > 0 ? `<path d="M 30 165 A 120 120 0 0 1 270 165" fill="none" stroke="url(#g3plan)" stroke-width="30" stroke-linecap="butt" stroke-dasharray="${plannedDash} ${CIRC}" stroke-dashoffset="${-(doneDash + formDash + ensDash)}"/>` : ""}
       <text x="150" y="132" text-anchor="middle" font-size="44" font-weight="900" fill="${isDark ? '#7ACCE0' : '#1F4E5F'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${totalPercent}%</text>
-      <text x="150" y="155" text-anchor="middle" font-size="13" fill="${isDark ? 'rgba(255,255,255,.4)' : '#718096'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">potentiel total</text>
+      <text x="150" y="155" text-anchor="middle" font-size="13" fill="${isDark ? 'rgba(255,255,255,.4)' : '#718096'}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${Math.round(doneRaw + formCapped + ensRaw + plannedRaw)} h / ${total} h</text>
       ${legendSvg}
     </svg>
     ${formRaw > 0 ? `<div style="display:flex;align-items:flex-start;gap:6px;margin:2px 10px 10px;padding:9px 11px;border-radius:11px;background:${isDark ? 'rgba(255,255,255,.05)' : '#F4F7F8'};font-size:11px;line-height:1.45;color:${isDark ? 'rgba(255,255,255,.6)' : '#6B7A87'};"><span>🎓</span><span>Formation comptée : <strong style="color:${isDark ? '#E0F4FF' : '#1A2330'};">${formCapped} h / ${FORM_CAP} h max</strong>${formRaw > FORM_CAP ? ` (${formRaw} h saisies, plafonnées)` : ''}. Uniquement si tu n'es pas indemnisé pendant la formation.</span></div>` : ''}
