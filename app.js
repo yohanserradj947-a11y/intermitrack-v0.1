@@ -3654,6 +3654,7 @@ const list = missions.filter((m) => normalizeProductionName(m.production || "San
     <!-- Options de la production (comme l'app : couleur / renommer / fusionner / supprimer) -->
     <div class="prod-opts">
       <button class="prod-opt-btn" type="button" data-prod-color="${escapeHtml(productionName)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.564C22 6.05 17.5 2 12 2z"/></svg>Couleur</button>
+      <button class="prod-opt-btn" type="button" data-prod-tarif="${escapeHtml(productionName)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Tarif/jour</button>
       <button class="prod-opt-btn" type="button" data-prod-rename="${escapeHtml(productionName)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Renommer</button>
       <button class="prod-opt-btn" type="button" data-prod-merge="${escapeHtml(productionName)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m0 8v3a2 2 0 0 0 2 2h3m8-18h3a2 2 0 0 1 2 2v3m0 8v3a2 2 0 0 1-2 2h-3"/><path d="M9 12h6"/></svg>Fusionner</button>
       <button class="prod-opt-btn danger" type="button" data-prod-delete="${escapeHtml(productionName)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>Supprimer</button>
@@ -3692,6 +3693,15 @@ function _prodColor(normName) {
     openProductionMissions(normName);
     toast("Couleur mise à jour.");
   });
+}
+function _prodTarif(normName) {
+  const cur = _getProdRate(normName);
+  const nv = prompt("Tarif par jour (€) pour « " + normName + " » — pré-rempli sur tes prochaines dates de cette production (laisse vide pour retirer) :", cur != null ? String(cur) : "");
+  if (nv == null) return;
+  const val = nv.trim() === "" ? 0 : (Number(nv.replace(",", ".")) || 0);
+  _setProdRate(normName, val);
+  toast(val > 0 ? "Tarif enregistré." : "Tarif retiré.");
+  openProductionMissions(normName);
 }
 async function _prodRename(normName) {
   const nv = prompt("Nouveau nom de la production :", normName);
@@ -4662,6 +4672,8 @@ function setupEvents() {
     if (productionOpenButton) { openProductionMissions(productionOpenButton.dataset.productionOpen); return; }
     const prodColorBtn = event.target.closest("[data-prod-color]");
     if (prodColorBtn) { _prodColor(prodColorBtn.dataset.prodColor); return; }
+    const prodTarifBtn = event.target.closest("[data-prod-tarif]");
+    if (prodTarifBtn) { _prodTarif(prodTarifBtn.dataset.prodTarif); return; }
     const prodRenameBtn = event.target.closest("[data-prod-rename]");
     if (prodRenameBtn) { _prodRename(prodRenameBtn.dataset.prodRename); return; }
     const prodMergeIntoBtn = event.target.closest("[data-prod-merge-into]");
@@ -5433,6 +5445,8 @@ function _learnedPrice(prod, poste){
   var mem=(typeof _profil!=='undefined'&&_profil&&_profil.price_memory)?_profil.price_memory:{};
   var v=mem[_priceKey(prod,poste)];
   if(typeof v==='number'&&v>0) return v;
+  var pr=mem[_priceKey(prod,'__ALL__')]; // tarif défini au niveau de la PRODUCTION (comme l'app, PROD_RATE)
+  if(typeof pr==='number'&&pr>0) return pr;
   var prodU=prod.toUpperCase(), list=(typeof missions!=='undefined'?missions:[]).filter(function(m){return Number(m.gross)>0;});
   var perDay=function(m){return Math.round((Number(m.gross)/Math.max(1,Number(m.vacations)||1))*100)/100;};
   var cand=list.filter(function(m){return String(m.production||'').toUpperCase()===prodU && String(m.type||'')===poste;});
@@ -5447,6 +5461,19 @@ function _prefillLearnedPrice(){
   if(typeof editingMissionId!=='undefined' && editingMissionId) return; // en édition : on ne touche pas au prix saisi
   var p=_learnedPrice(pe.value, te.value);
   if(p!=null) ge.value=p;
+}
+// Tarif par jour AU NIVEAU DE LA PRODUCTION (clé PROD|__ALL__, comme l'app getProdRate/setProdRate).
+function _getProdRate(prod){
+  var mem=(typeof _profil!=='undefined'&&_profil&&_profil.price_memory)?_profil.price_memory:{};
+  var v=mem[_priceKey(prod,'__ALL__')];
+  return (typeof v==='number'&&v>0)?v:null;
+}
+function _setProdRate(prod, rate){
+  prod=String(prod||'').trim(); if(!prod||typeof _profil==='undefined'||!_profil) return;
+  if(!_profil.price_memory) _profil.price_memory={};
+  var k=_priceKey(prod,'__ALL__');
+  if(!(rate>0)) delete _profil.price_memory[k]; else _profil.price_memory[k]=Math.round(rate*100)/100;
+  if(currentUser){ try{ sb.from('profiles').upsert({id:currentUser.id, price_memory:_profil.price_memory},{onConflict:'id'}).then(function(){},function(){}); }catch(e){} }
 }
 // Retient silencieusement le prix/jour pour ce couple (prod+poste).
 function _rememberPrice(prod, poste, perDay){
