@@ -271,6 +271,11 @@ z-index: 500 !important;
               </div>
             </div>
 
+            <!-- Signaler un bug (comme l'appli : mail pré-rempli) -->
+            <button class="account-dd-logout" type="button" onclick="window.open('mailto:Intermitrack@gmail.com?subject='+encodeURIComponent('Bug / suggestion — Intermitrack (bêta)')+'&body='+encodeURIComponent('Décris ici le bug rencontré ou ta suggestion :\n\n\n\n— Infos techniques (merci de ne pas effacer) —\nSite web\nCompte : '+((typeof currentUser!=='undefined'&&currentUser)?currentUser.email:'?')),'_blank')" style="background:var(--soft);color:var(--petrol);margin-bottom:8px;">
+              <span>🐛</span> Signaler un bug
+            </button>
+
             <!-- Déconnexion -->
             <button class="account-dd-logout" type="button" id="logoutBtn">
               <span>🚪</span> Se déconnecter
