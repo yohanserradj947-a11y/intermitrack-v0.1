@@ -1941,7 +1941,7 @@ function editMission(id) {
   if ($("emission")) $("emission").value = mission.emission || "";
   if ($("lieu")) $("lieu").value = mission.lieu || "";
   if (typeof _syncFieldBtn === 'function'){ _syncFieldBtn('emission','emBtnLabel'); _syncFieldBtn('lieu','lieuBtnLabel'); }
-  _setTypeValue(mission.type || "");
+  _setTypeValue(mission.type || ""); _typePristine = false; // édition : le type chargé n'est pas une suggestion
   $("date").value = mission.date || "";
   $("endDate").value = mission.endDate || mission.date || "";
   $("hours").value = mission.hours || 0;
@@ -3877,7 +3877,7 @@ function resetMissionFormForDate(dateStr, regime) {
   if (typeof _syncFieldBtn === 'function'){ _syncFieldBtn('emission','emBtnLabel'); _syncFieldBtn('lieu','lieuBtnLabel'); }
   _setAddrValue('from', ''); _setAddrValue('to', '');
   _applyKmProfil(); // véhicule pré-rempli depuis « Mes informations » (retour JB)
-  if ($("type")) _setTypeValue((getCustomPostes()[0]) || _quickTypeChips()[0]);
+  if ($("type")) { _setTypeValue((getCustomPostes()[0]) || _quickTypeChips()[0]); _typePristine = true; } // pré-rempli = suggestion, remplacée au 1er tap
   if ($("date")) $("date").value = dateStr;
   if ($("endDate")) $("endDate").value = dateStr;
   if ($("hours")) $("hours").value = "";
@@ -5379,6 +5379,9 @@ function _rememberPrice(prod, poste, perDay){
   _profil.price_memory[k]=val;
   if(currentUser){ try{ sb.from('profiles').upsert({id:currentUser.id, price_memory:_profil.price_memory},{onConflict:'id'}).then(function(){},function(){}); }catch(e){} }
 }
+// Le poste PRÉ-REMPLI (depuis « Mes infos ») est une simple suggestion : tant qu'on n'a pas touché
+// aux postes, le 1er tap REMPLACE (pas de cumul forcé). Ensuite les taps cumulent/décochent normalement.
+var _typePristine = false;
 function _setTypeValue(v){
   var t = document.getElementById('type'); if(!t) return;
   v = v || '';
@@ -5416,7 +5419,8 @@ function _typePickerAddFromInput(ov){
   if(!v) return;
   addCustomPoste(v);
   var t = document.getElementById('type');
-  _setTypeValue(_typeAdd(t?t.value:'', v)); // ajoute ET coche, sans fermer (multi-sélection)
+  if(_typePristine){ _setTypeValue(v); _typePristine = false; } // 1er choix : remplace la suggestion
+  else _setTypeValue(_typeAdd(t?t.value:'', v)); // ajoute ET coche, sans fermer (multi-sélection)
   if(inp) inp.value='';
   _renderTypePicker(ov);
 }
@@ -5440,7 +5444,13 @@ function _openTypePicker(){
       if(b){
         // Toggle : coche si absent, décoche si présent. On ne ferme pas → multi-sélection.
         var t = document.getElementById('type'); var cur = t?t.value:'';
-        _setTypeValue(_typeParts(cur).indexOf(b.dataset.type)>=0 ? _typeRemove(cur, b.dataset.type) : _typeAdd(cur, b.dataset.type));
+        if(_typePristine){
+          // 1er tap sur la suggestion pré-remplie : on REMPLACE par le poste choisi (pas de cumul forcé).
+          _setTypeValue(b.dataset.type);
+        } else {
+          _setTypeValue(_typeParts(cur).indexOf(b.dataset.type)>=0 ? _typeRemove(cur, b.dataset.type) : _typeAdd(cur, b.dataset.type));
+        }
+        _typePristine = false;
         _renderTypePicker(ov);
       }
     });
