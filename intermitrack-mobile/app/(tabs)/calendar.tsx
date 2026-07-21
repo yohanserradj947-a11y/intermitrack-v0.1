@@ -401,7 +401,7 @@ export default function Calendar(){
   function toggleDay(i:number){ setMdpDays(ds=>ds.map((d,idx)=>idx===i?{...d,checked:!d.checked}:d)); }
   function setDayHours(i:number,h:string){ setMdpDays(ds=>ds.map((d,idx)=>idx===i?{...d,hours:Number(h)||0}:d)); }
   // Cachet : nombre de cachets pour CE jour (plusieurs le même jour possibles). 1 cachet = CACHET_H heures.
-  function setDayCachets(i:number,v:string){ const c=Math.max(0,Math.round(Number(v)||0)); setMdpDays(ds=>ds.map((d,idx)=>idx===i?{...d,cachets:c,hours:c*CACHET_H}:d)); }
+  function setDayCachets(i:number,v:string){ const c=Math.max(0,Math.round((Number(v)||0)*2)/2); setMdpDays(ds=>ds.map((d,idx)=>idx===i?{...d,cachets:c,hours:c*CACHET_H}:d)); } // 0,5 autorisé (demi-cachet)
   function setAll(val:boolean){ setMdpDays(ds=>ds.map(d=>({...d,checked:val}))); }
   const mdpChecked=mdpDays.filter(d=>d.checked);
   const mdpTotalH=Math.round(mdpChecked.reduce((a,d)=>a+(Number(d.hours)||0),0)*10)/10;
@@ -436,7 +436,7 @@ export default function Calendar(){
       // Version fidèle : UNE seule mission = le contrat, avec la répartition des cachets par jour (retour Emeric).
       const chk=mdpDays.filter(d=>d.checked).slice().sort((a,b)=>a.date<b.date?-1:1);
       const cd:Record<string,number>={}; let totalCachets=0;
-      for(const d of chk){ const n=Math.max(1,Number(d.cachets)||1); cd[d.date]=n; totalCachets+=n; }
+      for(const d of chk){ const n=Number(d.cachets)>0?Number(d.cachets):1; cd[d.date]=n; totalCachets+=n; } // 0,5 autorisé (demi-cachet)
       const start=chk[0].date, end=chk[chk.length-1].date;
       const payload:any={ user_id:user.id, production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, lieu:fLieu.trim()||null, mission_type:fType,
         regime:fRegime, mission_date:start, end_date:end!==start?end:null,
@@ -1112,7 +1112,7 @@ export default function Calendar(){
                 <>
                   <Text style={s.label}>Nombre de cachets</Text>
                   <NumInput style={s.input} value={fCachets} onChangeText={setFCachets} placeholder="Ex : 2" placeholderTextColor={C.muted}/>
-                  <Text style={s.miniHint}>1 cachet = {CACHET_H} h pour le comptage des 507 h. Indique le nombre de cachets tel qu'il figure sur ton AEM.</Text>
+                  <Text style={s.miniHint}>1 cachet = {CACHET_H} h pour tes 507 h. Tu peux mettre 0,5 pour un demi-cachet (compté {CACHET_H/2} h).</Text>
                 </>
               )}
 
