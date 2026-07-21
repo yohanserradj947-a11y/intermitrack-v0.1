@@ -3670,6 +3670,15 @@ function _bindMissionsPeriod(){
   });
 }
 
+// Donut Artiste (orange) vs Technicien (pétrole) — 2 arcs.
+function _atDonutSVG(art, tech) {
+  const tot = art + tech || 1, C = 2 * Math.PI * 30, artDash = art / tot * C;
+  return '<svg viewBox="0 0 80 80" width="84" height="84">'
+    + '<circle cx="40" cy="40" r="30" fill="none" stroke="var(--line)" stroke-width="12"/>'
+    + '<circle cx="40" cy="40" r="30" fill="none" stroke="#F97316" stroke-width="12" stroke-linecap="butt" stroke-dasharray="' + artDash.toFixed(2) + ' ' + C.toFixed(2) + '" transform="rotate(-90 40 40)"/>'
+    + '<circle cx="40" cy="40" r="30" fill="none" stroke="#1F4E5F" stroke-width="12" stroke-linecap="butt" stroke-dasharray="' + (C - artDash).toFixed(2) + ' ' + C.toFixed(2) + '" stroke-dashoffset="' + (-artDash).toFixed(2) + '" transform="rotate(-90 40 40)"/>'
+    + '</svg>';
+}
 function renderAllMissions() {
   const container = $("missionsGraphContainer");
   if (!container) return;
@@ -3728,6 +3737,28 @@ function renderAllMissions() {
   const totalGross = sorted.reduce((a, x) => a + x.gross, 0);
   const totalHours = Math.round(sorted.reduce((a, x) => a + x.hours, 0) * 10) / 10;
   const totalVacations = sorted.reduce((a, x) => a + x.vacations, 0);
+  // Split Artiste (cachet) vs Technicien (heures) sur la période — donut placé AU-DESSUS des productions.
+  let _atArtH = 0, _atTechH = 0, _atArtCachets = 0;
+  viewMissions.forEach(function (m) {
+    if ((m.regime || "intermittence") !== "intermittence") return;
+    const h = Number(m.hours) || 0, v = Number(m.vacations) || 0;
+    if (v > 0 && h >= v * CACHET_H - 0.6) { _atArtH += h; _atArtCachets += v; } else { _atTechH += h; }
+  });
+  _atArtH = Math.round(_atArtH * 10) / 10; _atTechH = Math.round(_atTechH * 10) / 10; _atArtCachets = Math.round(_atArtCachets * 10) / 10;
+  const _atTot = _atArtH + _atTechH;
+  const _atCard = _atTot > 0 ? `
+    <div style="margin-bottom:14px;padding:14px;border-radius:16px;background:var(--soft);border:1px solid var(--line);">
+      <div style="font-size:13px;font-weight:800;color:var(--petrol);margin-bottom:10px;">Artiste vs Technicien</div>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div style="flex:0 0 auto;">${_atDonutSVG(_atArtH, _atTechH)}</div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;color:var(--text);"><span style="width:11px;height:11px;border-radius:3px;background:#F97316;"></span>🎭 Artiste<span style="margin-left:auto;">${Math.round(_atArtH / _atTot * 100)}%</span></div>
+          <div style="font-size:11.5px;color:var(--muted);margin:-3px 0 4px 19px;">${_atArtH} h · ${_atArtCachets} cachet${_atArtCachets > 1 ? "s" : ""}</div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;color:var(--text);"><span style="width:11px;height:11px;border-radius:3px;background:#1F4E5F;"></span>🔧 Technicien<span style="margin-left:auto;">${Math.round(_atTechH / _atTot * 100)}%</span></div>
+          <div style="font-size:11.5px;color:var(--muted);margin:-3px 0 0 19px;">${_atTechH} h</div>
+        </div>
+      </div>
+    </div>` : "";
   const COLORS = ["#1F4E5F","#2A6174","#3A7A8F","#7A9E7E","#8AB08E","#9AC09E","#F97316","#FDBA74","#4A8FA5","#5A9FB5"];
   const CIRC = 2 * Math.PI * 75;
   let offset = 0;
@@ -3747,6 +3778,7 @@ function renderAllMissions() {
       <div class="mstat-box highlight"><strong>${money(totalGross)}</strong><span>Brut total</span></div>
       <div class="mstat-box"><strong>${sorted.length}</strong><span>Productions</span></div>
     </div>
+    ${_atCard}
     <div class="missions-graph-layout">
       <div class="missions-arc-wrap">
         <svg viewBox="0 0 200 200" width="100%">
