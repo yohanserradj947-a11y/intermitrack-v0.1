@@ -222,7 +222,10 @@ export default function HomeScreen(){
     // trouvé dans les annexes 8/10 (art. 3) → pas de min(). Les arrêts « 0 h » (maladie hors contrat) ne pèsent rien.
     const arretH=Math.round((notes||[]).filter((n:any)=>n.kind==='arret'&&inWin(n.date)).reduce((a:number,n:any)=>a+(Number(n.hours)||0),0)*10)/10;
     // Le régime général « pur » n'entre PAS dans les 507 h — mais bien dans l'estimation mensuelle (monthH plus bas).
-    const remaining=Math.max(0,Math.round((507-doneH-planH-formH-ensH-arretH)*10)/10);
+    // Arrêts (maternité/adoption/AT) : PAS encore décomptés des 507 h (formule 5 h/j confirmée par le guide,
+    // mais les conditions — indemnisation + contrat entre fin d'arrêt et date anniversaire — ne sont pas
+    // vérifiables dans l'appli). Pour l'instant on les AFFICHE seulement, on ne les compte pas (choix Yohan).
+    const remaining=Math.max(0,Math.round((507-doneH-planH-formH-ensH)*10)/10);
     // Tout le récap du mois suit la MÊME logique : la part de chaque mission qui tombe DANS le mois (au prorata des jours).
     const _mvS=new Date(current.getFullYear(),current.getMonth(),1).getTime(), _mvE=new Date(current.getFullYear(),current.getMonth()+1,0).getTime();
     const monthDays=(m:any)=>{const s=new Date(m.mission_date+'T00:00:00').getTime(),e=new Date((m.end_date||m.mission_date)+'T00:00:00').getTime();const tot=Math.max(1,Math.round((e-s)/86400000)+1);const p=Math.max(s,_mvS),q=Math.min(e,_mvE);const inM=q<p?0:Math.round((q-p)/86400000)+1;return {inM,frac:inM/tot};};
@@ -565,7 +568,7 @@ export default function HomeScreen(){
       </View>
 
       <View style={s.chartCard}>
-        <Gauge done={doneH} planned={planH} total={507} formation={formH} enseignement={ensH} arret={arretH}/>
+        <Gauge done={doneH} planned={planH} total={507} formation={formH} enseignement={ensH} arret={0}/>
         {planH>0&&(
           <View style={s.formNote}>
             <Ionicons name="rocket-outline" size={14} color={C.orange}/>
@@ -619,7 +622,7 @@ export default function HomeScreen(){
         {arretH>0&&(
           <View style={s.formNote}>
             <Ionicons name="medkit-outline" size={14} color="#DB2777"/>
-            <Text style={s.formNoteTxt}>Arrêts comptés : <Text style={{fontWeight:'800',color:C.text}}>{arretH} h</Text> (5 h/jour, maternité · adoption · accident du travail…). Règle Unédic, annexes 8/10 art. 3 — on continue de la vérifier.</Text>
+            <Text style={s.formNoteTxt}>Arrêts notés : <Text style={{fontWeight:'800',color:C.text}}>{arretH} h</Text> (5 h/jour, maternité · adoption · accident du travail…). Pour l'instant on les affiche mais on ne les décompte PAS encore de tes 507 h — le temps de valider toutes les conditions. Garde-les en tête.</Text>
           </View>
         )}
       </View>
