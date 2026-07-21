@@ -541,6 +541,13 @@ html, body { overflow-x: hidden; max-width: 100%; }
 .new-cal-day:active { transform: scale(.95); }
 .new-cal-empty { background: transparent !important; cursor: default !important; }
 .new-cal-empty:hover { background: transparent !important; }
+/* Site plein écran : le calendrier prend quasi toute la page sur ordinateur (grandes cases comme un vrai calendrier web). Mobile garde des cases compactes. */
+@media (min-width: 721px) {
+  #view-calendar .new-cal-day { height: 108px; padding: 8px 10px; border-radius: 11px; }
+  #view-calendar .new-cal-num { font-size: 15px; }
+  #view-calendar .new-cal-daynames div { font-size: 12px; padding: 8px 0; }
+  #view-calendar .new-cal-grid { gap: 5px; }
+}
 
 /* ── Panneau "missions du jour" (clic sur une case) ──────────────── */
 .calendar-day-panel { margin-top: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: #F7F9FB; }
