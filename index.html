@@ -186,7 +186,10 @@ z-index: 500 !important;
     }
     .lp-modal-box { position: relative; }
     /* Fond vidéo de la modale de connexion */
-    #loginModal { overflow: hidden; }
+    /* Défilable : sur petit écran (clavier ouvert), la modale dépassait et le bouton « Se connecter »
+       était coupé/inatteignable (retour Vincent). `safe center` évite de rogner le haut au scroll. */
+    #loginModal { overflow-y: auto; -webkit-overflow-scrolling: touch; align-items: safe center; }
+    #loginModal .lp-modal-box { margin: auto; }
     .login-bg-video { position: absolute; inset: 0; z-index: 0; background: radial-gradient(45% 50% at 18% 28%, rgba(58,120,240,.35), transparent 62%), radial-gradient(48% 55% at 85% 22%, rgba(150,88,230,.32), transparent 62%), radial-gradient(65% 50% at 50% 112%, rgba(249,175,90,.26), transparent 66%), linear-gradient(180deg,#05131b,#0a2230 55%,#06141c); }
     #loginModal .login-bg-overlay { position: absolute; inset: 0; background: rgba(4,14,22,.3); z-index: 1; pointer-events: none; }
     #loginModal .lp-modal-box { position: relative; z-index: 2; }
