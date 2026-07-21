@@ -7,6 +7,7 @@ import { useCallback } from 'react';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
+import { loadMissionsCached } from '../../lib/offlineMissions';
 import { useTrackView } from '../../lib/analytics';
 import DonutChart from '../../components/DonutChart';
 import OvertimeSection from '../../components/OvertimeSection';
@@ -116,8 +117,7 @@ export default function Missions(){
   useEffect(()=>{loadMissions();},[]);
   useFocusEffect(useCallback(()=>{loadMissions();},[]));
   async function loadMissions(){
-    const{data}=await supabase.from('missions').select('*').order('mission_date',{ascending:false});
-    if(data)setMissions(data);
+    await loadMissionsCached(setMissions, { ascending: false });
     setLoading(false);
   }
 

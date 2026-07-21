@@ -11,6 +11,7 @@ import FieldLabel from '../../components/FieldLabel';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
+import { loadMissionsCached } from '../../lib/offlineMissions';
 import { useTrackView, trackEvent } from '../../lib/analytics';
 import NumInput from '../../components/NumInput';
 import TxtInput from '../../components/TxtInput';
@@ -203,8 +204,7 @@ export default function Calendar(){
     return()=>loop.stop();
   },[pulse]));
   async function loadMissions(silent=false){
-    const{data}=await supabase.from('missions').select('*').order('mission_date',{ascending:true});
-    if(data){ setMissions(data); syncWidgets(data, getColor, notes); }
+    await loadMissionsCached(setMissions, { onData: (list)=>syncWidgets(list, getColor, notes) });
     if(!silent)setLoading(false);
   }
 
@@ -300,7 +300,14 @@ export default function Calendar(){
       ? await supabase.from('missions').update(payload).eq('id',editId)
       : await supabase.from('missions').insert(payload);
     setSaving(false);
-    if(error){ showAlert('Erreur',error.message); return; }
+    if(error){
+      // Coupure réseau (plateau sans signal) : message clair, et on garde l'écran ouvert pour réessayer.
+      const netish=/fetch|network|timeout|réseau|Failed to/i.test(String(error.message||''));
+      showAlert(netish?'Hors ligne':'Erreur', netish
+        ? "Pas de réseau : ta mission n'a pas pu être enregistrée. Garde cet écran ouvert et réappuie sur Enregistrer dès que tu as de la connexion."
+        : error.message);
+      return;
+    }
     // Mémorise le prix/jour pour ce couple (prod + poste), pré-remplira la prochaine fois.
     rememberPrice(fProduction, fType, (Number(fGross)||0)/Math.max(1, hv.vacations||1));
     setShowForm(false); setEditId(null); loadMissions(true);

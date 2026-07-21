@@ -6,6 +6,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../lib/supabase';
+import { loadMissionsCached } from '../../lib/offlineMissions';
 import { useTrackView } from '../../lib/analytics';
 import { CONFIG, CHARGE_DEFAUT } from '../../lib/calcul';
 import Gauge from '../../components/Gauge';
@@ -92,8 +93,7 @@ export default function HomeScreen(){
   useEffect(()=>onProfilChanged(()=>loadData(true)),[]);
 
   async function loadData(silent=false){
-    const{data}=await supabase.from('missions').select('*').order('mission_date',{ascending:true});
-    if(data)setMissions(data);
+    await loadMissionsCached(setMissions);
     // ARE réellement versé par mois (table are_versements). try/catch : si la migration n'est pas encore
     // passée, l'appli continue de tourner sans les montants réels.
     try{ const{data:av}=await supabase.from('are_versements').select('mois,montant'); if(av){const map:Record<string,number>={};for(const r of av as any[])map[r.mois]=Number(r.montant)||0;setAreVerse(map);} }catch(e){}

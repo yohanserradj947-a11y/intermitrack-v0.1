@@ -6,6 +6,7 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { supabase } from '../../lib/supabase';
+import { loadMissionsCached } from '../../lib/offlineMissions';
 import { useTrackView } from '../../lib/analytics';
 import { GradientButton } from '../../components/GradientButton';
 import { useTheme } from '../../lib/theme';
@@ -29,8 +30,7 @@ function ActualisationInner(){
   useFocusEffect(useCallback(()=>{loadMissions(true);},[]));
 
   async function loadMissions(silent=false){
-    const{data}=await supabase.from('missions').select('*').order('mission_date',{ascending:true});
-    if(data)setMissions(data);
+    await loadMissionsCached(setMissions);
     if(!silent)setLoading(false);
   }
 
