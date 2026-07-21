@@ -644,6 +644,11 @@ z-index: 500 !important;
             <div class="remaining-badge rest-badge"><b><span id="remainingHours">507</span>h</b><span>Heures restantes</span></div>
           </div>
           <div class="chartWrap" id="chart"></div>
+          <div id="aiPaceBox" style="display:none;margin-top:12px;">
+            <div style="font-size:11.5px;font-weight:800;color:#5E7078;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;">Année d'intermittence</div>
+            <div style="position:relative;height:8px;background:#E7E3DA;border-radius:99px;overflow:hidden;"><i id="aiPaceFill" style="display:block;height:100%;width:0%;background:#7A9E7E;border-radius:99px;transition:width .3s;"></i></div>
+            <div id="aiPaceStatus" style="font-size:12px;color:#5E7078;margin-top:6px;font-weight:600;"></div>
+          </div>
         <div class="recap-mois-header" style="display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px;">
     <span style="font-weight:800;color:#1F4E5F;font-size:16px;">Récap du mois</span>
     <div style="display:flex;align-items:center;gap:8px;">
@@ -658,7 +663,6 @@ z-index: 500 !important;
             <div class="stat"><b id="missionCount">0</b><span id="vacLabelDash">Vacations</span></div>
             <div class="stat"><b id="monthRateNet">0 EUR</b><span>Moyenne €/h (net est.)</span><small id="monthRate" style="display:block;font-size:11px;font-weight:600;color:#8a9a97;margin-top:2px;">Brut 0 €/h</small></div>
           </div>
-          <button type="button" onclick="openQuickEntryCurrent()" style="width:100%;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border:1.5px dashed #12754A;background:rgba(18,117,74,.06);color:#12754A;font-weight:800;font-size:14px;border-radius:12px;cursor:pointer;font-family:inherit;">⚡ Saisie rapide du mois</button>
           <div id="poleEmploiBox" style="margin-top:14px;"></div>
         </article>
         <article class="card">
@@ -761,7 +765,7 @@ z-index: 500 !important;
               <button class="ghost" type="button" id="kmCalcBtn" style="margin-bottom:12px;"><svg class="ci"><use href="#ic-pin"/></svg>Calculer la distance</button>
               <div class="document-grid">
                 <div><label for="kmDistance">Kilomètres (aller simple)</label><input id="kmDistance" type="number" min="0" step="1" placeholder="Ex : 42" /></div>
-                <div><label for="kmRate">Taux €/km (manuel)</label><input id="kmRate" type="number" min="0" step="0.01" placeholder="sinon choisis CV ci-dessous" /></div>
+                <div><label for="kmRate">Taux €/km (manuel)</label><input id="kmRate" type="number" min="0" step="any" placeholder="sinon choisis CV ci-dessous" /></div>
               </div>
               <!-- La puissance fiscale et le kilométrage annuel ne sont plus demandés ici : le barème
                    en dépend, mais ils ne changent pas d'une mission à l'autre (retour JB). Ils vivent
@@ -1471,7 +1475,7 @@ z-index: 500 !important;
   </main>
 
   <script src="document-parser.js?v=5"></script>
-  <script src="app.js?v=79"></script>
+  <script src="app.js?v=80"></script>
 
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>

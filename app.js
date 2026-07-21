@@ -1620,7 +1620,7 @@ async function addMission(event) {
     mission_type: $("type").value, mission_date: $("date").value, end_date: $("endDate").value,
     hours: _hours, gross_amount: Number($("gross").value),
     vacations: _vac, regime: _missionRegime,
-    km_distance: kmEffectiveDistance(), km_rate: kmRateUsed(), km_amount: calculateKmAmount(),
+    km_distance: kmEffectiveDistance(), km_rate: (kmPf($("kmRate")?.value) || 0), km_amount: calculateKmAmount(),
     // Adresses enfin enregistrées (+ coords) : elles alimentent le pop-up des prochaines missions
     // et réapparaissent à l'édition. Avant, seuls distance/taux/montant étaient sauvegardés.
     km_from: ($("kmFrom").value || "").trim() || null,
@@ -1760,7 +1760,7 @@ async function _mdpSaveBreakdown(){
   const emission = $("emission") ? $("emission").value : "";
   const lieu = $("lieu") ? $("lieu").value : "";
   const type = $("type").value;
-  const km_distance = kmEffectiveDistance(), km_rate = kmRateUsed(), km_amount = calculateKmAmount();
+  const km_distance = kmEffectiveDistance(), km_rate = (kmPf($("kmRate")?.value) || 0), km_amount = calculateKmAmount();
   const runs = [];
   let cur = null;
   for (const d of _mdpData.days){
@@ -2963,7 +2963,22 @@ function render() {
   $("missionCount").textContent = totalVac;
   if($("vacLabelDash")){ const _art=(typeof _profil!=="undefined" && _profil && _profil.annexe==="artiste"); $("vacLabelDash").textContent = _art ? "Cachets" : "Vacations"; }
 }
-  if ($("progressText")) $("progressText").textContent = percent + "% de ton objectif intermittent";
+  if ($("progressText")) $("progressText").textContent = percent + "% de ton objectif intermittent" + (plannedHours > 0 ? (" · " + Math.round(((yearHours + plannedHours + formationHours + enseignementHours) / OBJECTIVE_HOURS) * 100) + "% en comptant tes dates à venir") : "");
+  // Barre "année d'intermittence" : % de l'année écoulée + avance/retard (parité app).
+  if ($("aiPaceBox")) {
+    if (areAdmissionDate) {
+      const _now = Date.now();
+      const elapsed = aiYearOffset < 0 ? 1 : Math.max(0, Math.min(1, (_now - _winS) / (_winE - _winS)));
+      const prog = Math.max(0, Math.min(1, (yearHours + formationHours + enseignementHours) / OBJECTIVE_HOURS));
+      const diff = prog - elapsed;
+      let col = "#7A9E7E", lbl = "dans les temps";
+      if (diff >= 0.03) { col = "#15B86B"; lbl = "en avance"; }
+      else if (diff <= -0.08) { col = "#F97316"; lbl = "en retard"; }
+      $("aiPaceBox").style.display = "block";
+      if ($("aiPaceFill")) { $("aiPaceFill").style.width = Math.round(elapsed * 100) + "%"; $("aiPaceFill").style.background = col; }
+      if ($("aiPaceStatus")) $("aiPaceStatus").innerHTML = Math.round(elapsed * 100) + "% de l'année écoulée · <b style=\"color:" + col + "\">" + lbl + "</b>";
+    } else { $("aiPaceBox").style.display = "none"; }
+  }
   renderFiscalite(fiscalGross, fiscalMissions);
 
   renderChart(yearHours, plannedHours, formationHours, enseignementHours);
