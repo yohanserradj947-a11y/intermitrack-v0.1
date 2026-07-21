@@ -1031,7 +1031,20 @@ body.theme-dark .ae-add-presta { color: #8FD3EA; }
 /* Fond sombre derriere le bottom sheet (comme l'app). */
 body:has(.account-dropdown:not(.hidden))::after { content: ""; position: fixed; inset: 0; background: rgba(13,27,42,.45); z-index: 100040; animation: accFade .2s ease; }
 @keyframes accFade { from { opacity: 0; } to { opacity: 1; } }
-@media (min-width: 721px) { .account-dropdown { max-width: 440px; left: 0; right: 0; margin: 0 auto; } }
+/* Sur ORDINATEUR : menu deroulant en HAUT A DROITE (pres de l'avatar), pas un bottom sheet.
+   Sur TELEPHONE on garde le bottom sheet facon app. */
+@media (min-width: 721px) {
+  .account-dropdown {
+    left: auto; right: 16px; bottom: auto; top: 62px;
+    width: 300px; max-width: 300px; margin: 0;
+    border-radius: 16px; border: 1px solid var(--line);
+    box-shadow: 0 20px 60px rgba(13,27,42,.22);
+    animation: accDropIn .15s ease;
+  }
+  .account-dropdown::before { display: none; }
+  body:has(.account-dropdown:not(.hidden))::after { background: transparent; }
+}
+@keyframes accDropIn { from { opacity: 0; transform: translateY(-8px) scale(.98); } to { opacity: 1; transform: none; } }
 .account-dd-email {
   padding: 14px 16px; font-size: 12px; font-weight: 600;
   color: var(--muted); border-bottom: 1px solid var(--line);
@@ -1429,6 +1442,9 @@ body.theme-rose   { --petrol:#FF4FA0; --petrol-2:#B98BFF; --sage:#2FB98A; --bg:#
 body.theme-rock   { --petrol:#E11D2A; --petrol-2:#D9D9D9; --sage:#3FB477; --bg:#0B0B0B; --card:#151515; --card-2:#1F1F1F; --text:#F4F4F4; --muted:#8C8C8C; --line:#2A2A2A; --line-2:#3A3A3A; --soft:#1C1C1C; --danger:#FF4438; --orange:#CFCFCF; }
 body.theme-hiphop { --petrol:#FFD12E; --petrol-2:#7CF03A; --sage:#7CF03A; --bg:#0D0D0D; --card:#17130A; --card-2:#221B10; --text:#F6E7BF; --muted:#B2965A; --line:#2A2314; --line-2:#3A3120; --soft:#181206; --danger:#FF5A4D; --orange:#7CF03A; }
 body.theme-lyric  { --petrol:#C9A24B; --petrol-2:#B24A5F; --sage:#C79A2E; --bg:#1F070F; --card:#341321; --card-2:#431B2C; --text:#F3E6C6; --muted:#C1A05A; --line:#4A2030; --line-2:#5A2C3E; --soft:#2A0E18; --danger:#E5645B; --orange:#C86578; }
+/* Fond du BODY par thème (le body a un degrade clair code en dur ligne 33 → il faut le forcer). */
+body.theme-noir, body.theme-rock, body.theme-hiphop, body.theme-lyric { background: linear-gradient(160deg, var(--card), var(--bg)) !important; min-height: 100vh; color: var(--text); }
+body.theme-rose { background: linear-gradient(160deg, #FFFFFF, var(--bg)) !important; min-height: 100vh; color: var(--text); }
 
 /* ---- Machinerie SOMBRE générique (pilotée par variables) pour les thèmes
    sombres premium. Miroir du bloc body.theme-dark, mais en var(--…). ---- */
