@@ -255,8 +255,11 @@ export default function CalendarImportModal({
         // Pas de type technicien forcé pour un artiste (retour Emeric) : en mode cachet on laisse
         // le type vide, l'artiste le choisira. Un technicien garde « Tournage » par défaut.
         mission_type: cachetMode ? '' : 'Tournage', mission_date: d.mission_date, end_date: d.end_date,
-        // Un cachet vaut 12 h : diviser par 8 pour un artiste comptait ses vacations en trop.
-        hours: d.hours, vacations: Math.max(1, Math.round(d.hours / (cachetMode ? CACHET_H : 8))),
+        // En CACHET : un événement importé = 1 CACHET (un cachet compte 12 h quelle que soit la durée
+        // réelle de l'évènement). Avant, `round(heures/12)` transformait un évènement de ≥18 h en 2 cachets
+        // (retour Isabelle « je saisis 1 cachet, il en met 2 »). En HEURES : vacations ≈ heures/8.
+        hours: cachetMode ? CACHET_H : d.hours,
+        vacations: cachetMode ? 1 : Math.max(1, Math.round(d.hours / 8)),
         gross_amount: d.gross_amount, status: 'effectue',
         km_distance: 0, km_rate: 0, km_amount: 0,
       }));
