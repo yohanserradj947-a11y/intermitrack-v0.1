@@ -3696,14 +3696,49 @@ function _prodColor(normName) {
     toast("Couleur mise à jour.");
   });
 }
+// Vrai pop-up de saisie stylé (remplace prompt() natif). opts: {title, message, value, placeholder, type, okLabel, onOk}
+var _imOnOk = null;
+function _ensureInputModal() {
+  if (document.getElementById('inputModalOverlay')) return;
+  const st = document.createElement('style');
+  st.textContent = "#inputModalOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:100061;padding:18px;}#inputModalOverlay.open{display:flex;}.im-box{background:var(--card);color:var(--text);border-radius:20px;width:100%;max-width:360px;box-sizing:border-box;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,.3);}.im-title{font-size:16px;font-weight:900;color:var(--petrol);margin-bottom:6px;}.im-msg{font-size:12.5px;color:var(--muted);line-height:1.5;margin-bottom:12px;}.im-input{width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--line-2);border-radius:11px;background:var(--card);color:var(--text);font-size:15px;font-family:inherit;outline:none;}.im-input:focus{border-color:var(--petrol);}.im-actions{display:flex;gap:10px;margin-top:16px;}.im-cancel{flex:1;padding:12px;border:1px solid var(--line);background:var(--soft);color:var(--muted);border-radius:12px;font-weight:700;cursor:pointer;font-family:inherit;}.im-ok{flex:1;padding:12px;border:none;background:var(--petrol);color:#fff;border-radius:12px;font-weight:800;cursor:pointer;font-family:inherit;}";
+  document.head.appendChild(st);
+  const ov = document.createElement('div');
+  ov.id = 'inputModalOverlay';
+  ov.innerHTML = '<div class="im-box"><div class="im-title" id="imTitle"></div><div class="im-msg" id="imMsg"></div><input class="im-input" id="imInput" autocomplete="off"><div class="im-actions"><button type="button" class="im-cancel" id="imCancel">Annuler</button><button type="button" class="im-ok" id="imOk">Valider</button></div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function (e) {
+    if (e.target === ov || e.target.id === 'imCancel') { ov.classList.remove('open'); _imOnOk = null; }
+    else if (e.target.id === 'imOk') { const v = document.getElementById('imInput').value; ov.classList.remove('open'); const cb = _imOnOk; _imOnOk = null; if (cb) cb(v); }
+  });
+  document.getElementById('imInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('imOk').click(); } });
+}
+function _inputModal(opts) {
+  _ensureInputModal();
+  const ov = document.getElementById('inputModalOverlay');
+  document.getElementById('imTitle').textContent = opts.title || '';
+  const msg = document.getElementById('imMsg');
+  msg.textContent = opts.message || ''; msg.style.display = opts.message ? '' : 'none';
+  const inp = document.getElementById('imInput');
+  inp.type = opts.type || 'text'; inp.value = opts.value != null ? opts.value : ''; inp.placeholder = opts.placeholder || '';
+  if (opts.type === 'number') inp.setAttribute('inputmode', 'decimal'); else inp.removeAttribute('inputmode');
+  document.getElementById('imOk').textContent = opts.okLabel || 'Valider';
+  _imOnOk = opts.onOk || null;
+  ov.classList.add('open');
+  setTimeout(function () { inp.focus(); inp.select(); }, 50);
+}
 function _prodTarif(normName) {
   const cur = _getProdRate(normName);
-  const nv = prompt("Tarif par jour (€) pour « " + normName + " » — pré-rempli sur tes prochaines dates de cette production (laisse vide pour retirer) :", cur != null ? String(cur) : "");
-  if (nv == null) return;
-  const val = nv.trim() === "" ? 0 : (Number(nv.replace(",", ".")) || 0);
-  _setProdRate(normName, val);
-  toast(val > 0 ? "Tarif enregistré." : "Tarif retiré.");
-  openProductionMissions(normName);
+  _inputModal({
+    title: "Tarif par jour", message: "Pré-rempli sur tes prochaines dates de « " + normName + " ». Laisse vide pour retirer.",
+    value: cur != null ? String(cur) : "", placeholder: "Ex : 230", type: "number", okLabel: "Enregistrer",
+    onOk: function (nv) {
+      const val = String(nv || "").trim() === "" ? 0 : (Number(String(nv).replace(",", ".")) || 0);
+      _setProdRate(normName, val);
+      toast(val > 0 ? "Tarif enregistré." : "Tarif retiré.");
+      openProductionMissions(normName);
+    }
+  });
 }
 function _prodOvertime(normName) {
   const box = $("prodOvertimeBox"); if (!box) return;
@@ -3715,20 +3750,26 @@ function _prodOvertime(normName) {
   _otInit(normName, annexe, 'config', 'prodOvertimeBox', null);
   _otRerender();
 }
-async function _prodRename(normName) {
-  const nv = prompt("Nouveau nom de la production :", normName);
-  if (nv == null) return;
-  const newName = normalizeProductionName(nv.trim());
-  if (!newName) { toast("Nom vide."); return; }
-  if (newName === normName) return;
-  const list = _prodMissions(normName);
-  try {
-    for (const m of list) { const { error } = await sb.from('missions').update({ production: newName }).eq('id', m.id); if (error) throw error; }
-    const col = getProductionColorHex(normName); if (col) setProductionColorHex(newName, col);
-    toast("Production renommée.");
-    await loadMissions();
-    openProductionMissions(newName);
-  } catch (e) { toast("Le renommage a échoué. Réessaie."); }
+function _prodRename(normName) {
+  _inputModal({
+    title: "Renommer la production", message: "Met à jour toutes les missions de cette production (passées et à venir).",
+    value: normName, placeholder: "Nom de la production", okLabel: "Renommer",
+    onOk: function (nv) {
+      const newName = normalizeProductionName(String(nv || "").trim());
+      if (!newName) { toast("Nom vide."); return; }
+      if (newName === normName) return;
+      (async function () {
+        const list = _prodMissions(normName);
+        try {
+          for (const m of list) { const { error } = await sb.from('missions').update({ production: newName }).eq('id', m.id); if (error) throw error; }
+          const col = getProductionColorHex(normName); if (col) setProductionColorHex(newName, col);
+          toast("Production renommée.");
+          await loadMissions();
+          openProductionMissions(newName);
+        } catch (e) { toast("Le renommage a échoué. Réessaie."); }
+      })();
+    }
+  });
 }
 function _prodMergeShow(normName) {
   const box = $("prodMergeBox"); if (!box) return;
