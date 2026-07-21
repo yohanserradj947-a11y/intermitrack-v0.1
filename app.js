@@ -4214,8 +4214,16 @@ function generateActualisationPDF() {
 
 
 function applyTheme(theme) {
-  document.body.classList.remove("theme-dark");
-  if (theme === "dark") document.body.classList.add("theme-dark");
+  // 7 thèmes comme l'app : light + dark (gratuits) + noir/rose/rock/hiphop/lyric (premium).
+  var THEMES = ["dark", "noir", "rose", "rock", "hiphop", "lyric"];
+  THEMES.forEach(function (t) { document.body.classList.remove("theme-" + t); });
+  document.body.classList.remove("dark-scheme");
+  if (theme && THEMES.indexOf(theme) >= 0) document.body.classList.add("theme-" + theme);
+  // Les thèmes sombres PREMIUM partagent la machinerie .dark-scheme (le "Sombre" garde son propre bloc theme-dark).
+  if ({ noir: 1, rock: 1, hiphop: 1, lyric: 1 }[theme]) document.body.classList.add("dark-scheme");
+  document.querySelectorAll(".theme-swatch").forEach(function (b) {
+    b.classList.toggle("active", b.dataset.theme === theme);
+  });
   if (typeof render === "function") render();
 }
 
@@ -4472,13 +4480,11 @@ if ($("installBtn")) $("installBtn").addEventListener("click", async () => {
   });
 
   document.addEventListener("click", (e) => {
-    const themeBtn = e.target.closest(".theme-btn");
+    const themeBtn = e.target.closest(".theme-swatch, .theme-btn");
     if (themeBtn) {
       const theme = themeBtn.dataset.theme;
       applyTheme(theme);
       localStorage.setItem("intermitrack_theme", theme);
-      document.querySelectorAll(".theme-btn").forEach(b =>
-        b.classList.toggle("active", b.dataset.theme === theme));
     }
   });
 }
