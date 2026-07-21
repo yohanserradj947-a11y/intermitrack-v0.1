@@ -4228,7 +4228,7 @@ function applyMissionMode(mode){
   _missionMode = (mode==='cachet') ? 'cachet' : 'heures';
   const cachet = _missionMode==='cachet';
   const show=(id,on)=>{ const el=$(id); if(el) el.style.display = on ? (id==='cachetInput'||id==='hours'||id==='vacations'?'block':'block') : 'none'; };
-  show('cachetLabel',cachet); show('cachetInput',cachet);
+  show('cachetLabel',cachet); show('cachetInput',cachet); show('cachetHint',cachet);
   const hl=$("hoursLabel"); if(hl) hl.textContent = cachet ? "Heures payées en heures (répétitions, ateliers… facultatif)" : "Nombre d'heures cumulées sur la période";
   const hi=$("hours"); if(hi) hi.required = !cachet;
   // Cachet (artiste) : les « heures payées à l'heure » sont facultatives → repliées par défaut (déroulées si déjà remplies).

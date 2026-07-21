@@ -767,7 +767,8 @@ z-index: 500 !important;
               <button type="button" class="mm-opt" data-mm="cachet" style="flex:1;padding:10px;border:1.5px solid var(--line);border-radius:11px;background:var(--card);color:var(--petrol);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;">🎭 Cachet</button>
             </div>
             <label for="vacations" id="cachetLabel" style="display:none;">Nombre de cachets</label>
-            <input id="cachetInput" type="number" min="0" step="1" placeholder="Ex : 2" style="display:none;" />
+            <input id="cachetInput" type="number" min="0" step="0.5" placeholder="Ex : 2" style="display:none;" />
+            <small id="cachetHint" style="display:none;color:var(--muted);font-size:11.5px;margin:-4px 0 4px;line-height:1.4;">1 cachet = 12 h pour tes 507 h. Tu peux mettre <b>0,5</b> pour un demi-cachet (compté <b>6 h</b>).</small>
             <!-- En mode CACHET (artiste), ce champ « heures payées à l'heure » est facultatif et prêtait à confusion → dépliable, replié par défaut -->
             <button type="button" id="hoursToggle" class="hours-toggle" style="display:none;">＋ Heures payées à l'heure (répétitions, ateliers…) — facultatif</button>
             <div id="hoursBlock">
@@ -1521,7 +1522,7 @@ z-index: 500 !important;
   </main>
 
   <script src="document-parser.js?v=5"></script>
-  <script src="app.js?v=107"></script>
+  <script src="app.js?v=108"></script>
 
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>
