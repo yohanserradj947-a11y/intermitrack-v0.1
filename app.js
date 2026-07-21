@@ -1293,6 +1293,11 @@ const initials = parts.length >= 2
   // Toggle dropdown
  if ($("accountAvatarBtn") && !$("accountAvatarBtn").dataset.init) {
     $("accountAvatarBtn").dataset.init = "1";
+    // Le bottom sheet est enferme dans le header (.top est sticky z-index:90) : son fond sombre
+    // passerait au-dessus et bloquerait les clics. On le sort dans <body> (contexte racine).
+    if ($("accountDropdown") && $("accountDropdown").parentElement !== document.body) {
+      document.body.appendChild($("accountDropdown"));
+    }
     $("accountAvatarBtn").addEventListener("click", (e) => {
       e.stopPropagation();
       const btn = $("accountAvatarBtn");
