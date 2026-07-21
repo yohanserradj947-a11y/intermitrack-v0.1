@@ -269,6 +269,11 @@ z-index: 500 !important;
               </div>
             </div>
 
+            <!-- Revoir le tutoriel guidé -->
+            <button class="account-dd-logout" type="button" onclick="document.getElementById('accountDropdown').classList.add('hidden'); if(typeof _tourStart==='function') _tourStart();" style="background:var(--soft);color:var(--petrol);margin-bottom:8px;">
+              <span>🎓</span> Revoir le tutoriel
+            </button>
+
             <!-- Signaler un bug (comme l'appli : mail pré-rempli) -->
             <button class="account-dd-logout" type="button" onclick="window.open('mailto:Intermitrack@gmail.com?subject='+encodeURIComponent('Bug / suggestion — Intermitrack (bêta)')+'&body='+encodeURIComponent('Décris ici le bug rencontré ou ta suggestion :\n\n\n\n— Infos techniques (merci de ne pas effacer) —\nSite web\nCompte : '+((typeof currentUser!=='undefined'&&currentUser)?currentUser.email:'?')),'_blank')" style="background:var(--soft);color:var(--petrol);margin-bottom:8px;">
               <span>🐛</span> Signaler un bug
@@ -1509,7 +1514,7 @@ z-index: 500 !important;
   </main>
 
   <script src="document-parser.js?v=5"></script>
-  <script src="app.js?v=99"></script>
+  <script src="app.js?v=100"></script>
 
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>

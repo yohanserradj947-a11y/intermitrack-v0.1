@@ -1382,6 +1382,7 @@ async function loadMissions() {
     (av || []).forEach((r) => { areVerse[r.mois] = Number(r.montant || 0); });
   } catch (_) {}
   render();
+  if (typeof _tourMaybeStart === 'function') _tourMaybeStart();
 }
 // ARE réellement versé, par mois 'AAAA-MM' (rempli par loadMissions, saisi dans « Montants réels du mois »).
 var areVerse = {};
@@ -1999,6 +2000,82 @@ function activateView(viewName) {
   if (viewName === "previsions") {
     if (!_srLoaded) { _srLoaded = true; _loadSalaireRef().then(_prefillC1Ref); } else { _prefillC1Ref(); }
   }
+}
+
+// ===== TUTORIEL GUIDÉ (tour) — montré à tous à la 1re connexion, skippable, revoyable =====
+var TOUR_KEY = 'intermitrack_tour_v1_done';
+var _tourIdx = 0, _tourChecked = false;
+var _tourSteps = [
+  { view: 'dashboard', target: null, title: 'Bienvenue 👋', text: "Voici ton tableau de bord. Je te montre l'essentiel en quelques secondes — tu peux passer à tout moment." },
+  { view: 'dashboard', target: '#accountAvatarBtn', title: 'Ton compte', text: "En haut à droite : « Mes informations » (statut, salaire…), le thème et la déconnexion. Renseigne tes infos, ça pré-remplit tes missions." },
+  { view: 'dashboard', target: '#chart', title: 'Ta progression', text: "Le graphique montre tes heures effectuées et prévues vers les 507 h. Le détail est juste en dessous." },
+  { view: 'dashboard', target: '#reelBox', title: 'Tes montants réels', text: "Une fois payé, saisis ton net réel + l'allocation reçue : tu obtiens le total EXACT du mois, pas seulement l'estimation." },
+  { view: 'calendar', target: '.new-cal-tools', title: 'Le calendrier', text: "Importe tes dates (Excel/CSV, notes) ou clique un jour pour ajouter une mission. Ça dépend de ton statut — d'où l'importance de tes infos." },
+  { view: 'calendar', target: '.cal-sec-title', title: 'Tes évènements du mois', text: "Sous le calendrier, retrouve toutes tes missions et notes du mois, triées par date." },
+  { view: 'missions', target: '#missionsGraphContainer', title: 'Tes productions', text: "Le camembert répartit ton brut par production. Clique une prod pour changer sa couleur, la renommer, la fusionner ou régler ses heures sup." },
+  { view: 'dashboard', target: null, title: 'À toi de jouer 🎬', text: "Explore les autres onglets (Actu, Simulation, Fiscalité…) quand tu veux. Tu pourras revoir ce tuto depuis ton menu compte." },
+];
+function _tourEnsureDom() {
+  if (document.getElementById('tourHole')) return;
+  var st = document.createElement('style');
+  st.textContent = ".tour-hole{position:fixed;border-radius:12px;box-shadow:0 0 0 9999px rgba(10,20,30,.68);z-index:100070;pointer-events:none;transition:all .25s ease;}.tour-bubble{position:fixed;z-index:100071;width:300px;max-width:calc(100vw - 24px);background:var(--card);color:var(--text);border-radius:16px;padding:16px 18px;box-shadow:0 20px 60px rgba(0,0,0,.4);}.tour-bubble h4{margin:0 0 6px;font-size:15px;font-weight:900;color:var(--petrol);}.tour-bubble p{margin:0;font-size:13px;line-height:1.5;color:var(--muted);}.tour-actions{display:flex;align-items:center;justify-content:space-between;margin-top:14px;gap:10px;}.tour-skip{background:none;border:none;color:var(--muted);font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:underline;}.tour-right{display:flex;align-items:center;gap:12px;}.tour-count{font-size:11px;color:var(--muted);font-weight:700;}.tour-next{background:var(--petrol);color:#fff;border:none;border-radius:10px;padding:9px 16px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;}";
+  document.head.appendChild(st);
+  var hole = document.createElement('div'); hole.id = 'tourHole'; hole.className = 'tour-hole'; hole.style.display = 'none'; document.body.appendChild(hole);
+  var bub = document.createElement('div'); bub.id = 'tourBubble'; bub.className = 'tour-bubble'; bub.style.display = 'none'; document.body.appendChild(bub);
+  bub.addEventListener('click', function (e) {
+    if (e.target.closest('[data-tour-skip]')) { _tourEnd(); return; }
+    if (e.target.closest('[data-tour-next]')) { _tourNext(); return; }
+  });
+}
+function _tourStart() {
+  _tourEnsureDom(); _tourIdx = 0; _tourShow();
+}
+function _tourShow() {
+  var step = _tourSteps[_tourIdx];
+  if (step.view && typeof activateView === 'function') activateView(step.view);
+  var bub = document.getElementById('tourBubble');
+  var isLast = _tourIdx === _tourSteps.length - 1;
+  bub.innerHTML = '<h4>' + escapeHtml(step.title) + '</h4><p>' + escapeHtml(step.text) + '</p>'
+    + '<div class="tour-actions"><button type="button" class="tour-skip" data-tour-skip>Passer le tuto</button>'
+    + '<div class="tour-right"><span class="tour-count">' + (_tourIdx + 1) + ' / ' + _tourSteps.length + '</span>'
+    + '<button type="button" class="tour-next" data-tour-next>' + (isLast ? 'Terminer' : 'Suivant') + '</button></div></div>';
+  bub.style.display = 'block';
+  var el = step.target ? document.querySelector(step.target) : null;
+  var hole = document.getElementById('tourHole');
+  if (!el) {
+    hole.style.display = 'none';
+    bub.style.left = '50%'; bub.style.top = '50%'; bub.style.transform = 'translate(-50%,-50%)';
+    return;
+  }
+  bub.style.transform = 'none';
+  try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { }
+  setTimeout(function () {
+    var r = el.getBoundingClientRect(), pad = 8;
+    hole.style.display = 'block';
+    hole.style.left = (r.left - pad) + 'px'; hole.style.top = (r.top - pad) + 'px';
+    hole.style.width = (r.width + pad * 2) + 'px'; hole.style.height = (r.height + pad * 2) + 'px';
+    var bw = bub.offsetWidth || 300;
+    var left = Math.min(Math.max(12, r.left), window.innerWidth - bw - 12);
+    bub.style.left = left + 'px';
+    bub.style.top = (r.bottom + 12) + 'px';
+    var br = bub.getBoundingClientRect();
+    if (br.bottom > window.innerHeight - 8) { bub.style.top = Math.max(8, r.top - bub.offsetHeight - 12) + 'px'; }
+  }, 260);
+}
+function _tourNext() { _tourIdx++; if (_tourIdx >= _tourSteps.length) { _tourEnd(); } else _tourShow(); }
+function _tourEnd() {
+  var hole = document.getElementById('tourHole'), bub = document.getElementById('tourBubble');
+  if (hole) hole.style.display = 'none';
+  if (bub) bub.style.display = 'none';
+  try { localStorage.setItem(TOUR_KEY, '1'); } catch (e) { }
+}
+// Auto-démarrage à la 1re connexion (une fois par navigateur, tant que non fait/skippé).
+function _tourMaybeStart() {
+  if (_tourChecked) return; _tourChecked = true;
+  try { if (localStorage.getItem(TOUR_KEY)) return; } catch (e) { return; }
+  var appBox = document.getElementById('appBox');
+  if (!appBox || appBox.classList.contains('hidden')) return;
+  setTimeout(_tourStart, 700);
 }
 
 // ===== Salaire de référence (Prévisions C1) : « les deux » =====
