@@ -13,6 +13,7 @@ import { usePremium } from '../lib/premium';
 import ThemeModal from './ThemeModal';
 import { usePathname } from 'expo-router';
 import { VEHICLES, CAR_CV, MOTO_CV, migrerVehicule, fraisAnnuels, type VehicleKind } from '../lib/kmBareme';
+import { startTour } from './OnboardingTour';
 
 // palette via useTheme()
 
@@ -73,7 +74,7 @@ export function AccountMenu(){
   const [miAnnexe,setMiAnnexe]=useState<'technicien'|'artiste'|'les_deux'|''>('');
   const [miDroits,setMiDroits]=useState<boolean|null>(null);
   const [miClause,setMiClause]=useState(false);
-  const { previewFree, setPreviewFree } = usePremium();
+  const { previewFree, setPreviewFree, canPreview } = usePremium();
   // Vehicule memorise : « je ne change pas ma voiture, et mon nombre de kilometres annuel ne change
   // pas d'une mission a l'autre ainsi que ma puissance fiscale » (retour JB).
   // Depuis le 16/07/2026 : type de vehicule + puissance + kilometrage annuel REEL (et non une
@@ -212,6 +213,10 @@ export function AccountMenu(){
               <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="color-palette-outline" size={13} color={C.petrol} /><Text style={s.accountReportTxt}>Thème — {themeLabel}</Text></View>
             </TouchableOpacity>
 
+            <TouchableOpacity style={s.accountReportBtn} onPress={()=>{setShowAccount(false);setTimeout(startTour,300);}} activeOpacity={0.85}>
+              <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="school-outline" size={13} color={C.petrol} /><Text style={s.accountReportTxt}>Revoir le tutoriel</Text></View>
+            </TouchableOpacity>
+
             {isAdmin && (
               <TouchableOpacity style={s.accountReportBtn} onPress={openStats}>
                 <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="stats-chart-outline" size={13} color={C.petrol} /><Text style={s.accountReportTxt}>Analytics (admin)</Text></View>
@@ -222,9 +227,11 @@ export function AccountMenu(){
               <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name="bug-outline" size={13} color={C.petrol} /><Text style={s.accountReportTxt}>Signaler un bug</Text></View>
             </TouchableOpacity>
 
+            {canPreview && (
             <TouchableOpacity style={s.accountReportBtn} onPress={()=>setPreviewFree(!previewFree)}>
               <View style={{flexDirection:'row',alignItems:'center',gap:5}}><Ionicons name={previewFree?'lock-open-outline':'eye-outline'} size={13} color={C.petrol} /><Text style={s.accountReportTxt}>{previewFree?'Revenir en accès complet':'Aperçu version Gratuit (test)'}</Text></View>
             </TouchableOpacity>
+            )}
 
             <GradientButton onPress={()=>{setShowAccount(false);signOut();}} style={s.accountBtn} textStyle={s.accountBtnTxt} label="Se déconnecter" />
 

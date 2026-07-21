@@ -29,6 +29,7 @@ import { VEHICLES, CAR_CV, MOTO_CV } from '../../lib/kmBareme';
 import ColorPickerModal from '../../components/ColorPickerModal';
 import ProdColorManager from '../../components/ProdColorManager';
 import NoteFormModal from '../../components/NoteFormModal';
+import ArretFormModal from '../../components/ArretFormModal';
 import QuickEntryModal from '../../components/QuickEntryModal';
 import NoteDetailModal from '../../components/NoteDetailModal';
 import CalendarImportModal from '../../components/CalendarImportModal';
@@ -36,6 +37,8 @@ import { syncWidgets } from '../../lib/widgetSync';
 import { useNotes, noteAbbr, Note } from '../../lib/notes';
 import { usePostes, quickTypeChips } from '../../lib/postes';
 import { usePriceMemory } from '../../lib/priceMemory';
+import { useOvertimeMemory } from '../../lib/overtimeMemory';
+import OvertimeSection from '../../components/OvertimeSection';
 import Svg, { Line } from 'react-native-svg';
 
 // Barème kilométrique officiel : coefficient par tranche de km annuels.
@@ -87,12 +90,16 @@ export default function Calendar(){
   const [noteFormEdit,setNoteFormEdit]=useState<Note|null>(null);
   const [noteFormDate,setNoteFormDate]=useState('');
   const [noteFormMode,setNoteFormMode]=useState<'note'|'formation'>('note');
+  const [arretOpen,setArretOpen]=useState(false);
+  const [arretEdit,setArretEdit]=useState<Note|null>(null);
+  const [arretDate,setArretDate]=useState('');
   const [quickOpen,setQuickOpen]=useState(false);
   const [quickDate,setQuickDate]=useState('');
   const [noteDetail,setNoteDetail]=useState<Note|null>(null);
-  const [calTab,setCalTab]=useState<'missions'|'notes'|'general'>('missions');
+  const [calTab,setCalTab]=useState<'missions'|'general'>('missions');
   const { postes, addPoste, removePoste } = usePostes();
   const { getLearnedPrice, rememberPrice } = usePriceMemory();
+  const { getOvertimeRule, rememberOvertimeRule } = useOvertimeMemory();
   const [fLieu,setFLieu]=useState('');
   const [newPoste,setNewPoste]=useState('');
   const insets=useSafeAreaInsets();
@@ -108,6 +115,9 @@ export default function Calendar(){
   const [fProduction,setFProduction]=useState('');
   const [fEmission,setFEmission]=useState('');
   const [fType,setFType]=useState('');
+  // Le poste pré-rempli (depuis « Mes infos ») est une SUGGESTION : au 1er tap sur un poste, il est
+  // remplacé (pas de cumul forcé « Poursuiteur + Montage »). Ensuite les taps cumulent/décochent.
+  const [typePristine,setTypePristine]=useState(false);
   const [showTypePicker,setShowTypePicker]=useState(false);
   // true = le choix s'AJOUTE au type courant (« Rec + MIX ») ; false = il le remplace (cas courant).
   const [fVacations,setFVacations]=useState('');
@@ -120,7 +130,11 @@ export default function Calendar(){
   const [fMode,setFMode]=useState<'heures'|'cachet'>('heures');
   const [fCachets,setFCachets]=useState('');
   const [fHours,setFHours]=useState('');
+  // Mode cachet (artiste) : les « heures payées à l'heure » sont facultatives et prêtaient à confusion → dépliables.
+  const [showCachetHours,setShowCachetHours]=useState(false);
   const [fGross,setFGross]=useState('');
+  // Vrai dès que l'utilisateur saisit le prix à la main → on arrête le pré-remplissage automatique.
+  const [grossTouched,setGrossTouched]=useState(false);
   const [fNetReel,setFNetReel]=useState(''); // net réellement perçu (rempli une fois la mission payée)
   const [showStartPicker,setShowStartPicker]=useState(false);
   const [showEndPicker,setShowEndPicker]=useState(false);
@@ -157,24 +171,30 @@ export default function Calendar(){
   // sinon le widget garde des dates ou des notes déjà effacées. On saute le tout premier rendu (données pas encore chargées).
   const _widgetReady=useRef(false);
   useEffect(()=>{ if(!_widgetReady.current){ _widgetReady.current=true; return; } syncWidgets(missions, getColor, notes); },[missions, notes, colors]);
-  // Prix appris : dès qu'on a choisi une prod ET un poste sur une NOUVELLE mission, on pré-remplit
-  // le prix mémorisé pour ce couple (prioritaire sur le salaire journalier). Modifiable ensuite.
+  // Pré-remplissage du BRUT = tarif PAR VACATION × nombre de vacations (ou cachets). Fini la calculette :
+  // 230 €/vac × 5 vacations = 1 150 € (retour Yohan). Tarif = prix appris (prod+poste) > dernières missions
+  // de la prod > salaire journalier de « Mes infos ». On n'écrase JAMAIS un prix saisi à la main (grossTouched),
+  // ni pendant le sélecteur multi-jours (qui gère sa propre répartition).
   useEffect(()=>{
-    if(editId || !showForm) return;
-    if(!fProduction.trim() || !fType.trim()) return;
-    let p=getLearnedPrice(fProduction, fType);
-    if(p==null){
-      // Repli sur les missions DÉJÀ enregistrées : dernier prix/jour pour cette prod (+ poste si dispo).
-      // Ça fait profiter l'existant du pré-remplissage sans attendre une nouvelle saisie.
-      const prodU=fProduction.trim().toUpperCase();
-      const perDay=(m:any)=>Math.round((Number(m.gross_amount)/Math.max(1,Number(m.vacations)||1))*100)/100;
-      const paid=missions.filter((m:any)=>Number(m.gross_amount)>0);
-      let cand=paid.filter((m:any)=>(m.production||'').toUpperCase()===prodU && (m.mission_type||'')===fType);
-      if(!cand.length) cand=paid.filter((m:any)=>(m.production||'').toUpperCase()===prodU);
-      if(cand.length){ cand.sort((a:any,b:any)=>a.mission_date<b.mission_date?1:-1); p=perDay(cand[0]); }
+    if(editId || !showForm || showMdp || grossTouched) return;
+    let rate:number|null=null;
+    if(fProduction.trim() && fType.trim()){
+      rate=getLearnedPrice(fProduction, fType);
+      if(rate==null){
+        const prodU=fProduction.trim().toUpperCase();
+        const perDay=(m:any)=>Math.round((Number(m.gross_amount)/Math.max(1,Number(m.vacations)||1))*100)/100;
+        const paid=missions.filter((m:any)=>Number(m.gross_amount)>0);
+        let cand=paid.filter((m:any)=>(m.production||'').toUpperCase()===prodU && (m.mission_type||'')===fType);
+        if(!cand.length) cand=paid.filter((m:any)=>(m.production||'').toUpperCase()===prodU);
+        if(cand.length){ cand.sort((a:any,b:any)=>a.mission_date<b.mission_date?1:-1); rate=perDay(cand[0]); }
+      }
     }
-    if(p!=null) setFGross(String(p));
-  },[fProduction, fType, showForm, editId, getLearnedPrice, missions]);
+    if(rate==null) rate = salaireJour>0 ? salaireJour : null;
+    if(rate==null) return;
+    const cnt = fMode==='cachet' ? (Number(fCachets)||0) : (Number(fVacations)||0);
+    const mult = cnt>0 ? cnt : 1;
+    setFGross(String(Math.round(rate*mult*100)/100));
+  },[fProduction, fType, showForm, editId, showMdp, grossTouched, getLearnedPrice, missions, salaireJour, fMode, fCachets, fVacations]);
   useFocusEffect(useCallback(()=>{
     loadMissions(true);
     const loop=Animated.loop(Animated.sequence([Animated.timing(pulse,{toValue:1,duration:850,useNativeDriver:true}),Animated.timing(pulse,{toValue:0,duration:850,useNativeDriver:true})]));
@@ -191,12 +211,12 @@ export default function Calendar(){
   function openCreate(day:Date, regime:'intermittence'|'general'='intermittence'){
     setEditId(null);
     setFRegime(regime);
-    setFProduction(''); setFEmission(''); setFLieu(''); setNewPoste(''); setFType(postes.length>0?postes[0]:quickTypeChips(annexe)[0]); setFStart(day); setFEnd(day);
+    setFProduction(''); setFEmission(''); setFLieu(''); setNewPoste(''); setFType(postes.length>0?postes[0]:quickTypeChips(annexe)[0]); setTypePristine(true); setShowCachetHours(false); setFStart(day); setFEnd(day);
     setShowTypePicker(false);
     // Régime général et enseignement = toujours en HEURES (jamais de cachets, ce n'est pas du spectacle).
     // Sinon un artiste, forcé en mode cachet par son annexe, ne pouvait pas saisir ses heures d'enseignement.
     setFMode(regime==='intermittence' ? modeForNew(annexe) : 'heures'); setFCachets('');
-    setFHours(''); setFGross(salaireJour>0?String(salaireJour):''); setFNetReel(''); setFVacations('1'); setMdpDays([]);
+    setFHours(''); setFGross(''); setGrossTouched(false); setFNetReel(''); setFVacations('1'); setMdpDays([]);
     setKmOpen(false); setKmFrom(''); setKmTo(''); setKmFromCoords(null); setKmToCoords(null); setKmRT(false); setKmEveryDay(false); setKmJustify(false); setKmDistance(''); setKmRate('');
     // Plus rien à pré-remplir ici : le taux vient directement de « Mes informations » (kmDefaults.taux).
     setShowFromPicker(false); setShowToPicker(false);
@@ -205,7 +225,7 @@ export default function Calendar(){
   function openEdit(m:any){
     setEditId(m.id);
     setFRegime(m.regime||'intermittence');
-    setFProduction(m.production||''); setFEmission(m.emission||''); setFLieu(m.lieu||''); setNewPoste(''); setFType(m.mission_type||'');
+    setFProduction(m.production||''); setFEmission(m.emission||''); setFLieu(m.lieu||''); setNewPoste(''); setFType(m.mission_type||''); setTypePristine(false);
     setShowTypePicker(false);
     setFStart(new Date((m.mission_date)+'T00:00:00'));
     setFEnd(new Date((m.end_date||m.mission_date)+'T00:00:00'));
@@ -214,9 +234,9 @@ export default function Calendar(){
     // Régime général / enseignement : toujours en heures, jamais en cachet (voir openCreate).
     const _mode=(m.regime && m.regime!=='intermittence') ? 'heures' : modeForEdit(annexe,_h,_v);
     setFMode(_mode);
-    if(_mode==='cachet'){ setFCachets(String(_v||'')); setFHours(String(extraHoursOf(_h,_v)||'')); }
-    else { setFCachets(''); setFHours(String(m.hours||'')); }
-    setFGross(String(m.gross_amount||'')); setFNetReel(m.net_reel!=null?String(m.net_reel):''); setFVacations(String(m.vacations||''));
+    if(_mode==='cachet'){ setFCachets(String(_v||'')); setFHours(String(extraHoursOf(_h,_v)||'')); setShowCachetHours(extraHoursOf(_h,_v)>0); }
+    else { setFCachets(''); setFHours(String(m.hours||'')); setShowCachetHours(false); }
+    setFGross(String(m.gross_amount||'')); setGrossTouched(true); setFNetReel(m.net_reel!=null?String(m.net_reel):''); setFVacations(String(m.vacations||''));
     // Les adresses sont enfin relues : elles n'etaient enregistrees NULLE PART avant le 15/07/2026,
     // d'ou le retour « les adresses n'apparaissent pas quand je modifie une mission ».
     setKmFrom(m.km_from||''); setKmTo(m.km_to||'');
@@ -434,11 +454,14 @@ export default function Calendar(){
     let cur:any=null;
     for(const d of mdpDays){
       if(!d.checked){ cur=null; continue; }
-      if(cur && d.hours===cur.hours && isNextDay(cur.end,d.date)){ cur.end=d.date; cur.days++; }
-      else { cur={start:d.date,end:d.date,hours:d.hours,days:1}; runs.push(cur); }
+      // On regroupe les jours CONSÉCUTIFS en UNE seule mission même si les heures d'un jour diffèrent
+      // (retour Youn/Timothée : « 1 ligne suffit »). On SOMME les heures au lieu de supposer un nombre
+      // d'heures uniforme. Seules les coupures (jour décoché) créent une nouvelle ligne.
+      if(cur && isNextDay(cur.end,d.date)){ cur.end=d.date; cur.days++; cur.hours+=Number(d.hours)||0; }
+      else { cur={start:d.date,end:d.date,hours:Number(d.hours)||0,days:1}; runs.push(cur); }
     }
     const payloads=runs.map((r)=>{
-      const runHours=r.hours*r.days;
+      const runHours=r.hours; // total d'heures de la plage (somme des jours cochés)
       // Au centime près : arrondir à l'euro entier faussait le brut journalier
       // (donc la déclaration). Le reliquat de centimes est réajusté sur la 1re ligne.
       const gross=sumHours>0?Math.round(totalGross*(runHours/sumHours)*100)/100:Math.round(totalGross/runs.length*100)/100;
@@ -489,11 +512,22 @@ export default function Calendar(){
       const da=new Date(a.mission_date+'T00:00:00').getTime(), db=new Date(b.mission_date+'T00:00:00').getTime();
       return fa?da-db:db-da;
     });
-  const perPage=4;
-  const totalPages=Math.max(1,Math.ceil(monthMissions.length/perPage));
-  const visible=monthMissions.slice(page*perPage,(page+1)*perPage);
+  const perPage=6;
   const monthNotes=notes.filter((n)=>{const d=new Date(n.date+'T00:00:00');return d.getMonth()===month&&d.getFullYear()===year;}).sort((a,b)=>a.date<b.date?-1:1);
   const monthGeneral=missions.filter((m:any)=>{const d=new Date(m.mission_date+'T00:00:00');return d.getMonth()===month&&d.getFullYear()===year&&m.regime==='general';}).sort((a:any,b:any)=>a.mission_date<b.mission_date?-1:1);
+  // « Mes évènements du mois » = missions d'intermittence + notes (dont formations et arrêts), fusionnés
+  // dans le MÊME ordre que les missions : à venir d'abord (date croissante), puis passés (date décroissante).
+  const monthEvents=[
+    ...monthMissions.map((m:any)=>({kind:'mission' as const, d:m.mission_date, end:m.end_date||m.mission_date, item:m})),
+    ...monthNotes.map((n:any)=>({kind:'note' as const, d:n.date, end:n.endDate||n.date, item:n})),
+  ].sort((a,b)=>{
+    const fa=new Date(a.end+'T00:00:00')>=_tD, fb=new Date(b.end+'T00:00:00')>=_tD;
+    if(fa!==fb) return fa?-1:1;
+    const da=new Date(a.d+'T00:00:00').getTime(), db=new Date(b.d+'T00:00:00').getTime();
+    return fa?da-db:db-da;
+  });
+  const totalPages=Math.max(1,Math.ceil(monthEvents.length/perPage));
+  const visible=monthEvents.slice(page*perPage,(page+1)*perPage);
 
 
   function moveMonth(n:number){const d=new Date(current);d.setMonth(d.getMonth()+n);d.setDate(1);setCurrent(d);setPage(0);}
@@ -598,8 +632,7 @@ export default function Calendar(){
         <TouchableOpacity style={s.navBtn} onPress={()=>moveMonth(1)}><Text style={s.navTxt}>›</Text></TouchableOpacity>
       </View>
 
-      <Text style={{fontSize:12.5,fontWeight:'700',color:C.muted,marginHorizontal:16,marginTop:2,marginBottom:6}}>Importer mes missions</Text>
-      <View style={{flexDirection:'row',gap:8,marginHorizontal:14,marginBottom:10}}>
+      <View style={{flexDirection:'row',gap:8,marginHorizontal:14,marginTop:6,marginBottom:10}}>
         <View style={{flex:1}}>
           <TouchableOpacity onPress={_showCalInfo} hitSlop={6} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:4,marginBottom:5}}>
             <Ionicons name="information-circle-outline" size={14} color={C.petrol}/>
@@ -607,7 +640,7 @@ export default function Calendar(){
           </TouchableOpacity>
           <TouchableOpacity onPress={()=>{trackEvent('import_open',{mode:'calendar'});setImportMode('calendar');setShowImport(true);}} activeOpacity={0.85} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
             <Ionicons name="calendar-outline" size={17} color={C.petrol}/>
-            <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}}>Calendrier</Text>
+            <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}} numberOfLines={1}>Import calendrier</Text>
           </TouchableOpacity>
         </View>
         <View style={{flex:1}}>
@@ -617,15 +650,21 @@ export default function Calendar(){
           </TouchableOpacity>
           <TouchableOpacity onPress={()=>{trackEvent('import_open',{mode:'excel'});setImportMode('excel');setShowImport(true);}} activeOpacity={0.85} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
             <Ionicons name="document-text-outline" size={17} color={C.petrol}/>
-            <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}}>Excel / CSV</Text>
+            <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}} numberOfLines={1}>Import excel</Text>
           </TouchableOpacity>
         </View>
       </View>
-      {/* 3e mode : coller ses notes (texte libre « MARS / 18 prod 8h 230 »), le format le plus courant. */}
-      <TouchableOpacity onPress={()=>{trackEvent('import_open',{mode:'notes'});setImportMode('notes');setShowImport(true);}} activeOpacity={0.85} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,marginHorizontal:14,marginBottom:10,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
-        <Ionicons name="create-outline" size={17} color={C.petrol}/>
-        <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}}>Coller mes notes</Text>
-      </TouchableOpacity>
+      {/* 2e ligne : Coller mes notes + Importer un AEM, même taille que Calendrier / Excel. */}
+      <View style={{flexDirection:'row',gap:8,marginHorizontal:14,marginBottom:10}}>
+        <TouchableOpacity onPress={()=>{trackEvent('import_open',{mode:'notes'});setImportMode('notes');setShowImport(true);}} activeOpacity={0.85} style={{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.petrol,backgroundColor:C.soft}}>
+          <Ionicons name="create-outline" size={17} color={C.petrol}/>
+          <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}} numberOfLines={1}>Import notes</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={()=>{trackEvent('import_aem_interest',{});showAlert('Importer un AEM — bientôt','Très bientôt tu pourras importer ton AEM (depuis Transat, Coffreo, Movinmotion, MyPeopleDoc…) : l\'appli lira ton employeur, tes dates, tes heures et ton brut. Tu vérifieras et corrigeras si besoin, puis ta mission se remplira toute seule.\n\nJe ne veux utiliser aucune IA EN LIGNE qui enverrait tes documents ailleurs ou dont je ne pourrais pas garantir la confidentialité. La lecture se ferait directement sur ton téléphone — le même principe que ton appareil quand il te propose de « copier le texte » d\'une photo — et tes documents ne quittent jamais ton appareil. En cours de développement.');}} activeOpacity={0.85} style={{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.orange,backgroundColor:C.soft}}>
+          <Ionicons name="cloud-upload-outline" size={17} color={C.orange}/>
+          <Text style={{color:C.orange,fontWeight:'800',fontSize:12.5}} numberOfLines={1}>Import AEM</Text>
+        </TouchableOpacity>
+      </View>
 
       <Modal visible={showExport} transparent animationType="fade" onRequestClose={()=>setShowExport(false)}>
         <TouchableOpacity activeOpacity={1} onPress={()=>setShowExport(false)} style={{flex:1,backgroundColor:'rgba(0,0,0,.5)',justifyContent:'center',alignItems:'center',padding:24}}>
@@ -771,10 +810,7 @@ export default function Calendar(){
 
       <View style={s.calTabs}>
         <TouchableOpacity style={[s.calTab,calTab==='missions'&&s.calTabOn]} onPress={()=>setCalTab('missions')}>
-          <Text style={calTab==='missions'?s.calTabTxtOn:s.calTabTxt}>Mes missions du mois</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[s.calTab,calTab==='notes'&&s.calTabOn]} onPress={()=>setCalTab('notes')}>
-          <Text style={calTab==='notes'?s.calTabTxtOn:s.calTabTxt}>Notes perso</Text>
+          <Text style={calTab==='missions'?s.calTabTxtOn:s.calTabTxt}>Mes évènements du mois</Text>
         </TouchableOpacity>
         {monthGeneral.length>0 && (
         <TouchableOpacity style={[s.calTab,calTab==='general'&&s.calTabOn]} onPress={()=>setCalTab('general')}>
@@ -785,9 +821,23 @@ export default function Calendar(){
 
       {calTab==='missions' ? (
       <View style={{paddingHorizontal:16,gap:10}}>
-        {monthMissions.length===0
-          ?<Text style={s.empty}>Aucune mission ce mois-ci.</Text>
-          :visible.map((m:any)=>{
+        {monthEvents.length===0
+          ?<Text style={s.empty}>Aucun évènement ce mois-ci.</Text>
+          :visible.map((ev:any)=>{
+            if(ev.kind==='note'){
+              const n=ev.item;
+              return(
+                <TouchableOpacity key={n.id} style={[s.missionCard,{borderLeftColor:n.color||'#1E6FE0'}]} onPress={()=>setNoteDetail(n)}>
+                  <View style={{flex:1}}>
+                    <Text style={[s.mProd,{color:n.color||C.petrol}]}>{n.title||'Note'}</Text>
+                    {n.text?<Text style={s.mEmission} numberOfLines={1}>{n.text}</Text>:null}
+                    <Text style={s.mDate}>{fmtDate(n.date)}{n.endDate&&n.endDate!==n.date?` → ${fmtDate(n.endDate)}`:''}</Text>
+                  </View>
+                  <Text style={s.dayMenuChevron}>›</Text>
+                </TouchableOpacity>
+              );
+            }
+            const m=ev.item;
             const col=getColor(m.production)||C.petrol;
             return(
               <TouchableOpacity key={m.id} style={[s.missionCard,{borderLeftColor:col}]} onPress={()=>openEdit(m)}>
@@ -822,7 +872,7 @@ export default function Calendar(){
           </View>
         )}
       </View>
-      ) : calTab==='general' ? (
+      ) : (
       <View style={{paddingHorizontal:16,gap:10}}>
         {monthGeneral.length===0
           ?<Text style={s.empty}>Aucun régime général ce mois-ci.</Text>
@@ -839,22 +889,6 @@ export default function Calendar(){
               <TouchableOpacity style={[s.quickDelBtn,{alignSelf:'center'}]} onPress={()=>quickDelete(m)} hitSlop={6}>
                 <Ionicons name="close" size={13} color={C.danger}/>
               </TouchableOpacity>
-            </TouchableOpacity>
-          ))
-        }
-      </View>
-      ) : (
-      <View style={{paddingHorizontal:16,gap:10}}>
-        {monthNotes.length===0
-          ?<Text style={s.empty}>Aucune note ce mois-ci.</Text>
-          :monthNotes.map((n)=>(
-            <TouchableOpacity key={n.id} style={[s.missionCard,{borderLeftColor:n.color||'#1E6FE0'}]} onPress={()=>setNoteDetail(n)}>
-              <View style={{flex:1}}>
-                <Text style={[s.mProd,{color:n.color||C.petrol}]}>{n.title||'Note'}</Text>
-                {n.text?<Text style={s.mEmission} numberOfLines={1}>{n.text}</Text>:null}
-                <Text style={s.mDate}>{fmtDate(n.date)}{n.endDate&&n.endDate!==n.date?` → ${fmtDate(n.endDate)}`:''}</Text>
-              </View>
-              <Text style={s.dayMenuChevron}>›</Text>
             </TouchableOpacity>
           ))
         }
@@ -1005,7 +1039,7 @@ export default function Calendar(){
                     {quickTypeChips(annexe).map(p=>{
                       const on=typeParts(fType).includes(p);
                       return (
-                        <TouchableOpacity key={p} style={[s.typeChip,on&&s.typeChipActive]} onPress={()=>setFType(on?removeType(fType,p):addType(fType,p))}>
+                        <TouchableOpacity key={p} style={[s.typeChip,on&&s.typeChipActive]} onPress={()=>{setFType(typePristine?p:(on?removeType(fType,p):addType(fType,p)));setTypePristine(false);}}>
                           <Text style={on?s.typeChipTxtActive:s.typeChipTxt}>{on?'✓ ':''}{p}</Text>
                         </TouchableOpacity>
                       );
@@ -1019,7 +1053,7 @@ export default function Calendar(){
                           const on=typeParts(fType).includes(p);
                           return (
                             <View key={p} style={[s.typeChip,on&&s.typeChipActive,{flexDirection:'row',alignItems:'center',gap:6}]}>
-                              <TouchableOpacity onPress={()=>setFType(on?removeType(fType,p):addType(fType,p))}><Text style={on?s.typeChipTxtActive:s.typeChipTxt}>{on?'✓ ':''}{p}</Text></TouchableOpacity>
+                              <TouchableOpacity onPress={()=>{setFType(typePristine?p:(on?removeType(fType,p):addType(fType,p)));setTypePristine(false);}}><Text style={on?s.typeChipTxtActive:s.typeChipTxt}>{on?'✓ ':''}{p}</Text></TouchableOpacity>
                               <TouchableOpacity onPress={()=>removePoste(p)} hitSlop={8}><Text style={{color:on?'#fff':C.muted,fontWeight:'900',fontSize:13}}>×</Text></TouchableOpacity>
                             </View>
                           );
@@ -1030,7 +1064,7 @@ export default function Calendar(){
                   <Text style={s.typeGroupLbl}>Ajouter un poste</Text>
                   <View style={{flexDirection:'row',gap:8}}>
                     <TxtInput style={[s.input,{flex:1}]} value={newPoste} onChangeText={setNewPoste} placeholder="Ex : Clown, Cascadeur…" placeholderTextColor={C.muted}/>
-                    <TouchableOpacity style={s.addPosteBtn} onPress={()=>{const v=newPoste.trim();if(v){addPoste(v);setFType(addType(fType,v));setNewPoste('');}}}><Text style={s.addPosteTxt}>Ajouter</Text></TouchableOpacity>
+                    <TouchableOpacity style={s.addPosteBtn} onPress={()=>{const v=newPoste.trim();if(v){addPoste(v);setFType(typePristine?v:addType(fType,v));setTypePristine(false);setNewPoste('');}}}><Text style={s.addPosteTxt}>Ajouter</Text></TouchableOpacity>
                   </View>
                   <TouchableOpacity style={s.typeValidBtn} onPress={()=>setShowTypePicker(false)}><Text style={s.typeValidTxt}>Valider</Text></TouchableOpacity>
                 </View>
@@ -1082,10 +1116,21 @@ export default function Calendar(){
                 </>
               )}
 
-              <Text style={s.label}>{fMode==='cachet'?'Heures payées en heures (facultatif)':'Heures cumulées'}</Text>
-              <NumInput style={s.input} value={fHours} onChangeText={setFHours} placeholder={fMode==='cachet'?'0':'8'} placeholderTextColor={C.muted}/>
-              {fMode==='cachet' && <Text style={s.miniHint}>Répétitions, ateliers… payés en heures et non en cachets, sur ce même contrat. Elles s'ajoutent aux cachets.</Text>}
-              {fMode!=='cachet' && fRegime==='intermittence' && (
+              {fMode==='cachet' ? (
+                <>
+                  <TouchableOpacity onPress={()=>setShowCachetHours(v=>!v)} activeOpacity={0.8} style={{backgroundColor:C.soft,borderWidth:1,borderColor:C.line,borderRadius:10,paddingVertical:11,paddingHorizontal:13,marginTop:4,marginBottom:showCachetHours?8:2}}>
+                    <Text style={{color:C.petrol,fontWeight:'700',fontSize:13}}>{showCachetHours ? '−  Masquer les heures payées à l’heure' : '＋  Heures payées à l’heure (répétitions, ateliers…) — facultatif'}</Text>
+                  </TouchableOpacity>
+                  {showCachetHours && (<>
+                    <NumInput style={s.input} value={fHours} onChangeText={setFHours} placeholder="0" placeholderTextColor={C.muted}/>
+                    <Text style={s.miniHint}>À remplir UNIQUEMENT si tu as des heures payées à l'heure en plus des cachets (répétitions, ateliers…). N'y mets pas la durée de ton cachet : un cachet compte déjà {CACHET_H} h, quelle que soit sa durée réelle. Laisse vide sinon.</Text>
+                  </>)}
+                </>
+              ) : (<>
+                <Text style={s.label}>Heures cumulées</Text>
+                <NumInput style={s.input} value={fHours} onChangeText={setFHours} placeholder="8" placeholderTextColor={C.muted}/>
+              </>)}
+              {fMode!=='cachet' && fRegime==='intermittence' && annexe!=='artiste' && (
               <View style={{flexDirection:'row',flexWrap:'wrap',gap:8,marginTop:8}}>
                 {[4,8,12].map(h=>(
                   <TouchableOpacity key={h} style={[s.mdpTool, fHours===String(h)&&{backgroundColor:C.petrol}]} onPressIn={()=>setFHours(String(h))}>
@@ -1108,7 +1153,16 @@ export default function Calendar(){
               </>)}
 
               <Text style={s.label}>Montant brut (€)</Text>
-              <NumInput style={s.input} value={fGross} onChangeText={setFGross} placeholder="0" placeholderTextColor={C.muted}/>
+              <NumInput style={s.input} value={fGross} onChangeText={(v:string)=>{setGrossTouched(true); setFGross(v);}} placeholder="0" placeholderTextColor={C.muted}/>
+
+              {fRegime==='intermittence' && (
+                <OvertimeSection
+                  annexe={annexe}
+                  production={fProduction}
+                  getRule={getOvertimeRule}
+                  onAdd={(montant, rule)=>{ setFGross(prev=>String(Math.round(((Number(prev)||0)+montant)*100)/100)); rememberOvertimeRule(fProduction, rule); }}
+                />
+              )}
 
               {editId && (<>
               <Text style={s.label}>Net réellement perçu (€) · une fois payé</Text>
@@ -1309,6 +1363,10 @@ export default function Calendar(){
                   <Ionicons name="easel-outline" size={20} color="#0EA5E9"/>
                   <Text style={[s.dmActTxt,{color:'#0EA5E9'}]}>Régime général</Text>
                 </TouchableOpacity>
+                <TouchableOpacity style={[s.dmAct,{borderColor:'#DB2777'}]} activeOpacity={0.8} onPress={()=>{const dd=dayMenu?.date;setDayMenu(null);if(dd){setArretEdit(null);setArretDate(iso(dd));setArretOpen(true);}}}>
+                  <Ionicons name="medkit-outline" size={20} color="#DB2777"/>
+                  <Text style={[s.dmActTxt,{color:'#DB2777'}]}>Arrêt / congé</Text>
+                </TouchableOpacity>
                 <TouchableOpacity style={[s.dmAct,{borderColor:C.green}]} activeOpacity={0.8} onPress={()=>{const dd=dayMenu?.date;setDayMenu(null);if(dd){setQuickDate(iso(dd));setQuickOpen(true);}}}>
                   <Ionicons name="flash-outline" size={22} color={C.green}/>
                   <Text style={[s.dmActTxt,{color:C.green}]}>Saisie rapide</Text>
@@ -1324,8 +1382,9 @@ export default function Calendar(){
 
       <ProdColorManager visible={managerOpen} productions={allProds} onClose={()=>setManagerOpen(false)} />
       <NoteFormModal visible={noteFormOpen} editNote={noteFormEdit} defaultDate={noteFormDate} mode={noteFormMode} onClose={()=>{setNoteFormOpen(false);setNoteFormEdit(null);}} />
+      <ArretFormModal visible={arretOpen} editNote={arretEdit} defaultDate={arretDate} onClose={()=>{setArretOpen(false);setArretEdit(null);}} />
       <QuickEntryModal visible={quickOpen} defaultDate={quickDate} missions={missions} onClose={()=>setQuickOpen(false)} onSaved={()=>loadMissions(true)} />
-      <NoteDetailModal note={noteDetail} onClose={()=>setNoteDetail(null)} onEdit={(n)=>{setNoteDetail(null);setNoteFormEdit(n);setNoteFormDate(n.date);setNoteFormOpen(true);}} />
+      <NoteDetailModal note={noteDetail} onClose={()=>setNoteDetail(null)} onEdit={(n)=>{setNoteDetail(null);if(n.kind==='arret'){setArretEdit(n);setArretDate(n.date);setArretOpen(true);}else{setNoteFormEdit(n);setNoteFormDate(n.date);setNoteFormOpen(true);}}} />
     </ScrollView>
   );
 }

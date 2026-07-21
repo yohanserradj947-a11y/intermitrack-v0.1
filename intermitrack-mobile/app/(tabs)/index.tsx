@@ -212,8 +212,11 @@ export default function HomeScreen(){
     // GLOBALES qu'il partage avec la formation suivie (règle France Travail).
     const ensRaw=Math.round(yearM.filter((m:any)=>regOf(m)==='enseignement').reduce((a:number,m:any)=>a+(Number(m.hours)||0),0)*10)/10;
     const ensH=Math.round(Math.min(ensRaw,ENS_CAP,Math.max(0,FORM_CAP-formH))*10)/10;
+    // Arrêts assimilés (maternité, adoption, AT… = 5 h/jour) dans la fenêtre de droits. Aucun plafond
+    // trouvé dans les annexes 8/10 (art. 3) → pas de min(). Les arrêts « 0 h » (maladie hors contrat) ne pèsent rien.
+    const arretH=Math.round((notes||[]).filter((n:any)=>n.kind==='arret'&&inWin(n.date)).reduce((a:number,n:any)=>a+(Number(n.hours)||0),0)*10)/10;
     // Le régime général « pur » n'entre PAS dans les 507 h — mais bien dans l'estimation mensuelle (monthH plus bas).
-    const remaining=Math.max(0,Math.round((507-doneH-planH-formH-ensH)*10)/10);
+    const remaining=Math.max(0,Math.round((507-doneH-planH-formH-ensH-arretH)*10)/10);
     // Tout le récap du mois suit la MÊME logique : la part de chaque mission qui tombe DANS le mois (au prorata des jours).
     const _mvS=new Date(current.getFullYear(),current.getMonth(),1).getTime(), _mvE=new Date(current.getFullYear(),current.getMonth()+1,0).getTime();
     const monthDays=(m:any)=>{const s=new Date(m.mission_date+'T00:00:00').getTime(),e=new Date((m.end_date||m.mission_date)+'T00:00:00').getTime();const tot=Math.max(1,Math.round((e-s)/86400000)+1);const p=Math.max(s,_mvS),q=Math.min(e,_mvE);const inM=q<p?0:Math.round((q-p)/86400000)+1;return {inM,frac:inM/tot};};
@@ -236,6 +239,10 @@ export default function HomeScreen(){
     const regGenCount=regGenM.length;
     // Formation effectuée ce mois-ci (case dédiée) : notes de type formation datées dans le mois affiché.
     const monthFormH=Math.round((notes||[]).filter((n:any)=>{const d=new Date(n.date+'T00:00:00');return n.kind==='formation'&&d.getMonth()===current.getMonth()&&d.getFullYear()===current.getFullYear();}).reduce((a:number,n:any)=>a+Number(n.hours||0),0)*10)/10;
+    // Arrêts démarrant ce mois-ci (case dédiée) : heures assimilées + nombre, y compris les arrêts « 0 h ».
+    const monthArrets=(notes||[]).filter((n:any)=>{const d=new Date(n.date+'T00:00:00');return n.kind==='arret'&&d.getMonth()===current.getMonth()&&d.getFullYear()===current.getFullYear();});
+    const monthArretH=Math.round(monthArrets.reduce((a:number,n:any)=>a+Number(n.hours||0),0)*10)/10;
+    const monthArretCount=monthArrets.length;
     const monthVac=Math.round(missions.reduce((a:number,m:any)=>{
       if(regOf(m)==='general') return a; // régime général : PAS une vacation d'intermittence (il a sa propre case)
       // Contrat cachet : on compte les CACHETS réellement travaillés dans le mois (cachet_days),
@@ -275,10 +282,10 @@ export default function HomeScreen(){
     // Montant réel du mois : somme des net réellement perçus des missions du mois (proratisés comme le brut).
     const monthNetReel=Math.round(missions.filter(notGen).reduce((a:number,m:any)=>{const md=monthDays(m);return a+((m.net_reel!=null&&md.inM>0)?Number(m.net_reel)*md.frac:0);},0));
     const monthHasNetReel=missions.some((m:any)=>notGen(m)&&m.net_reel!=null&&monthDays(m).inM>0);
-    return { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthNetAvant, monthNetApres, monthVac, monthRate, monthRateNet, monthRateNetAvant, upcoming, winStart, winEnd, hasARE, elapsedFrac, hoursFrac, progressH, monthNetReel, monthHasNetReel, calibrated, learnedRatio };
+    return { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, arretH, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthArretH, monthArretCount, monthNetAvant, monthNetApres, monthVac, monthRate, monthRateNet, monthRateNetAvant, upcoming, winStart, winEnd, hasARE, elapsedFrac, hoursFrac, progressH, monthNetReel, monthHasNetReel, calibrated, learnedRatio };
   },[missions,notes,areDate,yearOffset,current,chargeRate,taxRate]);
 
-  const { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthNetAvant, monthNetApres, monthVac, monthRate, monthRateNet, monthRateNetAvant, upcoming, winStart, winEnd, hasARE, elapsedFrac, hoursFrac, progressH, monthNetReel, monthHasNetReel, calibrated, learnedRatio } = stats;
+  const { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, arretH, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthArretH, monthArretCount, monthNetAvant, monthNetApres, monthVac, monthRate, monthRateNet, monthRateNetAvant, upcoming, winStart, winEnd, hasARE, elapsedFrac, hoursFrac, progressH, monthNetReel, monthHasNetReel, calibrated, learnedRatio } = stats;
   // Clause de rattrapage : échéance = début de l'année d'intermittence + 6 mois.
   const clauseDeadline = (clauseRattrapage && hasARE && winStart) ? (()=>{ const d=new Date(winStart); d.setMonth(d.getMonth()+6); return d; })() : null;
   const clauseDaysLeft = clauseDeadline ? Math.ceil((clauseDeadline.getTime()-new Date(new Date().setHours(0,0,0,0)).getTime())/86400000) : null;
@@ -371,6 +378,13 @@ export default function HomeScreen(){
     await AsyncStorage.setItem('intermitrack_are_date',isoStr);
     const { data:{ user } }=await supabase.auth.getUser();
     if(user) await supabase.from('profiles').upsert({id:user.id,are_date:isoStr},{onConflict:'id'});
+  }
+  // Retirer une date ARE saisie par erreur (retour Joris) : vide le champ partout.
+  async function clearAreDate(){
+    setAreDate(''); setYearOffset(0); setShowDatePicker(false);
+    await AsyncStorage.removeItem('intermitrack_are_date');
+    const { data:{ user } }=await supabase.auth.getUser();
+    if(user) await supabase.from('profiles').upsert({id:user.id,are_date:null},{onConflict:'id'});
   }
 
   // « Mettre à jour » : enregistre d'un coup tous les nets saisis + l'allocation du mois.
@@ -485,6 +499,7 @@ export default function HomeScreen(){
           </Text>
           <Ionicons name="calendar-outline" size={16} color={C.petrol} />
         </TouchableOpacity>
+        {hasARE && <TouchableOpacity onPress={clearAreDate} hitSlop={6} style={{alignSelf:'flex-end',paddingVertical:4}}><Text style={{fontSize:11.5,color:C.danger,textDecorationLine:'underline',fontWeight:'700'}}>Retirer la date</Text></TouchableOpacity>}
         {hasARE
           ?<View style={s.aiNav}>
               <TouchableOpacity style={s.aiNavBtn} onPress={()=>setYearOffset(o=>o-1)}><Ionicons name="chevron-back" size={18} color={C.petrol}/></TouchableOpacity>
@@ -523,7 +538,13 @@ export default function HomeScreen(){
       </View>
 
       <View style={s.chartCard}>
-        <Gauge done={doneH} planned={planH} total={507} formation={formH} enseignement={ensH}/>
+        <Gauge done={doneH} planned={planH} total={507} formation={formH} enseignement={ensH} arret={arretH}/>
+        {planH>0&&(
+          <View style={s.formNote}>
+            <Ionicons name="rocket-outline" size={14} color={C.orange}/>
+            <Text style={s.formNoteTxt}>En comptant tes dates à venir : <Text style={{fontWeight:'800',color:C.text}}>{Math.round((progressH+planH)/507*100)} %</Text> de tes 507 h ({Math.round(progressH/507*100)} % déjà validés · +{Math.round(planH/507*100)} % à venir).</Text>
+          </View>
+        )}
         {hasARE&&(
           <View style={s.paceBox}>
             <View style={s.paceHead}>
@@ -549,6 +570,12 @@ export default function HomeScreen(){
           <View style={s.formNote}>
             <Ionicons name="easel-outline" size={14} color="#0EA5E9"/>
             <Text style={s.formNoteTxt}>Enseignement compté : <Text style={{fontWeight:'800',color:C.text}}>{ensH} h</Text>{ensRaw>ensH?` (${ensRaw} h saisies, plafonnées)`:''}. Plafond 70 h — 120 h à partir de 50 ans. Ce plafond est partagé avec la formation ({FORM_CAP} h au total).</Text>
+          </View>
+        )}
+        {arretH>0&&(
+          <View style={s.formNote}>
+            <Ionicons name="medkit-outline" size={14} color="#DB2777"/>
+            <Text style={s.formNoteTxt}>Arrêts comptés : <Text style={{fontWeight:'800',color:C.text}}>{arretH} h</Text> (5 h/jour, maternité · adoption · accident du travail…). Règle Unédic, annexes 8/10 art. 3 — on continue de la vérifier.</Text>
           </View>
         )}
       </View>
@@ -577,13 +604,16 @@ export default function HomeScreen(){
         {calibrated&&(
           <Text style={s.calibNote}>Net estimé ajusté d'après tes montants réels : tu encaisses ≈ {Math.round((learnedRatio||0)*100)} % du brut.</Text>
         )}
-        {(regGenCount>0 || monthFormH>0) && (
+        {(regGenCount>0 || monthFormH>0 || monthArretCount>0) && (
           <View style={[s.statsGrid,{marginTop:8}]}>
             {regGenCount>0 && (
               <View style={s.statBox}><Text style={s.statVal}>{regGenH}h</Text><Text style={s.statSub}>{regGenCount} déclaration{regGenCount>1?'s':''}</Text><Text style={s.statLbl}>Régime général</Text></View>
             )}
             {monthFormH>0 && (
               <View style={s.statBox}><Text style={s.statVal}>{monthFormH}h</Text><Text style={s.statLbl}>Formation</Text></View>
+            )}
+            {monthArretCount>0 && (
+              <View style={s.statBox}><Text style={s.statVal}>{monthArretH}h</Text><Text style={s.statSub}>{monthArretCount} arrêt{monthArretCount>1?'s':''}</Text><Text style={s.statLbl}>Arrêts</Text></View>
             )}
           </View>
         )}

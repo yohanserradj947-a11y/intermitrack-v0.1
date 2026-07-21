@@ -11,6 +11,7 @@ import { ProdColorsProvider } from '../lib/prodColors';
 import { NotesProvider } from '../lib/notes';
 import { PostesProvider } from '../lib/postes';
 import { PriceMemoryProvider } from '../lib/priceMemory';
+import { OvertimeMemoryProvider } from '../lib/overtimeMemory';
 
 // Applique les mises à jour à distance (OTA) AUTOMATIQUEMENT au lancement :
 // l'app vérifie → télécharge → se recharge seule. Fini la manip "fermer/rouvrir 2 fois".
@@ -79,9 +80,11 @@ export default function RootLayout() {
               <NotesProvider>
                 <PostesProvider>
                   <PriceMemoryProvider>
-                    <RootNavigator />
-                    <DialogHost />
-                    {updating && <UpdateScreen />}
+                    <OvertimeMemoryProvider>
+                      <RootNavigator />
+                      <DialogHost />
+                      {updating && <UpdateScreen />}
+                    </OvertimeMemoryProvider>
                   </PriceMemoryProvider>
                 </PostesProvider>
               </NotesProvider>

@@ -8,6 +8,7 @@ import { SwipeHint } from '@/components/swipe-hint';
 import { AccountMenu } from '@/components/AccountMenu';
 import ProfileSetupModal from '@/components/ProfileSetupModal';
 import OnboardingTour from '@/components/OnboardingTour';
+import { NotificationsSync } from '@/lib/notifications';
 import ThemeBackdrop from '@/components/ThemeBackdrop';
 import { useTheme } from '@/lib/theme';
 import { PremiumProvider } from '@/lib/premium';
@@ -128,6 +129,7 @@ export default function TabLayout() {
     <AccountMenu />
     <ProfileSetupModal />
     <OnboardingTour />
+    <NotificationsSync />
     </View>
     </PremiumProvider>
   );

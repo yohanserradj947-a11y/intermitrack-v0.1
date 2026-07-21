@@ -9,6 +9,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useTrackView } from '../../lib/analytics';
 import DonutChart from '../../components/DonutChart';
+import OvertimeSection from '../../components/OvertimeSection';
+import { useOvertimeMemory } from '../../lib/overtimeMemory';
 import NumInput from '../../components/NumInput';
 import KmSection, { KmHandle } from '../../components/KmSection';
 import { GradientButton } from '../../components/GradientButton';
@@ -43,6 +45,7 @@ export default function Missions(){
   const [colorPickerOpen,setColorPickerOpen]=useState(false);
   const { postes, addPoste, removePoste } = usePostes();
   const { rememberPrice, getProdRate, setProdRate } = usePriceMemory();
+  const { getOvertimeRule, rememberOvertimeRule } = useOvertimeMemory();
   const [fLieu,setFLieu]=useState('');
   const [showLieuSuggest,setShowLieuSuggest]=useState(false);
   const [newPoste,setNewPoste]=useState('');
@@ -55,6 +58,7 @@ export default function Missions(){
   const [tarifVal,setTarifVal]=useState('');
   const [prodColorPickOpen,setProdColorPickOpen]=useState(false);
   const [savingProd,setSavingProd]=useState(false);
+  const [showAllMerge,setShowAllMerge]=useState(false);
   const [period,setPeriod]=useState<'all'|'year'|'custom'|'month'|'ai'>('all');
   const [customYear,setCustomYear]=useState(new Date().getFullYear());
   const [monthRef,setMonthRef]=useState(new Date()); // filtre « Mois »
@@ -323,7 +327,7 @@ export default function Missions(){
           <View style={{flex:1}}>
             <Text style={s.detailTitle}>{prod.name}</Text>
             <Text style={s.detailSub}>{prod.count} mission{prod.count>1?'s':''} enregistrée{prod.count>1?'s':''}</Text>
-            <TouchableOpacity onPress={()=>{setRenameVal(prod.name);setTarifVal(getProdRate(prod.name)?String(getProdRate(prod.name)):'');setProdEditOpen(true);}} style={{flexDirection:'row',alignItems:'center',gap:5,marginTop:6}} hitSlop={6}>
+            <TouchableOpacity onPress={()=>{setRenameVal(prod.name);setTarifVal(getProdRate(prod.name)?String(getProdRate(prod.name)):'');setShowAllMerge(false);setProdEditOpen(true);}} style={{flexDirection:'row',alignItems:'center',gap:5,marginTop:6}} hitSlop={6}>
               <Ionicons name="create-outline" size={14} color={C.petrol}/>
               <Text style={{fontSize:12.5,fontWeight:'800',color:C.petrol,textDecorationLine:'underline'}}>Modifier nom / couleur · fusionner · supprimer</Text>
             </TouchableOpacity>
@@ -378,12 +382,18 @@ export default function Missions(){
                 <TouchableOpacity style={s.colorAdd} onPress={()=>setProdColorPickOpen(true)}><Text style={s.colorAddTxt}>+</Text></TouchableOpacity>
               </View>
               <TouchableOpacity style={[s.saveBtn,savingProd&&{opacity:0.5}]} disabled={savingProd} onPress={()=>saveProdEdit(prod)}><Text style={s.saveBtnTxt}>{savingProd?'Enregistrement…':'Enregistrer'}</Text></TouchableOpacity>
+
+              <View style={{marginTop:16,borderTopWidth:1,borderTopColor:C.line,paddingTop:6}}>
+                <OvertimeSection variant="config" annexe={annexe} production={prod.name} getRule={getOvertimeRule} onSave={(rule)=>rememberOvertimeRule(renameVal.trim().toUpperCase()||prod.name, rule)} />
+              </View>
+
               {(() => {
                 // Score de ressemblance : exact (100) > préfixe commun (85) > inclusion (70) > lettres de début en commun.
                 const me=_sig(prod.name);
                 const score=(o:string)=>{ const a=me,b=_sig(o); if(!a||!b)return 0; if(a===b)return 100; if(a.startsWith(b)||b.startsWith(a))return 85; const ml=Math.min(a.length,b.length); if(ml>=3&&(a.includes(b)||b.includes(a)))return 70; let i=0; while(i<a.length&&i<b.length&&a[i]===b[i])i++; return i>=2?40+i:0; };
                 const others=sorted.filter((p:any)=>p.name!==prod.name).map((p:any)=>({...p,_sc:score(p.name)})).sort((a:any,b:any)=>b._sc-a._sc);
                 const dupes=others.filter((p:any)=>p._sc>=70);
+                const rest=others.filter((p:any)=>p._sc<70);
                 return (
                   <View style={{marginTop:18,borderTopWidth:1,borderTopColor:C.line,paddingTop:16}}>
                     {dupes.length>0 && (
@@ -400,17 +410,24 @@ export default function Missions(){
                         ))}
                       </View>
                     )}
-                    {others.length>0 && (
+                    {rest.length>0 && (
                       <>
                         <Text style={s.label}>Fusionner avec une autre production</Text>
                         <Text style={{fontSize:11,color:C.muted,marginTop:4,marginBottom:8}}>Les missions de cette production seront rattachées à celle que tu choisis.</Text>
-                        <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>
-                          {others.map((o:any)=>(
-                            <TouchableOpacity key={o.name} onPress={()=>confirmMerge(prod,o.name)} style={{borderWidth:1,borderColor:C.line,borderRadius:20,paddingVertical:7,paddingHorizontal:13,backgroundColor:C.soft,maxWidth:'100%'}}>
-                              <Text style={{fontSize:12.5,fontWeight:'700',color:C.petrol}} numberOfLines={1}>{o.name}</Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
+                        {!showAllMerge ? (
+                          <TouchableOpacity onPress={()=>setShowAllMerge(true)} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6,paddingVertical:10,borderRadius:11,borderWidth:1,borderColor:C.line,backgroundColor:C.soft}}>
+                            <Text style={{fontSize:12.5,fontWeight:'800',color:C.petrol}}>Voir toutes les productions ({rest.length})</Text>
+                            <Ionicons name="chevron-down" size={15} color={C.petrol}/>
+                          </TouchableOpacity>
+                        ) : (
+                          <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>
+                            {rest.map((o:any)=>(
+                              <TouchableOpacity key={o.name} onPress={()=>confirmMerge(prod,o.name)} style={{borderWidth:1,borderColor:C.line,borderRadius:20,paddingVertical:7,paddingHorizontal:13,backgroundColor:C.soft,maxWidth:'100%'}}>
+                                <Text style={{fontSize:12.5,fontWeight:'700',color:C.petrol}} numberOfLines={1}>{o.name}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        )}
                       </>
                     )}
                     <TouchableOpacity onPress={()=>deleteProd(prod)} style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,marginTop:16,paddingVertical:11,borderRadius:11,borderWidth:1.5,borderColor:C.danger+'55'}}>

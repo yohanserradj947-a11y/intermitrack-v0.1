@@ -3,11 +3,41 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 import { useSession } from './auth';
 
-// kind: 'note' (défaut) ou 'formation'. Une formation = une note avec des heures qui comptent
-// dans les 507 h (plafond 338 h). Stockée dans le même JSON profiles.notes → aucune modif de base.
-export type Note = { id: string; date: string; endDate: string; title: string; text: string; color: string; kind?: 'note' | 'formation'; hours?: number };
+// kind: 'note' (défaut), 'formation' ou 'arret'. Formation ET arrêt = une note avec des heures qui
+// comptent dans les 507 h. Stockées dans le même JSON profiles.notes → aucune table, aucune migration.
+export type ArretType = 'maternite' | 'paternite' | 'adoption' | 'accident_travail' | 'maladie';
+export type Note = { id: string; date: string; endDate: string; title: string; text: string; color: string; kind?: 'note' | 'formation' | 'arret'; hours?: number; arretType?: ArretType; pendantContrat?: boolean };
 
 export function isFormation(n: Note) { return n.kind === 'formation'; }
+export function isArret(n: Note) { return n.kind === 'arret'; }
+
+// Métadonnées d'affichage des arrêts. `ask` = on demande « pendant une mission ou entre deux ? »
+// (uniquement quand le calcul en dépend : maladie et paternité).
+export const ARRET_META: Record<ArretType, { label: string; icon: string; color: string; ask: boolean }> = {
+  maternite:        { label: 'Congé maternité',   icon: 'woman-outline',   color: '#DB2777', ask: false },
+  paternite:        { label: 'Congé paternité',   icon: 'man-outline',     color: '#2563EB', ask: false },
+  adoption:         { label: 'Congé adoption',    icon: 'heart-outline',   color: '#0D9488', ask: false },
+  accident_travail: { label: 'Accident du travail', icon: 'bandage-outline', color: '#DC2626', ask: false },
+  maladie:          { label: 'Arrêt maladie',     icon: 'medkit-outline',  color: '#D97706', ask: false },
+};
+export const ARRET_ORDER: ArretType[] = ['maternite', 'paternite', 'adoption', 'accident_travail', 'maladie'];
+
+// Nombre de jours (bornes incluses) d'un arrêt.
+export function daysInclusive(startISO: string, endISO: string) {
+  const a = new Date(startISO + 'T00:00:00').getTime();
+  const b = new Date((endISO || startISO) + 'T00:00:00').getTime();
+  return Math.max(1, Math.round((b - a) / 86400000) + 1);
+}
+
+// Heures assimilées PAR JOUR d'arrêt pour les 507 h.
+// Pour l'instant : AUCUN arrêt ne compte d'heures. Les formules exactes (maternité, adoption,
+// accident du travail, maladie, paternité) sont EN COURS DE VÉRIFICATION sur source primaire.
+// Intuition à confirmer : le statut est surtout PROTÉGÉ / mis en pause et l'indemnisation vient
+// de la Sécu, plutôt qu'un cumul d'heures (peu crédible : un congé mat = 560 h sinon). On ne
+// compte donc rien pour ne pas induire en erreur ; on rebranchera les bons taux une fois tranché.
+export function arretHoursPerDay(_type: ArretType, _pendantContrat?: boolean): number {
+  return 0;
+}
 
 // 5 couleurs de note (identiques au site).
 export const NOTE_PRESETS = ['#1E6FE0', '#F0552B', '#15B86B', '#F59E0B', '#7C3AED'];

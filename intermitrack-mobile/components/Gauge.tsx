@@ -19,27 +19,30 @@ function arc(cx: number, cy: number, r: number, startFrac: number, endFrac: numb
 
 const FORM_COLOR = '#7C3AED'; // accent formation (agrégat de la jauge uniquement, pas la couleur des formations sur le calendrier)
 const ENS_COLOR = '#0EA5E9';  // accent enseignement (régime général qui compte dans les 507 h) — bleu ciel, tranche avec le pétrole et le violet
+const ARRET_COLOR = '#DB2777'; // accent arrêts (maternité, AT…) assimilés aux 507 h — rose, distinct des autres tranches
 
-export default function Gauge({ done, planned, total, formation = 0, enseignement = 0 }:
-  { done: number; planned: number; total: number; formation?: number; enseignement?: number }) {
+export default function Gauge({ done, planned, total, formation = 0, enseignement = 0, arret = 0 }:
+  { done: number; planned: number; total: number; formation?: number; enseignement?: number; arret?: number }) {
   const C = useTheme();
   const g = useMemo(() => makeG(C), [C]);
-  // Fractions pour le TRACÉ de l'arc (plafonnées à un demi-cercle plein) : effectué → formation → enseignement → prévu
+  // Fractions pour le TRACÉ de l'arc (plafonnées à un demi-cercle plein) : effectué → formation → arrêt → enseignement → prévu
   const doneP = Math.max(0, Math.min(done / total, 1));
   const formP = Math.max(0, Math.min(formation / total, 1 - doneP));
-  const ensP = Math.max(0, Math.min(enseignement / total, 1 - doneP - formP));
-  const planP = Math.max(0, Math.min(planned / total, 1 - doneP - formP - ensP));
+  const arretP = Math.max(0, Math.min(arret / total, 1 - doneP - formP));
+  const ensP = Math.max(0, Math.min(enseignement / total, 1 - doneP - formP - arretP));
+  const planP = Math.max(0, Math.min(planned / total, 1 - doneP - formP - arretP - ensP));
   // Pourcentages AFFICHÉS : non plafonnés (peuvent dépasser 100 %)
   const donePct = Math.round((Math.max(0, done) / total) * 100);
   const planPct = Math.round((Math.max(0, planned) / total) * 100);
-  const totalPct = Math.round(((Math.max(0, done) + Math.max(0, formation) + Math.max(0, enseignement) + Math.max(0, planned)) / total) * 100);
+  const totalPct = Math.round(((Math.max(0, done) + Math.max(0, formation) + Math.max(0, arret) + Math.max(0, enseignement) + Math.max(0, planned)) / total) * 100);
   const reached = totalPct >= 100;
   // Heures AFFICHÉES (chiffres exacts, pas que des %)
   const doneH = Math.round(Math.max(0, done));
   const planH = Math.round(Math.max(0, planned));
   const formH = Math.round(Math.max(0, formation));
   const ensH = Math.round(Math.max(0, enseignement));
-  const totalH = doneH + formH + ensH + planH;
+  const arretH = Math.round(Math.max(0, arret));
+  const totalH = doneH + formH + arretH + ensH + planH;
 
   const W = 260, H = 150, cx = 130, cy = 138, r = 108, sw = 22;
 
@@ -49,10 +52,13 @@ export default function Gauge({ done, planned, total, formation = 0, enseignemen
         <Svg width={W} height={H}>
           <Path d={arc(cx, cy, r, 0, 1)} stroke={C.track} strokeWidth={sw} fill="none" strokeLinecap="round" />
           {planP > 0 && (
-            <Path d={arc(cx, cy, r, 0, doneP + formP + ensP + planP)} stroke={C.orange} strokeWidth={sw} fill="none" strokeLinecap="round" />
+            <Path d={arc(cx, cy, r, 0, doneP + formP + arretP + ensP + planP)} stroke={C.orange} strokeWidth={sw} fill="none" strokeLinecap="round" />
           )}
           {ensP > 0 && (
-            <Path d={arc(cx, cy, r, 0, doneP + formP + ensP)} stroke={ENS_COLOR} strokeWidth={sw} fill="none" strokeLinecap="round" />
+            <Path d={arc(cx, cy, r, 0, doneP + formP + arretP + ensP)} stroke={ENS_COLOR} strokeWidth={sw} fill="none" strokeLinecap="round" />
+          )}
+          {arretP > 0 && (
+            <Path d={arc(cx, cy, r, 0, doneP + formP + arretP)} stroke={ARRET_COLOR} strokeWidth={sw} fill="none" strokeLinecap="round" />
           )}
           {formP > 0 && (
             <Path d={arc(cx, cy, r, 0, doneP + formP)} stroke={FORM_COLOR} strokeWidth={sw} fill="none" strokeLinecap="round" />
@@ -69,6 +75,7 @@ export default function Gauge({ done, planned, total, formation = 0, enseignemen
       <View style={g.legends}>
         <View style={g.leg}><View style={[g.dot, { backgroundColor: C.petrol }]} /><Text style={g.legTxt} numberOfLines={1}>Effectué · {donePct}%</Text></View>
         {formation > 0 && <View style={g.leg}><View style={[g.dot, { backgroundColor: FORM_COLOR }]} /><Text style={g.legTxt} numberOfLines={1}>Formation</Text></View>}
+        {arret > 0 && <View style={g.leg}><View style={[g.dot, { backgroundColor: ARRET_COLOR }]} /><Text style={g.legTxt} numberOfLines={1}>Arrêt</Text></View>}
         {enseignement > 0 && <View style={g.leg}><View style={[g.dot, { backgroundColor: ENS_COLOR }]} /><Text style={g.legTxt} numberOfLines={1}>Enseignement</Text></View>}
         <View style={g.leg}><View style={[g.dot, { backgroundColor: C.orange }]} /><Text style={g.legTxt} numberOfLines={1}>Prévu · {planPct}%</Text></View>
         <View style={g.leg}><View style={[g.dot, { backgroundColor: C.track }]} /><Text style={[g.legTxt, { color: C.muted }]} numberOfLines={1}>Restant</Text></View>
