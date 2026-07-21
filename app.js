@@ -3760,7 +3760,8 @@ function renderAllMissions() {
   });
   _atArtH = Math.round(_atArtH * 10) / 10; _atTechH = Math.round(_atTechH * 10) / 10; _atArtCachets = Math.round(_atArtCachets * 10) / 10;
   const _atTot = _atArtH + _atTechH;
-  const _atCard = _atTot > 0 ? `
+  // Donut affiché UNIQUEMENT si l'utilisateur a les DEUX types (sinon inutile pour un pur technicien/artiste).
+  const _atCard = (_atArtH > 0 && _atTechH > 0) ? `
     <div style="margin-bottom:14px;padding:14px;border-radius:16px;background:var(--soft);border:1px solid var(--line);">
       <div style="font-size:13px;font-weight:800;color:var(--petrol);margin-bottom:10px;">Artiste vs Technicien</div>
       <div style="display:flex;align-items:center;gap:16px;">
