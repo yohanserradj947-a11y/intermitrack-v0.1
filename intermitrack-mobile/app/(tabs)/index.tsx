@@ -263,6 +263,21 @@ export default function HomeScreen(){
       const v=Number(m.vacations);
       return a+(v>0?v*md.frac:md.inM);
     },0)); // 1 vacation = 1 jour ; cachet = cachet_days ; sinon vacations saisies
+    // Split du mois : jours « technicien » (heures) vs « cachets » (artiste), pour afficher les cachets
+    // dès qu'il y en a (artiste seul → Cachets ; les deux → Vacations + Cachets). Même logique que monthVac.
+    let monthTechVac=0, monthCachetsVac=0;
+    missions.forEach((m:any)=>{
+      if(regOf(m)==='general') return;
+      if(m.cachet_days && typeof m.cachet_days==='object' && !Array.isArray(m.cachet_days)){
+        let c=0; for(const k in m.cachet_days){ const t=new Date(k+'T00:00:00').getTime(); if(t>=_mvS&&t<=_mvE) c+=Number(m.cachet_days[k])||0; } monthCachetsVac+=c; return;
+      }
+      const md=monthDays(m);
+      const val=m.mission_type==='Saisie rapide'?(md.inM>0?(Number(m.vacations)||1):0)
+        :(Number(m.vacations)>0?Number(m.vacations)*md.frac:md.inM);
+      const h=Number(m.hours)||0, vv=Number(m.vacations)||0;
+      if(vv>0 && h>=vv*12-0.6) monthCachetsVac+=val; else monthTechVac+=val;
+    });
+    monthTechVac=Math.round(monthTechVac*10)/10; monthCachetsVac=Math.round(monthCachetsVac*10)/10;
     // Récap affiché = INTERMITTENCE (monthHi/monthGi) ; le régime général a sa propre case.
     const monthRate=monthHi>0?Math.round(monthGi/monthHi):0;
     // Net à payer estimé = brut − charges salariales − prélèvement à la source
@@ -290,10 +305,14 @@ export default function HomeScreen(){
     // Montant réel du mois : somme des net réellement perçus des missions du mois (proratisés comme le brut).
     const monthNetReel=Math.round(missions.filter(notGen).reduce((a:number,m:any)=>{const md=monthDays(m);return a+((m.net_reel!=null&&md.inM>0)?Number(m.net_reel)*md.frac:0);},0));
     const monthHasNetReel=missions.some((m:any)=>notGen(m)&&m.net_reel!=null&&monthDays(m).inM>0);
-    return { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, arretH, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthArretH, monthArretCount, monthNetAvant, monthNetApres, monthVac, monthRate, monthRateNet, monthRateNetAvant, upcoming, winStart, winEnd, hasARE, elapsedFrac, hoursFrac, progressH, monthNetReel, monthHasNetReel, calibrated, learnedRatio, techSplitH, artSplitH, artSplitCachets };
+    return { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, arretH, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthArretH, monthArretCount, monthNetAvant, monthNetApres, monthVac, monthTechVac, monthCachetsVac, monthRate, monthRateNet, monthRateNetAvant, upcoming, winStart, winEnd, hasARE, elapsedFrac, hoursFrac, progressH, monthNetReel, monthHasNetReel, calibrated, learnedRatio, techSplitH, artSplitH, artSplitCachets };
   },[missions,notes,areDate,yearOffset,current,chargeRate,taxRate]);
 
-  const { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, arretH, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthArretH, monthArretCount, monthNetAvant, monthNetApres, monthVac, monthRate, monthRateNet, monthRateNetAvant, upcoming, winStart, winEnd, hasARE, elapsedFrac, hoursFrac, progressH, monthNetReel, monthHasNetReel, calibrated, learnedRatio, techSplitH, artSplitH, artSplitCachets } = stats;
+  const { doneH, planH, remaining, formH, formRaw, ensH, ensRaw, arretH, monthH, monthG, monthHi, monthGi, regGenH, regGenCount, monthFormH, monthArretH, monthArretCount, monthNetAvant, monthNetApres, monthTechVac, monthCachetsVac, monthRate, monthRateNet, monthRateNetAvant, upcoming, winStart, winEnd, hasARE, elapsedFrac, hoursFrac, progressH, monthNetReel, monthHasNetReel, calibrated, learnedRatio, techSplitH, artSplitH, artSplitCachets } = stats;
+  // Dashboard : Cachets affichés dès qu'il y en a. Case principale = Cachets si QUE du cachet (ou profil
+  // artiste sans mission ce mois), sinon Vacations ; case Cachets EN PLUS uniquement s'il fait les deux.
+  const _dashLesDeux = monthCachetsVac>0 && monthTechVac>0;
+  const _dashShowCachetMain = (monthCachetsVac>0 && monthTechVac===0) || (monthCachetsVac===0 && monthTechVac===0 && profil?.annexe==='artiste');
   // Clause de rattrapage : échéance = début de l'année d'intermittence + 6 mois.
   const clauseDeadline = (clauseRattrapage && hasARE && winStart) ? (()=>{ const d=new Date(winStart); d.setMonth(d.getMonth()+6); return d; })() : null;
   const clauseDaysLeft = clauseDeadline ? Math.ceil((clauseDeadline.getTime()-new Date(new Date().setHours(0,0,0,0)).getTime())/86400000) : null;
@@ -623,7 +642,8 @@ export default function HomeScreen(){
         <View style={s.statsGrid}>
           <View style={s.statBox}><Text style={s.statVal}>{monthHi}h</Text><Text style={s.statLbl}>Heures</Text></View>
           <View style={s.statBox}><Text style={s.statVal}>{money((taxRate>0||calibrated)?monthNetApres:monthNetAvant)}</Text><Text style={s.statSub}>Brut {money(monthGi)}{(taxRate>0||calibrated)?` · net ${money(monthNetAvant)}`:''}</Text><Text style={s.statLbl}>{(taxRate>0||calibrated)?'Net après impôt (est.)':'Net à payer (est.)'}</Text></View>
-          <View style={s.statBox}><Text style={s.statVal}>{monthVac}</Text><Text style={s.statLbl}>Vacations</Text></View>
+          <View style={s.statBox}><Text style={s.statVal}>{_dashShowCachetMain?monthCachetsVac:monthTechVac}</Text><Text style={s.statLbl}>{_dashShowCachetMain?'Cachets':'Vacations'}</Text></View>
+          {_dashLesDeux&&(<View style={s.statBox}><Text style={s.statVal}>{monthCachetsVac}</Text><Text style={s.statLbl}>Cachets</Text></View>)}
           <View style={s.statBox}><Text style={s.statVal}>{money(monthRateNet)}/h</Text><Text style={s.statSub}>Brut {money(monthRate)}/h{(taxRate>0||calibrated)?` · net ${money(monthRateNetAvant)}/h`:''}</Text><Text style={s.statLbl}>{(taxRate>0||calibrated)?'€/h après impôt (est.)':'Moyenne €/h (net est.)'}</Text></View>
         </View>
         {calibrated&&(
