@@ -568,7 +568,7 @@ export default function HomeScreen(){
             <Text style={s.paceStatus}>{Math.round(elapsedFrac*100)}% de l'année écoulée · <Text style={{color:paceColor}}>{paceLabel}</Text></Text>
           </View>
         )}
-        {(techSplitH>0||artSplitH>0)&&(
+        {(techSplitH>0&&artSplitH>0)&&(
           <View style={s.paceBox}>
             <Text style={{fontSize:12,fontWeight:'800',color:C.text,marginBottom:8}}>Artiste vs Technicien (cette année)</Text>
             <View style={{flexDirection:'row',gap:10}}>
