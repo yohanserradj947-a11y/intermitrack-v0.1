@@ -1367,13 +1367,137 @@ async function loadMissions() {
     vacations: Number(x.vacations || Math.round((x.hours || 0) / 8)),
     emission: x.emission || "", lieu: x.lieu || "",
     regime: x.regime || "intermittence", cachet_days: x.cachet_days || null,
+    net_reel: x.net_reel != null ? Number(x.net_reel) : null,
     // Adresses des frais km : enregistrées depuis le 15/07/2026 seulement. Avant, seuls
     // distance/taux/montant l'étaient — d'où « les adresses n'apparaissent pas à l'édition ».
     kmFrom: x.km_from || "", kmTo: x.km_to || "",
     kmFromLat: x.km_from_lat, kmFromLng: x.km_from_lng,
     kmToLat: x.km_to_lat, kmToLng: x.km_to_lng
   }));
+  // Allocation France Travail réellement versée par mois (montants réels). try/catch : si la table
+  // n'existe pas encore pour ce compte, l'appli continue sans planter.
+  try {
+    const { data: av } = await sb.from("are_versements").select("mois,montant");
+    areVerse = {};
+    (av || []).forEach((r) => { areVerse[r.mois] = Number(r.montant || 0); });
+  } catch (_) {}
   render();
+}
+// ARE réellement versé, par mois 'AAAA-MM' (rempli par loadMissions, saisi dans « Montants réels du mois »).
+var areVerse = {};
+
+// ===== Montants réels du mois (dashboard) — reproduction fidèle de l'app =====
+var _reelSaving = false;
+function _reelMoisKey(cur) { return cur.getFullYear() + "-" + String(cur.getMonth() + 1).padStart(2, "0"); }
+// Regroupe les missions d'intermittence du mois par PRODUCTION (le net se saisit par prod, comme l'app).
+function _reelGroups(list) {
+  const groups = {};
+  (list || []).forEach((m) => {
+    if ((m.regime || "intermittence") !== "intermittence") return;
+    const key = (String(m.production || "").trim().toUpperCase()) || "—";
+    if (!groups[key]) groups[key] = { key, prod: m.production || "Sans nom", brut: 0, missions: [] };
+    groups[key].brut += Number(m.gross || 0);
+    groups[key].missions.push(m);
+  });
+  return Object.values(groups);
+}
+function renderMontantsReels(list, cur) {
+  const box = $("reelBox"); if (!box) return;
+  const rowsEl = $("reelRows"); if (!rowsEl) return;
+  const moisKey = _reelMoisKey(cur);
+  box.dataset.mois = moisKey;
+  const groups = _reelGroups(list);
+  if (!groups.length) {
+    rowsEl.innerHTML = '<div class="reel-empty">Aucune mission ce mois-ci.</div>';
+  } else {
+    rowsEl.innerHTML = groups.map((g) => {
+      const saved = g.missions.reduce((a, m) => a + (m.net_reel != null ? Number(m.net_reel) : 0), 0);
+      const hasNet = g.missions.some((m) => m.net_reel != null);
+      const val = hasNet ? String(Math.round(saved * 100) / 100) : "";
+      return '<div class="reel-row" data-prodkey="' + encodeURIComponent(g.key) + '">'
+        + '<div style="flex:1;min-width:0;"><span class="reel-prod">' + escapeHtml(g.prod) + '</span>'
+        + '<span class="reel-brut">brut ' + money(Math.round(g.brut)) + (g.missions.length > 1 ? " · " + g.missions.length + " missions" : "") + '</span></div>'
+        + '<input class="reel-input reel-net" inputmode="decimal" autocomplete="off" placeholder="net €" value="' + val + '"/>'
+        + '</div>';
+    }).join("");
+  }
+  const areEl = $("reelAreInput");
+  if (areEl && document.activeElement !== areEl) areEl.value = (areVerse[moisKey] != null && areVerse[moisKey] !== 0) ? String(areVerse[moisKey]) : "";
+  const netReelMonth = (list || []).filter((m) => (m.regime || "intermittence") === "intermittence").reduce((a, m) => a + (m.net_reel != null ? Number(m.net_reel) : 0), 0);
+  const areMonth = Number(areVerse[moisKey] || 0);
+  const hasReel = (list || []).some((m) => m.net_reel != null) || areMonth > 0;
+  const tw = $("reelTotalWrap");
+  if (tw) tw.innerHTML = hasReel
+    ? '<div class="reel-total"><span class="reel-total-lbl">Total réel du mois</span><span class="reel-total-val">' + money(Math.round(netReelMonth + areMonth)) + '</span></div>'
+      + '<div class="reel-sub">net réel ' + money(Math.round(netReelMonth)) + ' + allocation versée ' + money(Math.round(areMonth)) + '</div>'
+    : "";
+  if (!box.dataset.init) {
+    box.dataset.init = "1";
+    if ($("reelSaveBtn")) $("reelSaveBtn").addEventListener("click", saveAllReal);
+    if ($("reelResetBtn")) $("reelResetBtn").addEventListener("click", resetReal);
+  }
+}
+async function saveAllReal() {
+  if (_reelSaving) return;
+  const box = $("reelBox"); if (!box) return;
+  const moisKey = box.dataset.mois; if (!moisKey) return;
+  _reelSaving = true;
+  const btn = $("reelSaveBtn"); if (btn) { btn.disabled = true; btn.textContent = "Enregistrement…"; }
+  try {
+    const { data: { user } } = await sb.auth.getUser();
+    const cur = new Date(Number(moisKey.slice(0, 4)), Number(moisKey.slice(5, 7)) - 1, 1);
+    const groups = _reelGroups(monthMissions(cur));
+    const parseNet = (raw) => String(raw).trim() === "" ? null : (Number(String(raw).replace(",", ".")) || 0);
+    const updates = [];
+    box.querySelectorAll(".reel-row[data-prodkey]").forEach((row) => {
+      const key = decodeURIComponent(row.dataset.prodkey);
+      const g = groups.find((x) => x.key === key); if (!g) return;
+      const input = row.querySelector(".reel-net"); if (!input) return;
+      const total = parseNet(input.value);
+      if (total === null) { g.missions.forEach((m) => updates.push({ id: m.id, net: null })); return; }
+      const brutSum = g.missions.reduce((a, m) => a + Number(m.gross || 0), 0);
+      g.missions.forEach((m) => {
+        const share = brutSum > 0 ? Number(m.gross || 0) / brutSum : 1 / g.missions.length;
+        updates.push({ id: m.id, net: Math.round(total * share * 100) / 100 });
+      });
+    });
+    for (const u of updates) { const { error } = await sb.from("missions").update({ net_reel: u.net }).eq("id", u.id); if (error) throw error; }
+    const areEl = $("reelAreInput");
+    const av = (!areEl || areEl.value.trim() === "") ? 0 : (Number(areEl.value.replace(",", ".")) || 0);
+    if (user) {
+      const r = av === 0
+        ? await sb.from("are_versements").delete().eq("user_id", user.id).eq("mois", moisKey)
+        : await sb.from("are_versements").upsert({ user_id: user.id, mois: moisKey, montant: av }, { onConflict: "user_id,mois" });
+      if (r.error) throw r.error;
+    }
+    missions = missions.map((m) => { const u = updates.find((x) => x.id === m.id); return u ? Object.assign({}, m, { net_reel: u.net }) : m; });
+    if (av === 0) delete areVerse[moisKey]; else areVerse[moisKey] = av;
+    toast("Montants réels du mois mis à jour.");
+    render();
+  } catch (e) {
+    toast("L'enregistrement n'a pas pu aboutir. Réessaie dans un instant.");
+  } finally {
+    _reelSaving = false;
+    const b = $("reelSaveBtn"); if (b) { b.disabled = false; b.textContent = "Mettre à jour"; }
+  }
+}
+function resetReal() {
+  const box = $("reelBox"); if (!box) return;
+  const moisKey = box.dataset.mois; if (!moisKey) return;
+  if (!confirm("Réinitialiser ?\n\nCela efface les montants réels saisis pour ce mois (nets + allocation). Ton brut et tes missions ne changent pas.")) return;
+  (async () => {
+    try {
+      const { data: { user } } = await sb.auth.getUser();
+      const cur = new Date(Number(moisKey.slice(0, 4)), Number(moisKey.slice(5, 7)) - 1, 1);
+      const list = monthMissions(cur).filter((m) => (m.regime || "intermittence") === "intermittence");
+      for (const m of list) { if (m.net_reel != null) { const { error } = await sb.from("missions").update({ net_reel: null }).eq("id", m.id); if (error) throw error; } }
+      if (user) await sb.from("are_versements").delete().eq("user_id", user.id).eq("mois", moisKey);
+      missions = missions.map((m) => list.find((x) => x.id === m.id) ? Object.assign({}, m, { net_reel: null }) : m);
+      delete areVerse[moisKey];
+      toast("Montants du mois réinitialisés.");
+      render();
+    } catch (e) { toast("La réinitialisation a échoué. Réessaie."); }
+  })();
 }
 
 async function loadDocuments() {
@@ -2955,6 +3079,7 @@ function render() {
   if ($("monthNet")) $("monthNet").textContent = money(monthNet);
   if ($("monthGross")) $("monthGross").textContent = "Brut " + money(monthGross);
   renderPoleEmploi(selectedMonthMissions, monthNet);
+  renderMontantsReels(selectedMonthMissions, current);
   if ($("recapMonthPicker")) $("recapMonthPicker").value = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}`;
   const monthRate = monthHours > 0 ? Math.round(monthGross / monthHours) : 0;
   const monthRateNet = monthHours > 0 ? Math.round(monthNet / monthHours) : 0;
@@ -4228,13 +4353,11 @@ function generateActualisationPDF() {
 
 
 function applyTheme(theme) {
-  // 7 thèmes comme l'app : light + dark (gratuits) + noir/rose/rock/hiphop/lyric (premium).
-  var THEMES = ["dark", "noir", "rose", "rock", "hiphop", "lyric"];
-  THEMES.forEach(function (t) { document.body.classList.remove("theme-" + t); });
-  document.body.classList.remove("dark-scheme");
-  if (theme && THEMES.indexOf(theme) >= 0) document.body.classList.add("theme-" + theme);
-  // Les thèmes sombres PREMIUM partagent la machinerie .dark-scheme (le "Sombre" garde son propre bloc theme-dark).
-  if ({ noir: 1, rock: 1, hiphop: 1, lyric: 1 }[theme]) document.body.classList.add("dark-scheme");
+  // Thèmes premium mis de côté pour l'instant (trop de couleurs codées en dur qui ne suivaient pas).
+  // On ne garde que Clair / Sombre, qui fonctionnent parfaitement. Tout thème premium retombe sur Clair.
+  if (theme !== "light" && theme !== "dark") { theme = "light"; try { localStorage.setItem("intermitrack_theme", "light"); } catch (e) {} }
+  document.body.classList.remove("theme-dark", "theme-noir", "theme-rose", "theme-rock", "theme-hiphop", "theme-lyric", "dark-scheme");
+  if (theme === "dark") document.body.classList.add("theme-dark");
   document.querySelectorAll(".theme-swatch").forEach(function (b) {
     b.classList.toggle("active", b.dataset.theme === theme);
   });

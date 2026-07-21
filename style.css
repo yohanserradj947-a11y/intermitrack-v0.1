@@ -1035,7 +1035,7 @@ body:has(.account-dropdown:not(.hidden))::after { content: ""; position: fixed; 
    Sur TELEPHONE on garde le bottom sheet facon app. */
 @media (min-width: 721px) {
   .account-dropdown {
-    left: auto; right: 16px; bottom: auto; top: 62px;
+    left: auto !important; right: 16px !important; bottom: auto !important; top: 62px !important;
     width: 300px; max-width: 300px; margin: 0;
     border-radius: 16px; border: 1px solid var(--line);
     box-shadow: 0 20px 60px rgba(13,27,42,.22);
@@ -1552,6 +1552,26 @@ body.theme-rose .chartWrap { background: linear-gradient(145deg, #FFFFFF, var(--
 .theme-swatch-dots i:nth-child(3) { margin-left: -6px; }
 .theme-swatch-label { font-size: 11px; font-weight: 700; color: var(--text); text-align: center; line-height: 1.1; }
 .theme-swatch-lock { font-size: 9px; color: var(--muted); font-weight: 700; }
+
+/* --- Montants réels du mois (dashboard) : reproduction de l'app, pilote par le theme --- */
+.reel-box { margin-top: 16px; padding: 15px; border-radius: 16px; background: var(--soft); border: 1px solid var(--line); }
+.reel-head { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 800; color: var(--petrol); }
+.reel-intro { font-size: 12px; color: var(--muted); line-height: 1.5; margin: 6px 0 12px; }
+.reel-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+.reel-row:first-child { border-top: none; }
+.reel-prod { font-size: 13.5px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reel-brut { display: block; font-size: 11px; color: var(--muted); font-weight: 600; margin-top: 1px; }
+.reel-input { width: 100px; flex: 0 0 auto; padding: 9px 11px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--card); color: var(--text); font-size: 14px; font-family: inherit; text-align: right; outline: none; }
+.reel-input:focus { border-color: var(--petrol); }
+.reel-empty { font-size: 13px; color: var(--muted); padding: 8px 0; }
+.reel-save { width: 100%; margin-top: 12px; padding: 12px; border: none; border-radius: 11px; background: var(--petrol); color: #fff; font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; }
+.reel-save:hover { filter: brightness(1.07); }
+.reel-save:disabled { opacity: .6; cursor: default; }
+.reel-reset { width: 100%; margin-top: 8px; padding: 9px; border: none; border-radius: 10px; background: transparent; color: var(--muted); font-weight: 700; font-size: 12.5px; cursor: pointer; font-family: inherit; text-decoration: underline; }
+.reel-total { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: var(--petrol); }
+.reel-total-lbl { font-size: 13px; font-weight: 700; color: rgba(255,255,255,.85); }
+.reel-total-val { font-size: 20px; font-weight: 900; color: #fff; }
+.reel-sub { font-size: 11.5px; color: var(--muted); text-align: center; margin-top: 6px; }
 
 /* Pastilles des types cumulés sur une même mission (« Rec + MIX ») — retour Damien.
    Variables de thème uniquement : suit le mode sombre et les thèmes perso. */
