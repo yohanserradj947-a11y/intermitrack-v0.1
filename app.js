@@ -4551,7 +4551,8 @@ function setupEvents() {
     const password = $("authPassword").value;
     if (authMode === "signup" && password.length < 8) { $("authMsg").textContent = "Le mot de passe doit contenir au moins 8 caractères."; return; }
     let result;
-    if (authMode === "signup") result = await sb.auth.signUp({ email, password });
+    // Inscription DEPUIS LE SITE : le mail de confirmation renvoie sur le SITE (pas l'app).
+    if (authMode === "signup") result = await sb.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin + "/" } });
     else result = await sb.auth.signInWithPassword({ email, password });
     if (result.error) { $("authMsg").textContent = authErrorMessage(result.error.message); return; }
     if (authMode === "signup" && !result.data?.session) {
