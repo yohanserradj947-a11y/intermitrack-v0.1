@@ -1298,9 +1298,8 @@ const initials = parts.length >= 2
       const btn = $("accountAvatarBtn");
       const rect = btn.getBoundingClientRect();
       const dd = $("accountDropdown");
-      dd.style.top = (rect.bottom + 8) + "px";
-      dd.style.right = (window.innerWidth - rect.right) + "px";
-      dd.style.left = "auto";
+      // Bottom sheet (comme l'app) : le CSS gere le placement, on ne force plus top/right/left inline.
+      dd.style.top = ""; dd.style.right = ""; dd.style.left = "";
       dd.classList.toggle("hidden");
     });
     document.addEventListener("click", () => {

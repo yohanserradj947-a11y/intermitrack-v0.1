@@ -1017,12 +1017,21 @@ body.theme-dark .ae-add-presta { color: #8FD3EA; }
   transition: all .18s; line-height: 1;
 }
 .account-avatar-btn:hover { transform: scale(1.07); box-shadow: 0 6px 18px rgba(13,79,108,.35); }
+/* Menu compte = BOTTOM SHEET comme l'app (monte du bas, pleine largeur, coins arrondis en haut). */
 .account-dropdown {
-  position: fixed; top: 70px; right: 14px; width: 260px;
-  background: white; border-radius: 18px;
-  box-shadow: 0 20px 60px rgba(13,27,42,.16), 0 4px 16px rgba(13,27,42,.08);
-  border: 1px solid rgba(13,27,42,.08); z-index: 9999; overflow: hidden;
+  position: fixed; left: 0; right: 0; bottom: 0; top: auto !important; width: 100%; max-width: 100%;
+  background: var(--card); border-radius: 24px 24px 0 0;
+  box-shadow: 0 -12px 50px rgba(13,27,42,.30);
+  border-top: 1px solid var(--line); z-index: 100050; overflow-y: auto; max-height: 85vh;
+  padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+  animation: accSheetUp .22s ease;
 }
+@keyframes accSheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.account-dropdown::before { content: ""; display: block; width: 44px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 14px; }
+/* Fond sombre derriere le bottom sheet (comme l'app). */
+body:has(.account-dropdown:not(.hidden))::after { content: ""; position: fixed; inset: 0; background: rgba(13,27,42,.45); z-index: 100040; animation: accFade .2s ease; }
+@keyframes accFade { from { opacity: 0; } to { opacity: 1; } }
+@media (min-width: 721px) { .account-dropdown { max-width: 440px; left: 0; right: 0; margin: 0 auto; } }
 .account-dd-email {
   padding: 14px 16px; font-size: 12px; font-weight: 600;
   color: var(--muted); border-bottom: 1px solid var(--line);
