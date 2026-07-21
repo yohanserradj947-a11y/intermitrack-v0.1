@@ -93,26 +93,27 @@ export default function HomeScreen(){
   useEffect(()=>onProfilChanged(()=>loadData(true)),[]);
 
   async function loadData(silent=false){
+    // 1) Données ESSENTIELLES (missions, avec repli cache + timeout) → on affiche le dashboard TOUT DE SUITE.
     await loadMissionsCached(setMissions);
-    // ARE réellement versé par mois (table are_versements). try/catch : si la migration n'est pas encore
-    // passée, l'appli continue de tourner sans les montants réels.
-    try{ const{data:av}=await supabase.from('are_versements').select('mois,montant'); if(av){const map:Record<string,number>={};for(const r of av as any[])map[r.mois]=Number(r.montant)||0;setAreVerse(map);} }catch(e){}
     const saved=await AsyncStorage.getItem('intermitrack_are_date');
     if(saved)setAreDate(saved);
-    // getSession() = local/instantané (getUser() faisait un aller-retour réseau à chaque affichage
-    // du tableau de bord → lenteur, et null hors ligne). L'are_date est déjà relu du cache ci-dessus.
-    const { data:{ session } }=await supabase.auth.getSession();
-    const user = session?.user;
-    if(user){
-      const { data:prof }=await supabase.from('profiles').select('annexe,droits_ouverts,taux_journalier,taux_impot,are_date,clause_rattrapage').eq('id',user.id).maybeSingle();
-      setClauseRattrapage(!!prof?.clause_rattrapage);
-      setProfil(prof||null);
-      // Date ARE : la base de données fait foi (persiste sur tous les appareils).
-      // Sinon, on migre une éventuelle valeur locale (ancienne) vers la base.
-      if(prof?.are_date){ setAreDate(prof.are_date); await AsyncStorage.setItem('intermitrack_are_date',prof.are_date); }
-      else if(saved){ await supabase.from('profiles').upsert({id:user.id,are_date:saved},{onConflict:'id'}); }
-    }
     if(!silent)setLoading(false);
+    // 2) Données SECONDAIRES en arrière-plan : ne bloquent plus l'écran (sur réseau faible elles
+    //    pouvaient pendre ~30 s et retarder tout l'affichage). Elles mettront à jour l'écran à leur arrivée.
+    try{ const{data:av}=await supabase.from('are_versements').select('mois,montant'); if(av){const map:Record<string,number>={};for(const r of av as any[])map[r.mois]=Number(r.montant)||0;setAreVerse(map);} }catch(e){}
+    try{
+      const { data:{ session } }=await supabase.auth.getSession();
+      const user = session?.user;
+      if(user){
+        const { data:prof }=await supabase.from('profiles').select('annexe,droits_ouverts,taux_journalier,taux_impot,are_date,clause_rattrapage').eq('id',user.id).maybeSingle();
+        if(prof){
+          setClauseRattrapage(!!prof.clause_rattrapage);
+          setProfil(prof);
+          if(prof.are_date){ setAreDate(prof.are_date); await AsyncStorage.setItem('intermitrack_are_date',prof.are_date); }
+          else if(saved){ await supabase.from('profiles').upsert({id:user.id,are_date:saved},{onConflict:'id'}); }
+        }
+      }
+    }catch(e){}
   }
 
   function moveMonth(n:number){const d=new Date(current);d.setMonth(d.getMonth()+n);d.setDate(1);setCurrent(d);}
