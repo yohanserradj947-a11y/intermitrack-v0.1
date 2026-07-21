@@ -4526,7 +4526,7 @@ var POSTES_MUSIQUE = ['Concert','Répétition','Session studio','Atelier / Péda
 async function loadProfil(){
   if(!currentUser) return;
   try{
-    const { data } = await sb.from('profiles').select('annexe,postes,droits_ouverts,taux_journalier,taux_impot,are_date,production_colors,notes,ae_custom_presta,custom_postes,km_cv,km_tranche,km_vehicle,km_annual,km_electric,salaire_journalier').eq('id', currentUser.id).maybeSingle();
+    const { data } = await sb.from('profiles').select('annexe,postes,droits_ouverts,taux_journalier,taux_impot,are_date,production_colors,notes,ae_custom_presta,custom_postes,km_cv,km_tranche,km_vehicle,km_annual,km_electric,salaire_journalier,clause_rattrapage').eq('id', currentUser.id).maybeSingle();
     _profil = data || null;
     // Prix appris (prod+poste) : select SÉPARÉ et défensif — la colonne price_memory peut ne pas
     // encore exister (avant migration), il ne doit donc pas casser le chargement du profil.
@@ -4622,14 +4622,21 @@ function _profilEnsureDom(){
     + '<div class="pf-sub">Optionnel — ça pré-remplit tes missions et permet de calculer ton revenu mensuel. Modifiable à tout moment ici.</div>'
     + '<div class="pf-label">Tu es plutôt…</div>'
     + '<div class="pf-seg" id="pfAnnexe"><button type="button" class="pf-opt" data-annexe="technicien">Technicien (annexe 8)</button><button type="button" class="pf-opt" data-annexe="artiste">Artiste (annexe 10)</button><button type="button" class="pf-opt" data-annexe="les_deux">Les deux</button></div>'
+    + '<div class="pf-label">As-tu déjà ouvert tes droits ?</div>'
+    + '<div class="pf-seg" id="pfDroits"><button type="button" class="pf-opt" data-droits="oui">Oui</button><button type="button" class="pf-opt" data-droits="non">Pas encore</button></div>'
+    + '<div id="pfAjWrap" style="display:none;"><div class="pf-label">Ton taux journalier (AJ)</div><input type="number" id="pfAj" class="pf-input" placeholder="Ex : 67.60" min="0" step="0.01"/><div class="pf-hint">L\'allocation journalière nette de ta notification France Travail.</div></div>'
+    + '<div class="pf-label">Es-tu en clause de rattrapage ?</div>'
+    + '<div class="pf-seg" id="pfClause"><button type="button" class="pf-opt" data-clause="oui">Oui</button><button type="button" class="pf-opt" data-clause="non">Non</button></div>'
+    + '<div class="pf-hint" id="pfClauseHint" style="display:none;">Un bandeau apparaîtra sur ton tableau de bord, avec le compte à rebours (6 mois après ta date anniversaire) pour atteindre 507 h.</div>'
+    + '<div class="pf-label">Ton salaire journalier brut <span style="font-weight:400;opacity:.65;">— pré-remplit le prix de tes missions</span></div>'
+    + '<input type="number" id="pfSalaireJour" class="pf-input" placeholder="Ex : 230" min="0" step="1"/>'
+    + '<div class="pf-label">Ton taux d\'imposition (%)</div>'
+    + '<input type="number" id="pfImpot" class="pf-input" placeholder="Ex : 8.6" min="0" max="100" step="0.1"/>'
+    + '<div class="pf-hint">En %, celui de ta notification / tes paies. Pour estimer ton net après impôt. Optionnel.</div>'
     + '<div class="pf-label">Tes postes <span style="font-weight:400;color:#9AA5B1;">— le 1er = défaut sur tes missions</span></div>'
     + '<div class="pf-seg" id="pfPostes"></div>'
     + '<div style="display:flex;gap:8px;margin-top:8px;"><input type="text" id="pfNewPoste" class="pf-input" placeholder="Ex : Clown, Cascadeur…" style="flex:1;"/><button type="button" class="pf-ok" id="pfAddPoste" style="flex:0 0 auto;padding:11px 16px;">Ajouter</button></div>'
-    + '<div class="pf-label">Ton salaire journalier brut <span style="font-weight:400;opacity:.65;">— pré-remplit le prix de tes missions</span></div>'
-    + '<input type="number" id="pfSalaireJour" class="pf-input" placeholder="Ex : 230" min="0" step="1"/>'
-    // Véhicule mémorisé → pré-remplit les frais km de chaque mission (retour JB : « je ne change pas
-    // ma voiture, et mon nombre de kilomètres annuel ne change pas d'une mission à l'autre »).
-    // Clés identiques au barème de l'appli ET du site : ne pas diverger.
+    // Véhicule mémorisé → pré-remplit les frais km de chaque mission (retour JB). Clés identiques au barème appli+site.
     + '<div class="pf-label">Ton véhicule <span style="font-weight:400;opacity:.65;">— pré-remplit tes frais kilométriques</span></div>'
     + '<div class="pf-seg" id="pfKmKind">'
       + KM_VEHICLES.map(function(v){ return '<button type="button" class="pf-opt" data-kmkind="'+v.key+'">'+escapeHtml(v.label)+'</button>'; }).join('')
@@ -4640,9 +4647,6 @@ function _profilEnsureDom(){
     + '<input type="number" id="pfKmAnnual" class="pf-input" placeholder="Ex : 12000" min="0" step="100"/>'
     + '<div class="pf-seg" id="pfKmElec" style="margin-top:8px;"><button type="button" class="pf-opt" data-kmelec="1">100 % électrique <span style="opacity:.7;">(barème +20 %)</span></button></div>'
     + '<div class="pf-hint" id="pfKmApercu" style="display:none;"></div>'
-    + '<div class="pf-label">As-tu déjà ouvert tes droits ?</div>'
-    + '<div class="pf-seg" id="pfDroits"><button type="button" class="pf-opt" data-droits="oui">Oui</button><button type="button" class="pf-opt" data-droits="non">Pas encore</button></div>'
-    + '<div id="pfAjWrap" style="display:none;"><div class="pf-label">Ton taux journalier (AJ)</div><input type="number" id="pfAj" class="pf-input" placeholder="Ex : 67.60" min="0" step="0.01"/><div class="pf-hint">L\'allocation journalière nette de ta notification France Travail. Sert au calcul du revenu mensuel.</div><div class="pf-label">Ton taux d\'imposition (prélèvement à la source)</div><input type="number" id="pfImpot" class="pf-input" placeholder="Ex : 8.6" min="0" max="100" step="0.1"/><div class="pf-hint">En %, celui de ta notification / tes paies. Pour estimer ton allocation nette d\'impôt. Optionnel.</div></div>'
     + '<div class="pf-actions"><button type="button" class="pf-cancel" id="pfCancel">Fermer</button><button type="button" class="pf-ok" id="pfSave">Enregistrer</button></div>'
     + '</div>';
   document.body.appendChild(ov);
@@ -4684,6 +4688,7 @@ function _profilEnsureDom(){
   });
   ov.querySelector('#pfKmAnnual').addEventListener('input', _pfKmApercu);
   ov.querySelector('#pfDroits').addEventListener('click', function(e){ var b=e.target.closest('[data-droits]'); if(!b)return; ov.querySelectorAll('#pfDroits .pf-opt').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); document.getElementById('pfAjWrap').style.display = b.dataset.droits==='oui'?'block':'none'; });
+  ov.querySelector('#pfClause').addEventListener('click', function(e){ var b=e.target.closest('[data-clause]'); if(!b)return; ov.querySelectorAll('#pfClause .pf-opt').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); var h=document.getElementById('pfClauseHint'); if(h) h.style.display = b.dataset.clause==='oui'?'block':'none'; });
   document.getElementById('pfCancel').addEventListener('click', function(){ ov.classList.remove('open'); });
   document.getElementById('pfSave').addEventListener('click', _profilSave);
   ov.querySelector('#pfPostes').addEventListener('click', function(e){ var d=e.target.closest && e.target.closest('[data-delposte]'); if(d){ e.stopPropagation(); removeCustomPoste(d.dataset.delposte); _profilRenderPostes(); } });
@@ -4725,6 +4730,10 @@ function openProfilModal(){
   var dr = _profil ? _profil.droits_ouverts : null;
   if(dr===true){ ov.querySelector('[data-droits="oui"]').classList.add('on'); document.getElementById('pfAjWrap').style.display='block'; }
   else if(dr===false){ ov.querySelector('[data-droits="non"]').classList.add('on'); document.getElementById('pfAjWrap').style.display='none'; }
+  ov.querySelectorAll('#pfClause .pf-opt').forEach(function(x){ x.classList.remove('on'); });
+  var _cl = _profil ? _profil.clause_rattrapage : null;
+  if(_cl===true){ ov.querySelector('[data-clause="oui"]').classList.add('on'); if(document.getElementById('pfClauseHint')) document.getElementById('pfClauseHint').style.display='block'; }
+  else { ov.querySelector('[data-clause="non"]').classList.add('on'); if(document.getElementById('pfClauseHint')) document.getElementById('pfClauseHint').style.display='none'; }
   document.getElementById('pfAj').value = (_profil && _profil.taux_journalier!=null) ? _profil.taux_journalier : '';
   if(document.getElementById('pfSalaireJour')) document.getElementById('pfSalaireJour').value = (_profil && _profil.salaire_journalier!=null) ? _profil.salaire_journalier : '';
   document.getElementById('pfImpot').value = (_profil && _profil.taux_impot!=null) ? _profil.taux_impot : '';
@@ -4744,6 +4753,7 @@ async function _profilSave(){
   var aBtn = ov.querySelector('#pfAnnexe .pf-opt.on');
   var dBtn = ov.querySelector('#pfDroits .pf-opt.on');
   var droits = dBtn ? (dBtn.dataset.droits==='oui') : null;
+  var clBtn = ov.querySelector('#pfClause .pf-opt.on');
   var kindBtn = ov.querySelector('#pfKmKind .pf-opt.on');
   var cvBtn = ov.querySelector('#pfKmCv .pf-opt.on');
   var p = {
@@ -4751,7 +4761,8 @@ async function _profilSave(){
     postes: getCustomPostes(),
     droits_ouverts: droits,
     taux_journalier: droits===true ? (Number(document.getElementById('pfAj').value)||null) : null,
-    taux_impot: droits===true ? (Number(document.getElementById('pfImpot').value)||null) : null,
+    taux_impot: Number(document.getElementById('pfImpot').value)||null,
+    clause_rattrapage: clBtn ? (clBtn.dataset.clause==='oui') : false,
     km_vehicle: kindBtn ? kindBtn.dataset.kmkind : null,
     km_cv: cvBtn ? cvBtn.dataset.kmcv : null,
     km_annual: Number(document.getElementById('pfKmAnnual').value) || null,
