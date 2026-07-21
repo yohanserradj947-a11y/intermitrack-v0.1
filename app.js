@@ -3196,7 +3196,9 @@ function render() {
     if (areAdmissionDate) {
       const _now = Date.now();
       const elapsed = aiYearOffset < 0 ? 1 : Math.max(0, Math.min(1, (_now - _winS) / (_winE - _winS)));
-      const prog = Math.max(0, Math.min(1, (yearHours + formationHours + enseignementHours) / OBJECTIVE_HOURS));
+      // On compte AUSSI les dates à venir (prévu), pour être cohérent avec le grand % de la jauge :
+      // sinon un user à 93 % (avec ses dates bookées) voyait « en retard » sur ses seules heures validées.
+      const prog = Math.max(0, Math.min(1, (yearHours + plannedHours + formationHours + enseignementHours) / OBJECTIVE_HOURS));
       const diff = prog - elapsed;
       // Vert = en avance · rouge = en retard · orange = dans les temps (mêmes seuils/couleurs que l'app).
       const lbl = Math.abs(diff) <= 0.03 ? "Dans les temps" : (diff > 0 ? "En avance" : "En retard");
