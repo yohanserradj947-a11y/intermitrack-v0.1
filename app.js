@@ -1484,7 +1484,7 @@ async function saveAllReal() {
 function resetReal() {
   const box = $("reelBox"); if (!box) return;
   const moisKey = box.dataset.mois; if (!moisKey) return;
-  if (!confirm("Réinitialiser ?\n\nCela efface les montants réels saisis pour ce mois (nets + allocation). Ton brut et tes missions ne changent pas.")) return;
+  _confirmModal({ title: "Réinitialiser ?", message: "Cela efface les montants réels saisis pour ce mois (nets + allocation). Ton brut et tes missions ne changent pas.", okLabel: "Réinitialiser", danger: true, onOk: function () {
   (async () => {
     try {
       const { data: { user } } = await sb.auth.getUser();
@@ -1498,6 +1498,7 @@ function resetReal() {
       render();
     } catch (e) { toast("La réinitialisation a échoué. Réessaie."); }
   })();
+  } });
 }
 
 async function loadDocuments() {
@@ -3727,6 +3728,33 @@ function _inputModal(opts) {
   ov.classList.add('open');
   setTimeout(function () { inp.focus(); inp.select(); }, 50);
 }
+// Vrai pop-up de CONFIRMATION stylé (remplace confirm() natif). opts: {title, message, okLabel, danger, onOk}
+var _cmOnOk = null;
+function _ensureConfirmModal() {
+  if (document.getElementById('confirmModalOverlay')) return;
+  const st = document.createElement('style');
+  st.textContent = "#confirmModalOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:100062;padding:18px;}#confirmModalOverlay.open{display:flex;}.cm-box{background:var(--card);color:var(--text);border-radius:20px;width:100%;max-width:380px;box-sizing:border-box;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,.3);}.cm-title{font-size:16px;font-weight:900;color:var(--petrol);margin-bottom:8px;}.cm-msg{font-size:13px;color:var(--muted);line-height:1.55;}.cm-actions{display:flex;gap:10px;margin-top:18px;}.cm-cancel{flex:1;padding:12px;border:1px solid var(--line);background:var(--soft);color:var(--muted);border-radius:12px;font-weight:700;cursor:pointer;font-family:inherit;}.cm-ok{flex:1;padding:12px;border:none;background:var(--petrol);color:#fff;border-radius:12px;font-weight:800;cursor:pointer;font-family:inherit;}.cm-ok.danger{background:var(--danger);}";
+  document.head.appendChild(st);
+  const ov = document.createElement('div');
+  ov.id = 'confirmModalOverlay';
+  ov.innerHTML = '<div class="cm-box"><div class="cm-title" id="cmTitle"></div><div class="cm-msg" id="cmMsg"></div><div class="cm-actions"><button type="button" class="cm-cancel" id="cmCancel">Annuler</button><button type="button" class="cm-ok" id="cmOk">Confirmer</button></div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function (e) {
+    if (e.target === ov || e.target.id === 'cmCancel') { ov.classList.remove('open'); _cmOnOk = null; }
+    else if (e.target.id === 'cmOk') { ov.classList.remove('open'); const cb = _cmOnOk; _cmOnOk = null; if (cb) cb(); }
+  });
+}
+function _confirmModal(opts) {
+  _ensureConfirmModal();
+  const ov = document.getElementById('confirmModalOverlay');
+  document.getElementById('cmTitle').textContent = opts.title || 'Confirmer';
+  document.getElementById('cmMsg').textContent = opts.message || '';
+  const ok = document.getElementById('cmOk');
+  ok.textContent = opts.okLabel || 'Confirmer';
+  ok.classList.toggle('danger', !!opts.danger);
+  _cmOnOk = opts.onOk || null;
+  ov.classList.add('open');
+}
 function _prodTarif(normName) {
   const cur = _getProdRate(normName);
   _inputModal({
@@ -3781,26 +3809,32 @@ function _prodMergeShow(normName) {
     ? '<div class="prod-merge-title">Fusionner « ' + escapeHtml(normName) + ' » dans :</div>' + others.map((o) => '<button type="button" class="prod-merge-target" data-prod-merge-into="' + escapeHtml(o) + '" data-prod-merge-from="' + escapeHtml(normName) + '">' + escapeHtml(o) + '</button>').join("")
     : '<div class="prod-merge-title">Aucune autre production à fusionner.</div>';
 }
-async function _prodMergeInto(fromName, targetName) {
+function _prodMergeInto(fromName, targetName) {
   const list = _prodMissions(fromName);
-  if (!confirm("Rattacher les " + list.length + " mission(s) de « " + fromName + " » à « " + targetName + " » ? Elles porteront toutes ce nom.")) return;
-  try {
-    for (const m of list) { const { error } = await sb.from('missions').update({ production: targetName }).eq('id', m.id); if (error) throw error; }
-    toast("Productions fusionnées.");
-    await loadMissions();
-    openProductionMissions(targetName);
-  } catch (e) { toast("La fusion a échoué. Réessaie."); }
+  _confirmModal({ title: "Fusionner les productions", message: "Rattacher les " + list.length + " mission(s) de « " + fromName + " » à « " + targetName + " » ? Elles porteront toutes ce nom.", okLabel: "Fusionner", onOk: function () {
+    (async function () {
+      try {
+        for (const m of list) { const { error } = await sb.from('missions').update({ production: targetName }).eq('id', m.id); if (error) throw error; }
+        toast("Productions fusionnées.");
+        await loadMissions();
+        openProductionMissions(targetName);
+      } catch (e) { toast("La fusion a échoué. Réessaie."); }
+    })();
+  } });
 }
-async function _prodDelete(normName) {
+function _prodDelete(normName) {
   const list = _prodMissions(normName);
-  if (!confirm("Supprimer « " + normName + " » et ses " + list.length + " mission(s) ? Cette action est définitive.")) return;
-  try {
-    for (const m of list) { const { error } = await sb.from('missions').delete().eq('id', m.id); if (error) throw error; }
-    toast("Production supprimée.");
-    if ($("allMissions")) $("allMissions").innerHTML = "";
-    if ($("missionsGraphContainer")) $("missionsGraphContainer").style.display = "";
-    await loadMissions();
-  } catch (e) { toast("La suppression a échoué. Réessaie."); }
+  _confirmModal({ title: "Supprimer la production", message: "Supprimer « " + normName + " » et ses " + list.length + " mission(s) ? Cette action est définitive.", okLabel: "Supprimer", danger: true, onOk: function () {
+    (async function () {
+      try {
+        for (const m of list) { const { error } = await sb.from('missions').delete().eq('id', m.id); if (error) throw error; }
+        toast("Production supprimée.");
+        if ($("allMissions")) $("allMissions").innerHTML = "";
+        if ($("missionsGraphContainer")) $("missionsGraphContainer").style.display = "";
+        await loadMissions();
+      } catch (e) { toast("La suppression a échoué. Réessaie."); }
+    })();
+  } });
 }
 function moveMonth(amount) {
   current.setMonth(current.getMonth() + amount);
