@@ -4014,6 +4014,19 @@ document.addEventListener('click', function (e) {
   const b = e.target.closest && e.target.closest('.field-help');
   if (b) { e.preventDefault(); e.stopPropagation(); _fieldHelp(b.getAttribute('data-t') || '', b.getAttribute('data-h') || ''); }
 });
+// Onglet « À savoir » : filtre statut (Les deux / Technicien / Artiste) → masque les questions non concernées.
+document.addEventListener('click', function (e) {
+  const c = e.target.closest && e.target.closest('.asavoir-chip');
+  if (!c) return;
+  const f = c.getAttribute('data-f') || 'tous';
+  const box = c.closest('#view-asavoir'); if (!box) return;
+  box.querySelectorAll('.asavoir-chip').forEach(function (x) { x.classList.toggle('on', x === c); });
+  box.querySelectorAll('details[data-s]').forEach(function (d) {
+    const s = d.getAttribute('data-s');
+    const show = (f === 'tous') || (s === 'tous') || (s === f);
+    d.classList.toggle('asv-hide', !show);
+  });
+});
 
 function _prodTarif(normName) {
   const cur = _getProdRate(normName);

@@ -634,6 +634,7 @@ z-index: 500 !important;
           <button class="tab" type="button" data-view="autoentrepreneur"><svg viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Auto-entr.</button>
           <button class="tab" type="button" data-view="fiscalite"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h2M8 15h2M13 11h3v4h-3z"/></svg>Fiscalité</button>
           <button class="tab" type="button" data-view="contacts"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Contacts</button>
+          <button class="tab" type="button" data-view="asavoir"><svg viewBox="0 0 24 24"><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M9 7h7M9 11h7"/></svg>À savoir</button>
         </nav>
         <div class="tab-dots" id="tabDots"></div>
       </div>
@@ -1518,6 +1519,30 @@ z-index: 500 !important;
 
             <div class="contact-card">
               <div class="contact-head">
+                <div class="contact-ic"><svg viewBox="0 0 24 24"><path d="M12 2 4 6v6c0 5 8 8 8 8s8-3 8-8V6z"/><path d="M12 8v4M12 15h.01"/></svg></div>
+                <div><div class="contact-name">Assurance Maladie (CPAM)</div><div class="contact-role">Arrêts maladie, maternité, indemnités journalières</div></div>
+              </div>
+              <div class="contact-body"><svg class="ci"><use href="#ic-phone"/></svg><a href="tel:3646">3646</a> (service + prix appel)<br><svg class="ci"><use href="#ic-link"/></svg><a href="https://www.ameli.fr" target="_blank">ameli.fr</a></div>
+            </div>
+
+            <div class="contact-card">
+              <div class="contact-head">
+                <div class="contact-ic"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></div>
+                <div><div class="contact-name">CIP-IDF / La Cité</div><div class="contact-role">Coordination des Intermittents et Précaires : droits, permanences d'info</div></div>
+              </div>
+              <div class="contact-body"><svg class="ci"><use href="#ic-link"/></svg><a href="https://www.cip-idf.org" target="_blank">cip-idf.org</a></div>
+            </div>
+
+            <div class="contact-card">
+              <div class="contact-head">
+                <div class="contact-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+                <div><div class="contact-name">Matermittentes</div><div class="contact-role">Maternité &amp; maladie des intermittentes : démarches, simulateurs</div></div>
+              </div>
+              <div class="contact-body"><svg class="ci"><use href="#ic-link"/></svg><a href="https://www.matermittentes.com" target="_blank">matermittentes.com</a></div>
+            </div>
+
+            <div class="contact-card">
+              <div class="contact-head">
                 <div class="contact-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg></div>
                 <div><div class="contact-name">Autres liens utiles</div><div class="contact-role">Démarches en ligne</div></div>
               </div>
@@ -1528,11 +1553,102 @@ z-index: 500 !important;
         </article>
       </section>
 
+      <section class="view" id="view-asavoir">
+        <style>
+          #view-asavoir .asv-disc{display:flex;gap:11px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--orange);border-radius:13px;padding:13px 15px;margin:0 0 18px;}
+          #view-asavoir .asv-disc svg{flex:0 0 auto;margin-top:2px;color:var(--orange);}
+          #view-asavoir .asv-disc p{margin:0;font-size:13px;color:var(--muted);line-height:1.5;}
+          #view-asavoir .asv-disc b{color:var(--text);}
+          #view-asavoir .asv-filter{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+          #view-asavoir .asv-filter .lab{font-size:11.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;}
+          #view-asavoir .asavoir-chip{font-size:13.5px;font-weight:700;padding:8px 15px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--petrol);cursor:pointer;font-family:inherit;}
+          #view-asavoir .asavoir-chip.on{background:var(--petrol);color:#fff;border-color:var(--petrol);}
+          #view-asavoir .asavoir-chip.art.on{background:var(--orange);border-color:var(--orange);}
+          #view-asavoir .asv-sec{margin:22px 0 6px;}
+          #view-asavoir .asv-sec-h{display:flex;align-items:center;gap:10px;margin:0 0 10px;}
+          #view-asavoir .asv-sec-h .ic{width:32px;height:32px;border-radius:9px;background:var(--soft);color:var(--petrol);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+          #view-asavoir .asv-sec-h h3{font-size:18px;font-weight:800;color:var(--text);margin:0;letter-spacing:-.01em;}
+          #view-asavoir details{background:var(--card);border:1px solid var(--line);border-radius:12px;margin:8px 0;overflow:hidden;}
+          #view-asavoir details[open]{border-color:color-mix(in srgb,var(--petrol) 40%,var(--line));}
+          #view-asavoir summary{list-style:none;cursor:pointer;padding:14px 15px;font-weight:700;font-size:14.5px;color:var(--text);display:flex;align-items:center;gap:9px;}
+          #view-asavoir summary::-webkit-details-marker{display:none;}
+          #view-asavoir summary .pl{margin-left:auto;color:var(--muted);font-size:20px;line-height:1;transition:.2s;}
+          #view-asavoir details[open] summary .pl{transform:rotate(45deg);color:var(--orange);}
+          #view-asavoir .asv-tag{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:3px 7px;border-radius:6px;}
+          #view-asavoir .asv-tag.art{background:var(--orange);color:#fff;}
+          #view-asavoir .asv-tag.tech{background:var(--soft);color:var(--petrol);}
+          #view-asavoir .asv-body{padding:0 15px 15px;font-size:13.5px;color:var(--muted);line-height:1.55;}
+          #view-asavoir .asv-body strong{color:var(--text);}
+          #view-asavoir .asv-src{display:inline-flex;align-items:center;gap:6px;margin-top:9px;font-size:12px;font-weight:700;color:var(--petrol);text-decoration:none;padding:5px 10px;border:1px solid var(--line);border-radius:8px;background:var(--soft);}
+          #view-asavoir .asv-more{margin-top:20px;padding:14px 16px;border-radius:12px;background:var(--soft);font-size:13.5px;color:var(--text);}
+          #view-asavoir .asv-hide{display:none!important;}
+        </style>
+        <article class="card">
+          <div class="historyhead" style="margin-bottom:6px;">
+            <div><h2>À savoir</h2><p class="sub">Tes droits, tes démarches, ton statut — expliqué simplement</p></div>
+          </div>
+
+          <div class="asv-disc">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+            <p><b>Rien n'est figé.</b> Ces infos sont indicatives et mises à jour en continu pour coller au plus près de la réalité. En cas de doute, ta référence reste France Travail, la CPAM et ton bulletin de paie. Tu constates un écart ? Écris-nous, ça aide à fiabiliser l'appli pour tout le monde.</p>
+          </div>
+
+          <div class="asv-filter">
+            <span class="lab">Je suis</span>
+            <button type="button" class="asavoir-chip on" data-f="tous">Les deux</button>
+            <button type="button" class="asavoir-chip tech" data-f="tech">Technicien (annexe 8)</button>
+            <button type="button" class="asavoir-chip art" data-f="art">Artiste (annexe 10)</button>
+          </div>
+
+          <div class="asv-sec">
+            <div class="asv-sec-h"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18l7-5 7 5V3z"/></svg></span><h3>Démarrer avec l'appli</h3></div>
+            <details data-s="tous"><summary>Comment je rentre mes contrats ?<span class="pl">+</span></summary><div class="asv-body">Va dans l'onglet <strong>Calendrier</strong>. Le plus rapide : l'<strong>import</strong> (calendrier du téléphone, fichier Excel, ou tes notes) récupère toutes tes dates d'un coup. Sinon, appuie sur n'importe quelle date, même passée, et remplis à la main. Le reste se calcule tout seul.</div></details>
+            <details data-s="tous"><summary>Mon salaire change à chaque contrat ?<span class="pl">+</span></summary><div class="asv-body">C'est prévu. Le salaire journalier de départ n'est qu'une <strong>suggestion</strong> ; à chaque mission tu écris le <strong>vrai brut</strong> de ce contrat. L'appli garde tout en mémoire.</div></details>
+            <details data-s="tous"><summary>Les cases du tableau de bord, je les remplis comment ?<span class="pl">+</span></summary><div class="asv-body">Jamais à la main : elles se calculent seules une fois tes missions rentrées. On part <strong>toujours</strong> du Calendrier.</div></details>
+          </div>
+
+          <div class="asv-sec">
+            <div class="asv-sec-h"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span><h3>Le statut : les 507 heures</h3></div>
+            <details data-s="tous"><summary>C'est quoi les 507 heures ?<span class="pl">+</span></summary><div class="asv-body">Pour ouvrir tes droits, il faut réunir <strong>507 heures</strong> (ou heures assimilées) sur les <strong>12 mois</strong> précédant ta dernière fin de contrat. C'est la jauge principale de l'appli.<br><a class="asv-src" href="https://www.francetravail.fr/spectacle/" target="_blank">Source : France Travail spectacle ↗</a></div></details>
+            <details data-s="tous"><summary>Date d'ouverture ARE vs date anniversaire ?<span class="pl">+</span></summary><div class="asv-body">La <strong>date d'ouverture ARE</strong> est le départ de tes droits ; la <strong>date anniversaire</strong> tombe 12 mois après (fin du droit en cours). Elle est « glissante » et peut bouger d'une année sur l'autre selon ta dernière fin de contrat.</div></details>
+            <details data-s="tous"><summary>Annexe 8 ou annexe 10 ?<span class="pl">+</span></summary><div class="asv-body"><span class="asv-tag tech">Annexe 8</span> = <strong>techniciens</strong>. <span class="asv-tag art">Annexe 10</span> = <strong>artistes</strong>. Si tu fais les deux, France Travail retient le régime où tu as le <strong>plus d'heures</strong>. Règle ton profil dans « Mes infos ».</div></details>
+          </div>
+
+          <div class="asv-sec">
+            <div class="asv-sec-h"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><h3>Cachets &amp; heures</h3></div>
+            <details data-s="art"><summary><span class="asv-tag art">Artiste</span>&nbsp;1 cachet = combien d'heures ?<span class="pl">+</span></summary><div class="asv-body">Pour France Travail, <strong>1 cachet = 12 h</strong> dans les 507 h (demi-cachet = 6 h). Attention : côté Sécu / CPAM, le cachet vaut <strong>16 h</strong> — ne confonds pas les deux.<br><a class="asv-src" href="https://www.francetravail.fr/spectacle/" target="_blank">Source : guide France Travail ↗</a></div></details>
+            <details data-s="art"><summary><span class="asv-tag art">Artiste</span>&nbsp;Comment je déclare à l'actualisation ?<span class="pl">+</span></summary><div class="asv-body">Ne reporte <strong>pas</strong> l'équivalence de tes cachets en heures. Déclare en <strong>cachets</strong>. « Heures travaillées » = seulement les périodes vraiment payées à l'heure (répétitions…).</div></details>
+            <details data-s="tous"><summary>Vacation, cachet, jour : comment ça se compte ?<span class="pl">+</span></summary><div class="asv-body">Une <strong>vacation = une journée de travail</strong> (en général 1 jour = 1 vacation). Pour un artiste, on raisonne en cachets.</div></details>
+          </div>
+
+          <div class="asv-sec">
+            <div class="asv-sec-h"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 4v4"/></svg></span><h3>France Travail au quotidien</h3></div>
+            <details data-s="tous"><summary>L'actualisation mensuelle ?<span class="pl">+</span></summary><div class="asv-body">Chaque mois, tu dois <strong>actualiser</strong> sur francetravail.fr avant la date de clôture : ça te maintient inscrit, déclare tes reprises d'activité et déclenche ton paiement.</div></details>
+            <details data-s="tous"><summary>Je travaille pendant l'indemnisation, je perds combien de jours ?<span class="pl">+</span></summary><div class="asv-body">Chaque activité décale des jours non indemnisables : <span class="asv-tag tech">A8</span> jours travaillés <strong>× 1,4</strong> · <span class="asv-tag art">A10</span> jours <strong>× 1,3</strong>. Et le cumul salaire + ARE ne dépasse pas <strong>118 % du plafond Sécu</strong>. L'appli le calcule.</div></details>
+            <details data-s="tous"><summary>Je n'atteins pas 507 h à ma date anniversaire ?<span class="pl">+</span></summary><div class="asv-body">Tu peux basculer sur la <strong>clause de rattrapage</strong> : jusqu'à <strong>6 mois</strong> au même taux pour compléter tes heures. Deux conditions : <strong>au moins 338 h</strong> (entre 338 et 506 h) sur les 12 mois avant la date anniversaire, <strong>ET</strong> <strong>5 ans d'ancienneté</strong> dans les 10 ans précédents (soit <strong>2 535 h</strong> = 5 × 507 h, soit <strong>5 ouvertures de droits</strong> annexes 8/10).<br><a class="asv-src" href="https://www.francetravail.fr/spectacle/" target="_blank">Source : guide FT p.20-21 ↗</a></div></details>
+          </div>
+
+          <div class="asv-sec">
+            <div class="asv-sec-h"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5a2 2 0 0 1 2-2h9l5 5v13z"/><path d="M9 9h4M9 13h6M9 17h6"/></svg></span><h3>Impôts</h3></div>
+            <details data-s="tous"><summary>Forfait 10 % ou frais réels ?<span class="pl">+</span></summary><div class="asv-body">Tu gardes le plus avantageux. En frais réels, les intermittents peuvent cumuler une déduction <strong>14 % + 5 %</strong> avec leurs <strong>autres frais</strong> (transport, repas, cotisations…), le tout comparé au forfait 10 %. L'appli compare pour toi.<br><a class="asv-src" href="https://www.impots.gouv.fr" target="_blank">Source : impots.gouv.fr + doc SNAM ↗</a></div></details>
+          </div>
+
+          <div class="asv-sec">
+            <div class="asv-sec-h"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A3.5 3.5 0 0 0 12 6 3.5 3.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z"/></svg></span><h3>Congés, maternité, maladie, accident</h3></div>
+            <details data-s="tous"><summary>Un arrêt (maternité, adoption, AT) compte dans mes 507 h ?<span class="pl">+</span></summary><div class="asv-body">Les textes officiels (Unédic art. 3, guide FT) prévoient <strong>5 h/jour assimilées</strong> pour la maternité, l'adoption et l'accident du travail. <strong>Dans l'appli, on ne les décompte pas encore</strong> : on les affiche pour que tu les notes, le temps de valider toutes les conditions (indemnisation + contrat après l'arrêt). <em>Rien n'est figé, on continue d'investiguer.</em><br><a class="asv-src" href="https://www.francetravail.fr/spectacle/" target="_blank">Source : guide FT p.8-9 ↗</a></div></details>
+            <details data-s="tous"><summary>Congé maternité : qui m'indemnise ?<span class="pl">+</span></summary><div class="asv-body">Côté <strong>CPAM</strong> pour les indemnités journalières (conditions en heures/cachets ou cotisations). En cas de refus, l'<strong>aide d'urgence Audiens</strong> existe (≈ 15,50 €/jour, 8 semaines). À vérifier sur ameli et Audiens.</div></details>
+            <details data-s="tous"><summary>Les congés spectacles ?<span class="pl">+</span></summary><div class="asv-body">Gérés par la <strong>Caisse des Congés Spectacles</strong> (Audiens), sur un exercice d'<strong>avril à mars</strong>. Tu les demandes en fin d'exercice.</div></details>
+          </div>
+
+          <div class="asv-more">📇 Besoin des <strong>coordonnées</strong> (téléphone, adresse, sites) de ces organismes ? Elles sont toutes dans l'onglet <strong>Contacts</strong>.</div>
+        </article>
+      </section>
+
     </section>
   </main>
 
   <script src="document-parser.js?v=5"></script>
-  <script src="app.js?v=117"></script>
+  <script src="app.js?v=118"></script>
 
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>
