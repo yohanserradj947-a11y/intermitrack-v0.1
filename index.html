@@ -597,10 +597,11 @@ z-index: 500 !important;
         /* Barre d'onglets EN BAS, façon appli : fixe, icône au-dessus du libellé, pastille pétrole sous l'onglet actif, défilement horizontal. Couleurs via variables de thème. */
         .tabs .tab::before{content:""!important;display:none!important;background:none!important;}
         .tabs-wrap{position:fixed!important;bottom:0;left:0;right:0;z-index:400;background:var(--card);border-top:1px solid var(--line);box-shadow:0 -2px 14px rgba(0,0,0,.06);padding-bottom:env(safe-area-inset-bottom);display:flex;flex-direction:column-reverse;}
-        .tabs{display:flex!important;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:0!important;padding:5px 6px 6px!important;justify-content:flex-start!important;}
+        .tabs{display:flex!important;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:0!important;padding:6px 4px 7px!important;justify-content:stretch!important;width:100%;}
         .tabs::-webkit-scrollbar{display:none;}
-        .tabs .tab{display:flex!important;flex-direction:column!important;align-items:center;gap:3px!important;min-width:66px;flex:0 0 auto;padding:4px 4px!important;font-size:10px!important;font-weight:700!important;white-space:nowrap;background:none!important;border:none!important;color:var(--muted)!important;}
-        .tabs .tab svg{width:22px!important;height:22px!important;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;padding:3px 14px;border-radius:999px;box-sizing:content-box;}
+        /* flex:1 → les onglets s'étirent pour REMPLIR toute la barre sur grand écran ; min-width + shrink:0 → ils défilent sur mobile étroit. */
+        .tabs .tab{display:flex!important;flex-direction:column!important;align-items:center;justify-content:center;gap:4px!important;flex:1 0 auto!important;min-width:74px;padding:7px 6px!important;font-size:11px!important;font-weight:700!important;white-space:nowrap;background:none!important;border:none!important;color:var(--muted)!important;}
+        .tabs .tab svg{width:25px!important;height:25px!important;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;padding:4px 18px;border-radius:999px;box-sizing:content-box;}
         .tabs .tab.active{color:var(--petrol)!important;}
         .tabs .tab.active svg{background:color-mix(in srgb, var(--petrol) 15%, transparent);}
         .tab-dots{display:flex;justify-content:center;gap:5px;padding:6px 0 3px;}
@@ -608,6 +609,8 @@ z-index: 500 !important;
         .tab-dots .tab-dot.on{width:16px;background:var(--petrol);}
         /* Le contenu ne passe pas sous la barre fixe. */
         #appBox .view{padding-bottom:96px;}
+        /* Bouton flottant « Télécharger l'app » masqué quand on est DANS l'appli (il recouvrait les onglets sur mobile). Reste sur la landing. */
+        body:has(#appBox:not(.hidden)) .dl-float{display:none!important;}
       </style>
       <div class="tabs-wrap">
         <nav class="tabs">
@@ -651,9 +654,10 @@ z-index: 500 !important;
           </div>
           <div class="chartWrap" id="chart"></div>
           <div id="aiPaceBox" style="display:none;margin-top:12px;">
-            <div style="font-size:11.5px;font-weight:800;color:#5E7078;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;">Année d'intermittence</div>
-            <div style="position:relative;height:8px;background:#E7E3DA;border-radius:99px;overflow:hidden;"><i id="aiPaceFill" style="display:block;height:100%;width:0%;background:#7A9E7E;border-radius:99px;transition:width .3s;"></i></div>
-            <div id="aiPaceStatus" style="font-size:12px;color:#5E7078;margin-top:6px;font-weight:600;"></div>
+            <div style="font-size:11.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;">Année d'intermittence</div>
+            <div id="aiPaceMonths" style="position:relative;height:13px;"></div>
+            <div style="position:relative;height:8px;background:var(--line);border-radius:99px;overflow:hidden;"><i id="aiPaceFill" style="display:block;height:100%;width:0%;background:#7A9E7E;border-radius:99px;transition:width .3s;"></i></div>
+            <div id="aiPaceStatus" style="font-size:12px;color:var(--muted);margin-top:6px;font-weight:600;"></div>
           </div>
         <div class="recap-mois-header" style="display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px;">
     <span style="font-weight:800;color:#1F4E5F;font-size:16px;">Récap du mois</span>

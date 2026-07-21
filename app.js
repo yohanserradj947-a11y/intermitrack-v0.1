@@ -2977,6 +2977,16 @@ function render() {
       $("aiPaceBox").style.display = "block";
       if ($("aiPaceFill")) { $("aiPaceFill").style.width = Math.round(elapsed * 100) + "%"; $("aiPaceFill").style.background = col; }
       if ($("aiPaceStatus")) $("aiPaceStatus").innerHTML = Math.round(elapsed * 100) + "% de l'année écoulée · <b style=\"color:" + col + "\">" + lbl + "</b>";
+      if ($("aiPaceMonths")) {
+        const _MN = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+        let _mh = "";
+        for (let _i = 0; _i <= 12; _i += 3) {
+          const _d = new Date(winStart); _d.setMonth(_d.getMonth() + _i);
+          const _f = _i / 12;
+          _mh += '<span style="position:absolute;left:' + Math.min(96, _f * 100) + '%;transform:translateX(-50%);font-size:9px;color:var(--muted);opacity:.85;">' + _MN[_d.getMonth()] + "</span>";
+        }
+        $("aiPaceMonths").innerHTML = _mh;
+      }
     } else { $("aiPaceBox").style.display = "none"; }
   }
   renderFiscalite(fiscalGross, fiscalMissions);
