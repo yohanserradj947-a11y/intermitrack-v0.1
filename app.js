@@ -3655,11 +3655,13 @@ const list = missions.filter((m) => normalizeProductionName(m.production || "San
     <div class="prod-opts">
       <button class="prod-opt-btn" type="button" data-prod-color="${escapeHtml(productionName)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.564C22 6.05 17.5 2 12 2z"/></svg>Couleur</button>
       <button class="prod-opt-btn" type="button" data-prod-tarif="${escapeHtml(productionName)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Tarif/jour</button>
+      <button class="prod-opt-btn" type="button" data-prod-overtime="${escapeHtml(productionName)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Heures sup</button>
       <button class="prod-opt-btn" type="button" data-prod-rename="${escapeHtml(productionName)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Renommer</button>
       <button class="prod-opt-btn" type="button" data-prod-merge="${escapeHtml(productionName)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m0 8v3a2 2 0 0 0 2 2h3m8-18h3a2 2 0 0 1 2 2v3m0 8v3a2 2 0 0 1-2 2h-3"/><path d="M9 12h6"/></svg>Fusionner</button>
       <button class="prod-opt-btn danger" type="button" data-prod-delete="${escapeHtml(productionName)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>Supprimer</button>
     </div>
     <div id="prodMergeBox" class="prod-merge-box" style="display:none;"></div>
+    <div id="prodOvertimeBox" class="ot-box" style="display:none;"></div>
     <div class="mission-card-grid">
       ${list.map((mission) => `
        <div class="mission-history-card">
@@ -3702,6 +3704,16 @@ function _prodTarif(normName) {
   _setProdRate(normName, val);
   toast(val > 0 ? "Tarif enregistré." : "Tarif retiré.");
   openProductionMissions(normName);
+}
+function _prodOvertime(normName) {
+  const box = $("prodOvertimeBox"); if (!box) return;
+  if (box.style.display !== "none" && box.dataset.for === normName) { box.style.display = "none"; _ot = null; return; }
+  if ($("prodMergeBox")) $("prodMergeBox").style.display = "none";
+  box.dataset.for = normName;
+  box.style.display = "";
+  const annexe = (typeof _profil !== 'undefined' && _profil && _profil.annexe) || '';
+  _otInit(normName, annexe, 'config', 'prodOvertimeBox', null);
+  _otRerender();
 }
 async function _prodRename(normName) {
   const nv = prompt("Nouveau nom de la production :", normName);
@@ -4674,6 +4686,8 @@ function setupEvents() {
     if (prodColorBtn) { _prodColor(prodColorBtn.dataset.prodColor); return; }
     const prodTarifBtn = event.target.closest("[data-prod-tarif]");
     if (prodTarifBtn) { _prodTarif(prodTarifBtn.dataset.prodTarif); return; }
+    const prodOvertimeBtn = event.target.closest("[data-prod-overtime]");
+    if (prodOvertimeBtn) { _prodOvertime(prodOvertimeBtn.dataset.prodOvertime); return; }
     const prodRenameBtn = event.target.closest("[data-prod-rename]");
     if (prodRenameBtn) { _prodRename(prodRenameBtn.dataset.prodRename); return; }
     const prodMergeIntoBtn = event.target.closest("[data-prod-merge-into]");
@@ -4763,6 +4777,8 @@ async function loadProfil(){
     // Prix appris (prod+poste) : select SÉPARÉ et défensif — la colonne price_memory peut ne pas
     // encore exister (avant migration), il ne doit donc pas casser le chargement du profil.
     try { const _pm = await sb.from('profiles').select('price_memory').eq('id', currentUser.id).maybeSingle(); if (_profil && _pm.data) _profil.price_memory = _pm.data.price_memory || {}; } catch(e){}
+    // Barèmes d'heures sup par prod (overtime_memory) : même précaution défensive.
+    try { const _om = await sb.from('profiles').select('overtime_memory').eq('id', currentUser.id).maybeSingle(); if (_profil && _om.data) _profil.overtime_memory = _om.data.overtime_memory || {}; } catch(e){}
     // Date ARE : la base de données fait foi (synchro multi-appareils).
     // Sinon, on migre la valeur locale (ancienne) vers la base.
     if (data && data.are_date) {
@@ -5249,6 +5265,7 @@ function _setProdValue(v){
   if (typeof syncProdColorPicker === 'function') syncProdColorPicker();
   _syncProdBtn();
   if (typeof _prefillLearnedPrice === 'function') _prefillLearnedPrice();
+  if (typeof _missionOvertimeVisibility === 'function') _missionOvertimeVisibility();
 }
 function _renderProdPicker(ov){
   var q = (document.getElementById('prodSearchInput') || {}).value || '';
@@ -5485,6 +5502,104 @@ function _rememberPrice(prod, poste, perDay){
   _profil.price_memory[k]=val;
   if(currentUser){ try{ sb.from('profiles').upsert({id:currentUser.id, price_memory:_profil.price_memory},{onConflict:'id'}).then(function(){},function(){}); }catch(e){} }
 }
+// ===== HEURES SUPPLÉMENTAIRES (site) — moteur porté de intermitrack-mobile/lib/overtime.ts =====
+function _otTaux(rule){ return rule.heures>0 ? rule.base/rule.heures : 0; }
+function _otBreakdown(hSup, rule){
+  var taux=_otTaux(rule), lines=[], remaining=Math.max(0,hSup||0);
+  for(var i=0;i<rule.paliers.length;i++){ var p=rule.paliers[i]; if(remaining<=1e-9)break; var h=Math.min(remaining,Math.max(0,p.h)); if(h<=0)continue; lines.push({h:h,pct:p.pct,taux:taux,montant:h*taux*(1+p.pct/100)}); remaining-=h; }
+  if(remaining>1e-9){ lines.push({h:remaining,pct:rule.restPct,taux:taux,montant:remaining*taux*(1+rule.restPct/100)}); }
+  return lines;
+}
+function _otCompute(hSup, rule){ return Math.round(_otBreakdown(hSup,rule).reduce(function(a,l){return a+l.montant;},0)*100)/100; }
+function _otDefaultBase(annexe){ return annexe==='artiste'?0:8; }
+function _otMoney(n){ return (Math.round(n*100)/100).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
+function _otNum(s){ return Number(String(s==null?'':s).replace(',','.'))||0; }
+// Stockage overtime_memory (clé = nom de prod normalisé), comme l'app.
+function _getOvertimeRule(prod){ var mem=(typeof _profil!=='undefined'&&_profil&&_profil.overtime_memory)?_profil.overtime_memory:{}; var v=mem[normalizeProductionName(prod)]; return v||null; }
+function _setOvertimeRule(prod, rule){
+  if(!prod||!rule||!(rule.base>0)||!(rule.heures>0)||typeof _profil==='undefined'||!_profil) return;
+  if(!_profil.overtime_memory) _profil.overtime_memory={};
+  _profil.overtime_memory[normalizeProductionName(prod)]=rule;
+  if(currentUser){ try{ sb.from('profiles').upsert({id:currentUser.id, overtime_memory:_profil.overtime_memory},{onConflict:'id'}).then(function(){},function(){}); }catch(e){} }
+}
+// État de l'éditeur (partagé config/mission).
+var _ot = null;
+function _otRule(){ return { base:_otNum(_ot.base), heures:_otNum(_ot.heures), paliers:_ot.paliers.map(function(p){return {h:_otNum(p.h),pct:_otNum(p.pct)};}).filter(function(p){return p.h>0;}), restPct:_otNum(_ot.restPct) }; }
+function _otInit(prod, annexe, variant, containerId, onAdd){
+  var r=_getOvertimeRule(prod);
+  _ot={ prod:prod, variant:variant, container:containerId, onAdd:onAdd||null, added:false, hours:'',
+    base: r?String(r.base):'', heures: r?String(r.heures):String(_otDefaultBase(annexe)||8),
+    paliers: (r&&r.paliers&&r.paliers.length)?r.paliers.map(function(p){return {h:String(p.h),pct:String(p.pct)};}):[{h:'3',pct:'25'}],
+    restPct: r?String(r.restPct):'50' };
+}
+function _otOutHTML(){
+  var rule=_otRule(), taux=_otTaux(rule), isConfig=_ot.variant==='config', h='';
+  if(taux>0) h+='<div class="ot-taux">Taux horaire de base = '+_otMoney(taux)+'/h</div>';
+  if(isConfig){
+    if(rule.base>0&&rule.heures>0) h+='<div class="ot-result"><div class="ot-resline">Aperçu : 3 h sup = '+_otMoney(_otCompute(3,rule))+'</div><div class="ot-resline">5 h sup = '+_otMoney(_otCompute(5,rule))+'</div></div>';
+    var canSave=rule.base>0&&rule.heures>0;
+    h+='<button type="button" class="ot-mainbtn" data-ot-save '+((canSave&&!_ot.added)?'':'disabled')+'>'+(_ot.added?'✓ Barème enregistré':'Enregistrer le barème pour cette prod')+'</button>';
+    h+='<p class="ot-warn">Ce barème se pré-remplira sur tes prochaines missions de cette prod. Vérifie toujours avec ta fiche de paie — en test.</p>';
+  } else {
+    var nb=_otNum(_ot.hours), montant=_otCompute(nb,rule), lines=_otBreakdown(nb,rule), canAdd=nb>0&&rule.base>0&&rule.heures>0&&montant>0;
+    if(canAdd) h+='<div class="ot-result">'+lines.map(function(l){return '<div class="ot-resline">'+(Math.round(l.h*100)/100)+' h à +'+l.pct+' % = '+_otMoney(l.montant)+'</div>';}).join('')+'<div class="ot-restotal">Total heures sup = '+_otMoney(montant)+'</div></div>';
+    h+='<button type="button" class="ot-mainbtn" data-ot-add '+((canAdd&&!_ot.added)?'':'disabled')+'>'+(_ot.added?'✓ Ajouté au brut':(canAdd?'Ajouter '+_otMoney(montant)+' au brut':'Renseigne base + heures sup'))+'</button>';
+    h+='<p class="ot-warn">Le montant s\'ajoute au brut de la mission. Vérifie toujours avec ta fiche de paie — en test.</p>';
+  }
+  return h;
+}
+function _otEditorHTML(){
+  var isConfig=_ot.variant==='config', h='';
+  h+='<p class="ot-hint">Les heures sup se calculent sur la base garantie (souvent inférieure au brut affiché), avec des paliers propres à la prod.</p>';
+  h+='<div class="ot-row2"><div style="flex:1;"><label class="ot-lbl">Base garantie (€)</label><input class="ot-in" data-ot="base" inputmode="decimal" autocomplete="off" value="'+escapeHtml(_ot.base)+'" placeholder="Ex : 205"></div><div style="width:118px;"><label class="ot-lbl">Heures de base</label><input class="ot-in" data-ot="heures" inputmode="decimal" autocomplete="off" value="'+escapeHtml(_ot.heures)+'" placeholder="8"></div></div>';
+  h+='<div class="ot-info"><b>C\'est quoi la « base garantie » ?</b> C\'est le salaire minimum sur lequel se calculent tes heures sup — souvent le minimum de ta convention, plus bas que ta pige négociée. Tu la trouves sur ta fiche de paie (ligne « salaire de base ») ou ton contrat. Taux horaire = base ÷ heures.</div>';
+  h+='<div class="ot-palhead"><label class="ot-lbl">Paliers de majoration</label><button type="button" class="ot-preset" data-ot-preset>Standard 25 / 50</button></div>';
+  _ot.paliers.forEach(function(p,i){ h+='<div class="ot-palrow"><input class="ot-in ot-palh" data-ot-pal="'+i+'" data-ot-palf="h" inputmode="decimal" autocomplete="off" value="'+escapeHtml(p.h)+'" placeholder="h"><span class="ot-mid">h à +</span><input class="ot-in ot-palpct" data-ot-pal="'+i+'" data-ot-palf="pct" inputmode="decimal" autocomplete="off" value="'+escapeHtml(p.pct)+'" placeholder="%"><span class="ot-mid">%</span><button type="button" class="ot-paldel" data-ot-paldel="'+i+'" title="Retirer">✕</button></div>'; });
+  h+='<button type="button" class="ot-addpal" data-ot-addpal>+ Ajouter un palier</button>';
+  h+='<div class="ot-palrow"><span class="ot-mid" style="flex:1;">Au-delà : +</span><input class="ot-in ot-palpct" data-ot="restPct" inputmode="decimal" autocomplete="off" value="'+escapeHtml(_ot.restPct)+'" placeholder="%"><span class="ot-mid">%</span></div>';
+  if(!isConfig){ h+='<label class="ot-lbl">Nombre d\'heures supplémentaires</label><input class="ot-in" data-ot="hours" inputmode="decimal" autocomplete="off" value="'+escapeHtml(_ot.hours)+'" placeholder="Ex : 5">'; }
+  h+='<div id="otOut">'+_otOutHTML()+'</div>';
+  return h;
+}
+function _otRerender(){ var c=_ot&&document.getElementById(_ot.container); if(c) c.innerHTML=_otEditorHTML(); }
+function _otRefreshOut(){ var o=document.getElementById('otOut'); if(o) o.innerHTML=_otOutHTML(); }
+// Saisie : on met à jour l'état SANS re-render (préserve le focus), on rafraîchit juste la sortie.
+document.addEventListener('input', function(e){
+  if(!_ot) return; var t=e.target; if(!t||!t.matches) return;
+  if(t.matches('[data-ot]')){ _ot[t.getAttribute('data-ot')]=t.value; _ot.added=false; _otRefreshOut(); }
+  else if(t.matches('[data-ot-pal]')){ var i=Number(t.getAttribute('data-ot-pal')); if(_ot.paliers[i]){ _ot.paliers[i][t.getAttribute('data-ot-palf')]=t.value; _ot.added=false; _otRefreshOut(); } }
+});
+document.addEventListener('click', function(e){
+  if(!_ot) return; var t=e.target;
+  if(t.closest('[data-ot-preset]')){ _ot.paliers=[{h:'3',pct:'25'}]; _ot.restPct='50'; _ot.added=false; _otRerender(); return; }
+  if(t.closest('[data-ot-addpal]')){ _ot.paliers.push({h:'',pct:''}); _otRerender(); return; }
+  var pd=t.closest('[data-ot-paldel]'); if(pd){ _ot.paliers.splice(Number(pd.getAttribute('data-ot-paldel')),1); _ot.added=false; _otRerender(); return; }
+  if(t.closest('[data-ot-save]')){ var r=_otRule(); if(r.base>0&&r.heures>0){ _setOvertimeRule(_ot.prod,r); _ot.added=true; _otRefreshOut(); if(typeof toast==='function') toast('Barème enregistré.'); } return; }
+  if(t.closest('[data-ot-add]')){ var r2=_otRule(); var m=_otCompute(_otNum(_ot.hours),r2); if(m>0){ if(_ot.onAdd) _ot.onAdd(m,r2); _setOvertimeRule(_ot.prod,r2); _ot.added=true; _otRefreshOut(); if(typeof toast==='function') toast('Heures sup ajoutées au brut.'); } return; }
+});
+
+// --- Section heures sup DANS le formulaire de mission (variant 'mission', ajoute au brut) ---
+function _missionOvertimeVisibility(){
+  var wrap=document.getElementById('missionOvertimeWrap'); if(!wrap) return;
+  var prod=((document.getElementById('production')||{}).value||'').trim();
+  wrap.style.display = prod ? '' : 'none';
+  // On replie systématiquement : l'utilisateur ré-ouvre pour la prod courante → barème frais.
+  var sec=document.getElementById('missionOvertimeSection'); if(sec) sec.style.display='none';
+  var ch=document.getElementById('missionOvertimeChev'); if(ch) ch.textContent='▼';
+  if(_ot&&_ot.container==='missionOvertimeSection') _ot=null;
+}
+function _missionOvertimeToggle(){
+  var sec=document.getElementById('missionOvertimeSection'), ch=document.getElementById('missionOvertimeChev'); if(!sec) return;
+  if(sec.style.display==='none'){
+    var prod=((document.getElementById('production')||{}).value||'').trim();
+    if(!prod){ if(typeof toast==='function') toast("Choisis d'abord une production."); return; }
+    var annexe=(typeof _profil!=='undefined'&&_profil&&_profil.annexe)||'';
+    _otInit(prod, annexe, 'mission', 'missionOvertimeSection', function(montant){ var g=document.getElementById('gross'); if(g){ g.value=Math.round(((Number(g.value)||0)+montant)*100)/100; } });
+    _otRerender(); sec.style.display=''; if(ch) ch.textContent='▲';
+  } else { sec.style.display='none'; if(ch) ch.textContent='▼'; if(_ot&&_ot.container==='missionOvertimeSection') _ot=null; }
+}
+document.addEventListener('click', function(e){ if(e.target.closest && e.target.closest('#missionOvertimeHead')) _missionOvertimeToggle(); });
+
 // Le poste PRÉ-REMPLI (depuis « Mes infos ») est une simple suggestion : tant qu'on n'a pas touché
 // aux postes, le 1er tap REMPLACE (pas de cumul forcé). Ensuite les taps cumulent/décochent normalement.
 var _typePristine = false;

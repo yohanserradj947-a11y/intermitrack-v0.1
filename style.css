@@ -722,6 +722,31 @@ body.theme-dark .calendar-day-panel-head span, body.theme-dark .calendar-day-mis
 .prod-merge-title { width: 100%; font-size: 13px; font-weight: 800; color: var(--text); margin-bottom: 2px; }
 .prod-merge-target { padding: 8px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--card); color: var(--petrol); font-weight: 700; font-size: 12.5px; cursor: pointer; font-family: inherit; }
 .prod-merge-target:hover { background: var(--petrol); color: #fff; }
+/* Heures supplémentaires (options prod + formulaire de mission) */
+.ot-box { margin-bottom: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--soft); }
+.ot-mission-wrap { margin: 8px 0 12px; }
+.ot-head { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 11px 13px; border: 1px solid var(--line); border-radius: 11px; background: var(--card); color: var(--petrol); font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; }
+.ot-hint { font-size: 12px; color: var(--muted); line-height: 1.5; margin: 0 0 10px; }
+.ot-row2 { display: flex; gap: 10px; }
+.ot-lbl { display: block; font-weight: 700; font-size: 12.5px; color: var(--text); margin: 10px 0 5px; }
+.ot-in { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--card); color: var(--text); font-size: 14px; font-family: inherit; outline: none; }
+.ot-in:focus { border-color: var(--petrol); }
+.ot-taux { font-size: 12.5px; font-weight: 700; color: var(--petrol); margin: 8px 0; }
+.ot-info { font-size: 11.5px; color: var(--muted); line-height: 1.5; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 8px 0; }
+.ot-info b { color: var(--petrol); }
+.ot-palhead { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+.ot-preset { background: none; border: none; color: var(--petrol); font-weight: 700; font-size: 11.5px; text-decoration: underline; cursor: pointer; font-family: inherit; }
+.ot-palrow { display: flex; align-items: center; gap: 6px; margin-top: 7px; }
+.ot-palh, .ot-palpct { width: 64px; flex: 0 0 auto; }
+.ot-mid { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.ot-paldel { border: none; background: rgba(220,38,38,.1); color: var(--danger); width: 28px; height: 28px; border-radius: 8px; cursor: pointer; font-weight: 800; font-family: inherit; flex: 0 0 auto; }
+.ot-addpal { margin-top: 8px; background: none; border: 1px dashed var(--line-2); border-radius: 9px; color: var(--petrol); font-weight: 700; font-size: 12.5px; padding: 8px; width: 100%; cursor: pointer; font-family: inherit; }
+.ot-result { margin-top: 10px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.ot-resline { font-size: 12.5px; color: var(--text); margin: 2px 0; }
+.ot-restotal { font-size: 13.5px; font-weight: 800; color: var(--petrol); margin-top: 5px; }
+.ot-mainbtn { width: 100%; margin-top: 12px; padding: 12px; border: none; border-radius: 11px; background: var(--petrol); color: #fff; font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; }
+.ot-mainbtn:disabled { opacity: .45; cursor: default; }
+.ot-warn { font-size: 11px; color: var(--muted); line-height: 1.4; margin: 8px 0 0; }
 /* Responsive : la rangée de couleurs reste dans l'écran sur mobile */
 .prod-color-row, .prod-color-swatches, .prod-color-preview { max-width: 100%; }
 .prod-color-swatches { overflow: visible; }

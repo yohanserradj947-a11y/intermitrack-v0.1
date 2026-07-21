@@ -17,7 +17,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=30" />
+  <link rel="stylesheet" href="style.css?v=31" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js" integrity="sha384-wgi7s9Y2xefdDru3II6Xb11y/YNoKVbuydTikWejwId9z2xRd8SveCTrJjj/QAnH" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
   <style>
@@ -772,6 +772,11 @@ z-index: 500 !important;
             <small id="vacationsHint" style="display:block;color:var(--muted);font-size:11.5px;margin:-4px 0 4px;line-height:1.4;">1 vacation = 1 journée de travail (technicien) · 1 cachet (artiste / musicien). Se remplit tout seul pour les missions sur plusieurs jours.</small>
             <label for="gross">Montant brut de la mission (EUR)</label>
             <input id="gross" type="number" min="0" step="0.01" placeholder="Ex : 230" required />
+            <!-- Heures supplémentaires (comme l'app) : calcule sur la base garantie et s'ajoute au brut -->
+            <div id="missionOvertimeWrap" class="ot-mission-wrap" style="display:none;">
+              <button type="button" id="missionOvertimeHead" class="ot-head"><span>⏱️ Heures supplémentaires (optionnel)</span><span id="missionOvertimeChev">▼</span></button>
+              <div id="missionOvertimeSection" class="ot-box" style="display:none;"></div>
+            </div>
             <details class="optional-block">
               <summary style="cursor:pointer;font-weight:700;font-size:17px;color:var(--petrol);">🚗 Frais kilométriques <span style="font-weight:400;font-size:13px;color:#9AA5B1;">(optionnel)</span></summary>
               <p class="hint" style="margin-top:10px;">Indique tes lieux de départ et d'arrivée, la distance (aller simple) se calcule automatiquement.</p>
@@ -1504,7 +1509,7 @@ z-index: 500 !important;
   </main>
 
   <script src="document-parser.js?v=5"></script>
-  <script src="app.js?v=95"></script>
+  <script src="app.js?v=96"></script>
 
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>
