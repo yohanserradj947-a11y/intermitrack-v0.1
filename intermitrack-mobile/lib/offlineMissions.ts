@@ -159,16 +159,20 @@ export function useOffline() {
   return o;
 }
 
-// Helper commun de chargement des missions avec repli cache. Retourne la liste à afficher.
-// opts.ascending = ordre par date (défaut croissant ; missions.tsx = décroissant).
-// opts.onData = callback optionnel (ex : widgets).
-export async function loadMissionsCached(
+function sortByDate(list: any[], ascending: boolean) {
+  return [...list].sort((a, b) => {
+    if (a.mission_date === b.mission_date) return 0;
+    return (a.mission_date < b.mission_date) === ascending ? -1 : 1;
+  });
+}
+
+// Rafraîchit depuis le serveur (timeout 6 s), fusionne les opérations en attente par-dessus, met à jour
+// + re-cache. Appelé en ARRIÈRE-PLAN par loadMissionsCached → ne bloque jamais l'affichage.
+async function refreshFromServer(
   setMissions: (list: any[]) => void,
-  opts?: { onData?: (list: any[]) => void; ascending?: boolean }
+  opts: { onData?: (list: any[]) => void; ascending?: boolean } | undefined,
+  ascending: boolean
 ) {
-  const ascending = opts?.ascending !== false;
-  // Réseau FAIBLE (plateau) : la requête peut « pendre » longtemps sans échouer. On la course contre un
-  // délai de 6 s → au-delà, on considère qu'on est hors ligne et on bascule sur le cache (au lieu d'attendre).
   const query = supabase.from('missions').select('*').order('mission_date', { ascending });
   const { data, error } = await Promise.race([
     query as any,
@@ -176,42 +180,44 @@ export async function loadMissionsCached(
   ]) as { data: any[] | null; error: any };
   if (data) {
     setOffline(false);
-    let list = data;
+    let list: any[] = data;
     const q = await getQueue();
     if (q.length) {
-      // On applique les opérations en attente PAR-DESSUS les données serveur pour que tes ajouts/modifs/
-      // suppressions hors ligne restent visibles tant qu'ils ne sont pas synchronisés — SANS bloquer :
-      // la vraie synchro réseau se fait en arrière-plan (flushInBackground).
       const delIds = new Set(q.filter((it) => it.op === 'delete').map((it) => it.id));
       const updates = q.filter((it) => it.op === 'update');
       const serverTokens = new Set(data.map((m) => m.client_token).filter(Boolean));
       const inserts = q.filter((it) => it.op === 'insert' && !serverTokens.has(it.token))
         .map((it) => ({ ...it.payload, id: 'local_' + it.token, _pending: true }));
-      list = data
-        .filter((m) => !delIds.has(m.id))
-        .map((m) => { const u = updates.find((it) => it.id === m.id); return u ? { ...m, ...u.payload, _pending: true } : m; })
-        .concat(inserts)
-        .sort((a, b) => { if (a.mission_date === b.mission_date) return 0; return (a.mission_date < b.mission_date) === ascending ? -1 : 1; });
+      list = sortByDate(
+        data.filter((m) => !delIds.has(m.id))
+          .map((m) => { const u = updates.find((it) => it.id === m.id); return u ? { ...m, ...u.payload, _pending: true } : m; })
+          .concat(inserts),
+        ascending
+      );
       flushInBackground();
     }
     setMissions(list);
     cacheMissions(list);
     opts?.onData?.(list);
-    return list;
+  } else if (error) {
+    setOffline(true);
   }
-  // Échec réseau : on retombe sur la dernière version connue, sans écraser par du vide, dans le bon ordre.
-  if (error) {
-    const cached = await getCachedMissions();
-    if (cached && cached.length) {
-      const sorted = [...cached].sort((a, b) => {
-        if (a.mission_date === b.mission_date) return 0;
-        return (a.mission_date < b.mission_date) === ascending ? -1 : 1;
-      });
-      setMissions(sorted);
-      setOffline(true);
-      opts?.onData?.(sorted);
-      return sorted;
-    }
+}
+
+// Chargement des missions : affichage INSTANTANÉ depuis le cache, PUIS rafraîchissement réseau en
+// arrière-plan (stale-while-revalidate). Résultat : chaque onglet s'affiche tout de suite, l'appli
+// n'attend plus le réseau. Retourne le cache immédiatement (ou null au tout premier lancement).
+export async function loadMissionsCached(
+  setMissions: (list: any[]) => void,
+  opts?: { onData?: (list: any[]) => void; ascending?: boolean }
+) {
+  const ascending = opts?.ascending !== false;
+  const cached = await getCachedMissions();
+  if (cached && cached.length) {
+    const sorted = sortByDate(cached, ascending);
+    setMissions(sorted);
+    opts?.onData?.(sorted);
   }
-  return null;
+  refreshFromServer(setMissions, opts, ascending); // arrière-plan, non attendu
+  return cached || null;
 }
