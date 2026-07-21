@@ -278,7 +278,9 @@ export default function HomeScreen(){
     const nowT=today.getTime();
     const elapsedFrac=yearOffset<0?1:Math.max(0,Math.min(1,(nowT-winStartT)/(winEndT-winStartT)));
     const progressH=Math.round((doneH+formH+ensH)*10)/10;
-    const hoursFrac=Math.max(0,Math.min(1,progressH/507));
+    // Avance/retard : on inclut AUSSI les dates à venir (planH), cohérent avec le grand % « en comptant
+    // tes dates à venir » juste au-dessus (sinon un user à 93 % voyait « en retard »). Retour user.
+    const hoursFrac=Math.max(0,Math.min(1,(progressH+planH)/507));
     // Montant réel du mois : somme des net réellement perçus des missions du mois (proratisés comme le brut).
     const monthNetReel=Math.round(missions.filter(notGen).reduce((a:number,m:any)=>{const md=monthDays(m);return a+((m.net_reel!=null&&md.inM>0)?Number(m.net_reel)*md.frac:0);},0));
     const monthHasNetReel=missions.some((m:any)=>notGen(m)&&m.net_reel!=null&&monthDays(m).inM>0);
