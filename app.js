@@ -44,26 +44,28 @@ function _forfait10(net){
 function _fraisReelsSpec(net, a14, a5){
   return (a14 ? Math.min(Math.max(0, net), ASSIETTE_14_MAX) * 0.14 : 0) + (a5 ? Math.max(0, net) * 0.05 : 0);
 }
-// Les 14 %/5 % sont des FRAIS RÉELS : ils REMPLACENT le forfait de 10 %, ils ne s'y ajoutent jamais
-// (impots.gouv.fr : « La déduction de 10 % ne peut jamais être appliquée en même temps que la
-// déduction des frais réels »). D'où max(forfait ; frais réels) et non un taux figé par métier.
+// RÉGIME des artistes (source SNAM-CGT / BOFiP BOI-RSA-BASE-30-50-30-30) : les 14 % (A) et 5 % (B)
+// sont des FRAIS RÉELS forfaitaires. Dans le régime frais réels, ils s'ADDITIONNENT aux AUTRES frais
+// réels du barème (transport C1/C2, repas C3/C4, local C6, cotisations C8, matériel C7, recherche
+// d'emploi D…). Total frais réels artiste = 14 % + 5 % + ces autres frais. Ce total est comparé au
+// FORFAIT de 10 % (les deux régimes ne se cumulent jamais) → on garde le plus avantageux.
+// a14/a5 = le métier a-t-il droit au forfait 14 % / 5 % ?
 const PROFILS_FISCAUX_SITE = {
-  technicien: { label: "Forfait 10 % standard", netCoeff: 0.775,
-    hint: "Forfait de 10 % du net imposable — au minimum 509 €, au maximum 14 555 € (revenus 2025).",
+  technicien: { label: "Technicien — forfait 10 % ou frais réels", netCoeff: 0.775, a14: false, a5: false,
+    hint: "Forfait de 10 % du net imposable (min 509 €, max 14 555 € en 2025), OU tes frais réels si plus avantageux.",
     forfait: (net) => Math.max(_forfait10(net), _fraisReelsSpec(net, false, false)) },
-  musicien: { label: "14 % + 5 % (ou forfait 10 % si plus avantageux)", netCoeff: 0.775,
-    hint: "Musicien / choriste : 14 % (instruments, formation) + 5 % (représentation) — cumulables. Le forfait de 10 % s'applique s'il est plus avantageux (petites années).",
+  musicien: { label: "Musicien / choriste — 14 % + 5 % + frais réels", netCoeff: 0.775, a14: true, a5: true,
+    hint: "En frais réels : 14 % (instruments) + 5 % (représentation…) + tes AUTRES frais (transport, repas, local, cotisations…). Comparé au forfait 10 % : on garde le plus avantageux.",
     forfait: (net) => Math.max(_forfait10(net), _fraisReelsSpec(net, true, true)) },
-  lyrique: { label: "14 % + 5 % (ou forfait 10 % si plus avantageux)", netCoeff: 0.79,
-    hint: "Artiste lyrique : 14 % (formation, frais médicaux) + 5 % (représentation) — cumulables (BOFiP § 460 et § 480).",
+  lyrique: { label: "Artiste lyrique — 14 % + 5 % + frais réels", netCoeff: 0.79, a14: true, a5: true,
+    hint: "En frais réels : 14 % (formation, frais médicaux) + 5 % (représentation…) + tes AUTRES frais (transport, repas, local, cotisations…). Comparé au forfait 10 % (BOFiP § 460 et § 480).",
     forfait: (net) => Math.max(_forfait10(net), _fraisReelsSpec(net, true, true)) },
-  danseur: { label: "14 % + 5 % (ou forfait 10 % si plus avantageux)", netCoeff: 0.79,
-    hint: "Danseur (artiste chorégraphique) : 14 % (cours de danse, frais médicaux) + 5 % (représentation) — cumulables (BOFiP § 460 et § 480).",
+  danseur: { label: "Danseur (chorégraphique) — 14 % + 5 % + frais réels", netCoeff: 0.79, a14: true, a5: true,
+    hint: "En frais réels : 14 % (cours de danse, frais médicaux) + 5 % (représentation…) + tes AUTRES frais (transport, repas, local, cotisations…). Comparé au forfait 10 % (BOFiP § 460 et § 480).",
     forfait: (net) => Math.max(_forfait10(net), _fraisReelsSpec(net, true, true)) },
-  // Artiste dramatique : 5 % seulement (§ 480), pas de 14 % — il n'a pas d'instrument. Son 5 % étant
-  // toujours inférieur au forfait de 10 %, c'est ce dernier qui gagne en pratique.
-  comedien: { label: "Forfait 10 % (5 % artiste moins avantageux)", netCoeff: 0.79,
-    hint: "Comédien (artiste dramatique) : la déduction de 14 % ne le concerne pas (BOFiP § 480). Son 5 % étant inférieur au forfait de 10 %, c'est ce dernier qui s'applique.",
+  // Artiste dramatique : 5 % seulement (§ 480), pas de 14 % (pas d'instrument).
+  comedien: { label: "Comédien (dramatique) — 5 % + frais réels ou forfait 10 %", netCoeff: 0.79, a14: false, a5: true,
+    hint: "En frais réels : 5 % (vestimentaire, représentation…) + tes AUTRES frais (transport, repas, local, cotisations…). Le forfait 10 % s'applique s'il est plus avantageux (BOFiP § 480).",
     forfait: (net) => Math.max(_forfait10(net), _fraisReelsSpec(net, false, true)) }
 };
 // 'artiste' était l'ancienne clé, étiquetée « Artiste dramatique / lyrique » — deux métiers que le
@@ -2922,7 +2924,7 @@ function renderFiscalite(yearGross, yearMissions) {
     $("profileAbattementInfo").innerHTML =
       `<strong>ℹ️ ${profil.label}</strong>${profil.hint}`
       + `<div style="margin-top:9px;padding-top:9px;border-top:1px solid var(--line);font-size:11.5px;line-height:1.55;">`
-      + `<strong>Deux régimes, jamais cumulés :</strong> le <strong>forfait de 10 %</strong> OU les <strong>frais réels</strong> (pour les artistes : 14 % + 5 % cumulables entre eux). L'appli retient automatiquement le plus avantageux d'après tes frais saisis.`
+      + `<strong>Deux régimes, jamais cumulés :</strong> le <strong>forfait de 10 %</strong> OU les <strong>frais réels</strong>. Pour un artiste, les frais réels = <strong>14 % + 5 %</strong> (forfaits spécifiques) <strong>+ tes autres frais</strong> (transport, repas, local pro, cotisations…). L'appli additionne tout ça et retient le régime le plus avantageux. Saisis tes dépenses ci-dessous (hors instruments/vestimentaire, déjà couverts par le 14 %/5 %).`
       + `<br><a href="https://www.impots.gouv.fr/particulier/questions/comment-puis-je-deduire-mes-frais-professionnels" target="_blank" rel="noopener" style="color:var(--petrol);font-weight:800;text-decoration:underline;">Barème & règles officielles — impots.gouv.fr ↗</a>`
       + `</div>`;
   }
@@ -2935,12 +2937,17 @@ function renderFiscalite(yearGross, yearMissions) {
   const fraisSaisis = fraisTotalForYear(_fiscalYear);
   const totalFraisReels = totalKmAmount + autresFrais + fraisSaisis;
 
-  // Abattement forfaitaire vs frais réels
-  const forfait = Math.round(profil.forfait(netSalaires));
-  const baseAvecForfait = Math.max(0, netTotal - forfait);
-  const baseAvecReels = Math.max(0, netTotal - totalFraisReels);
+  // FORFAIT 10 %  vs  FRAIS RÉELS. Pour un artiste, les frais réels = 14 %+5 % (forfaits spécifiques A+B,
+  // source SNAM-CGT / BOFiP) + les AUTRES frais réels saisis (transport, repas, local, cotisations… = C+D).
+  // Les deux régimes ne se cumulent jamais → on garde le plus avantageux.
+  const forfait10 = Math.round(_forfait10(netSalaires));
+  const specForfait = Math.round(_fraisReelsSpec(netSalaires, profil.a14, profil.a5)); // 14 % + 5 %
+  const fraisReels = specForfait + totalFraisReels; // total frais réels (specs artiste INCLUS)
+  const forfait = forfait10; // le seul « forfait » au sens fiscal, c'est le 10 %
+  const baseAvecForfait = Math.max(0, netTotal - forfait10);
+  const baseAvecReels = Math.max(0, netTotal - fraisReels);
   const bestBase = Math.min(baseAvecForfait, baseAvecReels);
-  const useForfait = forfait >= totalFraisReels;
+  const useForfait = forfait10 >= fraisReels;
 
   // CSG/CRDS non déductible (2.4% du brut salaires + 2.4% ARE)
   const csgNonDed = Math.round((yearGross + arePercue) * 0.024);
@@ -2949,7 +2956,11 @@ function renderFiscalite(yearGross, yearMissions) {
   const observedMonths = getObservedMissionMonths(yearMissions);
   const projectedGross = estimateAnnualProjection(yearGross, observedMonths);
   const projectedBase = observedMonths > 0
-    ? Math.max(0, Math.round(projectedGross * profil.netCoeff) + netAre + netConges + otherIncome - (useForfait ? profil.forfait(Math.round(projectedGross * profil.netCoeff)) : totalFraisReels))
+    ? (() => {
+        const projNet = Math.round(projectedGross * profil.netCoeff);
+        const projDed = useForfait ? _forfait10(projNet) : (_fraisReelsSpec(projNet, profil.a14, profil.a5) + totalFraisReels);
+        return Math.max(0, projNet + netAre + netConges + otherIncome - projDed);
+      })()
     : bestBase;
 
   // Impôt
@@ -2965,23 +2976,23 @@ function renderFiscalite(yearGross, yearMissions) {
   if ($("fiscaliteKmDeductionPreview")) $("fiscaliteKmDeductionPreview").textContent = money(totalKmAmount);
   if ($("fiscaliteAbattementForfait")) $("fiscaliteAbattementForfait").textContent = money(forfait);
   if ($("fiscaliteAbattementForfaitLabel")) $("fiscaliteAbattementForfaitLabel").textContent = profil.label;
-  if ($("fiscaliteAbattementReels")) $("fiscaliteAbattementReels").textContent = money(totalFraisReels);
+  if ($("fiscaliteAbattementReels")) $("fiscaliteAbattementReels").textContent = money(fraisReels);
 
   if ($("fiscaliteComparaisonBox")) {
     $("fiscaliteComparaisonBox").style.display = "grid";
     $("fiscaliteComparaisonBox").className = "fi-comparaison";
     $("fiscaliteComparaisonBox").innerHTML = `
       <div class="fi-comp-card ${useForfait ? 'winner' : ''}">
-        <div class="fi-comp-title">Forfait</div>
+        <div class="fi-comp-title">Forfait 10 %</div>
         <span class="fi-comp-badge ${useForfait ? 'rec' : 'alt'}">${useForfait ? '✓ Recommandé' : 'Standard'}</span>
-        <span class="fi-comp-amount">${money(forfait)}</span>
-        <div class="fi-comp-detail">${profil.label}</div>
+        <span class="fi-comp-amount">${money(forfait10)}</span>
+        <div class="fi-comp-detail">10 % du net imposable</div>
       </div>
-      <div class="fi-comp-card ${!useForfait && totalFraisReels > 0 ? 'winner' : ''}">
+      <div class="fi-comp-card ${!useForfait && fraisReels > 0 ? 'winner' : ''}">
         <div class="fi-comp-title">Frais réels</div>
-        <span class="fi-comp-badge ${!useForfait && totalFraisReels > 0 ? 'rec' : 'alt'}">${!useForfait && totalFraisReels > 0 ? '✓ Recommandé' : 'Alternative'}</span>
-        <span class="fi-comp-amount">${money(totalFraisReels)}</span>
-        <div class="fi-comp-detail">Km + dépenses saisies + autres</div>
+        <span class="fi-comp-badge ${!useForfait && fraisReels > 0 ? 'rec' : 'alt'}">${!useForfait && fraisReels > 0 ? '✓ Recommandé' : 'Alternative'}</span>
+        <span class="fi-comp-amount">${money(fraisReels)}</span>
+        <div class="fi-comp-detail">${specForfait > 0 ? '14 % + 5 % + ' : ''}km + dépenses saisies</div>
       </div>`;
   }
 
@@ -3008,7 +3019,7 @@ function renderFiscalite(yearGross, yearMissions) {
   if ($("fiscaliteKmPreview")) $("fiscaliteKmPreview").textContent = Math.round(yearMissions.reduce((a, x) => a + Number(x.kmDistance || 0), 0)) + " km";
   if ($("fiscaliteKmAmountPreview")) $("fiscaliteKmAmountPreview").textContent = money(totalKmAmount);
   if ($("fiscaliteDeclarationPreview")) $("fiscaliteDeclarationPreview").textContent =
-    `Net imposable ~${money(netTotal)} · Frais ${useForfait ? "forfait" : "réels"} ${money(useForfait ? forfait : totalFraisReels)}`;
+    `Net imposable ~${money(netTotal)} · ${useForfait ? "Forfait 10 %" : "Frais réels"} ${money(useForfait ? forfait10 : fraisReels)}`;
   // Auto-remplir SJR carence depuis vacations
   const totalVac = sumMissionDays(yearMissions); // 1 vacation = 1 jour de mission
   const sjrAuto = totalVac > 0 ? yearGross / totalVac : 0;
@@ -3031,7 +3042,7 @@ function renderFiscalite(yearGross, yearMissions) {
     const conseils = [];
     if (!arePercue) conseils.push("💡 Pensez à renseigner votre ARE perçue — elle est imposable.");
     if (!congesInput) conseils.push("💡 Vérifiez vos Congés Spectacles sur audiens.org — ils sont imposables.");
-    if (!useForfait && totalFraisReels > 0) conseils.push("✅ Vos frais réels dépassent le forfait. Déclarez-les !");
+    if (!useForfait && fraisReels > 0) conseils.push("✅ Tes frais réels (14 %+5 % + dépenses) dépassent le forfait 10 %. Déclare-les !");
     if (taxResult && taxResult.marginalRate >= 30) conseils.push("⚠️ Tranche à 30%+ : un conseiller fiscal peut vous aider à optimiser.");
     if (conseils.length) {
       $("fiscalConseilBox").className = "fi-conseil-box";
