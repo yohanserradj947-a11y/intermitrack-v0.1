@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import ExportPdfButton from '../../components/ExportPdfButton';
+import FieldLabel from '../../components/FieldLabel';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
@@ -953,7 +954,11 @@ export default function Calendar(){
 
               {/* Un appui sur le champ ouvre le POP-UP listant toutes les productions, de la plus utilisee a la
                   moins utilisee : on choisit directement, ou on en cree une nouvelle. Retour Damien. */}
-              <Text style={s.label}>{fRegime==='intermittence'?'Nom de la production':'Nom de l\'employeur'}</Text>
+              <FieldLabel style={s.label}
+                text={fRegime==='intermittence'?'Nom de la production':'Nom de l\'employeur'}
+                help={fRegime==='intermittence'
+                  ? "Le nom de la boîte de prod, de la société, de la compagnie ou du tourneur qui t'emploie et te paie. C'est ce qui regroupe tes missions dans ton camembert (une même prod = une même part). Peu importe ton métier : TV, concert, théâtre, événementiel…"
+                  : "Le nom de l'employeur qui te paie pour ce contrat (hors intermittence)."}/>
               <TouchableOpacity style={s.typeBtn} onPress={()=>setShowProdPicker(true)}>
                 <Text style={[s.typeBtnTxt,!fProduction&&{color:C.muted,fontWeight:'400'}]} numberOfLines={1}>{fProduction||'Choisir ou créer…'}</Text>
                 <Text style={s.typeBtnChevron}>▾</Text>
@@ -988,7 +993,8 @@ export default function Calendar(){
               {/* Même pop-up que la production : liste des émissions déjà saisies (plus utilisées d'abord)
                   + création à la volée. Retour JB : fluidifier chaque champ comme celui de la production. */}
               {fRegime==='intermittence' && (<>
-              <Text style={s.label}>Nom de l'émission (facultatif)</Text>
+              <FieldLabel style={s.label} text="Nom de l'émission (facultatif)"
+                help="Le nom du show, de la tournée, du spectacle ou de l'événement sur lequel tu bosses — quel que soit ton domaine. Ex : Incroyable Talent, concert de Johnny Hallyday, festival des Vieilles Charrues, la pièce Cyrano. Ça sert juste à retrouver et distinguer tes missions."/>
               <TouchableOpacity style={s.typeBtn} onPress={()=>setShowEmPicker(true)}>
                 <Text style={[s.typeBtnTxt,!fEmission&&{color:C.muted,fontWeight:'400'}]} numberOfLines={1}>{fEmission||'Choisir ou créer…'}</Text>
                 <Text style={s.typeBtnChevron}>▾</Text>
@@ -1005,7 +1011,8 @@ export default function Calendar(){
               />
               </>)}
 
-              <Text style={s.label}>Lieu (facultatif)</Text>
+              <FieldLabel style={s.label} text="Lieu (facultatif)"
+                help="Où se déroule la mission : ville, salle, plateau, studio, festival… Facultatif, mais pratique pour t'y retrouver (et pour tes trajets)."/>
               <TouchableOpacity style={s.typeBtn} onPress={()=>setShowLieuPicker(true)}>
                 <Text style={[s.typeBtnTxt,!fLieu&&{color:C.muted,fontWeight:'400'}]} numberOfLines={1}>{fLieu||'Choisir ou créer…'}</Text>
                 <Text style={s.typeBtnChevron}>▾</Text>
@@ -1022,7 +1029,8 @@ export default function Calendar(){
               />
 
               {fRegime==='intermittence' && (<>
-              <Text style={s.label}>Type de mission</Text>
+              <FieldLabel style={s.label} text="Type de mission"
+                help="Ta fonction sur ce contrat. Ex : cadreur, ingé son, chef électro, machiniste, régisseur, comédien, musicien… C'est ton poste, pas le nom du projet."/>
               <TouchableOpacity style={s.typeBtn} onPress={()=>setShowTypePicker(v=>!v)}>
                 <Text style={[s.typeBtnTxt,!fType&&{color:C.muted,fontWeight:'400'}]}>{fType||'Choisir le type'}</Text>
                 <Text style={s.typeBtnChevron}>{showTypePicker?'▴':'▾'}</Text>
@@ -1110,7 +1118,8 @@ export default function Calendar(){
 
               {fMode==='cachet' && (
                 <>
-                  <Text style={s.label}>Nombre de cachets</Text>
+                  <FieldLabel style={s.label} text="Nombre de cachets"
+                    help="Le cachet est l'unité de paie de l'artiste. Mets le nombre de cachets comme sur ton contrat ou ton AEM. Pour France Travail, 1 cachet = 12 h dans le décompte des 507 h (un demi-cachet = 6 h)."/>
                   <NumInput style={s.input} value={fCachets} onChangeText={setFCachets} placeholder="Ex : 2" placeholderTextColor={C.muted}/>
                   <Text style={s.miniHint}>1 cachet = {CACHET_H} h pour tes 507 h. Tu peux mettre 0,5 pour un demi-cachet (compté {CACHET_H/2} h).</Text>
                 </>
@@ -1127,7 +1136,8 @@ export default function Calendar(){
                   </>)}
                 </>
               ) : (<>
-                <Text style={s.label}>Heures cumulées</Text>
+                <FieldLabel style={s.label} text="Heures cumulées"
+                  help="Le total des heures payées À L'HEURE (répétitions, ateliers, filages…) en plus de tes cachets. Laisse vide si tu n'as que des cachets."/>
                 <NumInput style={s.input} value={fHours} onChangeText={setFHours} placeholder="8" placeholderTextColor={C.muted}/>
               </>)}
               {fMode!=='cachet' && fRegime==='intermittence' && annexe!=='artiste' && (
@@ -1147,12 +1157,14 @@ export default function Calendar(){
 
               {/* En cachet, le nombre de vacations EST le nombre de cachets : on ne le redemande pas. */}
               {fMode!=='cachet' && fRegime==='intermittence' && (<>
-              <Text style={s.label}>Nombre de vacations</Text>
+              <FieldLabel style={s.label} text="Nombre de vacations"
+                help="Une vacation = une journée de travail. En général, 1 jour travaillé = 1 vacation. C'est ce qui sert à compter tes jours d'activité sur la période."/>
               <NumInput style={s.input} value={fVacations} onChangeText={setFVacations} placeholder="Ex : 1" placeholderTextColor={C.muted}/>
               <Text style={s.miniHint}>1 vacation = 1 journée de travail. Se remplit tout seul depuis le sélecteur de jours.</Text>
               </>)}
 
-              <Text style={s.label}>Montant brut (€)</Text>
+              <FieldLabel style={s.label} text="Montant brut (€)"
+                help="Le salaire BRUT de la mission (avant cotisations), tel qu'il est écrit sur ton contrat ou ton bulletin — surtout pas le net. C'est la base de tous les calculs de l'appli."/>
               <NumInput style={s.input} value={fGross} onChangeText={(v:string)=>{setGrossTouched(true); setFGross(v);}} placeholder="0" placeholderTextColor={C.muted}/>
 
               {fRegime==='intermittence' && (
@@ -1165,7 +1177,8 @@ export default function Calendar(){
               )}
 
               {editId && (<>
-              <Text style={s.label}>Net réellement perçu (€) · une fois payé</Text>
+              <FieldLabel style={s.label} text="Net réellement perçu (€) · une fois payé"
+                help="Le montant NET que tu as réellement touché une fois payé. Optionnel : ça te permet de comparer l'estimation de l'appli avec la réalité."/>
               <NumInput style={s.input} value={fNetReel} onChangeText={setFNetReel} placeholder="Facultatif, à remplir quand tu es payé" placeholderTextColor={C.muted}/>
               <Text style={s.miniHint}>Laisse vide tant que la mission n'est pas payée. Sert à calculer tes totaux réels exacts.</Text>
               </>)}
