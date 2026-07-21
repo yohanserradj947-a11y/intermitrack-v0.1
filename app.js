@@ -2920,7 +2920,11 @@ function renderFiscalite(yearGross, yearMissions) {
   if ($("profileAbattementInfo")) {
     $("profileAbattementInfo").className = "fi-info-box";
     $("profileAbattementInfo").innerHTML =
-      `<strong>ℹ️ ${profil.label}</strong>${profil.hint}`;
+      `<strong>ℹ️ ${profil.label}</strong>${profil.hint}`
+      + `<div style="margin-top:9px;padding-top:9px;border-top:1px solid var(--line);font-size:11.5px;line-height:1.55;">`
+      + `<strong>Deux régimes, jamais cumulés :</strong> le <strong>forfait de 10 %</strong> OU les <strong>frais réels</strong> (pour les artistes : 14 % + 5 % cumulables entre eux). L'appli retient automatiquement le plus avantageux d'après tes frais saisis.`
+      + `<br><a href="https://www.impots.gouv.fr/particulier/questions/comment-puis-je-deduire-mes-frais-professionnels" target="_blank" rel="noopener" style="color:var(--petrol);font-weight:800;text-decoration:underline;">Barème & règles officielles — impots.gouv.fr ↗</a>`
+      + `</div>`;
   }
 
   // Calcul net imposable
