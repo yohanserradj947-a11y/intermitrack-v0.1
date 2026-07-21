@@ -3986,6 +3986,31 @@ function _confirmModal(opts) {
   _cmOnOk = opts.onOk || null;
   ov.classList.add('open');
 }
+// Aide contextuelle « ? » à côté des libellés de champs (retour Lila) : explique chaque champ
+// (ex « nom de l'émission » = le nom du show/tournée/événement, incompréhensible pour un pur « tourne »).
+function _fieldHelp(title, text) {
+  let ov = document.getElementById('fieldHelpOverlay');
+  if (!ov) {
+    const st = document.createElement('style');
+    st.textContent = '.field-help{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-left:6px;border:none;border-radius:50%;background:var(--soft);color:var(--petrol);font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;vertical-align:middle;line-height:1;padding:0;}';
+    document.head.appendChild(st);
+    ov = document.createElement('div');
+    ov.id = 'fieldHelpOverlay';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:100010;padding:16px;';
+    ov.innerHTML = '<div style="background:var(--card);border:1px solid var(--line);border-radius:18px;max-width:420px;width:100%;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,.35);"><div id="fhTitle" style="font-size:17px;font-weight:800;color:var(--petrol);margin-bottom:8px;"></div><div id="fhMsg" style="font-size:13.5px;color:var(--text);line-height:1.55;"></div><button type="button" id="fhOk" style="margin-top:18px;width:100%;padding:12px;border:none;background:var(--petrol);color:#fff;border-radius:12px;font-weight:800;cursor:pointer;font-family:inherit;">Compris</button></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function (e) { if (e.target === ov || e.target.id === 'fhOk') ov.style.display = 'none'; });
+  }
+  document.getElementById('fhTitle').textContent = title || '';
+  document.getElementById('fhMsg').textContent = text || '';
+  ov.style.display = 'flex';
+}
+// Délégation globale : un clic sur un « ? » (.field-help) ouvre l'aide (data-t = titre, data-h = texte).
+document.addEventListener('click', function (e) {
+  const b = e.target.closest && e.target.closest('.field-help');
+  if (b) { e.preventDefault(); e.stopPropagation(); _fieldHelp(b.getAttribute('data-t') || '', b.getAttribute('data-h') || ''); }
+});
+
 function _prodTarif(normName) {
   const cur = _getProdRate(normName);
   _inputModal({

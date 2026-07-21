@@ -744,7 +744,7 @@ z-index: 500 !important;
           <form id="missionForm">
             <!-- Encadré « régime général / enseignement » : rempli par _renderRegimeBox(), masqué pour une mission d'intermittence classique. -->
             <div id="regimeBox" style="display:none;"></div>
-            <label for="production">Nom de la production <span id="prodNameDot" class="prod-name-dot" style="display:none;"></span></label>
+            <label for="production">Nom de la production <span id="prodNameDot" class="prod-name-dot" style="display:none;"></span><button type="button" class="field-help" data-t="Nom de la production" data-h="Le nom de la boîte de prod, de la société, de la compagnie ou du tourneur qui t'emploie et te paie. C'est ce qui regroupe tes missions dans ton camembert (une même prod = une même part). Peu importe ton métier : TV, concert, théâtre, événementiel…">?</button></label>
             <!-- Le champ reste la source de vérité (lu par addMission, editMission, la couleur de prod…),
                  mais il est masqué : on passe par le pop-up ci-dessous. Pas de "required" ici — un champ
                  masqué et requis bloque l'envoi du formulaire SANS message visible. Contrôle fait dans addMission(). -->
@@ -759,13 +759,13 @@ z-index: 500 !important;
                 <span class="pcp-cell" id="pcpFuture">20<small>à venir</small></span>
               </div>
             </div>
-            <label for="emission">Émission</label>
+            <label for="emission">Émission<button type="button" class="field-help" data-t="Nom de l'émission" data-h="Le nom du show, de la tournée, du spectacle ou de l'événement sur lequel tu bosses — quel que soit ton domaine. Ex : Incroyable Talent, concert de Johnny Hallyday, festival des Vieilles Charrues, la pièce Cyrano. Ça sert juste à retrouver et distinguer tes missions.">?</button></label>
             <input id="emission" autocomplete="off" style="display:none;" />
             <button type="button" id="emBtn" style="display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--text);font-weight:400;font-size:14px;font-family:inherit;cursor:pointer;"><span id="emBtnLabel">Choisir ou créer…</span><span style="opacity:.45;">▾</span></button>
-            <label for="lieu">Lieu</label>
+            <label for="lieu">Lieu<button type="button" class="field-help" data-t="Lieu" data-h="Où se déroule la mission : ville, salle, plateau, studio, festival… Facultatif, mais pratique pour t'y retrouver (et pour tes trajets).">?</button></label>
             <input id="lieu" autocomplete="off" style="display:none;" />
             <button type="button" id="lieuBtn" style="display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--text);font-weight:400;font-size:14px;font-family:inherit;cursor:pointer;"><span id="lieuBtnLabel">Choisir ou créer…</span><span style="opacity:.45;">▾</span></button>
-            <label for="type">Type de mission</label>
+            <label for="type">Type de mission<button type="button" class="field-help" data-t="Type de mission" data-h="Ta fonction sur ce contrat. Ex : cadreur, ingé son, chef électro, machiniste, régisseur, comédien, musicien… C'est ton poste, pas le nom du projet.">?</button></label>
             <select id="type" style="display:none;"><optgroup label="Technique"><option>Montage</option><option>Tournage</option><option>Démontage</option><option>Régie</option><option>Son</option><option>Lumière</option><option>Image / Vidéo</option><option>Machiniste</option><option>Électricien</option><option>Poursuiteur</option><option>Plateau</option><option>Décor</option><option>HMC</option></optgroup><optgroup label="Artiste"><option>Comédien</option><option>Chanteur</option><option>Musicien</option><option>Danseur</option><option>Choriste</option></optgroup><option>Autres</option></select><button type="button" id="typeBtn" style="display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--text);font-weight:400;font-size:14px;font-family:inherit;cursor:pointer;"><span id="typeBtnLabel">Montage</span><span style="opacity:.45;">▾</span></button>
             <!-- Plusieurs types sur une même mission (« Rec + MIX ») : pastilles supprimables + lien d'ajout. Remplis par _syncTypeBtn(). -->
             <div id="typeChipsRow" style="display:none;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
@@ -776,7 +776,7 @@ z-index: 500 !important;
               <button type="button" class="mm-opt" data-mm="heures" style="flex:1;padding:10px;border:1.5px solid var(--line);border-radius:11px;background:var(--card);color:var(--petrol);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;">⏱ Heures</button>
               <button type="button" class="mm-opt" data-mm="cachet" style="flex:1;padding:10px;border:1.5px solid var(--line);border-radius:11px;background:var(--card);color:var(--petrol);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;">🎭 Cachet</button>
             </div>
-            <label for="vacations" id="cachetLabel" style="display:none;">Nombre de cachets</label>
+            <label for="vacations" id="cachetLabel" style="display:none;">Nombre de cachets<button type="button" class="field-help" data-t="Nombre de cachets" data-h="Le cachet est l'unité de paie de l'artiste. Mets le nombre de cachets comme sur ton contrat ou ton AEM. Pour France Travail, 1 cachet = 12 h dans le décompte des 507 h (un demi-cachet = 6 h).">?</button></label>
             <input id="cachetInput" type="number" min="0" step="0.5" placeholder="Ex : 2" style="display:none;" />
             <small id="cachetHint" style="display:none;color:var(--muted);font-size:11.5px;margin:-4px 0 4px;line-height:1.4;">1 cachet = 12 h pour tes 507 h. Tu peux mettre <b>0,5</b> pour un demi-cachet (compté <b>6 h</b>).</small>
             <!-- En mode CACHET (artiste), ce champ « heures payées à l'heure » est facultatif et prêtait à confusion → dépliable, replié par défaut -->
@@ -790,10 +790,10 @@ z-index: 500 !important;
               <button type="button" class="hour-chip" data-h="8">8h</button>
               <button type="button" class="hour-chip" data-h="12">12h</button>
             </div>
-            <label for="vacations" id="vacationsLabel">Nombre de vacations / cachets</label>
+            <label for="vacations" id="vacationsLabel">Nombre de vacations / cachets<button type="button" class="field-help" data-t="Nombre de vacations" data-h="Une vacation = une journée de travail. En général, 1 jour travaillé = 1 vacation. C'est ce qui sert à compter tes jours d'activité sur la période.">?</button></label>
             <input id="vacations" type="number" min="0" step="1" placeholder="Ex : 1" />
             <small id="vacationsHint" style="display:block;color:var(--muted);font-size:11.5px;margin:-4px 0 4px;line-height:1.4;">1 vacation = 1 journée de travail (technicien) · 1 cachet (artiste / musicien). Se remplit tout seul pour les missions sur plusieurs jours.</small>
-            <label for="gross">Montant brut de la mission (EUR)</label>
+            <label for="gross">Montant brut de la mission (EUR)<button type="button" class="field-help" data-t="Montant brut" data-h="Le salaire BRUT de la mission (avant cotisations), tel qu'il est écrit sur ton contrat ou ton bulletin — surtout pas le net. C'est la base de tous les calculs de l'appli.">?</button></label>
             <input id="gross" type="number" min="0" step="0.01" placeholder="Ex : 230" required />
             <!-- Heures supplémentaires (comme l'app) : calcule sur la base garantie et s'ajoute au brut -->
             <div id="missionOvertimeWrap" class="ot-mission-wrap" style="display:none;">
@@ -1532,7 +1532,7 @@ z-index: 500 !important;
   </main>
 
   <script src="document-parser.js?v=5"></script>
-  <script src="app.js?v=115"></script>
+  <script src="app.js?v=116"></script>
 
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>
