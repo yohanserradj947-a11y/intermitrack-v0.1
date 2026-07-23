@@ -198,6 +198,7 @@ export async function syncWidgets(missions: any[], getColor: (name: string) => s
     const calData = {
       title: title.charAt(0).toUpperCase() + title.slice(1),
       firstWeekday: fw, daysInMonth, today: now.getDate(), days, upcoming: up,
+      year: y, month: mo, // permet au widget de recalculer « aujourd'hui » sans rouvrir l'appli
     };
 
     // ---------- iOS : App Group + WidgetKit ----------

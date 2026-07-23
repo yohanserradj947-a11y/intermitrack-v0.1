@@ -25,6 +25,14 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
     case 'WIDGET_UPDATE':
     case 'WIDGET_RESIZED': {
       const data = await loadWidgetData();
+      // Recalcule « aujourd'hui » à chaque rafraîchissement Android (sinon le jour surligné restait figé
+      // au dernier jour où l'appli avait été ouverte). On ne surligne que si le widget montre le bon mois.
+      if (data.cal) {
+        const now = new Date();
+        data.cal.today = (data.cal.year === now.getFullYear() && data.cal.month === now.getMonth())
+          ? now.getDate()
+          : -1; // mois périmé (appli pas ouverte depuis) : pas de faux surlignage
+      }
       props.renderWidget(buildWidget(name, data));
       break;
     }

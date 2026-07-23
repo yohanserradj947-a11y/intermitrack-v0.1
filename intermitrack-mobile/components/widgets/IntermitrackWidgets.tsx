@@ -8,7 +8,7 @@ export type WidgetData = {
   hours: { done: number; planned: number; target: number } | null;
   next: { when: string; date: string; prod: string; lieu: string; hours: number; price: number } | null;
   cal: {
-    title: string; firstWeekday: number; daysInMonth: number; today: number;
+    title: string; firstWeekday: number; daysInMonth: number; today: number; year?: number; month?: number;
     days: { d: number; ab: string; g: string[]; txt: string; hours: number; more: number; hach: boolean; note: string }[];
     upcoming?: { date: string; prod: string; color: string; hours: number; price: number }[];
   } | null;
@@ -145,10 +145,12 @@ function miniCell(d: number, info: any, today: number, p: Pal, key: number) {
   if (d === 0) return <FlexWidget key={key} style={{ flex: 1, height: 'match_parent' }} />;
   const mission = info && info.g && info.g.length ? info : null;
   const isToday = d === today;
-  const bg: Hex = isToday ? p.orange : mission ? hx(mission.g[1] || mission.g[0]) : TRANSPARENT;
-  const txt: Hex = isToday ? '#FFFFFF' : mission ? hx(mission.txt || '#FFFFFF') : p.text;
+  // Aujourd'hui = ANNEAU orange (bordure), pas un carré plein → on le distingue d'une mission,
+  // et il reste visible même s'il y a une mission ce jour-là (la couleur de la mission reste au fond).
+  const bg: Hex = mission ? hx(mission.g[1] || mission.g[0]) : TRANSPARENT;
+  const txt: Hex = mission ? hx(mission.txt || '#FFFFFF') : (isToday ? p.orange : p.text);
   return (
-    <FlexWidget key={key} style={{ flex: 1, height: 'match_parent', borderRadius: 4, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
+    <FlexWidget key={key} style={{ flex: 1, height: 'match_parent', borderRadius: 6, backgroundColor: bg, borderWidth: isToday ? 2 : 0, borderColor: isToday ? p.orange : TRANSPARENT, alignItems: 'center', justifyContent: 'center' }}>
       <TextWidget text={String(d)} style={{ fontSize: 11, fontWeight: isToday || mission ? '900' : '500', color: txt }} />
     </FlexWidget>
   );
