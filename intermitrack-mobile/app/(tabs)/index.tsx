@@ -191,22 +191,23 @@ export default function HomeScreen(){
     const winStartT=winStart.getTime(), winEndT=winEnd.getTime();
     // Année d'intermittence = borne de fin INCLUSE (le jour anniversaire compte) et borne de début exclue
     // (le jour anniversaire précédent appartient à l'année précédente). Année civile = [1er janv, 1er janv[.
-    const inWin=(isoStr:string)=>{ const t=new Date(isoStr+'T00:00:00').getTime(); return hasARE ? (t>winStartT && t<=winEndT) : (t>=winStartT && t<winEndT); };
-    const yearM=missions.filter((m:any)=>inWin(m.mission_date));
-    // Répartit une mission en "effectué / prévu". Une mission en cours (à cheval sur
-    // aujourd'hui) est comptée au prorata des jours déjà écoulés (même logique que le site).
+    const inWinT=(t:number)=> hasARE ? (t>winStartT && t<=winEndT) : (t>=winStartT && t<winEndT);
+    const inWin=(isoStr:string)=> inWinT(new Date(isoStr+'T00:00:00').getTime());
+    // Répartit une mission en effectué/prévu EN NE COMPTANT QUE ses jours DANS l'année d'intermittence
+    // courante. Corrige les contrats MULTI-JOURS à cheval sur la date anniversaire : avant, la mission
+    // entière était rangée dans une seule année (selon son 1er jour) → les jours après l'anniversaire
+    // étaient perdus (retour user). Ici chaque jour compte dans la bonne année. frac = part dans la fenêtre.
     const splitT=(m:any)=>{
       const s=new Date(m.mission_date+'T00:00:00').getTime();
       const e=new Date((m.end_date||m.mission_date)+'T00:00:00').getTime();
-      const t=today.getTime();
       const tot=Number(m.hours||0);
-      if(e<t)return{done:tot,planned:0};
-      if(s>t)return{done:0,planned:tot};
       const totalDays=Math.max(1,Math.round((e-s)/86400000)+1);
-      const doneDays=Math.max(1,Math.round((t-s)/86400000)+1);
-      const done=Math.min(tot,Math.round(tot*(doneDays/totalDays)*10)/10);
-      return{done,planned:Math.max(0,Math.round((tot-done)*10)/10)};
+      const perDay=tot/totalDays, tT=today.getTime();
+      let done=0, planned=0, inDays=0;
+      for(let i=0;i<totalDays;i++){ const d=s+i*86400000; if(!inWinT(d)) continue; inDays++; if(d<=tT) done+=perDay; else planned+=perDay; }
+      return { done:Math.round(done*10)/10, planned:Math.round(planned*10)/10, frac: inDays/totalDays };
     };
+    const yearM=missions.filter((m:any)=>splitT(m).frac>0);
     const upcoming=missions.filter((m:any)=>new Date((m.end_date||m.mission_date)+'T00:00:00')>=today);
     // Régime de la mission (colonne Supabase, défaut 'intermittence' → les missions déjà saisies ne bougent pas).
     const regOf=(m:any)=>m.regime||'intermittence';
@@ -217,7 +218,7 @@ export default function HomeScreen(){
     // Répartition ARTISTE (cachet) vs TECHNICIEN (heures) — déduite du mode de chaque mission
     // (cachet : heures ≈ vacations × 12). Retour user : savoir vers quel statut on penche (ARE).
     let techSplitH=0, artSplitH=0, artSplitCachets=0;
-    interM.forEach((m:any)=>{ const h=Number(m.hours)||0, v=Number(m.vacations)||0;
+    interM.forEach((m:any)=>{ const f=splitT(m).frac; const h=(Number(m.hours)||0)*f, v=(Number(m.vacations)||0)*f; // au prorata des jours dans l'année
       if(missionIsCachet(m)){ artSplitH+=h; artSplitCachets+=v; } else { techSplitH+=h; } });
     techSplitH=Math.round(techSplitH*10)/10; artSplitH=Math.round(artSplitH*10)/10; artSplitCachets=Math.round(artSplitCachets*10)/10;
     // Heures de formation dans la période de droits (plafonnées à 338 h pour le calcul des 507 h).
@@ -225,7 +226,7 @@ export default function HomeScreen(){
     const formH=Math.min(formRaw,FORM_CAP);
     // Enseignement dispensé : compte dans les 507 h, mais plafonné à ENS_CAP *et* dans les 338 h
     // GLOBALES qu'il partage avec la formation suivie (règle France Travail).
-    const ensRaw=Math.round(yearM.filter((m:any)=>regOf(m)==='enseignement').reduce((a:number,m:any)=>a+(Number(m.hours)||0),0)*10)/10;
+    const ensRaw=Math.round(yearM.filter((m:any)=>regOf(m)==='enseignement').reduce((a:number,m:any)=>a+(Number(m.hours)||0)*splitT(m).frac,0)*10)/10;
     const ensH=Math.round(Math.min(ensRaw,ENS_CAP,Math.max(0,FORM_CAP-formH))*10)/10;
     // Arrêts assimilés (maternité, adoption, AT… = 5 h/jour) dans la fenêtre de droits. Aucun plafond
     // trouvé dans les annexes 8/10 (art. 3) → pas de min(). Les arrêts « 0 h » (maladie hors contrat) ne pèsent rien.
