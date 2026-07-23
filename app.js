@@ -3140,9 +3140,23 @@ function render() {
   const _winS = winStart.getTime(), _winE = winEnd.getTime();
   // Année d'intermittence = borne de fin INCLUSE (le jour anniversaire compte), borne de début exclue.
   // Année civile = [1er janv, 1er janv[.
-  const inWin = (ds) => { const t = new Date(ds + "T00:00:00").getTime(); return areAdmissionDate ? (t > _winS && t <= _winE) : (t >= _winS && t < _winE); };
+  const _inWinT = (t) => areAdmissionDate ? (t > _winS && t <= _winE) : (t >= _winS && t < _winE);
+  const inWin = (ds) => _inWinT(new Date(ds + "T00:00:00").getTime());
+  // Split effectué/prévu EN NE COMPTANT QUE les jours de la mission DANS l'année d'intermittence courante.
+  // Corrige les contrats MULTI-JOURS à cheval sur la date anniversaire (les jours après l'anniversaire
+  // étaient perdus — retour user). frac = part de la mission dans la fenêtre.
+  const _winSplit = (m) => {
+    const s = new Date(m.date + "T00:00:00").getTime();
+    const e = new Date((m.endDate || m.date) + "T00:00:00").getTime();
+    const tot = Number(m.hours || 0);
+    const totalDays = Math.max(1, Math.round((e - s) / 86400000) + 1);
+    const perDay = tot / totalDays, tT = todayDateOnly().getTime();
+    let done = 0, planned = 0, inDays = 0;
+    for (let i = 0; i < totalDays; i++) { const d = s + i * 86400000; if (!_inWinT(d)) continue; inDays++; if (d <= tT) done += perDay; else planned += perDay; }
+    return { done: Math.round(done * 10) / 10, planned: Math.round(planned * 10) / 10, frac: inDays / totalDays };
+  };
   const areStartDate = winStart; // borne basse de la période (formation)
-  const yearMissions = missions.filter((m) => inWin(m.date));
+  const yearMissions = missions.filter((m) => _winSplit(m).frac > 0);
   // Navigation « année d'intermittence » (flèches + libellé de période)
   const _aiNav = $("aiNav");
   if (_aiNav) {
@@ -3163,14 +3177,14 @@ function render() {
   const _regOf = (m) => m.regime || "intermittence";
   // Seules les missions d'intermittence (annexes 8/10) alimentent les heures effectuées / prévues.
   const _interMissions = yearMissions.filter((m) => _regOf(m) === "intermittence");
-  const yearHours = Math.round(sumDone(_interMissions) * 10) / 10;
+  const yearHours = Math.round(_interMissions.reduce((a, m) => a + _winSplit(m).done, 0) * 10) / 10;
   // Répartition ARTISTE (cachet) vs TECHNICIEN (heures) — déduite du mode de saisie de chaque mission
   // (cachet : heures ≈ vacations × 12 ; heures : sinon). Retour user : savoir vers quel statut on penche.
   (function () {
     const box = $("regimeSplitBox"); if (!box) return;
     let techH = 0, artH = 0, artCachets = 0;
     _interMissions.forEach((m) => {
-      const h = Number(m.hours) || 0, v = Number(m.vacations) || 0;
+      const f = _winSplit(m).frac; const h = (Number(m.hours) || 0) * f, v = (Number(m.vacations) || 0) * f; // au prorata des jours dans l'année
       if (v > 0 && h >= v * CACHET_H - 0.6) { artH += h; artCachets += v; } else { techH += h; }
     });
     // On n'affiche le split QUE si l'utilisateur fait LES DEUX (sinon inutile pour un pur technicien/artiste). Retour Yohan.
@@ -3182,13 +3196,13 @@ function render() {
       (artH > 0 && techH > 0) ? (artH >= techH ? "Tu fais surtout de l'artiste — tu penches vers l'annexe 10." : "Tu fais surtout du technicien — tu penches vers l'annexe 8.")
       : (artH > 0 ? "100 % artiste (annexe 10)." : "100 % technicien (annexe 8).");
   })();
-  const plannedHours = Math.round(sumPlanned(_interMissions) * 10) / 10;
+  const plannedHours = Math.round(_interMissions.reduce((a, m) => a + _winSplit(m).planned, 0) * 10) / 10;
   // Heures de formation dans la période de droits (plafonnées à 338 h pour les 507 h).
   const formationRaw = Math.round((typeof getNotes === "function" ? getNotes() : []).filter((n) => n.kind === "formation" && inWin(n.date)).reduce((a, n) => a + (Number(n.hours) || 0), 0) * 10) / 10;
   const formationHours = Math.min(formationRaw, FORM_CAP);
   // Enseignement dispensé : compte dans les 507 h, plafonné à ENS_CAP *et* dans les 338 h GLOBALES
   // qu'il partage avec la formation suivie (règle France Travail). Le régime général « pur » n'y entre pas.
-  const enseignementRaw = Math.round(yearMissions.filter((m) => _regOf(m) === "enseignement").reduce((a, m) => a + (Number(m.hours) || 0), 0) * 10) / 10;
+  const enseignementRaw = Math.round(yearMissions.filter((m) => _regOf(m) === "enseignement").reduce((a, m) => a + (Number(m.hours) || 0) * _winSplit(m).frac, 0) * 10) / 10;
   const enseignementHours = Math.round(Math.min(enseignementRaw, ENS_CAP, Math.max(0, FORM_CAP - formationHours)) * 10) / 10;
   // Prorata : une mission à cheval sur 2 mois ne compte que sa part de jours DANS le mois affiché (heures ET brut suivent les vacations).
   const monthFrac = (m) => missionDaysInMonth(m, current) / missionDayCount(m);
