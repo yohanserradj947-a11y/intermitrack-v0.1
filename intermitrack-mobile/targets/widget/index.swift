@@ -10,7 +10,15 @@ struct HoursData: Codable { var done: Double; var planned: Double?; var target: 
 struct NextData: Codable { var when: String; var date: String; var prod: String; var lieu: String; var hours: Double; var price: Double }
 struct CalDay: Codable { var d: Int; var ab: String; var g: [String]; var txt: String; var hours: Double; var more: Int; var hach: Bool; var note: String }
 struct UpNext: Codable { var date: String; var prod: String; var color: String; var hours: Double; var price: Double }
-struct CalData: Codable { var title: String; var firstWeekday: Int; var daysInMonth: Int; var today: Int; var days: [CalDay]; var upcoming: [UpNext]? }
+struct CalData: Codable { var title: String; var firstWeekday: Int; var daysInMonth: Int; var today: Int; var days: [CalDay]; var upcoming: [UpNext]?; var year: Int?; var month: Int? }
+
+// « Aujourd'hui » recalculé à la date RÉELLE du jour (pas la valeur figée au dernier lancement de l'appli).
+// month stocké = getMonth() JS (0-based). Si le widget montre le mois courant -> vrai jour, sinon -1 (pas de faux surlignage).
+func effectiveToday(_ cal: CalData) -> Int {
+  let c = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+  guard let y = cal.year, let m = cal.month, let cy = c.year, let cm = c.month, let cd = c.day else { return cal.today }
+  return (y == cy && m == cm - 1) ? cd : -1
+}
 
 func loadJSON<T: Decodable>(_ key: String) -> T? {
   guard let defs = UserDefaults(suiteName: APP_GROUP),
@@ -268,6 +276,7 @@ struct CalView: View {
     var monthCells: [Int] = Array(repeating: 0, count: leading)
     for d in 1...max(1, cal.daysInMonth) { monthCells.append(d) }
     while monthCells.count % 7 != 0 { monthCells.append(0) }
+    let td = effectiveToday(cal)
     return VStack(alignment: .leading, spacing: 6) {
       Text(cal.title).font(.system(size: 16, weight: .heavy)).foregroundColor(.primary)
       HStack(spacing: 3) {
@@ -278,7 +287,7 @@ struct CalView: View {
       LazyVGrid(columns: cols, spacing: 3) {
         ForEach(Array(monthCells.enumerated()), id: \.offset) { _, day in
           if day == 0 { Color.clear.frame(height: 34) }
-          else { CalCell(day: day, info: byDay[day], today: cal.today, h: 34) }
+          else { CalCell(day: day, info: byDay[day], today: td, h: 34) }
         }
       }
       if let up = cal.upcoming, !up.isEmpty {
@@ -300,6 +309,7 @@ struct CalView: View {
     var monthCells: [Int] = Array(repeating: 0, count: leading)
     for d in 1...max(1, cal.daysInMonth) { monthCells.append(d) }
     while monthCells.count % 7 != 0 { monthCells.append(0) }
+    let td = effectiveToday(cal)
     return HStack(alignment: .top, spacing: 12) {
       // GAUCHE : mini-calendrier des jours (structure identique au grand mois)
       VStack(alignment: .leading, spacing: 3) {
@@ -312,7 +322,7 @@ struct CalView: View {
         LazyVGrid(columns: miniCols, spacing: 3) {
           ForEach(Array(monthCells.enumerated()), id: \.offset) { _, day in
             if day == 0 { Color.clear.frame(height: 22) }
-            else { MiniCell(day: day, info: byDay[day], today: cal.today, theme: t) }
+            else { MiniCell(day: day, info: byDay[day], today: td, theme: t) }
           }
         }
       }
