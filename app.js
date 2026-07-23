@@ -3127,7 +3127,9 @@ function render() {
     const today0 = new Date(); today0.setHours(0, 0, 0, 0);
     let k = today0.getFullYear() - a.getFullYear();
     const anniv = new Date(a); anniv.setFullYear(a.getFullYear() + k);
-    if (anniv > today0) k -= 1;          // année d'intermittence en cours (contient aujourd'hui)
+    // >= : le jour anniversaire appartient à l'année qui SE TERMINE ce jour-là (compté jusqu'à la date
+    // anniversaire INCLUSE, cf. France Travail — retour Perrine), pas à la nouvelle année.
+    if (anniv >= today0) k -= 1;
     k += aiYearOffset;                    // navigation historique (offset ≤ 0)
     winStart = new Date(a); winStart.setFullYear(a.getFullYear() + k);
     winEnd = new Date(a);   winEnd.setFullYear(a.getFullYear() + k + 1);
@@ -3136,7 +3138,9 @@ function render() {
     winEnd = new Date(year + 1, 0, 1);
   }
   const _winS = winStart.getTime(), _winE = winEnd.getTime();
-  const inWin = (ds) => { const t = new Date(ds + "T00:00:00").getTime(); return t >= _winS && t < _winE; };
+  // Année d'intermittence = borne de fin INCLUSE (le jour anniversaire compte), borne de début exclue.
+  // Année civile = [1er janv, 1er janv[.
+  const inWin = (ds) => { const t = new Date(ds + "T00:00:00").getTime(); return areAdmissionDate ? (t > _winS && t <= _winE) : (t >= _winS && t < _winE); };
   const areStartDate = winStart; // borne basse de la période (formation)
   const yearMissions = missions.filter((m) => inWin(m.date));
   // Navigation « année d'intermittence » (flèches + libellé de période)
@@ -3599,7 +3603,7 @@ function _aiWindowCurrent(offset){
   const today = new Date(); today.setHours(0, 0, 0, 0);
   let k = today.getFullYear() - a.getFullYear();
   const anniv = new Date(a); anniv.setFullYear(a.getFullYear() + k);
-  if (anniv > today) k -= 1;
+  if (anniv >= today) k -= 1; // >= : le jour anniversaire appartient à l'année qui se termine ce jour-là
   k += (offset || 0);
   const start = new Date(a); start.setFullYear(a.getFullYear() + k);
   const end = new Date(a);   end.setFullYear(a.getFullYear() + k + 1);
@@ -3641,7 +3645,7 @@ function _missionsInPeriod(){
   if (_missionsPeriod === "ai") {
     const w = _aiWindowCurrent(_missionsAiOffset);
     if (!w) return missions.slice();
-    return missions.filter(function(mm){ const t = new Date((mm.date) + "T00:00:00").getTime(); return t >= w.start && t < w.end; });
+    return missions.filter(function(mm){ const t = new Date((mm.date) + "T00:00:00").getTime(); return t > w.start && t <= w.end; }); // fin incluse (jour anniversaire)
   }
   const target = _missionsPeriod === "year" ? new Date().getFullYear() : _missionsCustomYear;
   return missions.filter(function(m){
