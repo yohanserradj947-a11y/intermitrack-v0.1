@@ -91,7 +91,8 @@ export function NotificationsSync() {
   async function run() {
     if (busy.current) return; busy.current = true;
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession(); // session locale (pas d'appel réseau)
+      const user = session?.user;
       if (!user) return;
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const iso = today.toISOString().slice(0, 10);
