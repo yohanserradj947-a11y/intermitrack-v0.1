@@ -18,7 +18,7 @@ import { GradientButton } from '../../components/GradientButton';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemeControls } from '../../lib/theme';
 import { useProdColors, PROD_PRESETS } from '../../lib/prodColors';
-import { useAnnexe, modeForEdit, computeHoursVac, extraHoursOf, CACHET_H } from '../../lib/annexe';
+import { useAnnexe, modeForEdit, computeHoursVac, extraHoursOf, CACHET_H, missionIsCachet } from '../../lib/annexe';
 import { typeParts, addType, removeType } from '../../lib/missionType';
 import ProductionPickerModal from '../../components/ProductionPickerModal';
 import { knownAddresses } from '../../lib/kmAddresses';
@@ -77,7 +77,7 @@ export default function Missions(){
     const today=new Date(); today.setHours(0,0,0,0);
     let k=today.getFullYear()-a.getFullYear();
     const anniv=new Date(a); anniv.setFullYear(a.getFullYear()+k);
-    if(anniv>today) k-=1;
+    if(anniv>=today) k-=1; // >= : le jour anniversaire appartient à l'année qui se termine ce jour-là
     k+=aiOffset; // décalage : -1 = année précédente, -2 = il y a 2 ans…
     const start=new Date(a); start.setFullYear(a.getFullYear()+k);
     const end=new Date(a);   end.setFullYear(a.getFullYear()+k+1);
@@ -211,7 +211,7 @@ export default function Missions(){
     if(period==='year')return y===new Date().getFullYear();
     if(period==='custom')return y===customYear;
     if(period==='month')return _mDays(m).inM>0; // chevauchement du mois (pas seulement le début)
-    if(period==='ai')return aiWin ? (d.getTime()>=aiWin.start && d.getTime()<aiWin.end) : true;
+    if(period==='ai')return aiWin ? (d.getTime()>aiWin.start && d.getTime()<=aiWin.end) : true; // fin incluse (jour anniversaire)
     return true;
   });
   const years=Array.from(new Set(missions.map((m:any)=>new Date(m.mission_date+'T00:00:00').getFullYear()))).sort((a,b)=>b-a);
@@ -228,7 +228,7 @@ export default function Missions(){
     hours:Math.round(groups[name].reduce((a:number,m:any)=>a+mv(m).hours,0)*10)/10,
     vac:groups[name].reduce((a:number,m:any)=>a+mv(m).vac,0), // 1 vacation = 1 jour (prorata du mois en mode Mois)
     // Cachets = somme des vacations des missions en mode cachet (heures ≈ vacations × 12) — pour « cachets par employeur ».
-    cachets:groups[name].reduce((a:number,m:any)=>{const h=Number(m.hours)||0,v=Number(m.vacations)||0;return a+((v>0&&h>=v*CACHET_H-0.6)?v:0);},0),
+    cachets:groups[name].reduce((a:number,m:any)=>a+(missionIsCachet(m)?(Number(m.vacations)||0):0),0),
     count:groups[name].length,
   })).sort((a,b)=>b.gross-a.gross);
 
@@ -242,7 +242,7 @@ export default function Missions(){
   filtered.forEach((m:any)=>{
     if((m.regime||'intermittence')!=='intermittence')return;
     const h=Number(m.hours)||0,v=Number(m.vacations)||0;
-    if(v>0&&h>=v*CACHET_H-0.6){atArtH+=h;atArtCachets+=v;}else{atTechH+=h;}
+    if(missionIsCachet(m)){atArtH+=h;atArtCachets+=v;}else{atTechH+=h;}
   });
   atArtH=Math.round(atArtH*10)/10;atTechH=Math.round(atTechH*10)/10;atArtCachets=Math.round(atArtCachets*10)/10;
   const atTot=atArtH+atTechH;

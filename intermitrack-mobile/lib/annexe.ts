@@ -36,6 +36,14 @@ export function modeForNew(annexe: Annexe): 'heures' | 'cachet' {
   return annexe === 'artiste' ? 'cachet' : 'heures';
 }
 
+// Une mission est-elle un CACHET (artiste) ? Le mode stocké (is_cachet) fait foi ; à défaut (anciennes
+// missions), on retombe sur l'heuristique heures ≥ vacations×12. Source de vérité unique — retour Mélio.
+export function missionIsCachet(m: any): boolean {
+  if (m && (m.is_cachet === true || m.is_cachet === false)) return m.is_cachet;
+  const h = Number(m?.hours) || 0, v = Number(m?.vacations) || 0;
+  return v > 0 && h >= v * CACHET_H - 0.6;
+}
+
 // Mode de saisie à l'édition d'une mission existante.
 // En « les_deux » on ne sait pas comment elle a été saisie : on la relit comme un cachet si les heures
 // correspondent à un multiple exact de 12 h (tolérance 0,6 h). Même heuristique que le site.

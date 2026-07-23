@@ -233,7 +233,9 @@ export default function Calendar(){
     // Relecture selon le mode : en cachet, le champ heures ne contient que les heures EN PLUS des cachets.
     const _h=Number(m.hours||0), _v=Number(m.vacations||0);
     // Régime général / enseignement : toujours en heures, jamais en cachet (voir openCreate).
-    const _mode=(m.regime && m.regime!=='intermittence') ? 'heures' : modeForEdit(annexe,_h,_v);
+    // Mode stocké (is_cachet) prioritaire ; sinon heuristique (anciennes missions). Retour Mélio.
+    const _mode=(m.regime && m.regime!=='intermittence') ? 'heures'
+      : (m.is_cachet===true ? 'cachet' : m.is_cachet===false ? 'heures' : modeForEdit(annexe,_h,_v));
     setFMode(_mode);
     if(_mode==='cachet'){ setFCachets(String(_v||'')); setFHours(String(extraHoursOf(_h,_v)||'')); setShowCachetHours(extraHoursOf(_h,_v)>0); }
     else { setFCachets(''); setFHours(String(m.hours||'')); setShowCachetHours(false); }
@@ -288,7 +290,7 @@ export default function Calendar(){
     const payload={
       user_id:user.id, production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, lieu:fLieu.trim()||null, mission_type:fType,
       mission_date:startISO, end_date:endISO!==startISO?endISO:null,
-      regime:fRegime,
+      regime:fRegime, is_cachet:fMode==='cachet', // mode stocké explicitement (retour Mélio)
       hours:hv.hours, vacations:hv.vacations,
       gross_amount:Number(fGross)||0, net_reel:fNetReel===''?null:(Number(fNetReel)||0), status:'effectue',
       km_distance:Math.round(kmEff(kmWorkedDays)), km_rate:pf(kmRate),
@@ -487,7 +489,7 @@ export default function Calendar(){
       const start=chk[0].date, end=chk[chk.length-1].date;
       const payload:any={ user_id:user.id, production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, lieu:fLieu.trim()||null, mission_type:fType,
         regime:fRegime, mission_date:start, end_date:end!==start?end:null,
-        hours:totalCachets*CACHET_H, vacations:totalCachets, gross_amount:Math.round(totalGross*100)/100, status:'effectue', cachet_days:cd,
+        hours:totalCachets*CACHET_H, vacations:totalCachets, is_cachet:true, gross_amount:Math.round(totalGross*100)/100, status:'effectue', cachet_days:cd,
         km_distance:Math.round(kmEff(chk.length)), km_rate:pf(kmRate), km_amount:Math.round(kmFraisFor(chk.length)*100)/100 };
       const { error }=await supabase.from('missions').insert([payload]);
       setSaving(false);
@@ -515,7 +517,7 @@ export default function Calendar(){
       return { user_id:user.id, production:fProduction.trim().toUpperCase(), emission:fEmission.trim()||null, lieu:fLieu.trim()||null, mission_type:fType,
         regime:fRegime,
         mission_date:r.start, end_date:r.end!==r.start?r.end:null,
-        hours:runHours, vacations:r.days, gross_amount:gross, status:'effectue',
+        hours:runHours, vacations:r.days, is_cachet:false, gross_amount:gross, status:'effectue',
         km_distance:0, km_rate:0, km_amount:0 };
     });
     const grossSum=payloads.reduce((a,p)=>a+p.gross_amount,0);
@@ -961,6 +963,25 @@ export default function Calendar(){
             </View>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets={true}>
 
+              {/* Switch clair EN HAUT pour les profils qui font les deux (ou artiste) : on choisit son MÉTIER
+                  sur ce contrat (Artiste/Technicien), pas l'unité de saisie « Heures/Cachet » (jargon mal compris).
+                  Ça pilote le mode (is_cachet) enregistré. Retour Yohan. */}
+              {fRegime==='intermittence' && (annexe==='les_deux' || annexe==='artiste') && (
+                <View style={s.roleBox}>
+                  <Text style={s.roleTitle}>Sur ce contrat, tu bosses en tant que :</Text>
+                  <View style={{flexDirection:'row',gap:10}}>
+                    <TouchableOpacity style={[s.roleOpt, fMode==='cachet'&&s.roleOptArt]} activeOpacity={0.85} onPress={()=>setFMode('cachet')}>
+                      <Text style={[s.roleOptTitle, fMode==='cachet'&&{color:'#fff'}]}>🎭 Artiste</Text>
+                      <Text style={[s.roleOptSub, fMode==='cachet'&&{color:'#FFE9D6'}]}>payé en cachets</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[s.roleOpt, fMode!=='cachet'&&s.roleOptTech]} activeOpacity={0.85} onPress={()=>setFMode('heures')}>
+                      <Text style={[s.roleOptTitle, fMode!=='cachet'&&{color:'#fff'}]}>🔧 Technicien</Text>
+                      <Text style={[s.roleOptSub, fMode!=='cachet'&&{color:'#DCEAEE'}]}>payé en heures</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
               {fRegime!=='intermittence'&&(
                 <View style={s.rgBox}>
                   <Text style={s.rgTitle}>De quoi s'agit-il ?</Text>
@@ -1148,19 +1169,7 @@ export default function Calendar(){
                   onChange={(_e,date)=>{setShowEndPicker(false);if(date){setFEnd(date); if(!editId && mdpDays.length===0 && daysInclusive(fStart,date)>=2){ openDayPicker(fStart,date); }}}}/>
               )}
 
-              {/* L'annexe donne le mode PAR DÉFAUT (cachet pour un artiste), mais ne l'enferme plus :
-                  artiste et « les deux » voient le sélecteur pour basculer Heures/Cachets si un contrat
-                  est payé en heures. Évite de bloquer les artistes payés à l'heure (Pauline, Alizée…).
-                  Technicien = heures par défaut, jamais bloqué → pas besoin du sélecteur. */}
-              {(annexe==='les_deux' || annexe==='artiste') && fRegime==='intermittence' && (
-                <View style={{flexDirection:'row',gap:8,marginTop:4,marginBottom:4}}>
-                  {([['heures','Heures'],['cachet','Cachets']] as ['heures'|'cachet',string][]).map(([val,lbl])=>(
-                    <TouchableOpacity key={val} style={[s.mmOpt, fMode===val&&{backgroundColor:C.petrol,borderColor:C.petrol}]} onPress={()=>setFMode(val)}>
-                      <Text style={[s.mmOptTxt, fMode===val&&{color:'#fff'}]}>{lbl}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
+              {/* (Le choix Artiste/Technicien est désormais le grand switch EN HAUT du formulaire.) */}
 
               {fMode==='cachet' && (
                 <>
@@ -1548,6 +1557,13 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   // Sélecteur Heures / Cachets (annexe « les deux ») — couleurs du thème, comme le reste du formulaire.
   mmOpt:{flex:1,paddingVertical:10,borderRadius:11,borderWidth:1.5,borderColor:C.line,backgroundColor:C.card,alignItems:'center'},
   mmOptTxt:{fontSize:13,fontWeight:'800',color:C.petrol},
+  roleBox:{marginBottom:14,padding:12,borderRadius:14,backgroundColor:C.soft,borderWidth:1,borderColor:C.line},
+  roleTitle:{fontSize:13,fontWeight:'800',color:C.text,marginBottom:9},
+  roleOpt:{flex:1,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.line,backgroundColor:C.card,alignItems:'center'},
+  roleOptArt:{backgroundColor:'#F97316',borderColor:'#F97316'},
+  roleOptTech:{backgroundColor:C.petrol,borderColor:C.petrol},
+  roleOptTitle:{fontSize:15,fontWeight:'900',color:C.petrol},
+  roleOptSub:{fontSize:11.5,fontWeight:'600',color:C.muted,marginTop:2},
   // Lien discret « + Ajouter un type de mission » : ne doit pas concurrencer le bouton principal.
   typeMultiWarn:{fontSize:12.5,fontWeight:'700',color:C.warnTx,backgroundColor:C.warnBg,borderRadius:8,paddingVertical:7,paddingHorizontal:10,marginTop:8,overflow:'hidden'},
   typeValidBtn:{backgroundColor:C.petrol,borderRadius:12,paddingVertical:12,alignItems:'center',marginTop:12},

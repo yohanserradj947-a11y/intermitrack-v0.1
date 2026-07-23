@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../lib/supabase';
 import { loadMissionsCached } from '../../lib/offlineMissions';
+import { missionIsCachet } from '../../lib/annexe';
 import { useTrackView } from '../../lib/analytics';
 import { CONFIG, CHARGE_DEFAUT } from '../../lib/calcul';
 import Gauge from '../../components/Gauge';
@@ -177,7 +178,9 @@ export default function HomeScreen(){
       const a=new Date(areDate+'T00:00:00');
       let k=today.getFullYear()-a.getFullYear();
       const anniv=new Date(a); anniv.setFullYear(a.getFullYear()+k);
-      if(anniv>today) k-=1;               // année d'intermittence en cours (contient aujourd'hui)
+      // >= (et pas >) : le JOUR anniversaire appartient à l'année qui SE TERMINE ce jour-là (compté jusqu'à
+      // la date anniversaire INCLUSE, cf. France Travail — retour Perrine), pas à la nouvelle année.
+      if(anniv>=today) k-=1;
       k+=yearOffset;                       // navigation historique (offset ≤ 0)
       winStart=new Date(a); winStart.setFullYear(a.getFullYear()+k);
       winEnd=new Date(a);   winEnd.setFullYear(a.getFullYear()+k+1);
@@ -186,7 +189,9 @@ export default function HomeScreen(){
       winEnd=new Date(today.getFullYear()+1,0,1);
     }
     const winStartT=winStart.getTime(), winEndT=winEnd.getTime();
-    const inWin=(isoStr:string)=>{ const t=new Date(isoStr+'T00:00:00').getTime(); return t>=winStartT && t<winEndT; };
+    // Année d'intermittence = borne de fin INCLUSE (le jour anniversaire compte) et borne de début exclue
+    // (le jour anniversaire précédent appartient à l'année précédente). Année civile = [1er janv, 1er janv[.
+    const inWin=(isoStr:string)=>{ const t=new Date(isoStr+'T00:00:00').getTime(); return hasARE ? (t>winStartT && t<=winEndT) : (t>=winStartT && t<winEndT); };
     const yearM=missions.filter((m:any)=>inWin(m.mission_date));
     // Répartit une mission en "effectué / prévu". Une mission en cours (à cheval sur
     // aujourd'hui) est comptée au prorata des jours déjà écoulés (même logique que le site).
@@ -213,7 +218,7 @@ export default function HomeScreen(){
     // (cachet : heures ≈ vacations × 12). Retour user : savoir vers quel statut on penche (ARE).
     let techSplitH=0, artSplitH=0, artSplitCachets=0;
     interM.forEach((m:any)=>{ const h=Number(m.hours)||0, v=Number(m.vacations)||0;
-      if(v>0 && h>=v*12-0.6){ artSplitH+=h; artSplitCachets+=v; } else { techSplitH+=h; } });
+      if(missionIsCachet(m)){ artSplitH+=h; artSplitCachets+=v; } else { techSplitH+=h; } });
     techSplitH=Math.round(techSplitH*10)/10; artSplitH=Math.round(artSplitH*10)/10; artSplitCachets=Math.round(artSplitCachets*10)/10;
     // Heures de formation dans la période de droits (plafonnées à 338 h pour le calcul des 507 h).
     const formRaw=Math.round((notes||[]).filter((n:any)=>n.kind==='formation'&&inWin(n.date)).reduce((a:number,n:any)=>a+(Number(n.hours)||0),0)*10)/10;
@@ -281,8 +286,7 @@ export default function HomeScreen(){
       const md=monthDays(m);
       const val=m.mission_type==='Saisie rapide'?(md.inM>0?(Number(m.vacations)||1):0)
         :(Number(m.vacations)>0?Number(m.vacations)*md.frac:md.inM);
-      const h=Number(m.hours)||0, vv=Number(m.vacations)||0;
-      if(vv>0 && h>=vv*12-0.6) monthCachetsVac+=val; else monthTechVac+=val;
+      if(missionIsCachet(m)) monthCachetsVac+=val; else monthTechVac+=val;
     });
     monthTechVac=Math.round(monthTechVac*10)/10; monthCachetsVac=Math.round(monthCachetsVac*10)/10;
     // Récap affiché = INTERMITTENCE (monthHi/monthGi) ; le régime général a sa propre case.
