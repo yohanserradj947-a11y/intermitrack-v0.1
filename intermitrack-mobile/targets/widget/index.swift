@@ -189,30 +189,26 @@ struct CalCell: View {
   var body: some View {
     bigCell
   }
-  // GRAND widget : numéro en haut (aujourd'hui = pastille) + bande d'initiales de la mission dessous
+  // GRAND widget : CASE PLEINE (comme le petit widget) — plus de bande séparée sous le numéro.
+  // Toute la case prend la couleur de la mission, numéro + initiales DEDANS, polices agrandies (retour Yohan).
   var bigCell: some View {
-    VStack(spacing: 1.5) {
-      ZStack {
-        // Plus de pastille orange : aujourd'hui = la couleur de la mission (dessous) + le cadre noir.
-        Text("\(day)").font(.system(size: h * 0.28, weight: isToday ? .heavy : .medium)).foregroundColor(.primary)
-      }
-      .frame(height: h * 0.44)
+    ZStack {
       if let i = mission {
-        ZStack {
-          // Fond uni, même raison que MiniCell : i.txt est calculé sur la couleur de référence seule,
-          // il ne peut pas être juste sur un dégradé qui monte jusqu'à +36 % de clarté.
-          RoundedRectangle(cornerRadius: 3).fill(Color(hexString: i.g.count > 1 ? i.g[1] : i.g[0]))
-          if i.hach { HachureOverlay().clipShape(RoundedRectangle(cornerRadius: 3)) }
-          Text(i.ab).font(.system(size: h * 0.24, weight: .heavy)).foregroundColor(Color(hexString: i.txt)).lineLimit(1).minimumScaleFactor(0.5).padding(.horizontal, 1)
-          noteDot(5)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-      } else {
-        Spacer(minLength: 0)
+        RoundedRectangle(cornerRadius: 6).fill(Color(hexString: i.g.count > 1 ? i.g[1] : i.g[0]))
+        if i.hach { HachureOverlay().clipShape(RoundedRectangle(cornerRadius: 6)) }
       }
+      VStack(spacing: 1) {
+        Text("\(day)").font(.system(size: h * 0.40, weight: (isToday || mission != nil) ? .heavy : .medium))
+          .foregroundColor(mission.map { Color(hexString: $0.txt) } ?? .primary)
+        if let i = mission {
+          Text(i.ab).font(.system(size: h * 0.30, weight: .heavy)).foregroundColor(Color(hexString: i.txt))
+            .lineLimit(1).minimumScaleFactor(0.5).padding(.horizontal, 1)
+        }
+      }
+      noteDot(6)
     }
-    .frame(height: h)
-    .overlay(TodayFrame(show: isToday, radius: 5))
+    .frame(maxWidth: .infinity, minHeight: h, maxHeight: h)
+    .overlay(TodayFrame(show: isToday, radius: 6))
   }
   // compactCell SUPPRIMÉ : c'était du CODE MORT. CalCell n'est instancié qu'une seule fois, avec
   // big: true (monthView) — compactCell n'a donc jamais été rendu. Le widget moyen utilise MiniCell.

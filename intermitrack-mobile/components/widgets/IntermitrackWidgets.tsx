@@ -181,17 +181,11 @@ function bigCell(d: number, info: any, today: number, p: Pal, key: number) {
   const mission = info && info.g && info.g.length ? info : null;
   const isToday = d === today;
   return (
-    <FlexWidget key={key} style={{ flex: 1, height: 42, flexDirection: 'column', alignItems: 'center', flexGap: 2, borderRadius: 8, borderWidth: isToday ? 2 : 0, borderColor: isToday ? '#0C0C0C' : TRANSPARENT }}>
-      <FlexWidget style={{ width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: TRANSPARENT }}>
-        <TextWidget text={String(d)} style={{ fontSize: 11, fontWeight: isToday ? '900' : '500', color: p.text }} />
-      </FlexWidget>
+    <FlexWidget key={key} style={{ flex: 1, height: 44, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGap: 1, borderRadius: 8, backgroundColor: mission ? hx(mission.g[1] || mission.g[0]) : TRANSPARENT, borderWidth: isToday ? 2 : 0, borderColor: isToday ? '#0C0C0C' : TRANSPARENT }}>
+      <TextWidget text={String(d)} style={{ fontSize: 15, fontWeight: (isToday || mission) ? '900' : '500', color: mission ? hx(mission.txt || '#FFFFFF') : p.text }} />
       {mission ? (
-        <FlexWidget style={{ flex: 1, width: 'match_parent', borderRadius: 3, backgroundColor: hx(mission.g[1] || mission.g[0]), alignItems: 'center', justifyContent: 'center' }}>
-          <TextWidget text={mission.ab || ''} style={{ fontSize: 8, fontWeight: '900', color: hx(mission.txt || '#FFFFFF') }} maxLines={1} />
-        </FlexWidget>
-      ) : (
-        <FlexWidget style={{ flex: 1, width: 'match_parent' }} />
-      )}
+        <TextWidget text={mission.ab || ''} style={{ fontSize: 11, fontWeight: '900', color: hx(mission.txt || '#FFFFFF') }} maxLines={1} />
+      ) : null}
     </FlexWidget>
   );
 }
