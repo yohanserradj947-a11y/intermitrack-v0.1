@@ -4357,15 +4357,20 @@ function renderCalendar() {
   renderCalEvents();
 }
 
-// Carte d'une MISSION dans « Mes évènements du mois ».
+// Carte d'une MISSION (ou d'un GROUPE de missions d'une même prod) dans « Mes évènements du mois ».
 function _calMissionCardHtml(m) {
   const isFuture = new Date(m.date + "T00:00:00") >= todayDateOnly();
   const _ch = getProductionColorHex(normalizeProductionName(m.production));
+  const _ids = m._ids || [m.id];
+  const _multi = _ids.length > 1;
+  const _delAttr = _multi ? `data-quick-del-group="${escapeHtml(_ids.join(','))}"` : `data-quick-del="${escapeHtml(m.id)}"`;
+  const _count = _multi ? `  ·  ${_ids.length} missions` : '';
+  const _brut = Number(m.gross) > 0 ? `<span class="new-mission-brut">${money(Math.round(Number(m.gross)))} € brut</span>` : '';
   return `
       <div class="new-mission-card ${isFuture ? "planned" : "done"}" data-calendar-date="${escapeHtml(m.date)}" style="cursor:pointer;${_ch ? `border-left-color:${_ch} !important;` : ''}">
-        <div class="new-mission-body"><div class="new-mission-prod">${ICO.doc}${escapeHtml((m.production||'').toUpperCase())}</div>${(m.emission||'').trim() ? `<div class="new-mission-emission">${ICO.camera}${escapeHtml(m.emission.trim())}</div>` : ''}${(m.lieu||'').trim() ? `<div class="new-mission-lieu">${ICO.pin}${escapeHtml(m.lieu.trim())}</div>` : ''}<div class="new-mission-dates">${ICO.cal}${escapeHtml(formatPeriod(m.date, m.endDate))}</div></div>
-        <div class="new-mission-right"><span class="new-mission-hours">${ICO.clock}${m.hours}h</span>${m.type ? `<span class="new-mission-type ${isFuture ? "type-planned" : "type-done"}">${escapeHtml(m.type)}</span>` : ''}</div>
-        <button type="button" data-quick-del="${escapeHtml(m.id)}" title="Supprimer cette mission" aria-label="Supprimer" style="flex:0 0 auto;align-self:center;width:32px;height:32px;border:none;border-radius:9px;background:rgba(220,38,38,.1);color:#DC2626;font-size:15px;font-weight:800;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+        <div class="new-mission-body"><div class="new-mission-prod">${ICO.doc}${escapeHtml((m.production||'').toUpperCase())}</div>${(m.emission||'').trim() ? `<div class="new-mission-emission">${ICO.camera}${escapeHtml(m.emission.trim())}</div>` : ''}${(m.lieu||'').trim() ? `<div class="new-mission-lieu">${ICO.pin}${escapeHtml(m.lieu.trim())}</div>` : ''}<div class="new-mission-dates">${ICO.cal}${escapeHtml(formatPeriod(m.date, m.endDate))}${_count}</div></div>
+        <div class="new-mission-right"><span class="new-mission-hours">${ICO.clock}${m.hours}h</span>${m.type ? `<span class="new-mission-type ${isFuture ? "type-planned" : "type-done"}">${escapeHtml(m.type)}</span>` : ''}${_brut}</div>
+        <button type="button" ${_delAttr} title="Supprimer" aria-label="Supprimer" style="flex:0 0 auto;align-self:center;width:32px;height:32px;border:none;border-radius:9px;background:rgba(220,38,38,.1);color:#DC2626;font-size:15px;font-weight:800;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
       </div>
     `;
 }
@@ -4378,7 +4383,20 @@ function renderCalEvents() {
   const wrap = $("calEventCards"); if (!wrap) return;
   const y = current.getFullYear(), m = current.getMonth();
   const items = [];
-  monthMissions(current).forEach((mi) => items.push({ kind: "mission", date: mi.date, end: mi.endDate || mi.date, html: _calMissionCardHtml(mi) }));
+  // Regroupe par PRODUCTION dans le mois : une seule ligne par prod (période + total heures + brut cumulé)
+  // au lieu d'une ligne par jour/segment (retour Yohan : 130 h même prod = une ligne).
+  const _gm = new Map();
+  monthMissions(current).forEach((mi) => {
+    const key = (mi.production || '—').trim().toUpperCase();
+    let g = _gm.get(key);
+    if (!g) { g = { id: 'grp_' + key, production: mi.production, type: mi.type, emission: mi.emission, lieu: mi.lieu, date: mi.date, endDate: mi.endDate || mi.date, hours: 0, gross: 0, _ids: [] }; _gm.set(key, g); }
+    g._ids.push(mi.id);
+    g.hours += Number(mi.hours || 0);
+    g.gross += Number(mi.gross || 0);
+    if (mi.date < g.date) g.date = mi.date;
+    const e = mi.endDate || mi.date; if (e > g.endDate) g.endDate = e;
+  });
+  Array.from(_gm.values()).forEach((g) => { g.hours = Math.round(g.hours * 10) / 10; g.gross = Math.round(g.gross); items.push({ kind: "mission", date: g.date, end: g.endDate, html: _calMissionCardHtml(g) }); });
   getNotes().filter((n) => { const d = new Date(n.date + "T00:00:00"); return d.getFullYear() === y && d.getMonth() === m; })
     .forEach((n) => items.push({ kind: "note", date: n.date, end: n.endDate || n.date, html: _calNoteCardHtml(n) }));
   // Même ordre que l'app : à venir d'abord (date croissante), puis passés (date décroissante), selon la date de FIN.
@@ -5231,6 +5249,8 @@ function setupEvents() {
     if (docProductionBack) { openDocumentProduction = null; documentFilter = "Tous"; renderDocuments(); return; }
     const docFilterButton = event.target.closest("[data-doc-filter]");
     if (docFilterButton) { documentFilter = docFilterButton.dataset.docFilter; renderDocuments(); return; }
+    const quickDelG = event.target.closest("[data-quick-del-group]");
+    if (quickDelG) { event.stopPropagation(); const ids = quickDelG.dataset.quickDelGroup.split(','); const ok = await confirmDialog("Supprimer les " + ids.length + " missions de cette production ce mois ? (action irréversible)"); if (ok) { for (const id of ids) { await deleteMission(id); } } return; }
     const quickDel = event.target.closest("[data-quick-del]");
     if (quickDel) { event.stopPropagation(); const ok = await confirmDialog("Supprimer cette mission ? (action irréversible)"); if (ok) await deleteMission(quickDel.dataset.quickDel); return; }
     const calendarDay = event.target.closest("[data-calendar-date]");

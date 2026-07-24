@@ -397,6 +397,26 @@ export default function Calendar(){
     ]);
   }
 
+  // Ligne « Mes évènements » regroupée par prod : si plusieurs missions dessous, on demande laquelle éditer.
+  function editGroup(g:any){
+    const ms=g._members||[];
+    if(ms.length<=1){ openEdit(ms[0]||g); return; }
+    showAlert(g.production||'Mission','Quelle mission veux-tu modifier ?',
+      [...ms.map((mm:any)=>({text:`${fmtDate(mm.mission_date)} · ${mm.hours}h · ${Math.round(Number(mm.gross_amount||0))} €`, onPress:()=>openEdit(mm)})), {text:'Annuler',style:'cancel' as const}]);
+  }
+  // Suppression d'une ligne regroupée : supprime TOUTES les missions de la prod pour ce mois.
+  function deleteGroup(g:any){
+    const ms=g._members||[];
+    if(ms.length<=1){ quickDelete(ms[0]||g); return; }
+    showAlert('Supprimer ?',`Les ${ms.length} missions « ${g.production} » de ce mois seront supprimées.`,[
+      {text:'Annuler',style:'cancel'},
+      {text:'Tout supprimer',style:'destructive',onPress:async()=>{
+        for(const mm of ms){ try{ await supabase.from('missions').delete().eq('id',mm.id); }catch(e){} }
+        loadMissions(true);
+      }},
+    ]);
+  }
+
   // Réinitialiser le calendrier : supprime TOUTES les missions (distinct de la remise à zéro des couleurs).
   function resetCalendar(){
     showAlert('Réinitialiser le calendrier ?','Toutes tes missions seront définitivement supprimées pour repartir de zéro. Tes couleurs et notes ne sont pas touchées. Cette action est irréversible.',[
@@ -564,10 +584,27 @@ export default function Calendar(){
   const perPage=6;
   const monthNotes=notes.filter((n)=>{const d=new Date(n.date+'T00:00:00');return d.getMonth()===month&&d.getFullYear()===year;}).sort((a,b)=>a.date<b.date?-1:1);
   const monthGeneral=missions.filter((m:any)=>{const d=new Date(m.mission_date+'T00:00:00');return d.getMonth()===month&&d.getFullYear()===year&&m.regime==='general';}).sort((a:any,b:any)=>a.mission_date<b.mission_date?-1:1);
-  // « Mes évènements du mois » = missions d'intermittence + notes (dont formations et arrêts), fusionnés
-  // dans le MÊME ordre que les missions : à venir d'abord (date croissante), puis passés (date décroissante).
+  // Regroupe les missions d'intermittence par PRODUCTION dans le mois : UNE seule ligne par prod
+  // (date début → date fin + total des heures + brut cumulé) au lieu d'une ligne par jour/segment.
+  // Retour Yohan : « 130 h pour la même prod dans le mois → une seule ligne suffit ».
+  const groupedMissions=(()=>{
+    const map=new Map<string,any>();
+    for(const m of monthMissions){
+      const key=(m.production||'—').trim().toUpperCase();
+      let g=map.get(key);
+      if(!g){ g={id:'grp_'+key, production:m.production, mission_type:m.mission_type, emission:m.emission, lieu:m.lieu, mission_date:m.mission_date, end_date:(m.end_date||m.mission_date), _hours:0, _gross:0, _members:[] as any[]}; map.set(key,g); }
+      g._members.push(m);
+      g._hours+=Number(m.hours||0);
+      g._gross+=Number(m.gross_amount||0);
+      if(m.mission_date<g.mission_date) g.mission_date=m.mission_date;
+      const e=m.end_date||m.mission_date; if(e>g.end_date) g.end_date=e;
+    }
+    return Array.from(map.values()).map(g=>({...g, hours:Math.round(g._hours*10)/10, gross_amount:Math.round(g._gross)}));
+  })();
+  // « Mes évènements du mois » = missions d'intermittence (regroupées par prod) + notes, fusionnés
+  // dans le MÊME ordre : à venir d'abord (date croissante), puis passés (date décroissante).
   const monthEvents=[
-    ...monthMissions.map((m:any)=>({kind:'mission' as const, d:m.mission_date, end:m.end_date||m.mission_date, item:m})),
+    ...groupedMissions.map((m:any)=>({kind:'mission' as const, d:m.mission_date, end:m.end_date||m.mission_date, item:m})),
     ...monthNotes.map((n:any)=>({kind:'note' as const, d:n.date, end:n.endDate||n.date, item:n})),
   ].sort((a,b)=>{
     const fa=new Date(a.end+'T00:00:00')>=_tD, fb=new Date(b.end+'T00:00:00')>=_tD;
@@ -893,12 +930,12 @@ export default function Calendar(){
             const m=ev.item;
             const col=getColor(m.production)||C.petrol;
             return(
-              <TouchableOpacity key={m.id} style={[s.missionCard,{borderLeftColor:col}]} onPress={()=>openEdit(m)}>
+              <TouchableOpacity key={m.id} style={[s.missionCard,{borderLeftColor:col}]} onPress={()=>editGroup(m)}>
                 <View style={{flex:1,gap:3}}>
                   <View style={s.mRow}><Ionicons name="document-text-outline" size={13} color={col}/><Text style={[s.mProd,{color:col}]} numberOfLines={1}>{m.production}</Text></View>
                   {m.emission?<View style={s.mRow}><Ionicons name="videocam-outline" size={12} color={C.muted}/><Text style={s.mEmission} numberOfLines={1}>{m.emission}</Text></View>:null}
                   {m.lieu?<View style={s.mRow}><Ionicons name="location-outline" size={12} color={C.muted}/><Text style={s.mDate} numberOfLines={1}>{m.lieu}</Text></View>:null}
-                  <View style={s.mRow}><Ionicons name="calendar-outline" size={12} color={C.muted}/><Text style={s.mDate}>{fmtDate(m.mission_date)}</Text></View>
+                  <View style={s.mRow}><Ionicons name="calendar-outline" size={12} color={C.muted}/><Text style={s.mDate}>{fmtDate(m.mission_date)}{m.end_date&&m.end_date!==m.mission_date?` → ${fmtDate(m.end_date)}`:''}{m._members&&m._members.length>1?`  ·  ${m._members.length} missions`:''}</Text></View>
                 </View>
                 <View style={{alignItems:'flex-end',gap:6}}>
                   <View style={{flexDirection:'row',alignItems:'center',gap:4}}><Ionicons name="time-outline" size={14} color={col}/><Text style={[s.mHours,{color:col}]}>{m.hours}h</Text></View>
@@ -910,7 +947,7 @@ export default function Calendar(){
                     </View>
                   )}
                 </View>
-                <TouchableOpacity style={[s.quickDelBtn,{alignSelf:'center'}]} onPress={()=>quickDelete(m)} hitSlop={6}>
+                <TouchableOpacity style={[s.quickDelBtn,{alignSelf:'center'}]} onPress={()=>deleteGroup(m)} hitSlop={6}>
                   <Ionicons name="close" size={13} color={C.danger}/>
                 </TouchableOpacity>
               </TouchableOpacity>
