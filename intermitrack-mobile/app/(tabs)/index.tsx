@@ -353,6 +353,24 @@ export default function HomeScreen(){
   const paceTickFracs=paceMarks.slice(1).map(m=>m.frac);
   const paceLabelMarks:{frac:number,label:string}[]=[]; let _lastLF=-1;
   for(const mk of paceMarks){ if(mk.frac-_lastLF>=0.05){ paceLabelMarks.push(mk); _lastLF=mk.frac; } }
+  // PROJECTION « à ce rythme, 507 h vers [mois] » (remplace le « % de l'année écoulée »).
+  // Extrapolation linéaire : heures comptées jusqu'ici ÷ jours écoulés = rythme → date des 507 h.
+  const _MONF=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  let paceProjTxt:string;
+  const _nowMs=Date.now(), _winSms=winStart.getTime(), _winEms=winEnd.getTime();
+  if(yearOffset===0 && hasARE && _nowMs>=_winSms && _nowMs<_winEms){
+    const _remaining=507-progressH;
+    const _elapsedDays=Math.max(1,(_nowMs-_winSms)/86400000);
+    if(_remaining<=0) paceProjTxt='🎉 Tes 507 h sont atteintes';
+    else{
+      const _rate=progressH/_elapsedDays;
+      if(_rate<=0) paceProjTxt='Ajoute des missions pour estimer ta date des 507 h';
+      else{
+        const _projMs=_nowMs+(_remaining/_rate)*86400000;
+        paceProjTxt=_projMs>_winEms?'À ce rythme, 507 h non atteintes cette année':('À ce rythme : 507 h vers '+_MONF[new Date(_projMs).getMonth()]+' '+new Date(_projMs).getFullYear());
+      }
+    }
+  } else { paceProjTxt=Math.round(elapsedFrac*100)+"% de l'année écoulée"; }
   useEffect(()=>{ setAreInput(areVerse[moisKey]?String(areVerse[moisKey]):''); setReelPage(0); setNetInputs({}); },[moisKey,areVerse]);
   // Missions d'intermittence qui touchent le mois affiché (pour la saisie du net réel par mission).
   const _mmS=new Date(current.getFullYear(),current.getMonth(),1).getTime();
@@ -622,7 +640,7 @@ export default function HomeScreen(){
               <View style={[s.paceFill,{width:`${Math.round(elapsedFrac*100)}%`,backgroundColor:paceColor}]}/>
               {paceTickFracs.map((f,i)=>(<View key={i} style={[s.paceTick,{left:`${f*100}%`}]}/>))}
             </View>
-            <Text style={s.paceStatus}>{Math.round(elapsedFrac*100)}% de l'année écoulée · <Text style={{color:paceColor}}>{paceLabel}</Text></Text>
+            <Text style={s.paceStatus}>{paceProjTxt} · <Text style={{color:paceColor}}>{paceLabel}</Text></Text>
           </View>
         )}
         {(techSplitH>0&&artSplitH>0)&&(

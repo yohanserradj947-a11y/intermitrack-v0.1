@@ -3341,7 +3341,31 @@ function render() {
       for (let _t = 1; _t < _marks.length; _t++) { _th += '<span style="position:absolute;top:0;bottom:0;width:1px;background:rgba(45,55,72,0.18);left:' + (_marks[_t].frac * 100) + '%;"></span>'; }
       if ($("aiPaceTicks")) $("aiPaceTicks").innerHTML = _th;
       if ($("aiPaceFill")) { $("aiPaceFill").style.width = Math.round(elapsed * 100) + "%"; $("aiPaceFill").style.background = col; }
-      if ($("aiPaceStatus")) $("aiPaceStatus").innerHTML = Math.round(elapsed * 100) + "% de l'année écoulée · <span style=\"color:" + col + "\">" + lbl + "</span>";
+      // PROJECTION « à ce rythme, 507 h vers [mois] » (remplace le « % de l'année écoulée »).
+      // Extrapolation linéaire : heures comptées jusqu'ici ÷ jours écoulés = rythme → date des 507 h.
+      const _MONF = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+      let _projTxt;
+      if (aiYearOffset === 0 && _now >= _winS && _now < _winE) {
+        const _countedNow = yearHours + formationHours + enseignementHours;
+        const _remaining507 = OBJECTIVE_HOURS - _countedNow;
+        const _elapsedDays = Math.max(1, (_now - _winS) / 86400000);
+        if (_remaining507 <= 0) {
+          _projTxt = "🎉 Tes 507 h sont atteintes";
+        } else {
+          const _ratePerDay = _countedNow / _elapsedDays;
+          if (_ratePerDay <= 0) {
+            _projTxt = "Ajoute des missions pour estimer ta date des 507 h";
+          } else {
+            const _projMs = _now + (_remaining507 / _ratePerDay) * 86400000;
+            _projTxt = _projMs > _winE
+              ? "À ce rythme, 507 h non atteintes cette année"
+              : "À ce rythme : 507 h vers " + _MONF[new Date(_projMs).getMonth()] + " " + new Date(_projMs).getFullYear();
+          }
+        }
+      } else {
+        _projTxt = Math.round(elapsed * 100) + "% de l'année écoulée";
+      }
+      if ($("aiPaceStatus")) $("aiPaceStatus").innerHTML = _projTxt + " · <span style=\"color:" + col + "\">" + lbl + "</span>";
       $("aiPaceBox").style.display = "block";
     } else { $("aiPaceBox").style.display = "none"; }
   }
