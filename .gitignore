@@ -18,6 +18,8 @@ Thumbs.db
 node_modules/
 
 # Fichiers de travail locaux (ne pas déployer)
+envoyer-mail.js
+programmer-envoi.js
 MOCKUP-*.html
 VIDEO PUB/
 STICKERS/

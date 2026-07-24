@@ -20,6 +20,17 @@ let _fiscalYear = new Date().getFullYear(); // année FISCALE affichée (impôts
 let _missionMode = 'heures';   // 'heures' (technicien) | 'cachet' (artiste) — pour la saisie de mission
 const CACHET_H = 12;           // 1 cachet = 12 h pour le comptage des 507 h (cachet isolé ; ajustable via le champ heures)
 
+// Le mode cachet est désormais STOCKÉ (colonne is_cachet) au lieu d'être re-deviné à chaque fois :
+// un artiste qui passe une mission en heures ne doit plus être re-classé en cachet (retour Mélio).
+// L'heuristique ne sert QUE de repli pour les missions enregistrées avant la colonne.
+function missionIsCachet(m) {
+  if (!m) return false;
+  if (m.is_cachet === true) return true;
+  if (m.is_cachet === false) return false;
+  const h = Number(m.hours) || 0, v = Number(m.vacations) || 0;
+  return v > 0 && h >= v * CACHET_H - 0.6;
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // DÉDUCTIONS PROFESSIONNELLES — revenus 2025, déclaration 2026
 // Copie conforme de intermitrack-mobile/lib/calcul.ts : ne pas diverger.
@@ -1369,6 +1380,7 @@ async function loadMissions() {
     vacations: Number(x.vacations || Math.round((x.hours || 0) / 8)),
     emission: x.emission || "", lieu: x.lieu || "",
     regime: x.regime || "intermittence", cachet_days: x.cachet_days || null,
+    is_cachet: x.is_cachet, // null pour les missions d'avant la colonne → repli sur l'heuristique
     net_reel: x.net_reel != null ? Number(x.net_reel) : null,
     // Adresses des frais km : enregistrées depuis le 15/07/2026 seulement. Avant, seuls
     // distance/taux/montant l'étaient — d'où « les adresses n'apparaissent pas à l'édition ».
@@ -1751,7 +1763,7 @@ async function addMission(event) {
     emission: $("emission")?.value || "", lieu: $("lieu")?.value || "",
     mission_type: $("type").value, mission_date: $("date").value, end_date: $("endDate").value,
     hours: _hours, gross_amount: Number($("gross").value),
-    vacations: _vac, regime: _missionRegime,
+    vacations: _vac, regime: _missionRegime, is_cachet: cachetMode,
     km_distance: kmEffectiveDistance(), km_rate: (kmPf($("kmRate")?.value) || 0), km_amount: calculateKmAmount(),
     // Adresses enfin enregistrées (+ coords) : elles alimentent le pop-up des prochaines missions
     // et réapparaissent à l'édition. Avant, seuls distance/taux/montant étaient sauvegardés.
@@ -1910,7 +1922,7 @@ async function _mdpSaveBreakdown(){
     return {
       user_id: currentUser.id, production: production, emission: emission, lieu: lieu,
       mission_type: type, mission_date: r.start, end_date: r.end,
-      hours: runHours, gross_amount: gross, vacations: r.days,
+      hours: runHours, gross_amount: gross, vacations: r.days, is_cachet: (_missionMode === 'cachet'),
       km_distance: idx === 0 ? km_distance : 0, km_rate: idx === 0 ? km_rate : 0, km_amount: idx === 0 ? km_amount : 0
     };
   });
@@ -1954,10 +1966,14 @@ function editMission(id) {
   $("hours").value = mission.hours || 0;
   if ($("vacations")) $("vacations").value = mission.vacations || "";
   $("gross").value = mission.gross || 0; _grossTouched = true; // édition : le brut stocké est le total final
-  // Mode Heures/Cachet selon l'annexe (en édition). « Les deux » : on devine (heures ≈ cachets×12 → cachet).
+  // Mode Heures/Cachet à l'édition : on relit le mode RÉELLEMENT enregistré (is_cachet) au lieu de le
+  // re-deviner depuis l'annexe — sinon une mission passée en heures repassait en cachet à la réouverture
+  // (retour Mélio). Repli sur l'ancienne logique uniquement pour les missions d'avant la colonne.
   const _ax=(typeof _profil!=='undefined' && _profil && _profil.annexe)||'technicien';
-  const _mode = _ax==='artiste' ? 'cachet'
-    : (_ax==='les_deux' && Number(mission.vacations)>0 && Math.abs(Number(mission.hours||0)-Number(mission.vacations)*CACHET_H)<0.6 ? 'cachet' : 'heures');
+  const _mode = mission.is_cachet === true ? 'cachet'
+    : mission.is_cachet === false ? 'heures'
+    : (_ax==='artiste' ? 'cachet'
+    : (_ax==='les_deux' && Number(mission.vacations)>0 && Math.abs(Number(mission.hours||0)-Number(mission.vacations)*CACHET_H)<0.6 ? 'cachet' : 'heures'));
   if (typeof setMissionModeForOpen==='function') setMissionModeForOpen(_mode);
   if (_mode==='cachet'){
     if ($("cachetInput")) $("cachetInput").value = mission.vacations || "";
@@ -2888,8 +2904,7 @@ function sumMonthSplit(list, ref) {
     const inM = missionDaysInMonth(m, ref);
     const val = m.type === "Saisie rapide" ? (inM > 0 ? (Number(m.vacations) || 1) : 0)
       : (Number(m.vacations) > 0 ? Number(m.vacations) * (inM / Math.max(1, missionDayCount(m))) : inM);
-    const h = Number(m.hours) || 0, vv = Number(m.vacations) || 0;
-    if (vv > 0 && h >= vv * CACHET_H - 0.6) cachets += val; else techVac += val;
+    if (missionIsCachet(m)) cachets += val; else techVac += val;
   });
   return { techVac: Math.round(techVac * 10) / 10, cachets: Math.round(cachets * 10) / 10 };
 }
@@ -3185,7 +3200,7 @@ function render() {
     let techH = 0, artH = 0, artCachets = 0;
     _interMissions.forEach((m) => {
       const f = _winSplit(m).frac; const h = (Number(m.hours) || 0) * f, v = (Number(m.vacations) || 0) * f; // au prorata des jours dans l'année
-      if (v > 0 && h >= v * CACHET_H - 0.6) { artH += h; artCachets += v; } else { techH += h; }
+      if (missionIsCachet(m)) { artH += h; artCachets += v; } else { techH += h; }
     });
     // On n'affiche le split QUE si l'utilisateur fait LES DEUX (sinon inutile pour un pur technicien/artiste). Retour Yohan.
     if (!(techH > 0 && artH > 0)) { box.style.display = "none"; return; }
@@ -3791,7 +3806,7 @@ function renderAllMissions() {
     hours: Math.round(groups[name].reduce((a, x) => a + _mvSite(x).hours, 0) * 10) / 10,
     vacations: groups[name].reduce((a, x) => a + _mvSite(x).vac, 0), // 1 vacation = 1 jour (prorata du mois en mode Mois)
     // Cachets = somme des vacations des missions en mode cachet (heures ≈ vacations × 12) — pour « cachets par employeur ».
-    cachets: groups[name].reduce((a, x) => { const h = Number(x.hours) || 0, v = Number(x.vacations) || 0; return a + ((v > 0 && h >= v * CACHET_H - 0.6) ? v : 0); }, 0),
+    cachets: groups[name].reduce((a, x) => a + (missionIsCachet(x) ? (Number(x.vacations) || 0) : 0), 0),
     count: groups[name].length
   })).sort((a, b) => b.gross - a.gross);
   const totalGross = sorted.reduce((a, x) => a + x.gross, 0);
@@ -3802,7 +3817,7 @@ function renderAllMissions() {
   viewMissions.forEach(function (m) {
     if ((m.regime || "intermittence") !== "intermittence") return;
     const h = Number(m.hours) || 0, v = Number(m.vacations) || 0;
-    if (v > 0 && h >= v * CACHET_H - 0.6) { _atArtH += h; _atArtCachets += v; } else { _atTechH += h; }
+    if (missionIsCachet(m)) { _atArtH += h; _atArtCachets += v; } else { _atTechH += h; }
   });
   _atArtH = Math.round(_atArtH * 10) / 10; _atTechH = Math.round(_atTechH * 10) / 10; _atArtCachets = Math.round(_atArtCachets * 10) / 10;
   const _atTot = _atArtH + _atTechH;
@@ -4544,6 +4559,41 @@ document.addEventListener("click", function (e) {
 // Une formation = une note avec des heures (kind:'formation'). Le formulaire de note
 // s'adapte : label « Organisme », champ heures + encart conditions. Aucune modif base (JSON profiles.notes).
 var _noteFormMode = 'note';
+// Arrêts (maternité, paternité, adoption, accident du travail, maladie) = une note kind:'arret'
+// avec un arretType. Même JSON profiles.notes que l'appli → aucune table, aucune migration.
+// ⚠️ Aucun arrêt n'ajoute d'heures aux 507 h pour l'instant (formules en cours de vérification
+// sur source primaire) : on les NOTE seulement. Identique à l'appli (arretHoursPerDay = 0).
+var ARRET_META_SITE = {
+  maternite:        { label: 'Congé maternité',     color: '#DB2777' },
+  paternite:        { label: 'Congé paternité',     color: '#2563EB' },
+  adoption:         { label: 'Congé adoption',      color: '#0D9488' },
+  accident_travail: { label: 'Accident du travail', color: '#DC2626' },
+  maladie:          { label: 'Arrêt maladie',       color: '#D97706' }
+};
+var ARRET_ORDER_SITE = ['maternite','paternite','adoption','accident_travail','maladie'];
+var _noteArretType = 'maternite';
+function isArretNote(n){ return n && n.kind === 'arret'; }
+function _renderArretRow(){
+  document.querySelectorAll('#noteArretRow .note-arret').forEach(function(b){
+    var on = b.dataset.arret === _noteArretType;
+    b.classList.toggle('sel', on);
+    b.style.background = on ? (ARRET_META_SITE[b.dataset.arret] || {}).color : '';
+    b.style.color = on ? '#fff' : '';
+    b.style.borderColor = on ? (ARRET_META_SITE[b.dataset.arret] || {}).color : '';
+  });
+}
+function _pickArretType(t){
+  if(!ARRET_META_SITE[t]) return;
+  _noteArretType = t;
+  selectedNoteColor = ARRET_META_SITE[t].color;
+  if(typeof _renderNoteColors === 'function') _renderNoteColors();
+  _renderArretRow();
+  var ti = $("noteTitle"); if(ti) ti.value = ARRET_META_SITE[t].label;
+}
+document.addEventListener('click', function(e){
+  var b = e.target.closest && e.target.closest('#noteArretRow .note-arret');
+  if(b) _pickArretType(b.dataset.arret);
+});
 var FORM_CAP = 338; // heures de formation prises en compte pour les 507 h (plafond 2/3)
 // Enseignement dispensé (contrat régime général avec un établissement AGRÉÉ, en lien avec le métier) :
 // compte dans les 507 h, plafonné à 70 h — ou 120 h à partir de 50 ans à la fin du contrat.
@@ -4551,18 +4601,24 @@ var FORM_CAP = 338; // heures de formation prises en compte pour les 507 h (plaf
 // ⚠️ Le plafond de 338 h est GLOBAL : formation suivie + enseignement dispensé réunis (guide France Travail).
 var ENS_CAP = 120;
 function _applyNoteFormMode(mode){
-  _noteFormMode = (mode === 'formation') ? 'formation' : 'note';
+  _noteFormMode = (mode === 'formation') ? 'formation' : (mode === 'arret') ? 'arret' : 'note';
   var isForm = _noteFormMode === 'formation';
-  var t = $("addMissionTitle"); if(t) t.textContent = isForm ? 'Ajouter une formation' : 'Ajouter une note';
-  var tl = document.querySelector('label[for="noteTitle"]'); if(tl) tl.textContent = isForm ? 'Organisme de formation' : 'Titre de la note';
-  var ti = $("noteTitle"); if(ti) ti.placeholder = isForm ? 'Ex : AFDAS, CFPTS, INA…' : 'Ex : RDV médecin, Congés posés…';
-  var xl = $("noteTextLabel"); if(xl) xl.textContent = isForm ? 'Intitulé (facultatif)' : 'Note (courte)';
-  var tx = $("noteText"); if(tx) tx.placeholder = isForm ? 'Ex : Habilitation électrique…' : 'Ex : RDV dentiste 14h…';
-  var cat = $("noteCatRow"); if(cat) cat.style.display = isForm ? 'none' : '';
+  var isArr = _noteFormMode === 'arret';
+  var t = $("addMissionTitle"); if(t) t.textContent = isForm ? 'Ajouter une formation' : isArr ? 'Déclarer un arrêt' : 'Ajouter une note';
+  var tl = document.querySelector('label[for="noteTitle"]'); if(tl) tl.textContent = isForm ? 'Organisme de formation' : isArr ? 'Intitulé' : 'Titre de la note';
+  var ti = $("noteTitle"); if(ti) ti.placeholder = isForm ? 'Ex : AFDAS, CFPTS, INA…' : isArr ? 'Ex : Congé maternité' : 'Ex : RDV médecin, Congés posés…';
+  var xl = $("noteTextLabel"); if(xl) xl.textContent = isForm ? 'Intitulé (facultatif)' : isArr ? 'Précision (facultatif)' : 'Note (courte)';
+  var tx = $("noteText"); if(tx) tx.placeholder = isForm ? 'Ex : Habilitation électrique…' : isArr ? 'Ex : suivi CPAM, dossier Audiens…' : 'Ex : RDV dentiste 14h…';
+  var cat = $("noteCatRow"); if(cat) cat.style.display = (isForm || isArr) ? 'none' : '';
+  var arw = $("noteArretRow"); if(arw) arw.style.display = isArr ? '' : 'none';
   var hw = $("noteHoursWrap"); if(hw) hw.style.display = isForm ? '' : 'none';
   var cond = $("noteFormCond"); if(cond) cond.style.display = isForm ? '' : 'none';
+  var ai = $("noteArretInfo"); if(ai) ai.style.display = isArr ? '' : 'none';
+  if(isArr) _renderArretRow();
   var sb = document.querySelector("#noteForm button[type='submit']");
-  if(sb) sb.textContent = editingNoteId ? (isForm ? 'Modifier la formation' : 'Modifier la note') : (isForm ? 'Enregistrer la formation' : 'Enregistrer la note');
+  if(sb) sb.textContent = editingNoteId
+    ? (isForm ? 'Modifier la formation' : isArr ? "Modifier l'arrêt" : 'Modifier la note')
+    : (isForm ? 'Enregistrer la formation' : isArr ? "Enregistrer l'arrêt" : 'Enregistrer la note');
 }
 function resetNoteFormForDate(dateStr, mode){
   editingNoteId = null;
@@ -4576,6 +4632,8 @@ function resetNoteFormForDate(dateStr, mode){
   if(typeof _renderNoteColors==='function') _renderNoteColors();
   if($("noteCount")) $("noteCount").textContent = "0 / 200";
   _applyNoteFormMode(mode || 'note');
+  // Arrêt : type par défaut → pré-remplit l'intitulé et la couleur associée.
+  if(_noteFormMode === 'arret') _pickArretType('maternite');
 }
 function saveNote(event){
   if(event) event.preventDefault();
@@ -4586,6 +4644,19 @@ function saveNote(event){
   if(!d){ toast("Choisis une date."); return; }
   if(e<d){ toast("La date de fin ne peut pas être avant le début."); return; }
   const arr=getNotes();
+  if(_noteFormMode === 'arret'){
+    const at = ARRET_META_SITE[_noteArretType] ? _noteArretType : 'maternite';
+    const rec = {date:d,endDate:e,title:rawTitle||ARRET_META_SITE[at].label,text:text,color:selectedNoteColor,kind:'arret',arretType:at};
+    if(editingNoteId){ const i=arr.findIndex(function(n){return n.id===editingNoteId;}); if(i>=0) arr[i]=Object.assign({}, arr[i], rec); }
+    else { arr.push(Object.assign({ id:'n'+Date.now().toString(36)+Math.random().toString(36).slice(2,6) }, rec)); }
+    _saveNotesArr(arr);
+    editingNoteId=null;
+    toast("Arrêt enregistré ✓");
+    if(typeof renderCalendar==='function') renderCalendar();
+    if(typeof renderChart==='function') renderChart();
+    activateView("calendar");
+    return;
+  }
   if(isForm){
     if(!rawTitle){ toast("Indique l'organisme de formation."); return; }
     let h = Number(($("noteHours").value||'').replace(',','.'));
@@ -4625,7 +4696,10 @@ function editNote(id){
   selectedNoteColor=n.color||'#1E6FE0';
   if(typeof _renderNoteColors==='function') _renderNoteColors();
   if($("noteCount")) $("noteCount").textContent = (n.text||'').length + " / 200";
-  _applyNoteFormMode(n.kind==='formation' ? 'formation' : 'note');
+  // Arrêt : on restaure le type RÉELLEMENT enregistré avant d'appliquer le mode (qui redessine la
+  // rangée de types). On n'appelle pas _pickArretType ici : il réécrirait le titre saisi par l'user.
+  if(n.kind === 'arret' && ARRET_META_SITE[n.arretType]) _noteArretType = n.arretType;
+  _applyNoteFormMode(n.kind==='formation' ? 'formation' : n.kind==='arret' ? 'arret' : 'note');
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function deleteNote(id){
@@ -4637,7 +4711,7 @@ function deleteNote(id){
 function _ensureDayModal(){
   if(document.getElementById('dayModalOverlay')) return;
   const st=document.createElement('style');
-  st.textContent="#dayModalOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:100040;}#dayModalOverlay.open{display:flex;}.dm-box{background:var(--card);color:var(--text);border-radius:22px 22px 0 0;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-sizing:border-box;padding:22px 22px 30px;box-shadow:0 -10px 40px rgba(0,0,0,.3);}@media(min-width:600px){#dayModalOverlay{align-items:center;padding:18px;}.dm-box{border-radius:20px;max-width:440px;max-height:88vh;}}.dm-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}.dm-date{font-size:17px;font-weight:900;color:var(--petrol);text-transform:capitalize;}.dm-x{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;}.dm-acts{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;}.dm-act{flex:1 1 46%;display:flex;flex-direction:column;align-items:center;gap:6px;padding:15px 8px;border-radius:14px;border:1.5px solid var(--line);background:var(--card);cursor:pointer;font-weight:800;font-size:13px;color:var(--text);}.dm-act .ic{font-size:24px;}.dm-act.mission{border-color:rgba(31,78,95,.35);}.dm-act.note{border-color:rgba(245,158,11,.45);}.dm-act.fast{border-color:rgba(18,117,74,.5);color:#12754A;}.dm-act.regime{border-color:rgba(14,165,233,.5);color:#0EA5E9;}.dm-sec-t{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:16px 0 8px;}.dm-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-left-width:4px;border-radius:10px;margin-bottom:8px;}.dm-item .nm{flex:1;min-width:0;}.dm-item .nm strong{font-size:13px;color:var(--petrol);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.dm-item .nm span{font-size:11.5px;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}.dm-item .acts{display:flex;gap:6px;flex-shrink:0;}.dm-item button{border:none;background:var(--soft);color:var(--petrol);border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;cursor:pointer;}.dm-item button.del{background:rgba(220,38,38,.12);color:#DC2626;}";
+  st.textContent="#dayModalOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:100040;}#dayModalOverlay.open{display:flex;}.dm-box{background:var(--card);color:var(--text);border-radius:22px 22px 0 0;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-sizing:border-box;padding:22px 22px 30px;box-shadow:0 -10px 40px rgba(0,0,0,.3);}@media(min-width:600px){#dayModalOverlay{align-items:center;padding:18px;}.dm-box{border-radius:20px;max-width:440px;max-height:88vh;}}.dm-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}.dm-date{font-size:17px;font-weight:900;color:var(--petrol);text-transform:capitalize;}.dm-x{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;}.dm-acts{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;}.dm-act{flex:1 1 46%;display:flex;flex-direction:column;align-items:center;gap:6px;padding:15px 8px;border-radius:14px;border:1.5px solid var(--line);background:var(--card);cursor:pointer;font-weight:800;font-size:13px;color:var(--text);}.dm-act .ic{font-size:24px;}.dm-act.mission{border-color:rgba(31,78,95,.35);}.dm-act.note{border-color:rgba(245,158,11,.45);}.dm-act.fast{border-color:rgba(18,117,74,.5);color:#12754A;}.dm-act.regime{border-color:rgba(14,165,233,.5);color:#0EA5E9;}.dm-act.arret{border-color:rgba(219,39,119,.45);color:#DB2777;}.dm-sec-t{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:16px 0 8px;}.dm-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-left-width:4px;border-radius:10px;margin-bottom:8px;}.dm-item .nm{flex:1;min-width:0;}.dm-item .nm strong{font-size:13px;color:var(--petrol);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.dm-item .nm span{font-size:11.5px;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}.dm-item .acts{display:flex;gap:6px;flex-shrink:0;}.dm-item button{border:none;background:var(--soft);color:var(--petrol);border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;cursor:pointer;}.dm-item button.del{background:rgba(220,38,38,.12);color:#DC2626;}";
   document.head.appendChild(st);
   const ov=document.createElement('div');
   ov.id='dayModalOverlay';
@@ -4648,6 +4722,7 @@ function _ensureDayModal(){
     if(e.target.closest && e.target.closest('#dmAddMission')){ ov.classList.remove('open'); addMissionReturnView='calendar'; activateView('add-mission'); switchAddTab('mission'); resetMissionFormForDate(_dayModalDate); window.scrollTo({top:0,behavior:'smooth'}); return; }
     if(e.target.closest && e.target.closest('#dmAddNote')){ ov.classList.remove('open'); addMissionReturnView='calendar'; activateView('add-mission'); switchAddTab('note'); resetNoteFormForDate(_dayModalDate,'note'); window.scrollTo({top:0,behavior:'smooth'}); return; }
     if(e.target.closest && e.target.closest('#dmAddFormation')){ ov.classList.remove('open'); addMissionReturnView='calendar'; activateView('add-mission'); switchAddTab('note'); resetNoteFormForDate(_dayModalDate,'formation'); window.scrollTo({top:0,behavior:'smooth'}); return; }
+    if(e.target.closest && e.target.closest('#dmAddArret')){ ov.classList.remove('open'); addMissionReturnView='calendar'; activateView('add-mission'); switchAddTab('note'); resetNoteFormForDate(_dayModalDate,'arret'); window.scrollTo({top:0,behavior:'smooth'}); return; }
     if(e.target.closest && e.target.closest('#dmAddRegime')){ ov.classList.remove('open'); addMissionReturnView='calendar'; activateView('add-mission'); switchAddTab('mission'); resetMissionFormForDate(_dayModalDate,'general'); window.scrollTo({top:0,behavior:'smooth'}); return; }
     if(e.target.closest && e.target.closest('#dmAddQuick')){ ov.classList.remove('open'); openQuickEntry(_dayModalDate); return; }
     const me=e.target.closest && e.target.closest('[data-dm-edit]'); if(me){ ov.classList.remove('open'); switchAddTab('mission'); editMission(me.dataset.dmEdit); return; }
@@ -4662,7 +4737,7 @@ function _refreshDayModal(){
   const ms=missions.filter(function(m){return isDateInPeriod(dateStr,m);}).sort(function(a,b){return new Date(a.date)-new Date(b.date);});
   const ns=notesForDate(dateStr);
   let html="<div class=\"dm-head\"><span class=\"dm-date\">"+escapeHtml(formatDate(dateStr))+"</span><button class=\"dm-x\" id=\"dmClose\" type=\"button\">✕</button></div>";
-  html+="<div class=\"dm-acts\"><button class=\"dm-act mission\" id=\"dmAddMission\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2\" y=\"7\" width=\"20\" height=\"14\" rx=\"2\"/><path d=\"M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\"/></svg></span>Ajouter une mission</button><button class=\"dm-act note\" id=\"dmAddNote\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 3h9l5 5v13H5z\"/><path d=\"M14 3v5h5\"/><path d=\"M8 13.5h7M8 17h5\"/></svg></span>Note perso</button><button class=\"dm-act formation\" id=\"dmAddFormation\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M22 10L12 5 2 10l10 5 10-5z\"/><path d=\"M6 12v5c0 1 2.5 3 6 3s6-2 6-3v-5\"/></svg></span>Formation</button><button class=\"dm-act regime\" id=\"dmAddRegime\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"12\" rx=\"1\"/><path d=\"M7 20h10M12 16v4\"/></svg></span>Régime général</button><button class=\"dm-act fast\" id=\"dmAddQuick\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M13 2L3 14h7l-1 8 10-12h-7z\"/></svg></span>Saisie rapide</button></div>";
+  html+="<div class=\"dm-acts\"><button class=\"dm-act mission\" id=\"dmAddMission\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2\" y=\"7\" width=\"20\" height=\"14\" rx=\"2\"/><path d=\"M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\"/></svg></span>Ajouter une mission</button><button class=\"dm-act note\" id=\"dmAddNote\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 3h9l5 5v13H5z\"/><path d=\"M14 3v5h5\"/><path d=\"M8 13.5h7M8 17h5\"/></svg></span>Note perso</button><button class=\"dm-act formation\" id=\"dmAddFormation\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M22 10L12 5 2 10l10 5 10-5z\"/><path d=\"M6 12v5c0 1 2.5 3 6 3s6-2 6-3v-5\"/></svg></span>Formation</button><button class=\"dm-act arret\" id=\"dmAddArret\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3a3 3 0 0 1 3 3v1h3a2 2 0 0 1 2 2v3h-1.5a2.5 2.5 0 0 0 0 5H20v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3h1.5a2.5 2.5 0 0 0 0-5H4V9a2 2 0 0 1 2-2h3V6a3 3 0 0 1 3-3z\"/></svg></span>Arrêt</button><button class=\"dm-act regime\" id=\"dmAddRegime\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"12\" rx=\"1\"/><path d=\"M7 20h10M12 16v4\"/></svg></span>Régime général</button><button class=\"dm-act fast\" id=\"dmAddQuick\" type=\"button\"><span class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M13 2L3 14h7l-1 8 10-12h-7z\"/></svg></span>Saisie rapide</button></div>";
   if(ms.length){ html+="<div class=\"dm-sec-t\">Missions du jour</div>"; ms.forEach(function(m){ var col=getProductionColorHex(normalizeProductionName(m.production))||'#1F4E5F'; var nb=missionDayCount(m); html+="<div class=\"dm-item\" style=\"border-left-color:"+col+"\"><div class=\"nm\"><strong>"+escapeHtml((m.production||'').toUpperCase())+"</strong><span>"+escapeHtml(m.type)+" · "+(Math.round((Number(m.hours||0)/nb)*10)/10)+"h · "+money(Math.round(Number(m.gross||0)/nb))+"</span></div><div class=\"acts\"><button data-dm-edit=\""+escapeHtml(m.id)+"\" type=\"button\">Modifier</button><button class=\"del\" data-dm-del=\""+escapeHtml(m.id)+"\" type=\"button\">✕</button></div></div>"; }); }
   if(ns.length){ html+="<div class=\"dm-sec-t\">Notes</div>"; ns.forEach(function(n){ html+="<div class=\"dm-item\" data-note-detail=\""+escapeHtml(n.id)+"\" style=\"cursor:pointer;border-left-color:"+(n.color||'#1E6FE0')+"\"><div class=\"nm\"><strong>"+escapeHtml(n.title||'Note')+"</strong><span>"+escapeHtml((n.text||'').slice(0,90))+"</span></div><div class=\"acts\"><span style=\"color:var(--muted);font-size:18px;\">›</span></div></div>"; }); }
   box.innerHTML=html;
@@ -4679,12 +4754,15 @@ function openDayModal(dateStr){
 let _quickMonthRef = new Date();
 let _quickColor = PROD_PRESETS[0];
 let _qkHours = "", _qkGross = "", _qkJours = "";
+// Payé à l'heure (répétitions, services, technique) ou en cachets : STOCKÉ dans is_cachet.
+// Avant, un mois de répétitions payées à l'heure ressortait en cachet fantôme (le champ vide forçait 1).
+let _qkMode = "heures";
 function _quickProdName(){ const l = _quickMonthRef.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }); return normalizeProductionName("RÉCAP " + (l.charAt(0).toUpperCase() + l.slice(1))); }
 function _qkCapture(){ const h = document.getElementById("qkHours"); if (h) _qkHours = h.value; const g = document.getElementById("qkGross"); if (g) _qkGross = g.value; const j = document.getElementById("qkJours"); if (j) _qkJours = j.value; }
 function _ensureQuickModal(){
   if (document.getElementById("quickOverlay")) return;
   const st = document.createElement("style");
-  st.textContent = "#quickOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:100050;}#quickOverlay.open{display:flex;}.qk-box{background:var(--card);color:var(--text);border-radius:22px 22px 0 0;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;box-sizing:border-box;padding:22px 22px 30px;}@media(min-width:600px){#quickOverlay{align-items:center;padding:18px;}.qk-box{border-radius:20px;max-width:440px;}}.qk-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}.qk-title{font-size:18px;font-weight:900;color:var(--petrol);}.qk-x{background:var(--soft);border:none;width:32px;height:32px;border-radius:50%;font-size:16px;color:var(--muted);cursor:pointer;}.qk-intro{font-size:12.5px;color:var(--muted);margin-bottom:10px;line-height:1.4;}.qk-lbl{font-size:12.5px;font-weight:700;color:var(--petrol);margin:12px 0 5px;display:block;}.qk-month{display:flex;align-items:center;gap:10px;}.qk-mbtn{width:36px;height:36px;border-radius:50%;border:none;background:var(--soft);color:var(--petrol);font-size:18px;font-weight:800;cursor:pointer;}.qk-mlbl{flex:1;text-align:center;font-weight:800;color:var(--petrol);font-size:14px;background:var(--soft);border-radius:10px;padding:9px;}.qk-row{display:flex;gap:10px;}.qk-row>div{flex:1;}.qk-in{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--text);font-size:14px;font-family:inherit;}.qk-colors{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}.qk-sw{width:30px;height:30px;border-radius:9px;border:2px solid transparent;cursor:pointer;}.qk-sw.sel{border-color:var(--text);}.qk-warn{margin-top:13px;background:#FFF7ED;border:1px solid #FCE4C7;border-radius:11px;padding:11px 13px;font-size:11.5px;color:#9A5B12;line-height:1.5;}.qk-save{margin-top:16px;width:100%;padding:13px;border:none;border-radius:12px;background:var(--petrol);color:#fff;font-weight:800;font-size:14.5px;cursor:pointer;font-family:inherit;}.qk-cancel{width:100%;padding:12px;margin-top:8px;border:none;background:transparent;color:var(--muted);font-weight:700;cursor:pointer;font-family:inherit;}";
+  st.textContent = "#quickOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:100050;}#quickOverlay.open{display:flex;}.qk-box{background:var(--card);color:var(--text);border-radius:22px 22px 0 0;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;box-sizing:border-box;padding:22px 22px 30px;}@media(min-width:600px){#quickOverlay{align-items:center;padding:18px;}.qk-box{border-radius:20px;max-width:440px;}}.qk-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}.qk-title{font-size:18px;font-weight:900;color:var(--petrol);}.qk-x{background:var(--soft);border:none;width:32px;height:32px;border-radius:50%;font-size:16px;color:var(--muted);cursor:pointer;}.qk-intro{font-size:12.5px;color:var(--muted);margin-bottom:10px;line-height:1.4;}.qk-lbl{font-size:12.5px;font-weight:700;color:var(--petrol);margin:12px 0 5px;display:block;}.qk-month{display:flex;align-items:center;gap:10px;}.qk-mbtn{width:36px;height:36px;border-radius:50%;border:none;background:var(--soft);color:var(--petrol);font-size:18px;font-weight:800;cursor:pointer;}.qk-mlbl{flex:1;text-align:center;font-weight:800;color:var(--petrol);font-size:14px;background:var(--soft);border-radius:10px;padding:9px;}.qk-row{display:flex;gap:10px;}.qk-row>div{flex:1;}.qk-in{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--text);font-size:14px;font-family:inherit;}.qk-colors{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}.qk-sw{width:30px;height:30px;border-radius:9px;border:2px solid transparent;cursor:pointer;}.qk-sw.sel{border-color:var(--text);}.qk-mode{display:flex;gap:10px;}.qk-mopt{flex:1;text-align:left;border:1.5px solid var(--line);background:var(--card);color:var(--text);border-radius:12px;padding:10px 12px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;gap:2px;}.qk-mopt.sel-h{border-color:var(--petrol);background:var(--petrol);}.qk-mopt.sel-c{border-color:#F97316;background:#F97316;}.qk-mopt.sel-h .qk-mt,.qk-mopt.sel-c .qk-mt{color:#fff;}.qk-mopt.sel-h .qk-ms,.qk-mopt.sel-c .qk-ms{color:rgba(255,255,255,.88);}.qk-mt{font-size:14px;font-weight:800;}.qk-ms{font-size:11px;color:var(--muted);line-height:1.35;}.qk-hint{font-size:11px;color:var(--muted);line-height:1.45;margin-top:6px;}.qk-warn{margin-top:13px;background:#FFF7ED;border:1px solid #FCE4C7;border-radius:11px;padding:11px 13px;font-size:11.5px;color:#9A5B12;line-height:1.5;}.qk-save{margin-top:16px;width:100%;padding:13px;border:none;border-radius:12px;background:var(--petrol);color:#fff;font-weight:800;font-size:14.5px;cursor:pointer;font-family:inherit;}.qk-cancel{width:100%;padding:12px;margin-top:8px;border:none;background:transparent;color:var(--muted);font-weight:700;cursor:pointer;font-family:inherit;}";
   document.head.appendChild(st);
   const ov = document.createElement("div");
   ov.id = "quickOverlay";
@@ -4696,6 +4774,8 @@ function _ensureQuickModal(){
     if (nav) { _qkCapture(); const n = new Date(_quickMonthRef); n.setDate(1); n.setMonth(n.getMonth() + Number(nav.dataset.qkNav)); _quickMonthRef = n; _renderQuickModal(); return; }
     const sw = e.target.closest && e.target.closest("[data-qk-color]");
     if (sw) { _qkCapture(); _quickColor = sw.dataset.qkColor; _renderQuickModal(); return; }
+    const md = e.target.closest && e.target.closest("[data-qk-mode]");
+    if (md) { _qkCapture(); _qkMode = md.dataset.qkMode; _renderQuickModal(); return; }
     if (e.target.closest && e.target.closest("#qkSave")) { _saveQuick(); return; }
   });
 }
@@ -4713,8 +4793,14 @@ function _renderQuickModal(){
     '<div class="qk-intro">Le total du mois d\'un coup, sans détailler chaque mission. Compté dans tes 507 h et l\'estimation France Travail.</div>' +
     '<label class="qk-lbl">Mois concerné</label>' +
     '<div class="qk-month"><button class="qk-mbtn" data-qk-nav="-1" type="button">‹</button><span class="qk-mlbl">' + escapeHtml(monthL) + '</span><button class="qk-mbtn" data-qk-nav="1" type="button">›</button></div>' +
+    '<label class="qk-lbl">Comment tu as été payé ce mois-ci</label>' +
+    '<div class="qk-mode">' +
+      '<button type="button" class="qk-mopt' + (_qkMode === "heures" ? " sel-h" : "") + '" data-qk-mode="heures"><span class="qk-mt">À l\'heure</span><span class="qk-ms">Répétitions, services, technique…</span></button>' +
+      '<button type="button" class="qk-mopt' + (_qkMode === "cachet" ? " sel-c" : "") + '" data-qk-mode="cachet"><span class="qk-mt">En cachets</span><span class="qk-ms">Représentations, tournages…</span></button>' +
+    '</div>' +
     '<div class="qk-row"><div><label class="qk-lbl">Total heures</label><input class="qk-in" id="qkHours" type="number" inputmode="decimal" min="0" step="0.5" placeholder="Ex : 120" value="' + escapeHtml(_qkHours) + '"></div><div><label class="qk-lbl">Brut total (€)</label><input class="qk-in" id="qkGross" type="number" inputmode="decimal" min="0" placeholder="Ex : 3200" value="' + escapeHtml(_qkGross) + '"></div></div>' +
-    '<label class="qk-lbl">Jours / cachets (facultatif)</label><input class="qk-in" id="qkJours" type="number" inputmode="numeric" min="0" placeholder="Ex : 15" value="' + escapeHtml(_qkJours) + '">' +
+    '<label class="qk-lbl">' + (_qkMode === "cachet" ? "Nombre de cachets" : "Jours travaillés (facultatif)") + '</label><input class="qk-in" id="qkJours" type="number" inputmode="numeric" min="0" placeholder="' + (_qkMode === "cachet" ? "Ex : 10" : "Ex : 15") + '" value="' + escapeHtml(_qkJours) + '">' +
+    (_qkMode === "heures" ? '<div class="qk-hint">Laisse vide si tu ne sais pas : aucun cachet ne sera compté.</div>' : "") +
     '<label class="qk-lbl">Couleur</label><div class="qk-colors">' + swatches + '</div>' +
     (hasDetailed ? '<div class="qk-warn">⚠️ Ce mois contient déjà des missions détaillées. Pour ne pas compter les heures en double, utilise soit le détail, soit la saisie rapide — pas les deux.</div>' : "") +
     '<button class="qk-save" id="qkSave" type="button">' + (existing ? "Mettre à jour le mois" : "Enregistrer le mois") + '</button>' +
@@ -4724,7 +4810,7 @@ function openQuickEntryCurrent(){ openQuickEntry(current.getFullYear() + "-" + S
 function openQuickEntry(dateStr){
   _ensureQuickModal();
   const d = dateStr ? new Date(dateStr + "T00:00:00") : new Date(); d.setDate(1);
-  _quickMonthRef = d; _quickColor = PROD_PRESETS[0]; _qkHours = ""; _qkGross = ""; _qkJours = "";
+  _quickMonthRef = d; _quickColor = PROD_PRESETS[0]; _qkHours = ""; _qkGross = ""; _qkJours = ""; _qkMode = "heures";
   _renderQuickModal();
   document.getElementById("quickOverlay").classList.add("open");
 }
@@ -4734,11 +4820,14 @@ async function _saveQuick(){
   if (!h || h <= 0) { toast("Indique le total d'heures du mois."); return; }
   const g = Number((_qkGross || "").replace(",", ".")) || 0;
   const j = Number((_qkJours || "").replace(",", ".")) || 0;
+  // En cachets, le nombre de cachets fait le comptage → indispensable. À l'heure, c'est un simple
+  // nombre de jours, jamais un cachet (sinon un mois de répétitions ressortait en cachet fantôme).
+  if (_qkMode === "cachet" && j <= 0) { toast("Indique le nombre de cachets. Si tu as été payé à l'heure, choisis « À l'heure »."); return; }
   const y = _quickMonthRef.getFullYear(), mo = _quickMonthRef.getMonth();
   const first = y + "-" + String(mo + 1).padStart(2, "0") + "-01";
   const prod = _quickProdName();
   const existing = missions.find(function(m){ const d = new Date(m.date + "T00:00:00"); return d.getFullYear() === y && d.getMonth() === mo && m.type === "Saisie rapide"; });
-  const payload = { user_id: currentUser.id, production: prod, emission: "", lieu: "", mission_type: "Saisie rapide", mission_date: first, end_date: first, hours: Math.round(h * 10) / 10, gross_amount: Math.round(g), vacations: j > 0 ? Math.round(j) : 1, km_distance: 0, km_rate: 0, km_amount: 0 };
+  const payload = { user_id: currentUser.id, production: prod, emission: "", lieu: "", mission_type: "Saisie rapide", mission_date: first, end_date: first, hours: Math.round(h * 10) / 10, gross_amount: Math.round(g), vacations: j > 0 ? Math.round(j) : 1, is_cachet: (_qkMode === "cachet"), km_distance: 0, km_rate: 0, km_amount: 0 };
   setProductionColorHex(prod, _quickColor);
   const result = existing ? await sb.from("missions").update(payload).eq("id", existing.id) : await sb.from("missions").insert(payload);
   if (result.error) { toast("Erreur : " + result.error.message); return; }
