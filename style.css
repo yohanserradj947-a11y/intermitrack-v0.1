@@ -465,17 +465,18 @@ html, body { overflow-x: hidden; max-width: 100%; }
 
 /* ── ARE badge ───────────────────────────────────────────────────── */
 .are-admission-pill {
-  margin-top: 10px; max-width: 360px;
-  display: flex; align-items: center; gap: 8px; padding: 8px 10px;
-  border-radius: 14px; background: rgba(13,79,108,.05);
+  margin: 0;
+  display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+  border-radius: 12px; background: rgba(13,79,108,.05);
   border: 1px solid rgba(13,79,108,.12);
 }
 .are-admission-pill span { color: var(--petrol); font-weight: 800; white-space: nowrap; }
-.are-admission-pill input { flex: 1; min-width: 0; height: 34px; border-radius: 9px; border: 1px solid rgba(13,79,108,.14); padding: 0 8px; color: var(--petrol); font-weight: 700; }
+.are-admission-pill input { width: 150px; height: 34px; border-radius: 9px; border: 1px solid rgba(13,79,108,.14); padding: 0 8px; color: var(--petrol); font-weight: 700; }
 .are-admission-pill button { height: 34px; padding: 0 12px; border: none; border-radius: 9px; background: var(--petrol); color: white; font-weight: 800; cursor: pointer; }
-.are-admission-info { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; }
-.are-admission-center { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; }
-.are-admission-center label { font-size: 13px; font-weight: 700; color: var(--petrol); margin: 0; }
+/* Tout sur UNE ligne, centré (retour Yohan : plus de 3 étages ni de vide à droite). */
+.are-admission-center { display: flex; flex-flow: row wrap; align-items: center; justify-content: center; gap: 10px; width: 100%; text-align: center; }
+.are-admission-center label { font-size: 13px; font-weight: 700; color: var(--petrol); margin: 0; white-space: nowrap; }
+.are-admission-info { flex-basis: 100%; text-align: center; margin: 0; color: var(--muted); font-size: 12px; }
 
 /* ── Remaining badge ─────────────────────────────────────────────── */
 .remaining-badge {

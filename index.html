@@ -17,7 +17,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=35" />
+  <link rel="stylesheet" href="style.css?v=36" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js" integrity="sha384-wgi7s9Y2xefdDru3II6Xb11y/YNoKVbuydTikWejwId9z2xRd8SveCTrJjj/QAnH" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
   <style>
@@ -644,12 +644,11 @@ z-index: 500 !important;
             <div class="are-admission-center">
               <label for="areAdmissionDate">📅 Date d'admission ARE</label>
               <div class="are-admission-pill">
-                <span>ARE :</span>
                 <input id="areAdmissionDate" type="date" />
                 <button type="button" id="saveAreAdmissionDateBtn">OK</button>
               </div>
+              <button type="button" id="clearAreBtn" style="display:none;background:none;border:none;color:#DC2626;font-size:11.5px;font-weight:700;text-decoration:underline;cursor:pointer;">Retirer la date</button>
               <small id="areAdmissionInfo" class="are-admission-info">Calcul depuis la date d'admission ARE.</small>
-              <button type="button" id="clearAreBtn" style="display:none;background:none;border:none;color:#DC2626;font-size:11.5px;font-weight:700;text-decoration:underline;cursor:pointer;margin-top:4px;">Retirer la date</button>
               <div id="aiNav" class="ai-nav" style="display:none;">
                 <button type="button" class="ai-nav-btn" onclick="shiftAiYear(-1)" aria-label="Année précédente">‹</button>
                 <div class="ai-nav-mid">
