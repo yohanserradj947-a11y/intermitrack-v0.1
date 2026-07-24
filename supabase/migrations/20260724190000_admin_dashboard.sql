@@ -65,6 +65,9 @@ begin
     'missions_per_user',  (select case when (select count(*) from auth.users where id <> me) = 0 then 0
                              else round((select count(*) from missions)::numeric / (select count(*) from auth.users where id <> me), 1) end),
     'total_events',       (select count(*) from ev),
+    'qr_total', (select count(*) from qr_scans),
+    'qr_today', (select count(*) from qr_scans where created_at >= date_trunc('day', now())),
+    'qr_7d',    (select count(*) from qr_scans where created_at >= now() - interval '7 days'),
     'active_mobile_7d',   (select count(distinct user_id) from ev where created_at >= now() - interval '7 days' and platform = 'mobile'),
     'active_web_7d',      (select count(distinct user_id) from ev where created_at >= now() - interval '7 days' and platform is distinct from 'mobile'),
     'signups_by_day', (
