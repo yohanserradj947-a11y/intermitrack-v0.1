@@ -23,6 +23,9 @@ export default function QuickEntryModal({ visible, defaultDate, missions, onClos
   const [hours, setHours] = useState('');
   const [gross, setGross] = useState('');
   const [jours, setJours] = useState('');
+  // Payé à l'heure (technicien, répétitions…) ou en cachets (artiste) : STOCKÉ dans is_cachet
+  // au lieu d'être re-deviné, sinon un mois de répétitions à l'heure passait pour un cachet.
+  const [mode, setMode] = useState<'heures' | 'cachet'>('heures');
   const [color, setColorSel] = useState<string>(PROD_PRESETS[0]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -33,7 +36,7 @@ export default function QuickEntryModal({ visible, defaultDate, missions, onClos
     if (!visible) return;
     const d = defaultDate ? new Date(defaultDate + 'T00:00:00') : new Date();
     d.setDate(1);
-    setMonthRef(d); setHours(''); setGross(''); setJours('');
+    setMonthRef(d); setHours(''); setGross(''); setJours(''); setMode('heures');
   }, [visible]);
 
   const y = monthRef.getFullYear(), mo = monthRef.getMonth();
@@ -49,10 +52,13 @@ export default function QuickEntryModal({ visible, defaultDate, missions, onClos
     if (!h || h <= 0) { showAlert('Heures manquantes', 'Indique le total d\'heures du mois.'); return; }
     const g = Number((gross || '').replace(',', '.')) || 0;
     const j = Number((jours || '').replace(',', '.')) || 0;
+    // En cachets, le nombre de cachets est indispensable (c'est lui qui fait le comptage).
+    // À l'heure, il est facultatif : ce n'est qu'un nombre de jours, jamais un cachet.
+    if (mode === 'cachet' && j <= 0) { showAlert('Nombre de cachets manquant', 'Indique combien de cachets tu as faits ce mois-ci. Si tu as été payé à l\'heure (répétitions, services…), choisis plutôt « Payé à l\'heure ».'); return; }
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { showAlert('Erreur', 'Tu n\'es plus connecté.'); setSaving(false); return; }
-    const payload = { user_id: user.id, production: prodName, emission: null, lieu: null, mission_type: 'Saisie rapide', mission_date: iso(monthRef), end_date: null, hours: Math.round(h * 10) / 10, vacations: j > 0 ? Math.round(j) : 1, gross_amount: Math.round(g), status: 'effectue', km_distance: 0, km_rate: 0, km_amount: 0 };
+    const payload = { user_id: user.id, production: prodName, emission: null, lieu: null, mission_type: 'Saisie rapide', mission_date: iso(monthRef), end_date: null, hours: Math.round(h * 10) / 10, vacations: j > 0 ? Math.round(j) : 1, gross_amount: Math.round(g), is_cachet: mode === 'cachet', status: 'effectue', km_distance: 0, km_rate: 0, km_amount: 0 };
     const { error } = existing ? await supabase.from('missions').update(payload).eq('id', existing.id) : await supabase.from('missions').insert(payload);
     setSaving(false);
     if (error) { showAlert('Erreur', error.message); return; }
@@ -79,13 +85,26 @@ export default function QuickEntryModal({ visible, defaultDate, missions, onClos
                 <TouchableOpacity style={s.navBtn} onPress={() => moveMonth(1)}><Ionicons name="chevron-forward" size={18} color={C.petrol} /></TouchableOpacity>
               </View>
 
+              <Text style={s.label}>Comment tu as été payé ce mois-ci</Text>
+              <View style={s.modeBox}>
+                <TouchableOpacity style={[s.modeOpt, mode === 'heures' && s.modeOptOnH]} onPress={() => setMode('heures')} activeOpacity={0.85}>
+                  <Text style={[s.modeTitle, mode === 'heures' && s.modeTitleOn]}>À l&apos;heure</Text>
+                  <Text style={[s.modeSub, mode === 'heures' && s.modeSubOn]}>Répétitions, services, technique…</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[s.modeOpt, mode === 'cachet' && s.modeOptOnC]} onPress={() => setMode('cachet')} activeOpacity={0.85}>
+                  <Text style={[s.modeTitle, mode === 'cachet' && s.modeTitleOn]}>En cachets</Text>
+                  <Text style={[s.modeSub, mode === 'cachet' && s.modeSubOn]}>Représentations, tournages…</Text>
+                </TouchableOpacity>
+              </View>
+
               <View style={s.row}>
                 <View style={{ flex: 1 }}><Text style={s.label}>Total heures</Text><NumInput style={s.input} value={hours} onChangeText={setHours} placeholder="Ex : 120" placeholderTextColor={C.muted} /></View>
                 <View style={{ flex: 1 }}><Text style={s.label}>Brut total (€)</Text><NumInput style={s.input} value={gross} onChangeText={setGross} placeholder="Ex : 3200" placeholderTextColor={C.muted} /></View>
               </View>
 
-              <Text style={s.label}>Jours / cachets (facultatif)</Text>
-              <NumInput style={s.input} value={jours} onChangeText={setJours} placeholder="Ex : 15" placeholderTextColor={C.muted} />
+              <Text style={s.label}>{mode === 'cachet' ? 'Nombre de cachets' : 'Jours travaillés (facultatif)'}</Text>
+              <NumInput style={s.input} value={jours} onChangeText={setJours} placeholder={mode === 'cachet' ? 'Ex : 10' : 'Ex : 15'} placeholderTextColor={C.muted} />
+              {mode === 'heures' && <Text style={s.hint}>Laisse vide si tu ne sais pas : aucun cachet ne sera compté.</Text>}
 
               <Text style={s.label}>Couleur</Text>
               <View style={s.colorRow}>
@@ -121,6 +140,15 @@ const makeS = (C: any) => StyleSheet.create({
   close: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: C.soft },
   intro: { fontSize: 12.5, color: C.muted, lineHeight: 17, marginBottom: 6 },
   label: { fontSize: 13, fontWeight: '700', color: C.text, marginTop: 12, marginBottom: 6 },
+  hint: { fontSize: 11.5, color: C.muted, lineHeight: 16, marginTop: 6 },
+  modeBox: { flexDirection: 'row', gap: 10 },
+  modeOpt: { flex: 1, borderWidth: 1.5, borderColor: C.line, backgroundColor: C.card, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 12 },
+  modeOptOnH: { borderColor: C.petrol, backgroundColor: C.petrol },
+  modeOptOnC: { borderColor: C.orange, backgroundColor: C.orange },
+  modeTitle: { fontSize: 15, fontWeight: '800', color: C.text },
+  modeTitleOn: { color: '#fff' },
+  modeSub: { fontSize: 11.5, color: C.muted, marginTop: 2, lineHeight: 15 },
+  modeSubOn: { color: 'rgba(255,255,255,.88)' },
   monthNav: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   navBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: C.soft, alignItems: 'center', justifyContent: 'center' },
   monthLbl: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '800', color: C.petrol, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: 12, paddingVertical: 11 },
