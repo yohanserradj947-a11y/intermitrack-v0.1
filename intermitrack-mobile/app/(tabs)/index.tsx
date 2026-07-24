@@ -85,6 +85,7 @@ export default function HomeScreen(){
   const [areVerse,setAreVerse]=useState<Record<string,number>>({}); // ARE réellement versé, par mois 'AAAA-MM'
   const [areInput,setAreInput]=useState('');            // champ de saisie ARE versé du mois affiché
   const [netInputs,setNetInputs]=useState<Record<string,string>>({}); // saisie du net réel par mission (id → texte)
+  const [heuresInputs,setHeuresInputs]=useState<Record<string,string>>({}); // saisie des heures PAYÉES (fiche de paie) par production (prodKey → texte)
   const [reelPage,setReelPage]=useState(0);             // pagination de la liste des montants réels (7 / page)
   const [savingReal,setSavingReal]=useState(false);     // enregistrement en cours des montants réels
 
@@ -366,7 +367,15 @@ export default function HomeScreen(){
       if(!g){ g={prodKey:key,prod:(m.production||'Sans production'),missions:[],brut:0}; map.set(key,g); }
       g.missions.push(m); g.brut+=Number(m.gross_amount||0);
     }
-    return Array.from(map.values());
+    // Contrôle heures faites vs payées : seulement sur les missions À L'HEURE (techniciens).
+    // techMissions vide → production en cachet (artiste) → on n'affiche pas la ligne d'heures.
+    return Array.from(map.values()).map(g=>{
+      const techMissions=g.missions.filter((m:any)=>!missionIsCachet(m));
+      const heuresFaites=Math.round(techMissions.reduce((a:number,m:any)=>a+(Number(m.hours)||0),0)*10)/10;
+      const heuresPayeesSaved=techMissions.reduce((a:number,m:any)=>a+(m.heures_payees!=null?Number(m.heures_payees):0),0);
+      const hasHeuresPayees=techMissions.some((m:any)=>m.heures_payees!=null);
+      return {...g,techMissions,heuresFaites,heuresPayeesSaved:Math.round(heuresPayeesSaved*10)/10,hasHeuresPayees};
+    });
   })();
   const REEL_PER=7;
   const totalReelPages=Math.max(1,Math.ceil(reelGroups.length/REEL_PER));
@@ -447,6 +456,22 @@ export default function HomeScreen(){
         }
       }
       for(const u of updates){ const { error }=await supabase.from('missions').update({net_reel:u.net}).eq('id',u.id); if(error) throw error; }
+      // Heures PAYÉES saisies par production → réparties sur les missions à l'heure, au prorata des heures.
+      const hUpdates:{id:string;h:number|null}[]=[];
+      for(const g of reelGroups){
+        const raw=heuresInputs[g.prodKey];
+        if(raw===undefined || g.techMissions.length===0) continue; // non touché / pas de mission à l'heure
+        const total=parseNet(raw);
+        if(total===null){ for(const m of g.techMissions) hUpdates.push({id:m.id,h:null}); continue; }
+        const hSum=g.techMissions.reduce((a:number,m:any)=>a+Number(m.hours||0),0);
+        for(const m of g.techMissions){
+          const share=hSum>0?Number(m.hours||0)/hSum:1/g.techMissions.length;
+          hUpdates.push({id:m.id,h:Math.round(total*share*10)/10});
+        }
+      }
+      // try/catch : si la colonne heures_payees n'est pas encore migrée, on n'empêche PAS
+      // l'enregistrement du net (déjà fait au-dessus). La feature s'activera une fois la migration lancée.
+      try{ for(const u of hUpdates){ const { error }=await supabase.from('missions').update({heures_payees:u.h}).eq('id',u.id); if(error) throw error; } }catch(e){}
       const av=areInput.trim()===''?0:Number(areInput.replace(',','.'))||0;
       if(user){
         const r = av===0
@@ -454,9 +479,9 @@ export default function HomeScreen(){
           : await supabase.from('are_versements').upsert({user_id:user.id,mois:moisKey,montant:av},{onConflict:'user_id,mois'});
         if(r.error) throw r.error;
       }
-      setMissions(prev=>prev.map((m:any)=>{ const u=updates.find(x=>x.id===m.id); return u?{...m,net_reel:u.net}:m; }));
+      setMissions(prev=>prev.map((m:any)=>{ const u=updates.find(x=>x.id===m.id); const hu=hUpdates.find(x=>x.id===m.id); let nm=m; if(u)nm={...nm,net_reel:u.net}; if(hu)nm={...nm,heures_payees:hu.h}; return nm; }));
       setAreVerse(prev=>{const n={...prev}; if(av===0)delete n[moisKey]; else n[moisKey]=av; return n;});
-      setNetInputs({});
+      setNetInputs({}); setHeuresInputs({});
       showAlert('Enregistré','Tes montants réels du mois ont été mis à jour.');
     }catch(e:any){
       showAlert('Oups', 'L\'enregistrement n\'a pas pu aboutir. Vérifie ta connexion et réessaie dans un instant.');
@@ -474,11 +499,12 @@ export default function HomeScreen(){
         try{
           const { data:{ user } }=await supabase.auth.getUser();
           for(const m of monthMissions){ if(m.net_reel!=null){ const { error }=await supabase.from('missions').update({net_reel:null}).eq('id',m.id); if(error) throw error; } }
+          try{ for(const m of monthMissions){ if(m.heures_payees!=null){ const { error }=await supabase.from('missions').update({heures_payees:null}).eq('id',m.id); if(error) throw error; } } }catch(e){}
           if(user){ const { error }=await supabase.from('are_versements').delete().eq('user_id',user.id).eq('mois',moisKey); if(error) throw error; }
           const ids=new Set(monthMissions.map((m:any)=>m.id));
-          setMissions(prev=>prev.map((mm:any)=> ids.has(mm.id) ? {...mm,net_reel:null} : mm));
+          setMissions(prev=>prev.map((mm:any)=> ids.has(mm.id) ? {...mm,net_reel:null,heures_payees:null} : mm));
           setAreVerse(prev=>{const n={...prev}; delete n[moisKey]; return n;});
-          setNetInputs({}); setAreInput('');
+          setNetInputs({}); setHeuresInputs({}); setAreInput('');
         }catch(e:any){ showAlert('Oups','La réinitialisation n\'a pas pu aboutir. Réessaie.'); }
         finally{ setSavingReal(false); }
       }},
@@ -725,13 +751,19 @@ export default function HomeScreen(){
             <Ionicons name="wallet-outline" size={14} color={C.petrol}/>
             <Text style={s.reelTitle}>Montants réels du mois</Text>
           </View>
-          <Text style={s.reelIntro}>Renseigne le net (une fois payé) et l'allocation reçue, puis appuie sur « Mettre à jour » : tu auras le total exact du mois.</Text>
+          <Text style={s.reelIntro}>Renseigne le net (une fois payé) et l'allocation reçue, puis appuie sur « Mettre à jour » : tu auras le total exact du mois. Tu peux aussi noter les heures payées sur ta fiche de paie : l'appli te signale si elles ne collent pas avec tes heures faites.</Text>
           {reelGroups.length>0 ? visibleReel.map((g:any)=>{
             const saved=g.missions.reduce((a:number,m:any)=>a+(m.net_reel!=null?Number(m.net_reel):0),0);
             const hasNet=g.missions.some((m:any)=>m.net_reel!=null);
             const val=netInputs[g.prodKey]!==undefined?netInputs[g.prodKey]:(hasNet?String(Math.round(saved*100)/100):'');
+            // Ligne « heures payées » : uniquement s'il y a des missions à l'heure (techniciens).
+            const showHeures=g.techMissions.length>0;
+            const hVal=heuresInputs[g.prodKey]!==undefined?heuresInputs[g.prodKey]:(g.hasHeuresPayees?String(g.heuresPayeesSaved):'');
+            const hPaid=hVal.trim()===''?null:(Number(hVal.replace(',','.'))||0);
+            const ecart=hPaid!=null?Math.round((g.heuresFaites-hPaid)*10)/10:null;
             return (
-              <View key={g.prodKey} style={s.reelRow}>
+              <View key={g.prodKey}>
+              <View style={s.reelRow}>
                 <View style={{flex:1}}>
                   <Text style={s.reelProd} numberOfLines={1}>{g.prod}</Text>
                   <Text style={s.reelBrut}>brut {money(Math.round(g.brut))}{g.missions.length>1?` · ${g.missions.length} missions`:''}</Text>
@@ -742,6 +774,21 @@ export default function HomeScreen(){
                   onChangeText={(t:string)=>setNetInputs(p=>({...p,[g.prodKey]:t}))}
                   placeholder="net €" placeholderTextColor={C.muted}
                 />
+              </View>
+              {showHeures&&(
+                <View style={s.reelHeuresRow}>
+                  <Text style={s.reelHeuresLbl}>fait <Text style={{fontWeight:'800',color:C.text}}>{g.heuresFaites} h</Text> · payé</Text>
+                  <NumInput
+                    style={s.reelHeuresInput}
+                    value={hVal}
+                    onChangeText={(t:string)=>setHeuresInputs(p=>({...p,[g.prodKey]:t}))}
+                    placeholder="h payées" placeholderTextColor={C.muted}
+                  />
+                </View>
+              )}
+              {showHeures&&ecart!=null&&Math.abs(ecart)>=0.5&&(
+                <Text style={s.reelEcart}>{ecart>0?`⚠️ Il manque ${ecart} h sur ta paie — à vérifier avec la compta`:`On t'a payé ${Math.abs(ecart)} h de plus que déclaré`}</Text>
+              )}
               </View>
             );
           }) : <Text style={s.reelEmpty}>Aucune mission ce mois-ci.</Text>}
@@ -1080,6 +1127,10 @@ const makeS=(C:any)=>StyleSheet.create({
   reelProd:{fontSize:13,fontWeight:'700',color:C.text},
   reelBrut:{fontSize:11,color:C.muted,fontWeight:'600',marginTop:1},
   reelInput:{width:98,borderWidth:1.5,borderColor:C.muted+'55',borderRadius:10,paddingVertical:9,paddingHorizontal:10,fontSize:14,color:C.text,backgroundColor:C.soft,textAlign:'right'},
+  reelHeuresRow:{flexDirection:'row',alignItems:'center',justifyContent:'flex-end',gap:8,paddingBottom:6,paddingLeft:12},
+  reelHeuresLbl:{fontSize:12,color:C.muted,fontWeight:'600'},
+  reelHeuresInput:{width:80,borderWidth:1,borderColor:C.line,borderRadius:9,paddingVertical:6,paddingHorizontal:9,fontSize:13,color:C.text,backgroundColor:C.card,textAlign:'right'},
+  reelEcart:{fontSize:11.5,color:C.orange,fontWeight:'700',textAlign:'right',paddingBottom:6,lineHeight:16},
   reelEmpty:{fontSize:12,color:C.muted,paddingVertical:8},
   reelTotal:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginTop:10,paddingTop:10,borderTopWidth:1,borderTopColor:C.line},
   reelTotalLbl:{fontSize:13,fontWeight:'800',color:C.petrol},

@@ -794,26 +794,30 @@ export default function Calendar(){
           const customCol=has?(first?getColor(first.production):null):(noteOnly?(note0.color||'#1E6FE0'):null);
           const fillable=has||noteOnly;
           // 2 missions le même jour → case coupée en diagonale (moitié/moitié), comme sur le site.
-          const isSplit=has&&ms.length===2&&!isToday;
+          const isSplit=has&&ms.length===2;
           const cA=isSplit?(getColor(ms[0].production)||(isPast?'#1F4E5F':'#F97316')):'';
           const cB=isSplit?(getColor(ms[1].production)||(isPast?'#1F4E5F':'#F97316')):'';
           // Chaque moitié garde son VRAI dégradé (comme une case pleine), au lieu d'une couleur plate :
           // couleur perso -> prodGradient ; sinon dégradé par défaut passé/futur.
           const gA=isSplit?(getColor(ms[0].production)?prodGradient(getColor(ms[0].production)!):(isPast?GRAD_PAST_T:GRAD_FUTURE_T)):null;
           const gB=isSplit?(getColor(ms[1].production)?prodGradient(getColor(ms[1].production)!):(isPast?GRAD_PAST_T:GRAD_FUTURE_T)):null;
-          const grad=(!isToday&&fillable&&!isSplit)?(customCol?prodGradient(customCol):(isPast?GRAD_PAST_T:GRAD_FUTURE_T)):null;
+          // Aujourd'hui n'est PLUS une exception : il se remplit comme un jour « à venir » (isPast=false →
+          // dégradé futur) ou sa couleur perso, et garde son cadre. Avant, le jour du jour restait blanc.
+          const grad=(fillable&&!isSplit)?(customCol?prodGradient(customCol):(isPast?GRAD_PAST_T:GRAD_FUTURE_T)):null;
           const filled=grad!=null||isSplit;
           const hach=filled&&!isSplit&&(noteOnly||(isPast&&!!customCol)); // notes hachurées ; missions passées perso hachurées
           const baseTxt=isSplit?textOn(cA):(customCol?textOn(customCol):'#fff');
-          const txtColor=isToday?C.petrol:(filled?baseTxt:C.text);
-          const subColor=isToday?C.muted:(filled?(customCol?baseTxt:'rgba(255,255,255,.85)'):C.muted);
+          const txtColor=filled?baseTxt:(isToday?C.petrol:C.text);
+          const subColor=filled?(customCol?baseTxt:'rgba(255,255,255,.85)'):C.muted;
           return(
-            <TouchableOpacity key={i} style={[s.cell,isToday?s.cellToday:(filled?s.cellFilled:s.cellEmpty)]} activeOpacity={0.85} onPress={()=>onCellPress(d)}>
+            <TouchableOpacity key={i} style={[s.cell,filled?s.cellFilled:(isToday?s.cellToday:s.cellEmpty)]} activeOpacity={0.85} onPress={()=>onCellPress(d)}>
               {isSplit
                 ? <LinearGradient colors={[gA![0],gA![gA!.length-1],'rgba(255,255,255,0.6)','rgba(255,255,255,0.6)',gB![0],gB![gB!.length-1]]} locations={[0,0.49,0.49,0.51,0.51,1]} start={{x:0,y:0}} end={{x:1,y:1}} style={StyleSheet.absoluteFill}/>
                 : (grad&&<LinearGradient colors={grad} start={{x:0,y:0}} end={{x:1,y:1}} style={StyleSheet.absoluteFill}/>)}
               {hach&&<Svg width={84} height={80} style={{position:'absolute',top:0,left:0}}>{Array.from({length:22},(_,k)=>{const o=-84+k*9;return <Line key={k} x1={o} y1={0} x2={o+84} y2={84} stroke="rgba(255,255,255,0.30)" strokeWidth={2.5}/>;})}</Svg>}
-              {isToday&&<Animated.View pointerEvents="none" style={[s.todayFrame,{opacity:pulse.interpolate({inputRange:[0,1],outputRange:[0.35,1]})}]}/>}
+              {isToday&&<Animated.View pointerEvents="none" style={[s.todayFrame,{opacity:pulse.interpolate({inputRange:[0,1],outputRange:[0.4,1]})}]}>
+                <View style={s.todayFrameInner}/>
+              </Animated.View>}
               {noteMark&&<View pointerEvents="none" style={{position:'absolute',top:4,right:4,width:8,height:8,borderRadius:3,backgroundColor:(note0&&note0.color)||'#1E6FE0',zIndex:3}}/>}
               <Text style={[s.cellDay,{color:txtColor},isToday&&s.cellDayToday]}>{d.getDate()}</Text>
               {isSplit?(
@@ -1473,7 +1477,9 @@ cell:{width:'14.28%',height:70,padding:5,borderWidth:1.5,borderRadius:14,marginB
   cellEmpty:{backgroundColor:C.card,borderColor:C.line},
   cellFilled:{borderColor:'transparent'},
   cellToday:{backgroundColor:C.card,borderColor:'transparent'},
-  todayFrame:{position:'absolute',top:0,left:0,right:0,bottom:0,borderRadius:12.5,borderWidth:2.5,borderColor:C.petrol},
+  // Cadre NOIR BRILLANT du jour du jour : bord noir + fin liseré clair intérieur (effet brillant).
+  todayFrame:{position:'absolute',top:0,left:0,right:0,bottom:0,borderRadius:12.5,borderWidth:2.5,borderColor:'#0c0c0c'},
+  todayFrameInner:{position:'absolute',top:0,left:0,right:0,bottom:0,borderRadius:10.5,borderWidth:1,borderColor:'rgba(255,255,255,0.35)'},
   cellDayToday:{fontWeight:'900'},
   cellDay:{fontSize:14,fontWeight:'800'},
   cellProd:{fontSize:9,fontWeight:'900',marginTop:2},

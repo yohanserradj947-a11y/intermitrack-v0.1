@@ -145,12 +145,11 @@ function miniCell(d: number, info: any, today: number, p: Pal, key: number) {
   if (d === 0) return <FlexWidget key={key} style={{ flex: 1, height: 'match_parent' }} />;
   const mission = info && info.g && info.g.length ? info : null;
   const isToday = d === today;
-  // Aujourd'hui = ANNEAU orange (bordure), pas un carré plein → on le distingue d'une mission,
-  // et il reste visible même s'il y a une mission ce jour-là (la couleur de la mission reste au fond).
+  // Aujourd'hui = CADRE NOIR (bordure), la couleur de la mission reste au fond → cohérent avec l'appli.
   const bg: Hex = mission ? hx(mission.g[1] || mission.g[0]) : TRANSPARENT;
-  const txt: Hex = mission ? hx(mission.txt || '#FFFFFF') : (isToday ? p.orange : p.text);
+  const txt: Hex = mission ? hx(mission.txt || '#FFFFFF') : p.text;
   return (
-    <FlexWidget key={key} style={{ flex: 1, height: 'match_parent', borderRadius: 6, backgroundColor: bg, borderWidth: isToday ? 2 : 0, borderColor: isToday ? p.orange : TRANSPARENT, alignItems: 'center', justifyContent: 'center' }}>
+    <FlexWidget key={key} style={{ flex: 1, height: 'match_parent', borderRadius: 6, backgroundColor: bg, borderWidth: isToday ? 2 : 0, borderColor: isToday ? '#0C0C0C' : TRANSPARENT, alignItems: 'center', justifyContent: 'center' }}>
       <TextWidget text={String(d)} style={{ fontSize: 11, fontWeight: isToday || mission ? '900' : '500', color: txt }} />
     </FlexWidget>
   );
@@ -182,9 +181,9 @@ function bigCell(d: number, info: any, today: number, p: Pal, key: number) {
   const mission = info && info.g && info.g.length ? info : null;
   const isToday = d === today;
   return (
-    <FlexWidget key={key} style={{ flex: 1, height: 42, flexDirection: 'column', alignItems: 'center', flexGap: 2 }}>
-      <FlexWidget style={{ width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: isToday ? p.orange : TRANSPARENT }}>
-        <TextWidget text={String(d)} style={{ fontSize: 11, fontWeight: isToday ? '900' : '500', color: isToday ? '#FFFFFF' : p.text }} />
+    <FlexWidget key={key} style={{ flex: 1, height: 42, flexDirection: 'column', alignItems: 'center', flexGap: 2, borderRadius: 8, borderWidth: isToday ? 2 : 0, borderColor: isToday ? '#0C0C0C' : TRANSPARENT }}>
+      <FlexWidget style={{ width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: TRANSPARENT }}>
+        <TextWidget text={String(d)} style={{ fontSize: 11, fontWeight: isToday ? '900' : '500', color: p.text }} />
       </FlexWidget>
       {mission ? (
         <FlexWidget style={{ flex: 1, width: 'match_parent', borderRadius: 3, backgroundColor: hx(mission.g[1] || mission.g[0]), alignItems: 'center', justifyContent: 'center' }}>

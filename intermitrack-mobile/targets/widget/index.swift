@@ -193,8 +193,8 @@ struct CalCell: View {
   var bigCell: some View {
     VStack(spacing: 1.5) {
       ZStack {
-        if isToday { Circle().fill(ORANGE).frame(width: h * 0.44, height: h * 0.44) }
-        Text("\(day)").font(.system(size: h * 0.28, weight: isToday ? .bold : .medium)).foregroundColor(isToday ? .white : .primary)
+        // Plus de pastille orange : aujourd'hui = la couleur de la mission (dessous) + le cadre noir.
+        Text("\(day)").font(.system(size: h * 0.28, weight: isToday ? .heavy : .medium)).foregroundColor(.primary)
       }
       .frame(height: h * 0.44)
       if let i = mission {
@@ -212,6 +212,7 @@ struct CalCell: View {
       }
     }
     .frame(height: h)
+    .overlay(TodayFrame(show: isToday, radius: 5))
   }
   // compactCell SUPPRIMÉ : c'était du CODE MORT. CalCell n'est instancié qu'une seule fois, avec
   // big: true (monthView) — compactCell n'a donc jamais été rendu. Le widget moyen utilise MiniCell.
@@ -250,9 +251,21 @@ struct MiniCell: View {
       // lisible sur iPhone, contrairement à Android » (retour Yohan). Avec un fond uni, m.txt redevient
       // exact : noir sur une couleur claire, blanc sinon.
       if let m = mission { RoundedRectangle(cornerRadius: 4).fill(Color(hexString: m.g.count > 1 ? m.g[1] : m.g[0])) }
-      if isToday { Circle().fill(Color(hexString: theme.orange)).frame(width: 21, height: 21) }
-      Text("\(day)").font(.system(size: 12.5, weight: (isToday || mission != nil) ? .heavy : .medium)).foregroundColor(isToday ? .white : (mission.map { Color(hexString: $0.txt) } ?? Color(hexString: theme.text))).minimumScaleFactor(0.7)
+      // Plus de pastille orange : aujourd'hui garde la couleur de sa mission + reçoit le cadre noir.
+      Text("\(day)").font(.system(size: 12.5, weight: (isToday || mission != nil) ? .heavy : .medium)).foregroundColor(mission.map { Color(hexString: $0.txt) } ?? Color(hexString: theme.text)).minimumScaleFactor(0.7)
     }.frame(height: 22)
+    .overlay(TodayFrame(show: isToday, radius: 4))
+  }
+}
+// Cadre NOIR BRILLANT du jour du jour (bord noir + fin liseré clair intérieur). Fixe : un widget ne
+// peut pas animer/clignoter (WidgetKit interdit l'animation continue).
+struct TodayFrame: View {
+  let show: Bool; let radius: CGFloat
+  var body: some View {
+    if show {
+      RoundedRectangle(cornerRadius: radius).strokeBorder(Color.black, lineWidth: 2)
+        .overlay(RoundedRectangle(cornerRadius: max(1, radius - 1)).strokeBorder(Color.white.opacity(0.34), lineWidth: 1).padding(2))
+    }
   }
 }
 struct CalView: View {
