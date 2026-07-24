@@ -577,11 +577,16 @@ body.theme-dark .calendar-day-panel-head span, body.theme-dark .calendar-day-mis
 .new-cal-day.has-planned .new-cal-num,
 .new-cal-day.has-planned .new-cal-tag-prod,
 .new-cal-day.has-planned .new-cal-tag-meta { color: #fff !important; }
-.new-cal-day.today { background: #fff !important; border-color: transparent !important; animation: calTodayPulse 1.5s ease-in-out infinite; }
-.new-cal-day.today .new-cal-num,
-.new-cal-day.today .new-cal-tag-prod,
-.new-cal-day.today .new-cal-tag-meta { color: var(--petrol) !important; }
-@keyframes calTodayPulse { 0%, 100% { box-shadow: inset 0 0 0 2px rgba(31,78,95,.4); } 50% { box-shadow: inset 0 0 0 2.5px rgba(31,78,95,1); } }
+/* Jour du jour : PAS de fond blanc (laisse la couleur « à venir » ou la couleur perso s'afficher).
+   On le repère par un CADRE NOIR BRILLANT (le pulse ci-dessous), pas par un remplissage. */
+.new-cal-day.today { border-color: transparent !important; animation: calTodayPulse 1.5s ease-in-out infinite; }
+/* Texte pétrole uniquement quand la case est VIDE (sans mission) ; avec mission, le blanc de
+   has-done/has-planned s'applique. */
+.new-cal-day.today:not([data-has-mission]) .new-cal-num,
+.new-cal-day.today:not([data-has-mission]) .new-cal-tag-prod,
+.new-cal-day.today:not([data-has-mission]) .new-cal-tag-meta { color: var(--petrol) !important; }
+/* Cadre NOIR BRILLANT (liseré clair intérieur = effet « brillant ») qui pulse doucement. */
+@keyframes calTodayPulse { 0%, 100% { box-shadow: inset 0 0 0 2px #0c0c0c, inset 0 0 0 3px rgba(255,255,255,.22); } 50% { box-shadow: inset 0 0 0 3px #000, inset 0 0 0 4px rgba(255,255,255,.38); } }
 
 .new-cal-tag { display:flex; flex-direction:column; gap:1px; margin-top:2px; width:100%; line-height:1.1; text-align:left; }
 .new-cal-tag-prod { font-size:9px; font-weight:800; letter-spacing:.03em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -1292,7 +1297,7 @@ body.theme-dark .theme-btn:hover, body.theme-dark .theme-btn.active { background
 /* Calendrier dark */
 body.theme-dark .new-cal-day { background: rgba(255,255,255,.03); border-color: rgba(255,255,255,.12); }
 body.theme-dark .new-cal-day:hover { background: rgba(255,255,255,.07) !important; }
-body.theme-dark .new-cal-day.today { background: rgba(255,255,255,.05) !important; border-color: transparent !important; animation: calTodayPulseDark 1.5s ease-in-out infinite; }
+body.theme-dark .new-cal-day.today { border-color: transparent !important; animation: calTodayPulseDark 1.5s ease-in-out infinite; }
 body.theme-dark .new-cal-day.today .new-cal-num,
 body.theme-dark .new-cal-day.today .new-cal-tag-prod,
 body.theme-dark .new-cal-day.today .new-cal-tag-meta { color: #DCF0FA !important; }
@@ -1609,6 +1614,15 @@ body.theme-rose .chartWrap { background: linear-gradient(145deg, #FFFFFF, var(--
 .reel-brut { display: block; font-size: 11px; color: var(--muted); font-weight: 600; margin-top: 1px; }
 .reel-input { width: 100px; flex: 0 0 auto; padding: 9px 11px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--card); color: var(--text); font-size: 14px; font-family: inherit; text-align: right; outline: none; }
 .reel-input:focus { border-color: var(--petrol); }
+/* Groupe = 1 production (ligne net + ligne heures faites/payées). Le séparateur passe du .reel-row au .reel-group. */
+.reel-group { border-top: 1px solid var(--line); }
+.reel-group:first-child { border-top: none; }
+.reel-group .reel-row { border-top: none; }
+.reel-heures { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 0 0 8px; }
+.reel-heures-lbl { font-size: 12px; color: var(--muted); font-weight: 600; }
+.reel-heures-lbl strong { color: var(--text); }
+.reel-heures-in { width: 84px; padding: 6px 9px; font-size: 13px; }
+.reel-ecart { font-size: 11.5px; color: var(--orange); font-weight: 700; text-align: right; padding-bottom: 8px; line-height: 1.35; }
 .reel-empty { font-size: 13px; color: var(--muted); padding: 8px 0; }
 .reel-save { width: 100%; margin-top: 12px; padding: 12px; border: none; border-radius: 11px; background: var(--petrol); color: #fff; font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; }
 .reel-save:hover { filter: brightness(1.07); }

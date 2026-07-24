@@ -1382,6 +1382,7 @@ async function loadMissions() {
     regime: x.regime || "intermittence", cachet_days: x.cachet_days || null,
     is_cachet: x.is_cachet, // null pour les missions d'avant la colonne → repli sur l'heuristique
     net_reel: x.net_reel != null ? Number(x.net_reel) : null,
+    heures_payees: x.heures_payees != null ? Number(x.heures_payees) : null, // heures payées (fiche de paie) vs heures faites
     // Adresses des frais km : enregistrées depuis le 15/07/2026 seulement. Avant, seuls
     // distance/taux/montant l'étaient — d'où « les adresses n'apparaissent pas à l'édition ».
     kmFrom: x.km_from || "", kmTo: x.km_to || "",
@@ -1414,7 +1415,14 @@ function _reelGroups(list) {
     groups[key].brut += Number(m.gross || 0);
     groups[key].missions.push(m);
   });
-  return Object.values(groups);
+  // Contrôle heures faites vs payées : seulement sur les missions À L'HEURE (techniciens).
+  return Object.values(groups).map(function(g){
+    g.techMissions = g.missions.filter(function(m){ return !missionIsCachet(m); });
+    g.heuresFaites = Math.round(g.techMissions.reduce(function(a,m){ return a + (Number(m.hours)||0); },0)*10)/10;
+    g.heuresPayeesSaved = Math.round(g.techMissions.reduce(function(a,m){ return a + (m.heures_payees!=null?Number(m.heures_payees):0); },0)*10)/10;
+    g.hasHeuresPayees = g.techMissions.some(function(m){ return m.heures_payees!=null; });
+    return g;
+  });
 }
 function renderMontantsReels(list, cur) {
   const box = $("reelBox"); if (!box) return;
@@ -1429,10 +1437,26 @@ function renderMontantsReels(list, cur) {
       const saved = g.missions.reduce((a, m) => a + (m.net_reel != null ? Number(m.net_reel) : 0), 0);
       const hasNet = g.missions.some((m) => m.net_reel != null);
       const val = hasNet ? String(Math.round(saved * 100) / 100) : "";
-      return '<div class="reel-row" data-prodkey="' + encodeURIComponent(g.key) + '">'
+      // Ligne « heures payées » : seulement s'il y a des missions à l'heure (techniciens).
+      const showHeures = g.techMissions.length > 0;
+      const hVal = g.hasHeuresPayees ? String(g.heuresPayeesSaved) : "";
+      const ecart = g.hasHeuresPayees ? Math.round((g.heuresFaites - g.heuresPayeesSaved) * 10) / 10 : null;
+      var heuresHtml = "";
+      if (showHeures) {
+        heuresHtml = '<div class="reel-heures"><span class="reel-heures-lbl">fait <strong>' + g.heuresFaites + ' h</strong> · payé</span>'
+          + '<input class="reel-input reel-heures-in" inputmode="decimal" autocomplete="off" placeholder="h payées" value="' + hVal + '"/></div>';
+        if (ecart != null && Math.abs(ecart) >= 0.5) {
+          heuresHtml += '<div class="reel-ecart">' + (ecart > 0
+            ? '⚠️ Il manque ' + ecart + ' h sur ta paie — à vérifier avec la compta'
+            : 'On t\'a payé ' + Math.abs(ecart) + ' h de plus que déclaré') + '</div>';
+        }
+      }
+      return '<div class="reel-group" data-prodkey="' + encodeURIComponent(g.key) + '">'
+        + '<div class="reel-row">'
         + '<div style="flex:1;min-width:0;"><span class="reel-prod">' + escapeHtml(g.prod) + '</span>'
         + '<span class="reel-brut">brut ' + money(Math.round(g.brut)) + (g.missions.length > 1 ? " · " + g.missions.length + " missions" : "") + '</span></div>'
         + '<input class="reel-input reel-net" inputmode="decimal" autocomplete="off" placeholder="net €" value="' + val + '"/>'
+        + '</div>' + heuresHtml
         + '</div>';
     }).join("");
   }
@@ -1464,19 +1488,39 @@ async function saveAllReal() {
     const groups = _reelGroups(monthMissions(cur));
     const parseNet = (raw) => String(raw).trim() === "" ? null : (Number(String(raw).replace(",", ".")) || 0);
     const updates = [];
-    box.querySelectorAll(".reel-row[data-prodkey]").forEach((row) => {
+    const hUpdates = [];
+    box.querySelectorAll(".reel-group[data-prodkey]").forEach((row) => {
       const key = decodeURIComponent(row.dataset.prodkey);
       const g = groups.find((x) => x.key === key); if (!g) return;
-      const input = row.querySelector(".reel-net"); if (!input) return;
-      const total = parseNet(input.value);
-      if (total === null) { g.missions.forEach((m) => updates.push({ id: m.id, net: null })); return; }
-      const brutSum = g.missions.reduce((a, m) => a + Number(m.gross || 0), 0);
-      g.missions.forEach((m) => {
-        const share = brutSum > 0 ? Number(m.gross || 0) / brutSum : 1 / g.missions.length;
-        updates.push({ id: m.id, net: Math.round(total * share * 100) / 100 });
-      });
+      const input = row.querySelector(".reel-net");
+      if (input) {
+        const total = parseNet(input.value);
+        if (total === null) { g.missions.forEach((m) => updates.push({ id: m.id, net: null })); }
+        else {
+          const brutSum = g.missions.reduce((a, m) => a + Number(m.gross || 0), 0);
+          g.missions.forEach((m) => {
+            const share = brutSum > 0 ? Number(m.gross || 0) / brutSum : 1 / g.missions.length;
+            updates.push({ id: m.id, net: Math.round(total * share * 100) / 100 });
+          });
+        }
+      }
+      // Heures payées (fiche de paie) réparties sur les missions à l'heure, au prorata des heures.
+      const hInput = row.querySelector(".reel-heures-in");
+      if (hInput && g.techMissions.length) {
+        const th = parseNet(hInput.value);
+        if (th === null) { g.techMissions.forEach((m) => hUpdates.push({ id: m.id, h: null })); }
+        else {
+          const hSum = g.techMissions.reduce((a, m) => a + Number(m.hours || 0), 0);
+          g.techMissions.forEach((m) => {
+            const share = hSum > 0 ? Number(m.hours || 0) / hSum : 1 / g.techMissions.length;
+            hUpdates.push({ id: m.id, h: Math.round(th * share * 10) / 10 });
+          });
+        }
+      }
     });
     for (const u of updates) { const { error } = await sb.from("missions").update({ net_reel: u.net }).eq("id", u.id); if (error) throw error; }
+    // try/catch : colonne heures_payees pas encore migrée → on n'empêche pas l'enregistrement du net.
+    try { for (const u of hUpdates) { const { error } = await sb.from("missions").update({ heures_payees: u.h }).eq("id", u.id); if (error) throw error; } } catch (e) {}
     const areEl = $("reelAreInput");
     const av = (!areEl || areEl.value.trim() === "") ? 0 : (Number(areEl.value.replace(",", ".")) || 0);
     if (user) {
@@ -1485,7 +1529,7 @@ async function saveAllReal() {
         : await sb.from("are_versements").upsert({ user_id: user.id, mois: moisKey, montant: av }, { onConflict: "user_id,mois" });
       if (r.error) throw r.error;
     }
-    missions = missions.map((m) => { const u = updates.find((x) => x.id === m.id); return u ? Object.assign({}, m, { net_reel: u.net }) : m; });
+    missions = missions.map((m) => { const u = updates.find((x) => x.id === m.id); const hu = hUpdates.find((x) => x.id === m.id); let nm = m; if (u) nm = Object.assign({}, nm, { net_reel: u.net }); if (hu) nm = Object.assign({}, nm, { heures_payees: hu.h }); return nm; });
     if (av === 0) delete areVerse[moisKey]; else areVerse[moisKey] = av;
     toast("Montants réels du mois mis à jour.");
     render();
@@ -1506,8 +1550,9 @@ function resetReal() {
       const cur = new Date(Number(moisKey.slice(0, 4)), Number(moisKey.slice(5, 7)) - 1, 1);
       const list = monthMissions(cur).filter((m) => (m.regime || "intermittence") === "intermittence");
       for (const m of list) { if (m.net_reel != null) { const { error } = await sb.from("missions").update({ net_reel: null }).eq("id", m.id); if (error) throw error; } }
+      try { for (const m of list) { if (m.heures_payees != null) { const { error } = await sb.from("missions").update({ heures_payees: null }).eq("id", m.id); if (error) throw error; } } } catch (e) {}
       if (user) await sb.from("are_versements").delete().eq("user_id", user.id).eq("mois", moisKey);
-      missions = missions.map((m) => list.find((x) => x.id === m.id) ? Object.assign({}, m, { net_reel: null }) : m);
+      missions = missions.map((m) => list.find((x) => x.id === m.id) ? Object.assign({}, m, { net_reel: null, heures_payees: null }) : m);
       delete areVerse[moisKey];
       toast("Montants du mois réinitialisés.");
       render();
@@ -4224,8 +4269,11 @@ function renderCalendar() {
    const missionsOfDay = missions.filter((m) => isDateInPeriod(dateStr, m));
     if (missionsOfDay.length) {
       box.dataset.hasMission = "1";
-      const isFuture = missionsOfDay.some((m) => new Date(m.date + "T00:00:00") >= todayDateOnly());
-      const isPast = missionsOfDay.some((m) => new Date((m.endDate || m.date) + "T00:00:00") < todayDateOnly());
+      // Statut PAR CASE (pas par mission) : sinon une mission multi-jours à cheval sur aujourd'hui
+      // donnait début>=today faux ET fin<today faux → aucune classe → case blanche (retour Yohan).
+      // Aujourd'hui INCLUS dans « à venir » tant que le jour n'est pas fini.
+      const isPast = dateStr < todayStr;
+      const isFuture = dateStr >= todayStr;
       if (isPast) box.classList.add("has-done");
       if (isFuture) box.classList.add("has-planned");
       let dayHours = 0, dayGross = 0;
@@ -4242,7 +4290,7 @@ function renderCalendar() {
         const cA = _rep[0], cB = _rep[1];
         // Chaque moitié garde son VRAI dégradé (comme une case pleine), au lieu d'une couleur plate :
         // couleur perso -> foncé/clair ; sinon dégradé par défaut passé (pétrole/vert) ou futur (orange).
-        const _halfGrad = (m) => { const hex = getProductionColorHex(normalizeProductionName(m.production)); if (hex) return [_darken(hex,0.14), _lighten(hex,0.36)]; const fut = new Date(m.date + "T00:00:00") >= todayDateOnly(); return fut ? ['#F97316','#FDBA74'] : ['#1F4E5F','#2F8F6B']; };
+        const _halfGrad = (m) => { const hex = getProductionColorHex(normalizeProductionName(m.production)); if (hex) return [_darken(hex,0.14), _lighten(hex,0.36)]; const fut = dateStr >= todayStr; return fut ? ['#F97316','#FDBA74'] : ['#1F4E5F','#2F8F6B']; };
         const pA = _halfGrad(missionsOfDay[0]), pB = _halfGrad(missionsOfDay[1]);
         box.style.setProperty('background', 'linear-gradient(135deg,' + pA[0] + ' 0%,' + pA[1] + ' 49%,rgba(255,255,255,.6) 49% 51%,' + pB[0] + ' 51%,' + pB[1] + ' 100%)', 'important');
         box.classList.add('cal-split');
