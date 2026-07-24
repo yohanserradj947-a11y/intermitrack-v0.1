@@ -1012,11 +1012,11 @@ export default function Calendar(){
                   <Text style={s.roleTitle}>Sur ce contrat, tu bosses en tant que :</Text>
                   <View style={{flexDirection:'row',gap:10}}>
                     <TouchableOpacity style={[s.roleOpt, fMode==='cachet'&&s.roleOptArt]} activeOpacity={0.85} onPress={()=>setFMode('cachet')}>
-                      <Text style={[s.roleOptTitle, fMode==='cachet'&&{color:'#fff'}]}>🎭 Artiste</Text>
+                      <Text style={[s.roleOptTitle, fMode==='cachet'&&{color:'#fff'}]}>Artiste</Text>
                       <Text style={[s.roleOptSub, fMode==='cachet'&&{color:'#FFE9D6'}]}>payé en cachets</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={[s.roleOpt, fMode!=='cachet'&&s.roleOptTech]} activeOpacity={0.85} onPress={()=>setFMode('heures')}>
-                      <Text style={[s.roleOptTitle, fMode!=='cachet'&&{color:'#fff'}]}>🔧 Technicien</Text>
+                      <Text style={[s.roleOptTitle, fMode!=='cachet'&&{color:'#fff'}]}>Technicien</Text>
                       <Text style={[s.roleOptSub, fMode!=='cachet'&&{color:'#DCEAEE'}]}>payé en heures</Text>
                     </TouchableOpacity>
                   </View>
@@ -1146,7 +1146,7 @@ export default function Calendar(){
               {/* Multi-sélection directe : on touche autant de types que voulu (Montage + Démontage,
                   Rec + MIX…). Un simple avertissement si 2+, pas de mode séparé. Retour Yohan. */}
               {typeParts(fType).length>1 && (
-                <Text style={s.typeMultiWarn}>⚠ {typeParts(fType).length} types sélectionnés — c'est bien volontaire ?</Text>
+                <Text style={s.typeMultiWarn}>{typeParts(fType).length} types sélectionnés — c'est bien volontaire ?</Text>
               )}
               {showTypePicker && (
                 <View style={s.typePickerInline}>

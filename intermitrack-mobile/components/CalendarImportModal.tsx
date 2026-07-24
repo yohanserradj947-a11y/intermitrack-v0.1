@@ -307,7 +307,7 @@ export default function CalendarImportModal({
               {item.gross_amount ? `  ·  ${item.gross_amount} €` : ''}
               {item.lieu ? `  ·  ${item.lieu}` : ''}
             </Text>
-            {incomplete && <Text style={s.warnChip}>⚠ À compléter : {toFill.join(' · ')}</Text>}
+            {incomplete && <Text style={s.warnChip}>À compléter : {toFill.join(' · ')}</Text>}
             {(hoursGuessed || priceGuessed) && <Text style={s.guessChip}>
               {[
                 hoursGuessed ? (cachetMode ? '1 cachet par défaut' : `${defH} h par défaut`) : null,
@@ -355,7 +355,7 @@ export default function CalendarImportModal({
 
           {effectiveTier === 'gratuit' && (phase === 'intro' || phase === 'mapping' || phase === 'preview') && (
             <View style={{ backgroundColor: '#FFF7ED', borderColor: '#FDBA74', borderWidth: 1, borderRadius: 10, padding: 10, marginHorizontal: 16, marginTop: 2 }}>
-              <Text style={{ fontSize: 12, color: '#9A3412', fontWeight: '700', lineHeight: 17 }}>⚠️ Version Gratuite : l'import est limité à 1 mois. Passe en Premium pour importer toute ta période d'un coup.</Text>
+              <Text style={{ fontSize: 12, color: '#9A3412', fontWeight: '700', lineHeight: 17 }}>Version Gratuite : l'import est limité à 1 mois. Passe en Premium pour importer toute ta période d'un coup.</Text>
             </View>
           )}
 
@@ -559,7 +559,7 @@ export default function CalendarImportModal({
               </View>
               {incompleteCount > 0 && (
                 <View style={s.banner}>
-                  <Text style={s.bannerTitle}>⚠ {incompleteCount} mission{incompleteCount > 1 ? 's' : ''} à compléter</Text>
+                  <Text style={s.bannerTitle}>{incompleteCount} mission{incompleteCount > 1 ? 's' : ''} à compléter</Text>
                   <Text style={s.bannerTxt}>Il manque la prod ou le prix. Touche « Modifier » pour les renseigner — ou importe maintenant et complète plus tard.</Text>
                 </View>
               )}

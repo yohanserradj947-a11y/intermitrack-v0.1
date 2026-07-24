@@ -15,13 +15,13 @@ const SEEN_KEY = 'intermitrack_tour_v2';
 
 type Step = { route?: string; title: string; text: string };
 const STEPS: Step[] = [
-  { title: 'Bienvenue 👋', text: "Voici ton tableau de bord. Je te montre l'essentiel en quelques secondes — tu peux passer à tout moment." },
+  { title: 'Bienvenue ', text: "Voici ton tableau de bord. Je te montre l'essentiel en quelques secondes — tu peux passer à tout moment." },
   { route: '/', title: 'Ton compte', text: "En haut à droite (ton rond avec tes initiales) : « Mes informations » (statut, salaire…), le thème et la déconnexion. Renseigne tes infos, ça pré-remplit tes missions." },
   { route: '/', title: 'Ta progression', text: "Le graphique montre tes heures effectuées et prévues vers les 507 h, avec le détail par mois en dessous, et plus bas la saisie de tes montants réels reçus." },
   { route: '/calendar', title: 'Le calendrier', text: "Importe tes dates (agenda, Excel, notes) ou touche un jour pour ajouter une mission. Ça dépend de ton statut — d'où l'importance de bien renseigner tes infos." },
   { route: '/calendar', title: 'Tes évènements du mois', text: "Sous le calendrier, retrouve toutes tes missions et notes du mois, triées par date." },
   { route: '/missions', title: 'Tes productions', text: "Le camembert répartit ton brut par production. Touche une prod pour changer sa couleur, la renommer, la fusionner ou régler ses heures sup." },
-  { route: '/', title: 'À toi de jouer 🎬', text: "Explore les autres onglets (Actu, Simulation, Fiscalité…) quand tu veux. Tu pourras revoir ce tuto depuis ton menu compte." },
+  { route: '/', title: 'À toi de jouer ', text: "Explore les autres onglets (Actu, Simulation, Fiscalité…) quand tu veux. Tu pourras revoir ce tuto depuis ton menu compte." },
 ];
 
 // Déclencheur global (même principe que openMesInfos) : le bouton « Revoir le tutoriel » du menu l'appelle.

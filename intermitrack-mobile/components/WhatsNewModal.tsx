@@ -45,7 +45,7 @@ export default function WhatsNewModal() {
     <Modal visible={visible} animationType="fade" transparent onRequestClose={close}>
       <View style={s.overlay}>
         <View style={s.card}>
-          <View style={s.badge}><Text style={s.badgeTxt}>✨ Nouveautés</Text></View>
+          <View style={s.badge}><Text style={s.badgeTxt}>Nouveautés</Text></View>
           <Text style={s.title}>Quoi de neuf ?</Text>
           <Text style={s.sub}>Un résumé rapide des dernières améliorations.</Text>
           <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>

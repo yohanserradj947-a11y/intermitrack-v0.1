@@ -223,7 +223,7 @@ z-index: 500 !important;
   </style>
 </head>
 <body>
-<div class="itk-dev-banner" style="background:#78350F;color:#FEF3C7;text-align:center;padding:7px 14px;font-size:12.5px;font-weight:600;line-height:1.45;font-family:system-ui,-apple-system,Roboto,Arial,sans-serif;">🚧 Version BÊTA — Intermitrack est en développement, des fonctionnalités évoluent régulièrement.</div>
+<div class="itk-dev-banner" style="background:#78350F;color:#FEF3C7;text-align:center;padding:7px 14px;font-size:12.5px;font-weight:600;line-height:1.45;font-family:system-ui,-apple-system,Roboto,Arial,sans-serif;">Version BÊTA — Intermitrack est en développement, des fonctionnalités évoluent régulièrement.</div>
   <div class="bg-fx" aria-hidden="true">
     <span class="blob b1"></span>
     <span class="blob b2"></span>
@@ -255,12 +255,12 @@ z-index: 500 !important;
             <!-- Plan -->
             <div class="account-dd-plan">
               <span class="account-dd-plan-label">Offre actuelle</span>
-              <span class="account-dd-badge">⭐ Pionnier — gratuit à vie</span>
+              <span class="account-dd-badge">Pionnier — gratuit à vie</span>
             </div>
 
             <!-- Mes informations -->
             <button class="account-dd-logout" type="button" id="profileBtn" style="background:var(--soft);color:var(--petrol);margin-bottom:8px;">
-              <span>📝</span> Mes informations
+              <span></span> Mes informations
             </button>
 
             <!-- Thème (7 thèmes comme l'app) -->
@@ -274,22 +274,22 @@ z-index: 500 !important;
 
             <!-- Revoir le tutoriel guidé -->
             <button class="account-dd-logout" type="button" onclick="document.getElementById('accountDropdown').classList.add('hidden'); if(typeof _tourStart==='function') _tourStart();" style="background:var(--soft);color:var(--petrol);margin-bottom:8px;">
-              <span>🎓</span> Revoir le tutoriel
+              <span></span> Revoir le tutoriel
             </button>
 
             <!-- Signaler un bug (comme l'appli : mail pré-rempli) -->
             <button class="account-dd-logout" type="button" onclick="window.open('mailto:Intermitrack@gmail.com?subject='+encodeURIComponent('Bug / suggestion — Intermitrack (bêta)')+'&body='+encodeURIComponent('Décris ici le bug rencontré ou ta suggestion :\n\n\n\n— Infos techniques (merci de ne pas effacer) —\nSite web\nCompte : '+((typeof currentUser!=='undefined'&&currentUser)?currentUser.email:'?')),'_blank')" style="background:var(--soft);color:var(--petrol);margin-bottom:8px;">
-              <span>🐛</span> Signaler un bug
+              <span></span> Signaler un bug
             </button>
 
             <!-- Déconnexion -->
             <button class="account-dd-logout" type="button" id="logoutBtn">
-              <span>🚪</span> Se déconnecter
+              <span></span> Se déconnecter
             </button>
 
             <!-- Supprimer le compte -->
             <a href="suppression-compte.html" class="account-dd-logout" style="text-decoration:none;font-size:12.5px;opacity:.8;">
-              <span>🗑️</span> Supprimer mon compte
+              <span></span> Supprimer mon compte
             </a>
 
           </div>
@@ -407,7 +407,7 @@ z-index: 500 !important;
       <div class="lp-hero">
         <span class="lp-aurora a1"></span><span class="lp-aurora a2"></span><span class="lp-aurora a3"></span><span class="lp-aurora a4"></span>
         <div>
-          <div class="lp-badge">🎬 Pour les intermittents du spectacle</div>
+          <div class="lp-badge">Pour les intermittents du spectacle</div>
           <h2 class="lp-h1">Votre <span>intermittence</span>,<br>enfin sous contrôle.</h2>
           <p class="lp-p">Suivez vos 507h, gérez vos missions au quotidien, préparez votre actualisation et centralisez vos documents, tout au même endroit, gratuit et accessible partout.</p>
           <div class="lp-checks">
@@ -429,7 +429,7 @@ z-index: 500 !important;
               <span class="demo-dot" style="background:#FF5F57"></span>
               <span class="demo-dot" style="background:#FEBC2E"></span>
               <span class="demo-dot" style="background:#28C840"></span>
-              <span class="demo-url">🔒 intermitrack.fr</span>
+              <span class="demo-url">intermitrack.fr</span>
             </div>
             <div class="demo-screen">
               <div class="demo-track">
@@ -473,7 +473,7 @@ z-index: 500 !important;
       <!-- WARNING -->
       <div class="lp-warn">
         <div class="lp-warn-inner">
-          <span style="font-size:24px;flex-shrink:0;">⚠️</span>
+          <span style="font-size:24px;flex-shrink:0;"></span>
           <div>
             <strong>Version bêta : lisez ceci avant d'utiliser Intermitrack</strong>
             <p>Hébergé sur <b>Supabase</b> (sécurisé) mais en bêta : évitez les documents très sensibles. L'analyse IA est expérimentale : le fichier transite par un service tiers, confidentialité non garantie à 100%. Conservez vos propres sauvegardes.</p>
@@ -488,12 +488,12 @@ z-index: 500 !important;
           <div class="lp-slabel">Ce qu'on propose</div>
           <h3 class="lp-stitle">Tout pour gérer votre intermittence</h3>
           <div class="lp-grid6">
-            <div class="lp-feat"><div class="lp-feat-icon" style="background:rgba(31,78,95,.08)">📊</div><h4>Tableau de bord & 507h</h4><p>Progression temps réel vers les 507h depuis votre date ARE. Graphique arc heures effectuées / prévues, compteurs mensuels et brut total.</p></div>
-            <div class="lp-feat"><div class="lp-feat-icon" style="background:rgba(122,158,126,.12)">🎯</div><h4>Suivi des productions</h4><p>Camembert interactif de vos productions. Cliquez pour voir chaque mission, ses heures, vacations et brut. Filtrable par période depuis votre date ARE.</p></div>
-            <div class="lp-feat"><div class="lp-feat-icon" style="background:rgba(249,115,22,.08)">📅</div><h4>Calendrier des missions</h4><p>Vue mensuelle multi-jours. Cliquez sur n'importe quel jour pour ajouter, modifier ou supprimer. Synchro iPhone / Android via iCal.</p></div>
-            <div class="lp-feat"><div class="lp-feat-icon" style="background:rgba(31,78,95,.08)">✅</div><h4>Aide à l'actualisation</h4><p>Récap mensuel automatique pour faciliter votre actualisation France Travail. Export PDF. Aucun envoi automatique, outil d'aide uniquement.</p></div>
-            <div class="lp-feat"><div class="lp-feat-icon" style="background:rgba(31,78,95,.08)">📁</div><h4>Stockage de documents</h4><p>AEM, fiches de paie, contrats, Congés Spectacles, classés par production dans votre espace Supabase privé, accessible depuis partout.</p></div>
-            <div class="lp-feat"><div class="lp-feat-icon" style="background:rgba(249,115,22,.08)">📈</div><h4>Fiscalité & Prévisions ARE</h4><p>Estimation indicative impôt, frais km, simulation taux ARE Annexe 8, Congés Spectacles (~10% brut), calcul franchises et carence.</p><span class="lp-tag-ind">⚠️ Estimations indicatives uniquement</span></div>
+            <div class="lp-feat"><div class="lp-feat-icon" style="background:rgba(31,78,95,.08)"></div><h4>Tableau de bord & 507h</h4><p>Progression temps réel vers les 507h depuis votre date ARE. Graphique arc heures effectuées / prévues, compteurs mensuels et brut total.</p></div>
+            <div class="lp-feat"><div class="lp-feat-icon" style="background:rgba(122,158,126,.12)"></div><h4>Suivi des productions</h4><p>Camembert interactif de vos productions. Cliquez pour voir chaque mission, ses heures, vacations et brut. Filtrable par période depuis votre date ARE.</p></div>
+            <div class="lp-feat"><div class="lp-feat-icon" style="background:rgba(249,115,22,.08)"></div><h4>Calendrier des missions</h4><p>Vue mensuelle multi-jours. Cliquez sur n'importe quel jour pour ajouter, modifier ou supprimer. Synchro iPhone / Android via iCal.</p></div>
+            <div class="lp-feat"><div class="lp-feat-icon" style="background:rgba(31,78,95,.08)"></div><h4>Aide à l'actualisation</h4><p>Récap mensuel automatique pour faciliter votre actualisation France Travail. Export PDF. Aucun envoi automatique, outil d'aide uniquement.</p></div>
+            <div class="lp-feat"><div class="lp-feat-icon" style="background:rgba(31,78,95,.08)"></div><h4>Stockage de documents</h4><p>AEM, fiches de paie, contrats, Congés Spectacles, classés par production dans votre espace Supabase privé, accessible depuis partout.</p></div>
+            <div class="lp-feat"><div class="lp-feat-icon" style="background:rgba(249,115,22,.08)"></div><h4>Fiscalité & Prévisions ARE</h4><p>Estimation indicative impôt, frais km, simulation taux ARE Annexe 8, Congés Spectacles (~10% brut), calcul franchises et carence.</p><span class="lp-tag-ind">Estimations indicatives uniquement</span></div>
           </div>
         </div>
       </div>
@@ -541,7 +541,7 @@ z-index: 500 !important;
       </div>
 
       <!-- BETA BANNER FIXE -->
-      <div class="lp-beta">🚧 Version bêta : analyse IA expérimentale, évitez les documents sensibles.</div>
+      <div class="lp-beta">Version bêta : analyse IA expérimentale, évitez les documents sensibles.</div>
 
       <!-- MODALE LOGIN -->
       <div class="lp-modal-overlay" id="loginModal">
@@ -562,7 +562,7 @@ z-index: 500 !important;
             <label for="authPassword">Mot de passe</label>
             <div class="password-wrapper">
               <input id="authPassword" type="password" required minlength="6" placeholder="Minimum 6 caractères" />
-              <button type="button" id="togglePassword" class="password-toggle" aria-label="Afficher ou masquer le mot de passe">👁</button>
+              <button type="button" id="togglePassword" class="password-toggle" aria-label="Afficher ou masquer le mot de passe"></button>
             </div>
             <div style="text-align:right;margin:-2px 0 6px;">
               <button type="button" id="forgotPwBtn" style="background:none;border:none;color:var(--petrol,#1F4E5F);font-size:13px;cursor:pointer;padding:0;text-decoration:underline;font-family:inherit;">Mot de passe oublié ?</button>
@@ -642,7 +642,7 @@ z-index: 500 !important;
         <article class="card hero">
           <div class="heroTop">
             <div class="are-admission-center">
-              <label for="areAdmissionDate">📅 Date d'admission ARE</label>
+              <label for="areAdmissionDate">Date d'admission ARE</label>
               <div class="are-admission-pill">
                 <input id="areAdmissionDate" type="date" />
                 <button type="button" id="saveAreAdmissionDateBtn">OK</button>
@@ -681,8 +681,8 @@ z-index: 500 !important;
           <div id="regimeSplitBox" style="display:none;margin-top:12px;padding:12px 14px;border-radius:12px;background:var(--soft);border:1px solid var(--line);">
             <div style="font-size:12px;font-weight:800;color:var(--petrol);margin-bottom:8px;">Ta répartition cette année</div>
             <div style="display:flex;gap:10px;">
-              <div style="flex:1;text-align:center;"><b id="splitTech" style="font-size:17px;color:var(--text);">0 h</b><span style="display:block;font-size:10.5px;color:var(--muted);margin-top:2px;">🔧 Technicien</span></div>
-              <div style="flex:1;text-align:center;"><b id="splitArt" style="font-size:17px;color:var(--text);">0</b><span style="display:block;font-size:10.5px;color:var(--muted);margin-top:2px;">🎭 Artiste</span></div>
+              <div style="flex:1;text-align:center;"><b id="splitTech" style="font-size:17px;color:var(--text);">0 h</b><span style="display:block;font-size:10.5px;color:var(--muted);margin-top:2px;">Technicien</span></div>
+              <div style="flex:1;text-align:center;"><b id="splitArt" style="font-size:17px;color:var(--text);">0</b><span style="display:block;font-size:10.5px;color:var(--muted);margin-top:2px;">Artiste</span></div>
             </div>
             <div id="splitHint" style="font-size:10.5px;color:var(--muted);text-align:center;margin-top:8px;line-height:1.4;"></div>
           </div>
@@ -704,7 +704,7 @@ z-index: 500 !important;
           <div id="poleEmploiBox" style="margin-top:14px;"></div>
           <!-- Montants réels du mois (comme l'app : net réel par prod + allocation ARE versée → total exact) -->
           <div id="reelBox" class="reel-box">
-            <div class="reel-head"><span aria-hidden="true">💶</span><b>Montants réels du mois</b></div>
+            <div class="reel-head"><span aria-hidden="true"></span><b>Montants réels du mois</b></div>
             <p class="reel-intro">Renseigne le net (une fois payé) et l'allocation reçue, puis appuie sur « Mettre à jour » : tu auras le total exact du mois. Tu peux aussi noter les heures payées sur ta fiche de paie : l'appli te signale si elles ne collent pas avec tes heures faites.</p>
             <div id="reelRows"></div>
             <div class="reel-row">
@@ -777,8 +777,8 @@ z-index: 500 !important;
             <label for="date">Date début</label><input id="date" type="date" required />
             <label for="endDate">Date fin</label><input id="endDate" type="date" required />
             <div id="missionModeRow" style="display:none;gap:8px;margin:2px 0 12px;">
-              <button type="button" class="mm-opt" data-mm="heures" style="flex:1;padding:10px;border:1.5px solid var(--line);border-radius:11px;background:var(--card);color:var(--petrol);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;">⏱ Heures</button>
-              <button type="button" class="mm-opt" data-mm="cachet" style="flex:1;padding:10px;border:1.5px solid var(--line);border-radius:11px;background:var(--card);color:var(--petrol);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;">🎭 Cachet</button>
+              <button type="button" class="mm-opt" data-mm="heures" style="flex:1;padding:10px;border:1.5px solid var(--line);border-radius:11px;background:var(--card);color:var(--petrol);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;">Heures</button>
+              <button type="button" class="mm-opt" data-mm="cachet" style="flex:1;padding:10px;border:1.5px solid var(--line);border-radius:11px;background:var(--card);color:var(--petrol);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;">Cachet</button>
             </div>
             <label for="vacations" id="cachetLabel" style="display:none;">Nombre de cachets<button type="button" class="field-help" data-t="Nombre de cachets" data-h="Le cachet est l'unité de paie de l'artiste. Mets le nombre de cachets comme sur ton contrat ou ton AEM. Pour France Travail, 1 cachet = 12 h dans le décompte des 507 h (un demi-cachet = 6 h).">?</button></label>
             <input id="cachetInput" type="number" min="0" step="0.5" placeholder="Ex : 2" style="display:none;" />
@@ -801,11 +801,11 @@ z-index: 500 !important;
             <input id="gross" type="number" min="0" step="0.01" placeholder="Ex : 230" required />
             <!-- Heures supplémentaires (comme l'app) : calcule sur la base garantie et s'ajoute au brut -->
             <div id="missionOvertimeWrap" class="ot-mission-wrap" style="display:none;">
-              <button type="button" id="missionOvertimeHead" class="ot-head"><span>⏱️ Heures supplémentaires (optionnel)</span><span id="missionOvertimeChev">▼</span></button>
+              <button type="button" id="missionOvertimeHead" class="ot-head"><span>Heures supplémentaires (optionnel)</span><span id="missionOvertimeChev">▼</span></button>
               <div id="missionOvertimeSection" class="ot-box" style="display:none;"></div>
             </div>
             <details class="optional-block">
-              <summary style="cursor:pointer;font-weight:700;font-size:17px;color:var(--petrol);">🚗 Frais kilométriques <span style="font-weight:400;font-size:13px;color:#9AA5B1;">(optionnel)</span></summary>
+              <summary style="cursor:pointer;font-weight:700;font-size:17px;color:var(--petrol);">Frais kilométriques <span style="font-weight:400;font-size:13px;color:#9AA5B1;">(optionnel)</span></summary>
               <p class="hint" style="margin-top:10px;">Indique tes lieux de départ et d'arrivée, la distance (aller simple) se calcule automatiquement.</p>
               <div class="document-grid">
                 <!-- Champs masqués = source de vérité (valeur + coordonnées dans dataset.lon/lat).
@@ -822,7 +822,7 @@ z-index: 500 !important;
               <label style="display:flex;align-items:center;gap:8px;margin:8px 0;font-weight:400;"><input type="checkbox" id="kmRoundTrip" style="width:auto;" /> Je fais l'aller-retour (×2)</label>
               <label style="display:flex;align-items:center;gap:8px;margin:8px 0;font-weight:400;"><input type="checkbox" id="kmEveryDay" style="width:auto;" /> Trajet chaque jour travaillé (× nb jours)</label>
               <label style="display:flex;align-items:center;gap:8px;margin:8px 0;font-weight:400;"><input type="checkbox" id="kmJustify" style="width:auto;" /> Je justifie un trajet de plus de 40 km</label>
-              <p class="hint" id="kmCapWarn" style="display:none;color:#F97316;font-weight:700;margin:6px 0;">⚠️ Trajet plafonné à 40 km (règle domicile-travail). Coche « Je justifie… » si tu peux justifier la distance réelle.</p>
+              <p class="hint" id="kmCapWarn" style="display:none;color:#F97316;font-weight:700;margin:6px 0;">Trajet plafonné à 40 km (règle domicile-travail). Coche « Je justifie… » si tu peux justifier la distance réelle.</p>
               <button class="ghost" type="button" id="kmCalcBtn" style="margin-bottom:12px;"><svg class="ci"><use href="#ic-pin"/></svg>Calculer la distance</button>
               <div class="document-grid">
                 <div><label for="kmDistance">Kilomètres (aller simple)</label><input id="kmDistance" type="number" min="0" step="1" placeholder="Ex : 42" /></div>
@@ -914,8 +914,8 @@ z-index: 500 !important;
             <div id="actualisationList"></div>
           </div>
           <div class="actualisation-actions-clean" id="actualisationActions" style="display:none;">
-            <button class="btn-act-pdf" type="button" id="pdfActualisationBtn">📄 Générer PDF</button>
-            <button class="btn-act-ft" type="button" id="franceTravailBtn">🏛️ Récap pour France Travail</button>
+            <button class="btn-act-pdf" type="button" id="pdfActualisationBtn">Générer PDF</button>
+            <button class="btn-act-ft" type="button" id="franceTravailBtn">Récap pour France Travail</button>
           </div>
         </article>
       </section>
@@ -926,8 +926,8 @@ z-index: 500 !important;
           <p style="font-size:12.5px;color:#718096;text-align:center;margin-bottom:14px;line-height:1.4;">Recopie ces infos dans ton actualisation France Travail, ligne par ligne.<br>Outil d'aide — aucun envoi automatique.</p>
           <textarea id="ftRecapText" readonly style="width:100%;box-sizing:border-box;height:210px;border:1px solid #E2E8F0;border-radius:10px;padding:12px;font-size:13px;font-family:inherit;background:#F7F9FB;resize:none;color:#2D3748;"></textarea>
           <div style="display:flex;gap:10px;margin-top:12px;">
-            <button class="btn-ft-close" type="button" id="ftRecapCopy" style="flex:1;background:#1F4E5F;color:#fff;">📋 Copier le récap</button>
-            <a href="https://www.francetravail.fr/spectacle/" target="_blank" rel="noopener" style="flex:1;background:#C79A3B;color:#0a0a0a;text-decoration:none;border-radius:11px;padding:12px;font-weight:800;text-align:center;box-sizing:border-box;">🏛️ Ouvrir France Travail</a>
+            <button class="btn-ft-close" type="button" id="ftRecapCopy" style="flex:1;background:#1F4E5F;color:#fff;">Copier le récap</button>
+            <a href="https://www.francetravail.fr/spectacle/" target="_blank" rel="noopener" style="flex:1;background:#C79A3B;color:#0a0a0a;text-decoration:none;border-radius:11px;padding:12px;font-weight:800;text-align:center;box-sizing:border-box;">Ouvrir France Travail</a>
           </div>
           <button class="btn-ft-close" type="button" id="modalFtClose" style="margin-top:10px;background:#EEF4F1;color:#1F4E5F;">Fermer</button>
         </div>
@@ -936,12 +936,12 @@ z-index: 500 !important;
       <section class="view" id="view-documents">
         <article class="card doc-section-card">
           <div class="doc-section-header">
-            <div class="doc-section-icon" style="background:linear-gradient(135deg,#6C63FF,#A78BFA)">🤖</div>
+            <div class="doc-section-icon" style="background:linear-gradient(135deg,#6C63FF,#A78BFA)"></div>
             <div><h2>Import par IA</h2><p class="sub">Analyse automatique de ton document</p></div>
             <span class="doc-badge-exp">Expérimental</span>
           </div>
           <div class="doc-warning-box">
-            <div class="doc-warning-icon">⚠️</div>
+            <div class="doc-warning-icon"></div>
             <div>
               <strong>Phase d'expérimentation — données sensibles déconseillées</strong>
               <p>Cette fonctionnalité utilise une IA pour lire et classer tes documents automatiquement. Elle est en phase de test : la confidentialité des données n'est pas garantie à 100%. Tu restes seul responsable des fichiers déposés.</p>
@@ -951,7 +951,7 @@ z-index: 500 !important;
         </article>
         <article class="card doc-section-card">
           <div class="doc-section-header">
-            <div class="doc-section-icon" style="background:linear-gradient(135deg,#1F4E5F,#7A9E7E)">📁</div>
+            <div class="doc-section-icon" style="background:linear-gradient(135deg,#1F4E5F,#7A9E7E)"></div>
             <div><h2>Ajouter un document</h2><p class="sub">Classement manuel par production, type et date</p></div>
           </div>
           <form id="documentForm" class="doc-form-clean">
@@ -993,7 +993,7 @@ z-index: 500 !important;
               <div><label for="documentYear">Année</label><input id="documentYear" type="number" min="2000" max="2100" required /></div>
             </div>
             <div class="doc-file-zone">
-              <label for="documentFile" class="doc-file-label"><span class="doc-file-icon">📎</span><span id="docFileNameDisplay">Choisir un fichier PDF ou image</span></label>
+              <label for="documentFile" class="doc-file-label"><span class="doc-file-icon"></span><span id="docFileNameDisplay">Choisir un fichier PDF ou image</span></label>
               <input id="documentFile" type="file" accept="application/pdf,image/*" required style="display:none" onchange="document.getElementById('docFileNameDisplay').textContent = this.files[0]?.name || 'Choisir un fichier PDF ou image'" />
             </div>
             <p class="hint">Les documents sont enregistrés dans ton espace Supabase privé et restent liés à ton compte.</p>
@@ -1022,7 +1022,7 @@ z-index: 500 !important;
           </div>
           <p class="hint" id="fyEmpty" style="text-align:center;display:none;margin-top:4px;"></p>
           <div style="background:#FFF7ED;border:1px solid #FDBA74;border-radius:12px;padding:12px 14px;margin:12px 0 18px;font-size:13px;color:#9A3412;line-height:1.55;">
-            <strong>⚠️ Version bêta — estimations indicatives</strong><br>
+            <strong>Version bêta — estimations indicatives</strong><br>
             Tous les montants de cet onglet (impôt, frais réels, abattements…) sont des <strong>estimations qui peuvent être faussées</strong> selon ta situation personnelle. Elles ne remplacent pas un calcul officiel : vérifie toujours sur <a href="https://www.impots.gouv.fr" target="_blank" style="color:#9A3412;text-decoration:underline;font-weight:600;">impots.gouv.fr</a> ou auprès d'un professionnel avant toute déclaration.
           </div>
           <div class="fiscalite-grid">
@@ -1049,10 +1049,10 @@ z-index: 500 !important;
               </div>
               <label for="arePercue" style="margin-top:12px;">ARE perçue sur l'année (€)</label>
               <input id="arePercue" type="number" min="0" step="1" placeholder="Ex : 4 200"/>
-              <p class="hint">⚠️ L'ARE est imposable — à ne pas oublier !</p>
+              <p class="hint">L'ARE est imposable — à ne pas oublier !</p>
               <label for="congesSpectaclesInput">Congés Spectacles reçus (€)</label>
               <input id="congesSpectaclesInput" type="number" min="0" step="1" placeholder="Estimé auto (~10% du brut)"/>
-              <p class="hint">⚠️ Les Congés Spectacles sont imposables. Vérifiez sur audiens.org</p>
+              <p class="hint">Les Congés Spectacles sont imposables. Vérifiez sur audiens.org</p>
               <label for="otherIncomeInput">Autres revenus imposables (€)</label>
               <input id="otherIncomeInput" type="number" min="0" step="1" placeholder="0"/>
               <div class="fi-result-row fi-highlight" style="margin-top:14px;">
@@ -1152,7 +1152,7 @@ z-index: 500 !important;
                 <span class="fi-label" id="fiscaliteDeclarationPreview">Net imposable à vérifier</span>
               </div>
               <div class="fi-info-box" style="margin-top:12px;">
-                <strong>📋 À déclarer en traitements &amp; salaires</strong>
+                <strong>À déclarer en traitements &amp; salaires</strong>
                 Brut intermittent + ARE + Congés Spectacles + autres revenus.
               </div>
             </div>
@@ -1197,7 +1197,7 @@ z-index: 500 !important;
       <section class="view" id="view-autoentrepreneur">
         <article class="card">
           <h2>Auto-entrepreneur</h2>
-          <p class="sub">Gère tes prestations facturées en micro-entreprise, séparément de tes cachets d'intermittent. ⚠️ Ces revenus sont à déclarer à France Travail et n'entrent pas dans tes heures intermittent.</p>
+          <p class="sub">Gère tes prestations facturées en micro-entreprise, séparément de tes cachets d'intermittent. Ces revenus sont à déclarer à France Travail et n'entrent pas dans tes heures intermittent.</p>
 
           <div id="aeDashboard" class="ae-dashboard"></div>
 
@@ -1306,7 +1306,7 @@ z-index: 500 !important;
                   <button class="primary" type="submit" style="flex:1;">Enregistrer</button>
                 </div>
                 <button class="ghost" type="button" id="aeCancelEdit" style="display:none;margin-top:8px;">Annuler la modification</button>
-                <p class="hint" style="margin-top:12px;font-size:12px;color:#94A3B8;line-height:1.5;">ℹ️ Intermitrack est un <b>outil d'aide à la gestion</b> : tu restes seul responsable de l'exactitude et de la conformité légale de tes factures. Vérifie tes mentions obligatoires (numérotation, SIRET, « TVA non applicable, art. 293 B du CGI »). À noter : la <b>facturation électronique B2B</b> deviendra obligatoire (réforme 2026-2027) — en cas de doute, rapproche-toi d'un expert-comptable.</p>
+                <p class="hint" style="margin-top:12px;font-size:12px;color:#94A3B8;line-height:1.5;">ℹ Intermitrack est un <b>outil d'aide à la gestion</b> : tu restes seul responsable de l'exactitude et de la conformité légale de tes factures. Vérifie tes mentions obligatoires (numérotation, SIRET, « TVA non applicable, art. 293 B du CGI »). À noter : la <b>facturation électronique B2B</b> deviendra obligatoire (réforme 2026-2027) — en cas de doute, rapproche-toi d'un expert-comptable.</p>
               </form>
               </div>
             </div>
@@ -1421,7 +1421,7 @@ z-index: 500 !important;
       <div class="itk-out itk-hide" id="itk-c3-out">
         <div class="itk-row itk-hl"><span class="itk-k">Estimation nette</span><span class="itk-v" id="itk-c3-val">—</span></div>
         <div class="itk-info" id="itk-c3-detail"></div>
-        <div class="itk-info"><b>⚠️ Imposable</b> Les Congés Spectacles sont imposables et doivent figurer dans votre déclaration de revenus.</div>
+        <div class="itk-info"><b>Imposable</b> Les Congés Spectacles sont imposables et doivent figurer dans votre déclaration de revenus.</div>
       </div>
     </section>
 
@@ -1564,7 +1564,7 @@ z-index: 500 !important;
                 <div class="contact-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg></div>
                 <div><div class="contact-name">Autres liens utiles</div><div class="contact-role">Démarches en ligne</div></div>
               </div>
-              <div class="contact-body">🧾 <a href="https://www.autoentrepreneur.urssaf.fr" target="_blank">autoentrepreneur.urssaf.fr</a> (micro-entreprise)<br>💶 <a href="https://www.impots.gouv.fr" target="_blank">impots.gouv.fr</a> (déclaration, impôt)<br>📑 <a href="https://www.service-public.fr" target="_blank">service-public.fr</a></div>
+              <div class="contact-body"><a href="https://www.autoentrepreneur.urssaf.fr" target="_blank">autoentrepreneur.urssaf.fr</a> (micro-entreprise)<br><a href="https://www.impots.gouv.fr" target="_blank">impots.gouv.fr</a> (déclaration, impôt)<br><a href="https://www.service-public.fr" target="_blank">service-public.fr</a></div>
             </div>
 
           </div>
@@ -1658,7 +1658,7 @@ z-index: 500 !important;
             <details data-s="tous"><summary>Les congés spectacles ?<span class="pl">+</span></summary><div class="asv-body">Gérés par la <strong>Caisse des Congés Spectacles</strong> (Audiens), sur un exercice d'<strong>avril à mars</strong>. Tu les demandes en fin d'exercice.</div></details>
           </div>
 
-          <div class="asv-more">📇 Besoin des <strong>coordonnées</strong> (téléphone, adresse, sites) de ces organismes ? Elles sont toutes dans l'onglet <strong>Liens utiles</strong>.</div>
+          <div class="asv-more">Besoin des <strong>coordonnées</strong> (téléphone, adresse, sites) de ces organismes ? Elles sont toutes dans l'onglet <strong>Liens utiles</strong>.</div>
         </article>
       </section>
 
@@ -1666,7 +1666,7 @@ z-index: 500 !important;
   </main>
 
   <script src="document-parser.js?v=5"></script>
-  <script src="app.js?v=127"></script>
+  <script src="app.js?v=128"></script>
 
   <footer class="legal-footer">
     <a href="mentions-legales.html" target="_blank">Mentions légales</a>
@@ -1693,16 +1693,16 @@ z-index: 500 !important;
   </style>
   <div class="wn-overlay hidden" id="whatsNewOverlay">
     <div class="wn-card">
-      <span class="wn-badge">✨ Nouveautés</span>
+      <span class="wn-badge">Nouveautés</span>
       <h2 class="wn-title">Quoi de neuf ?</h2>
       <p class="wn-sub">Un résumé rapide des dernières améliorations.</p>
       <div class="wn-list">
-        <div class="wn-item"><div class="wn-ic">🎨</div><div><strong>Couleurs par production</strong><span>Une couleur par prod, appliquée au calendrier, à tes missions et au graphique. Palette + couleurs perso.</span></div></div>
-        <div class="wn-item"><div class="wn-ic">📝</div><div><strong>Notes perso</strong><span>Ajoute des notes sur ton calendrier (RDV, congés, repos…), séparées de tes missions.</span></div></div>
-        <div class="wn-item"><div class="wn-ic">📍</div><div><strong>Lieu des missions</strong><span>Un champ « Lieu » avec suggestions de tes lieux déjà saisis.</span></div></div>
-        <div class="wn-item"><div class="wn-ic">💼</div><div><strong>Tes postes</strong><span>Ajoute tes propres postes (Clown, Cascadeur…) — ils reviennent automatiquement sur tes missions.</span></div></div>
-        <div class="wn-item"><div class="wn-ic">🧾</div><div><strong>Factures plus rapides</strong><span>Auto-entrepreneur : prestations via liste à cocher + tes prestations perso mémorisées.</span></div></div>
-        <div class="wn-item"><div class="wn-ic">✨</div><div><strong>Plus lisible</strong><span>Icônes sur les cartes, contours plus nets et finitions un peu partout.</span></div></div>
+        <div class="wn-item"><div class="wn-ic"></div><div><strong>Couleurs par production</strong><span>Une couleur par prod, appliquée au calendrier, à tes missions et au graphique. Palette + couleurs perso.</span></div></div>
+        <div class="wn-item"><div class="wn-ic"></div><div><strong>Notes perso</strong><span>Ajoute des notes sur ton calendrier (RDV, congés, repos…), séparées de tes missions.</span></div></div>
+        <div class="wn-item"><div class="wn-ic"></div><div><strong>Lieu des missions</strong><span>Un champ « Lieu » avec suggestions de tes lieux déjà saisis.</span></div></div>
+        <div class="wn-item"><div class="wn-ic"></div><div><strong>Tes postes</strong><span>Ajoute tes propres postes (Clown, Cascadeur…) — ils reviennent automatiquement sur tes missions.</span></div></div>
+        <div class="wn-item"><div class="wn-ic"></div><div><strong>Factures plus rapides</strong><span>Auto-entrepreneur : prestations via liste à cocher + tes prestations perso mémorisées.</span></div></div>
+        <div class="wn-item"><div class="wn-ic"></div><div><strong>Plus lisible</strong><span>Icônes sur les cartes, contours plus nets et finitions un peu partout.</span></div></div>
       </div>
       <button class="wn-btn" id="whatsNewBtn">C'est parti !</button>
     </div>
@@ -1710,12 +1710,12 @@ z-index: 500 !important;
 
   <div class="modal-overlay hidden" id="modalVacations">
     <div class="modal-vacation">
-      <h3>✏️ Modifier les vacations</h3>
+      <h3>Modifier les vacations</h3>
       <p id="modalVacationLabel">Mission : —</p>
       <input type="number" id="modalVacationInput" min="0" step="1" value="1"/>
       <div class="modal-vacation-actions">
         <button type="button" id="modalVacationCancel">Annuler</button>
-        <button type="button" id="modalVacationSave">✅ Enregistrer</button>
+        <button type="button" id="modalVacationSave">Enregistrer</button>
       </div>
     </div>
   </div>

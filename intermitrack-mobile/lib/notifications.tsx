@@ -57,8 +57,8 @@ function buildItems(missions: { mission_date: string; production?: string }[]): 
     if (remind > now) {
       const sameDay = missions.filter((x) => x.mission_date === m.mission_date);
       const body = sameDay.length > 1
-        ? `Tu as ${sameDay.length} missions demain. Prépare ta journée 🎬`
-        : `Tu as une mission demain${m.production ? ` (${m.production})` : ''}. Prépare ta journée 🎬`;
+        ? `Tu as ${sameDay.length} missions demain. Prépare ta journée.`
+        : `Tu as une mission demain${m.production ? ` (${m.production})` : ''}. Prépare ta journée.`;
       items.push({ date: remind, title: 'Mission demain', body });
     }
   }
@@ -71,14 +71,14 @@ function buildItems(missions: { mission_date: string; production?: string }[]): 
     if (d28 > now) items.push({
       date: d28,
       title: "Actualisation ouverte",
-      body: "C'est le moment de t'actualiser sur ton espace France Travail 📋",
+      body: "C'est le moment de t'actualiser sur ton espace France Travail.",
     });
     const lastDay = new Date(y, mo + 1, 0).getDate();
     const jm1 = new Date(y, mo, lastDay - 1, 11, 0, 0);
     if (jm1 > now && jm1.getDate() !== 28) items.push({
       date: jm1,
       title: "Dernier rappel actualisation",
-      body: "Pense à t'actualiser avant la clôture, sinon tu risques de perdre tes droits ⏰",
+      body: "Pense à t'actualiser avant la clôture, sinon tu risques de perdre tes droits.",
     });
   }
 
@@ -102,8 +102,8 @@ async function buildRateItem(now: Date): Promise<Item | null> {
     if (at <= now) { await AsyncStorage.setItem(RATE_DONE_KEY, '1'); return null; } // l'heure est passée → fait
     return {
       date: at,
-      title: "Un petit coup de pouce ? ⭐",
-      body: "Si Intermitrack t'aide au quotidien, prends 10 secondes pour le noter. Ça aide énormément à le faire connaître 🙏",
+      title: "Un petit coup de pouce ?",
+      body: "Si Intermitrack t'aide au quotidien, prends 10 secondes pour le noter. Ça aide énormément à le faire connaître.",
     };
   } catch (e) { return null; }
 }

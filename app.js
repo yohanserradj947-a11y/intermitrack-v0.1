@@ -420,12 +420,12 @@ function _xlEnsureModal(){
   list.addEventListener('input', function(e){ const inp=e.target.closest('.xl-edit input'); if(!inp)return; const d=_xlDrafts[+inp.dataset.i]; const f=inp.dataset.e; if(f==='prod')d.prod=inp.value.toUpperCase(); if(f==='hours')d.hours=_xlNum(inp.value); if(f==='price')d.price=_xlNum(inp.value); d.missing=[]; if(!d.prod||!d.prod.trim())d.missing.push('prod'); if(!(d.hours>0))d.missing.push('heures'); if(!(d.price>0))d.missing.push('prix'); _xlUpdBtn(); });
   ov.querySelector('#xlImport').addEventListener('click', _xlDoImport);
 }
-function _xlUpdBtn(){ const sel=_xlDrafts.filter(function(d){return d.selected;}); const n=sel.length; const inc=sel.filter(function(d){return d.missing.length;}).length; const bn=document.getElementById('xlBanner'); if(bn) bn.innerHTML = inc>0 ? '<div>⚠ '+inc+' mission'+(inc>1?'s':'')+' à compléter (prod ou prix manquant). Complète ci-dessous, ou importe et modifie plus tard.</div>' : ''; const b=document.getElementById('xlImport'); if(b){ b.textContent=n?('Importer '+n+' mission'+(n>1?'s':'')):'Sélectionne au moins une mission'; b.disabled=!n; b.style.opacity=n?'1':'.6'; } }
+function _xlUpdBtn(){ const sel=_xlDrafts.filter(function(d){return d.selected;}); const n=sel.length; const inc=sel.filter(function(d){return d.missing.length;}).length; const bn=document.getElementById('xlBanner'); if(bn) bn.innerHTML = inc>0 ? '<div>'+inc+' mission'+(inc>1?'s':'')+' à compléter (prod ou prix manquant). Complète ci-dessous, ou importe et modifie plus tard.</div>' : ''; const b=document.getElementById('xlImport'); if(b){ b.textContent=n?('Importer '+n+' mission'+(n>1?'s':'')):'Sélectionne au moins une mission'; b.disabled=!n; b.style.opacity=n?'1':'.6'; } }
 function _xlRender(){
   const list=document.getElementById('xlList');
   list.innerHTML=_xlDrafts.map(function(d,i){
     const warn=d.missing.length>0;
-    return '<div class="xl-row'+(warn?' warn':'')+'"><div class="xl-r1"><input type="checkbox" class="xl-chk" data-i="'+i+'" '+(d.selected?'checked':'')+'><div style="flex:1;min-width:0;"><div class="xl-prod">'+_xlEsc(d.prod||'(sans nom)')+'</div><div class="xl-meta">'+_xlFmtD(d.date)+(d.missing.indexOf('heures')<0?(' · '+d.hours+' h'):'')+(d.price?(' · '+d.price+' €'):'')+(d.lieu?(' · '+_xlEsc(d.lieu)):'')+'</div>'+(warn?('<div class="xl-warnchip">⚠ À compléter : '+d.missing.join(' · ')+'</div>'):'')+(d.check?('<div style="font-size:11px;color:var(--muted);margin-top:2px;">'+_xlEsc(d.check)+'</div>'):'')+'</div></div><div class="xl-edit"><input placeholder="Prod" data-e="prod" data-i="'+i+'" value="'+_xlEsc(d.prod||'')+'"><input placeholder="Heures" data-e="hours" data-i="'+i+'" value="'+_xlEsc(d.hours||'')+'"><input placeholder="Prix €" data-e="price" data-i="'+i+'" value="'+_xlEsc(d.price||'')+'"></div></div>';
+    return '<div class="xl-row'+(warn?' warn':'')+'"><div class="xl-r1"><input type="checkbox" class="xl-chk" data-i="'+i+'" '+(d.selected?'checked':'')+'><div style="flex:1;min-width:0;"><div class="xl-prod">'+_xlEsc(d.prod||'(sans nom)')+'</div><div class="xl-meta">'+_xlFmtD(d.date)+(d.missing.indexOf('heures')<0?(' · '+d.hours+' h'):'')+(d.price?(' · '+d.price+' €'):'')+(d.lieu?(' · '+_xlEsc(d.lieu)):'')+'</div>'+(warn?('<div class="xl-warnchip">À compléter : '+d.missing.join(' · ')+'</div>'):'')+(d.check?('<div style="font-size:11px;color:var(--muted);margin-top:2px;">'+_xlEsc(d.check)+'</div>'):'')+'</div></div><div class="xl-edit"><input placeholder="Prod" data-e="prod" data-i="'+i+'" value="'+_xlEsc(d.prod||'')+'"><input placeholder="Heures" data-e="hours" data-i="'+i+'" value="'+_xlEsc(d.hours||'')+'"><input placeholder="Prix €" data-e="price" data-i="'+i+'" value="'+_xlEsc(d.price||'')+'"></div></div>';
   }).join('');
   _xlUpdBtn();
 }
@@ -592,7 +592,7 @@ function _xlInfoShow(){
     st.textContent="#xlInfoOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:100060;padding:16px;}#xlInfoOverlay.open{display:flex;}.xli-box{background:var(--card);color:var(--text);border-radius:18px;max-width:430px;width:100%;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,.3);box-sizing:border-box;}.xli-box h3{margin:0 0 8px;color:var(--petrol);font-size:17px;}.xli-box p{font-size:13.5px;color:var(--muted);line-height:1.5;margin:0 0 6px;}.xli-box ul{margin:8px 0;padding-left:18px;}.xli-box li{font-size:13.5px;color:var(--text);line-height:1.6;}.xli-ex{background:var(--soft);border-radius:10px;padding:10px 12px;font-family:monospace;font-size:12.5px;color:var(--text);margin:10px 0;line-height:1.5;}.xli-close{margin-top:14px;width:100%;padding:12px;border:none;border-radius:11px;background:var(--petrol);color:#fff;font-weight:800;cursor:pointer;font-family:inherit;}";
     document.head.appendChild(st);
     ov=document.createElement('div'); ov.id='xlInfoOverlay';
-    ov.innerHTML='<div class="xli-box"><h3>📄 Format du fichier Excel / CSV</h3><p>Une <b>ligne par mission</b>. Intermitrack reconnaît ces colonnes (peu importe l\'ordre, la casse, et <b>tous les onglets</b> sont lus) :</p><ul><li><b>Date</b> — ex. 05/07/2026</li><li><b>Production</b> — nom de l\'employeur</li><li><b>Heures</b> — ex. 8</li><li><b>Montant / Brut</b> — ex. 230</li></ul><div class="xli-ex">Date&nbsp;|&nbsp;Production&nbsp;|&nbsp;Heures&nbsp;|&nbsp;Montant<br>05/07/2026&nbsp;|&nbsp;ENDEMOL&nbsp;|&nbsp;8&nbsp;|&nbsp;230</div><p>Une colonne manquante&nbsp;? Pas grave, tu pourras compléter après l\'import.</p><button class="xli-close" id="xliClose" type="button">Compris</button></div>';
+    ov.innerHTML='<div class="xli-box"><h3>Format du fichier Excel / CSV</h3><p>Une <b>ligne par mission</b>. Intermitrack reconnaît ces colonnes (peu importe l\'ordre, la casse, et <b>tous les onglets</b> sont lus) :</p><ul><li><b>Date</b> — ex. 05/07/2026</li><li><b>Production</b> — nom de l\'employeur</li><li><b>Heures</b> — ex. 8</li><li><b>Montant / Brut</b> — ex. 230</li></ul><div class="xli-ex">Date&nbsp;|&nbsp;Production&nbsp;|&nbsp;Heures&nbsp;|&nbsp;Montant<br>05/07/2026&nbsp;|&nbsp;ENDEMOL&nbsp;|&nbsp;8&nbsp;|&nbsp;230</div><p>Une colonne manquante&nbsp;? Pas grave, tu pourras compléter après l\'import.</p><button class="xli-close" id="xliClose" type="button">Compris</button></div>';
     document.body.appendChild(ov);
     ov.addEventListener('click',function(e){ if(e.target===ov || (e.target.closest && e.target.closest('#xliClose'))) ov.classList.remove('open'); });
   }
@@ -676,7 +676,7 @@ async function resetProdColors(){
 // Réinitialise le calendrier : supprime TOUTES les missions (repartir de zéro). Distinct de "Réinitialiser les couleurs".
 async function resetCalendar(){
   if (!currentUser) return;
-  const ok = await confirmDialog("⚠️ Réinitialiser TON CALENDRIER ?\n\nCela supprime DÉFINITIVEMENT toutes tes missions (pour repartir de zéro, ex. après un import raté). Tes couleurs, notes et infos ne sont PAS touchées.\n\nAction irréversible.");
+  const ok = await confirmDialog("Réinitialiser TON CALENDRIER ?\n\nCela supprime DÉFINITIVEMENT toutes tes missions (pour repartir de zéro, ex. après un import raté). Tes couleurs, notes et infos ne sont PAS touchées.\n\nAction irréversible.");
   if (!ok) return;
   const { error } = await sb.from("missions").delete().eq("user_id", currentUser.id);
   if (error) { if (typeof toast==='function') toast("Erreur : " + error.message); return; }
@@ -690,7 +690,7 @@ async function resetMonth(){
   const list = monthMissions(current);
   const lbl = current.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
   if (!list.length) { if (typeof toast==='function') toast("Aucune mission en " + lbl + "."); return; }
-  const ok = await confirmDialog(`⚠️ Réinitialiser ${lbl} ?\n\nLes ${list.length} mission(s) de ${lbl} seront DÉFINITIVEMENT supprimées. Tes notes et couleurs ne sont pas touchées.\n\nAction irréversible.`);
+  const ok = await confirmDialog(`Réinitialiser ${lbl} ?\n\nLes ${list.length} mission(s) de ${lbl} seront DÉFINITIVEMENT supprimées. Tes notes et couleurs ne sont pas touchées.\n\nAction irréversible.`);
   if (!ok) return;
   const { error } = await sb.from("missions").delete().eq("user_id", currentUser.id).in("id", list.map(function(m){return m.id;}));
   if (error) { if (typeof toast==='function') toast("Erreur : " + error.message); return; }
@@ -704,7 +704,7 @@ async function resetYear(){
   const y = current.getFullYear();
   const n = missions.filter(function(m){ return new Date(m.date + "T00:00:00").getFullYear() === y; }).length;
   if (!n) { if (typeof toast==='function') toast("Aucune mission en " + y + "."); return; }
-  const ok = await confirmDialog(`⚠️ Réinitialiser l'année ${y} ?\n\nLes ${n} mission(s) de ${y} seront DÉFINITIVEMENT supprimées. Tes notes et couleurs ne sont pas touchées.\n\nAction irréversible.`);
+  const ok = await confirmDialog(`Réinitialiser l'année ${y} ?\n\nLes ${n} mission(s) de ${y} seront DÉFINITIVEMENT supprimées. Tes notes et couleurs ne sont pas touchées.\n\nAction irréversible.`);
   if (!ok) return;
   const { error } = await sb.from("missions").delete().eq("user_id", currentUser.id).gte("mission_date", `${y}-01-01`).lte("mission_date", `${y}-12-31`);
   if (error) { if (typeof toast==='function') toast("Erreur : " + error.message); return; }
@@ -917,7 +917,7 @@ function monterWidgetParserDocuments() {
   if (!container) return;
   container.innerHTML = `
     <div style="border:2px dashed #6c63ff;border-radius:12px;padding:20px;text-align:center;background:rgba(108,99,255,0.05);margin-bottom:20px;">
-      <p style="font-weight:600;margin:0 0 8px;">📄 Importer un contrat ou fiche de paie</p>
+      <p style="font-weight:600;margin:0 0 8px;">Importer un contrat ou fiche de paie</p>
       <p style="font-size:13px;color:#888;margin:0 0 12px;">PDF, JPG ou PNG — l'IA classe le document automatiquement</p>
       <input type="file" id="doc-input-documents" accept=".pdf,.jpg,.jpeg,.png" style="display:none">
       <button id="doc-btn-documents" type="button" style="padding:8px 20px;background:#1F4E5F;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;">Choisir un fichier</button>
@@ -935,10 +935,10 @@ function monterWidgetParserDocuments() {
     const ALLOWED_TYPES_IA = ["application/pdf","image/jpeg","image/png","image/webp"];
     if (!ALLOWED_TYPES_IA.includes(file.type)) {
       status.style.color = "#dc3545";
-      status.textContent = "❌ Format non autorisé. Seuls les PDF et images sont acceptés.";
+      status.textContent = "Format non autorisé. Seuls les PDF et images sont acceptés.";
       input.value = ""; return;
     }
-    status.textContent = "⏳ Analyse en cours…";
+    status.textContent = "Analyse en cours…";
     button.disabled = true; button.style.opacity = "0.6";
     try {
       let data = null;
@@ -951,12 +951,12 @@ function monterWidgetParserDocuments() {
       else if (typeof classerDocumentDepuisIa === "function") await classerDocumentDepuisIa(file, data);
       else await classerDocumentAnalyseIa(file, data);
       status.style.color = "#28a745";
-      status.textContent = "✅ Document analysé et classé automatiquement.";
+      status.textContent = "Document analysé et classé automatiquement.";
       openDocumentProduction = data.production || data.employeur || data.societe || data.entreprise || openDocumentProduction;
       await loadDocuments(); renderDocuments();
     } catch (error) {
       console.error(error); status.style.color = "#dc3545";
-      status.textContent = "❌ Erreur : " + error.message;
+      status.textContent = "Erreur : " + error.message;
     } finally { button.disabled = false; button.style.opacity = "1"; input.value = ""; }
   });
 }
@@ -1124,7 +1124,7 @@ function updateKmPreview() {
   // Le barème dépend du véhicule ET du kilométrage annuel, qui vivent dans « Mes informations » :
   // on ne les redemande plus ici, on rappelle seulement le taux retenu et d'où il vient.
   if (eff > 0 && manuel <= 0 && veh.taux <= 0) {
-    preview.innerHTML = "👉 Renseigne ton véhicule et tes kilomètres annuels dans « Mes informations » (ou saisis un taux €/km) pour estimer les frais.";
+    preview.innerHTML = "Renseigne ton véhicule et tes kilomètres annuels dans « Mes informations » (ou saisis un taux €/km) pour estimer les frais.";
     return;
   }
   let detail = "";
@@ -1169,7 +1169,7 @@ function attachAddressAutocomplete(input) {
           const rest = ctx.split(",").slice(1).join(",").trim();      // nom + région
           const sub = (dep ? "Dépt " + dep : "") + (rest ? " · " + rest : "");
           const item = document.createElement("div");
-          item.innerHTML = "<div style='font-weight:600;'>📍 " + escapeHtml(p.label || "") + "</div>" +
+          item.innerHTML = "<div style='font-weight:600;'>" + escapeHtml(p.label || "") + "</div>" +
             (sub ? "<div style='font-size:12px;color:#12754A;font-weight:600;margin-top:2px;'>" + escapeHtml(sub) + "</div>" : "");
           item.style.cssText = "padding:10px 12px;cursor:pointer;font-size:14px;border-bottom:1px solid #F1F5F9;";
           item.addEventListener("mouseenter", () => { item.style.background = "#F1F5F9"; });
@@ -1257,7 +1257,7 @@ async function handleForgotPassword() {
   $("authMsg").textContent = "Envoi du lien de réinitialisation…";
   const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
   if (error) { $("authMsg").textContent = "Erreur : " + error.message; return; }
-  $("authMsg").textContent = "✅ Si un compte existe pour cet email, un lien vient d'être envoyé. Vérifie ta boîte mail (et tes spams).";
+  $("authMsg").textContent = "Si un compte existe pour cet email, un lien vient d'être envoyé. Vérifie ta boîte mail (et tes spams).";
 }
 
 // Modale pour choisir un nouveau mot de passe après avoir cliqué le lien reçu par email.
@@ -1276,7 +1276,7 @@ function showResetPasswordModal() {
       msg.textContent = "Enregistrement…"; msg.style.color = "#718096";
       const { error } = await sb.auth.updateUser({ password: p });
       if (error) { msg.textContent = "Erreur : " + error.message; msg.style.color = "#DC2626"; return; }
-      msg.textContent = "✅ Mot de passe mis à jour ! Connexion…"; msg.style.color = "#15803d";
+      msg.textContent = "Mot de passe mis à jour ! Connexion…"; msg.style.color = "#15803d";
       setTimeout(() => { ov.classList.remove("open"); }, 1200);
     });
   }
@@ -1447,7 +1447,7 @@ function renderMontantsReels(list, cur) {
           + '<input class="reel-input reel-heures-in" inputmode="decimal" autocomplete="off" placeholder="h payées" value="' + hVal + '"/></div>';
         if (ecart != null && Math.abs(ecart) >= 0.5) {
           heuresHtml += '<div class="reel-ecart">' + (ecart > 0
-            ? '⚠️ Il manque ' + ecart + ' h sur ta paie — à vérifier avec la compta'
+            ? 'Il manque ' + ecart + ' h sur ta paie — à vérifier avec la compta'
             : 'On t\'a payé ' + Math.abs(ecart) + ' h de plus que déclaré') + '</div>';
         }
       }
@@ -1672,7 +1672,7 @@ function renderDocuments() {
           const types = Object.keys(counts).sort();
           return `
             <button class="document-folder-card document-folder-card-pro" type="button" data-doc-production-open="${escapeHtml(production)}">
-              <div class="document-folder-icon">📄</div>
+              <div class="document-folder-icon"></div>
               <div class="document-folder-main"><strong>${escapeHtml(production)}</strong><span>${list.length} document${list.length > 1 ? "s" : ""}</span></div>
               <div class="document-folder-tags">${types.slice(0, 4).map((type) => `<em>${escapeHtml(type)} · ${counts[type]}</em>`).join("")}</div>
               <small>Dernier ajout : ${latest ? `${escapeHtml(monthName(latest.doc_month))} ${escapeHtml(latest.doc_year)}` : "—"}</small>
@@ -1744,9 +1744,9 @@ function _ensureToastDom(){
 function toast(msg, type){
   _ensureToastDom();
   let t = type;
-  if (!t){ if (/^✅/.test(msg)) t = "success"; else if (/erreur/i.test(msg)) t = "error"; else t = "warn"; }
-  const icon = t === "success" ? "✅" : t === "error" ? "⚠️" : "ℹ️";
-  const clean = String(msg).replace(/^✅\s*/, "");
+  if (!t){ if (/^/.test(msg)) t = "success"; else if (/erreur/i.test(msg)) t = "error"; else t = "warn"; }
+  const icon = t === "success" ? "" : t === "error" ? "" : "ℹ";
+  const clean = String(msg).replace(/^\s*/, "");
   const el = document.createElement("div");
   el.className = "toast " + t;
   const i = document.createElement("span"); i.textContent = icon;
@@ -2073,14 +2073,14 @@ function activateView(viewName) {
 var TOUR_KEY = 'intermitrack_tour_v1_done';
 var _tourIdx = 0, _tourChecked = false;
 var _tourSteps = [
-  { view: 'dashboard', target: null, title: 'Bienvenue 👋', text: "Voici ton tableau de bord. Je te montre l'essentiel en quelques secondes — tu peux passer à tout moment." },
+  { view: 'dashboard', target: null, title: 'Bienvenue ', text: "Voici ton tableau de bord. Je te montre l'essentiel en quelques secondes — tu peux passer à tout moment." },
   { view: 'dashboard', target: '#accountAvatarBtn', title: 'Ton compte', text: "En haut à droite : « Mes informations » (statut, salaire…), le thème et la déconnexion. Renseigne tes infos, ça pré-remplit tes missions." },
   { view: 'dashboard', target: '#chart', title: 'Ta progression', text: "Le graphique montre tes heures effectuées et prévues vers les 507 h. Le détail est juste en dessous." },
   { view: 'dashboard', target: '#reelBox', title: 'Tes montants réels', text: "Une fois payé, saisis ton net réel + l'allocation reçue : tu obtiens le total EXACT du mois, pas seulement l'estimation." },
   { view: 'calendar', target: '.new-cal-tools', title: 'Le calendrier', text: "Importe tes dates (Excel/CSV, notes) ou clique un jour pour ajouter une mission. Ça dépend de ton statut — d'où l'importance de tes infos." },
   { view: 'calendar', target: '.cal-sec-title', title: 'Tes évènements du mois', text: "Sous le calendrier, retrouve toutes tes missions et notes du mois, triées par date." },
   { view: 'missions', target: '#missionsGraphContainer', title: 'Tes productions', text: "Le camembert répartit ton brut par production. Clique une prod pour changer sa couleur, la renommer, la fusionner ou régler ses heures sup." },
-  { view: 'dashboard', target: null, title: 'À toi de jouer 🎬', text: "Explore les autres onglets (Actu, Simulation, Fiscalité…) quand tu veux. Tu pourras revoir ce tuto depuis ton menu compte." },
+  { view: 'dashboard', target: null, title: 'À toi de jouer ', text: "Explore les autres onglets (Actu, Simulation, Fiscalité…) quand tu veux. Tu pourras revoir ce tuto depuis ton menu compte." },
 ];
 function _tourEnsureDom() {
   if (document.getElementById('tourHole')) return;
@@ -3003,7 +3003,7 @@ function renderFiscalite(yearGross, yearMissions) {
   if ($("profileAbattementInfo")) {
     $("profileAbattementInfo").className = "fi-info-box";
     $("profileAbattementInfo").innerHTML =
-      `<strong>ℹ️ ${profil.label}</strong>${profil.hint}`
+      `<strong>ℹ ${profil.label}</strong>${profil.hint}`
       + `<div style="margin-top:9px;padding-top:9px;border-top:1px solid var(--line);font-size:11.5px;line-height:1.55;">`
       + `<strong>Deux régimes, jamais cumulés :</strong> le <strong>forfait de 10 %</strong> OU les <strong>frais réels</strong>. Pour un artiste, les frais réels = <strong>14 % + 5 %</strong> (forfaits spécifiques) <strong>+ tes autres frais</strong> (transport, repas, local pro, cotisations…). L'appli additionne tout ça et retient le régime le plus avantageux. Saisis tes dépenses ci-dessous (hors instruments/vestimentaire, déjà couverts par le 14 %/5 %).`
       + `<br><a href="https://www.impots.gouv.fr/particulier/questions/comment-puis-je-deduire-mes-frais-professionnels" target="_blank" rel="noopener" style="color:var(--petrol);font-weight:800;text-decoration:underline;">Barème & règles officielles — impots.gouv.fr ↗</a>`
@@ -3121,10 +3121,10 @@ function renderFiscalite(yearGross, yearMissions) {
 
   if ($("fiscalConseilBox") && yearGross > 0) {
     const conseils = [];
-    if (!arePercue) conseils.push("💡 Pensez à renseigner votre ARE perçue — elle est imposable.");
-    if (!congesInput) conseils.push("💡 Vérifiez vos Congés Spectacles sur audiens.org — ils sont imposables.");
-    if (!useForfait && fraisReels > 0) conseils.push("✅ Tes frais réels (14 %+5 % + dépenses) dépassent le forfait 10 %. Déclare-les !");
-    if (taxResult && taxResult.marginalRate >= 30) conseils.push("⚠️ Tranche à 30%+ : un conseiller fiscal peut vous aider à optimiser.");
+    if (!arePercue) conseils.push("Pensez à renseigner votre ARE perçue — elle est imposable.");
+    if (!congesInput) conseils.push("Vérifiez vos Congés Spectacles sur audiens.org — ils sont imposables.");
+    if (!useForfait && fraisReels > 0) conseils.push("Tes frais réels (14 %+5 % + dépenses) dépassent le forfait 10 %. Déclare-les !");
+    if (taxResult && taxResult.marginalRate >= 30) conseils.push("Tranche à 30%+ : un conseiller fiscal peut vous aider à optimiser.");
     if (conseils.length) {
       $("fiscalConseilBox").className = "fi-conseil-box";
       $("fiscalConseilBox").innerHTML = conseils.map(c => `<div style="margin-bottom:5px;">${c}</div>`).join("");
@@ -3322,14 +3322,14 @@ function render() {
     if (pn) {
       if (plannedHours > 0) {
         pn.style.display = "";
-        pn.innerHTML = "🚀 En comptant tes dates à venir : <b>" + Math.round((_valid + plannedHours) / OBJECTIVE_HOURS * 100) + " %</b> de tes 507 h (" + Math.round(_valid / OBJECTIVE_HOURS * 100) + " % déjà validés · +" + Math.round(plannedHours / OBJECTIVE_HOURS * 100) + " % à venir).";
+        pn.innerHTML = "En comptant tes dates à venir : <b>" + Math.round((_valid + plannedHours) / OBJECTIVE_HOURS * 100) + " %</b> de tes 507 h (" + Math.round(_valid / OBJECTIVE_HOURS * 100) + " % déjà validés · +" + Math.round(plannedHours / OBJECTIVE_HOURS * 100) + " % à venir).";
       } else pn.style.display = "none";
     }
     const en = $("dashEnsNote");
     if (en) {
       if (enseignementHours > 0) {
         en.style.display = "";
-        en.innerHTML = "🎓 Enseignement compté : <b>" + enseignementHours + " h</b>. Plafond 70 h (120 h dès 50 ans), partagé avec la formation (" + FORM_CAP + " h au total).";
+        en.innerHTML = "Enseignement compté : <b>" + enseignementHours + " h</b>. Plafond 70 h (120 h dès 50 ans), partagé avec la formation (" + FORM_CAP + " h au total).";
       } else en.style.display = "none";
     }
     // Arrêts notés (maternité, adoption, AT…) = 5 h/jour, affichés mais PAS encore décomptés des 507 h (comme l'app).
@@ -3339,7 +3339,7 @@ function render() {
     if (an) {
       if (_arretH > 0) {
         an.style.display = "";
-        an.innerHTML = "🩺 Arrêts notés : <b>" + _arretH + " h</b> (5 h/jour, maternité · adoption · accident du travail…). Pour l'instant on les affiche mais on ne les décompte PAS encore de tes 507 h — le temps de valider toutes les conditions. Garde-les en tête.";
+        an.innerHTML = "Arrêts notés : <b>" + _arretH + " h</b> (5 h/jour, maternité · adoption · accident du travail…). Pour l'instant on les affiche mais on ne les décompte PAS encore de tes 507 h — le temps de valider toutes les conditions. Garde-les en tête.";
       } else an.style.display = "none";
     }
   })();
@@ -3380,7 +3380,7 @@ function render() {
         const _known = _realized + plannedHours;                          // + dates déjà posées → comptées aussi
         const _elapsedDays = Math.max(1, (_now - _winS) / 86400000);
         if (_realized >= OBJECTIVE_HOURS) {
-          _projTxt = "🎉 Tes 507 h sont atteintes";
+          _projTxt = "Tes 507 h sont atteintes";
         } else if (_known >= OBJECTIVE_HOURS) {
           _projTxt = "Avec tes dates déjà posées, tu atteins tes 507 h ✓";
         } else {
@@ -3460,7 +3460,7 @@ function checkAndShowNotification(remaining, yearHours) {
     const key = 'notif_eligible';
     if (!localStorage.getItem(key)) {
       localStorage.setItem(key, '1');
-      showAppNotification("success", "🎉",
+      showAppNotification("success", "",
         "Félicitations ! Vous êtes éligible",
         `Vous avez validé vos 507h soit ${totalVac} vacations. Pensez à contacter France Travail.`,
         100, "#22C55E");
@@ -3473,7 +3473,7 @@ function checkAndShowNotification(remaining, yearHours) {
     const key = `notif_sprint_${Math.floor(remaining)}`;
     if (!localStorage.getItem(key)) {
       localStorage.setItem(key, '1');
-      showAppNotification("urgent", "⚠️",
+      showAppNotification("urgent", "",
         `Sprint final — encore ${remaining}h !`,
         `${yearHours}h effectuées. Il ne te manque plus que ${remaining}h pour être éligible.`,
         pct, "#EF4444");
@@ -3484,7 +3484,7 @@ function checkAndShowNotification(remaining, yearHours) {
     const key = `notif_warning_${Math.floor(remaining)}`;
     if (!localStorage.getItem(key)) {
       localStorage.setItem(key, '1');
-      showAppNotification("warning", "🔥",
+      showAppNotification("warning", "",
         `Plus que ${remaining}h pour valider tes droits !`,
         `Tu es à ${yearHours}h sur 507h. Continue comme ça, tu y es presque.`,
         pct, "#F97316");
@@ -3494,13 +3494,13 @@ function checkAndShowNotification(remaining, yearHours) {
 
   // ── Avant 400h : encouragements ──────────────────────────────
   const milestones = [
-    { h: 50,  icon: '🎬', title: '50h effectuées !',
+    { h: 50,  icon: '', title: '50h effectuées !',
       msg: `${totalVac} vacations au compteur — tu démarres bien !` },
-    { h: 150, icon: '💪', title: '150h effectuées !',
+    { h: 150, icon: '', title: '150h effectuées !',
       msg: `${totalVac} vacations faites. Beau rythme, continue !` },
-    { h: 250, icon: '🔥', title: '250h effectuées !',
+    { h: 250, icon: '', title: '250h effectuées !',
       msg: `${totalVac} vacations au compteur — tu avances sérieusement !` },
-    { h: 350, icon: '⭐', title: '350h effectuées !',
+    { h: 350, icon: '', title: '350h effectuées !',
       msg: `${totalVac} vacations. La ligne d'arrivée approche !` },
   ];
   for (const m of milestones) {
@@ -3516,13 +3516,13 @@ function checkAndShowNotification(remaining, yearHours) {
 
   // ── Sprint 400h → 507h ────────────────────────────────────────
   const sprint = [
-    { h: 400, icon: '⚡', title: 'Sprint final lancé !',
+    { h: 400, icon: '', title: 'Sprint final lancé !',
       msg: () => `${remaining}h restantes soit ${remainingVac} vacations. Tu y es presque !`,
       color: '#F59E0B' },
-    { h: 450, icon: '🔥', title: 'Dernière ligne droite !',
+    { h: 450, icon: '', title: 'Dernière ligne droite !',
       msg: () => `Il te reste ${remaining}h soit ${remainingVac} vacations. Accroche-toi !`,
       color: '#F97316' },
-    { h: 480, icon: '🚨', title: 'Presque là !',
+    { h: 480, icon: '', title: 'Presque là !',
       msg: () => `Plus que ${remaining}h soit ${remainingVac} vacation${remainingVac > 1 ? 's' : ''}. Ne lâche pas !`,
       color: '#EF4444' },
   ];
@@ -3543,16 +3543,16 @@ function checkAndShowNotification(remaining, yearHours) {
   if (!localStorage.getItem(actuKey)) {
     localStorage.setItem(actuKey, '1');
     if (day === 15) {
-      showAppNotification('urgent', '🚨', 'Dernier jour pour actualiser !',
+      showAppNotification('urgent', '', 'Dernier jour pour actualiser !',
         "C'est le 15 — dernière chance pour déclarer sur France Travail avant minuit.", null, null);
     } else if (day === 14) {
-      showAppNotification('urgent', '⏰', "Plus qu'1 jour pour actualiser !",
+      showAppNotification('urgent', '', "Plus qu'1 jour pour actualiser !",
         "Demain c'est le 15, dernier délai. Votre récap est prêt dans l'onglet Actualisation.", null, null);
     } else if (day === 12) {
-      showAppNotification('warning', '📅', 'Actualisation — 3 jours restants',
+      showAppNotification('warning', '', 'Actualisation — 3 jours restants',
         "Deadline le 15. Votre récap du mois est prêt dans l'onglet Actualisation.", null, null);
     } else if (day === 28) {
-      showAppNotification('info', '📣', "C'est l'heure de l'actualisation !",
+      showAppNotification('info', '', "C'est l'heure de l'actualisation !",
         "L'actualisation est ouverte depuis aujourd'hui jusqu'au 15. Votre récap est prêt.", null, null);
     }
   }
@@ -3567,22 +3567,22 @@ function checkAndShowNotification(remaining, yearHours) {
   if (!localStorage.getItem(actuKey)) {
     localStorage.setItem(actuKey, "1");
     if (dayOfMonth === 15) {
-      showAppNotification("urgent", "🚨",
+      showAppNotification("urgent", "",
         "Dernier jour pour actualiser !",
         "C'est le 15 — dernière chance pour déclarer sur France Travail avant minuit.",
         null, null);
     } else if (dayOfMonth === 14) {
-      showAppNotification("urgent", "⏰",
+      showAppNotification("urgent", "",
         "Plus qu'1 jour pour actualiser !",
         "Demain c'est le 15, dernier délai. Votre récap est prêt dans l'onglet Actualisation.",
         null, null);
     } else if (dayOfMonth === 12) {
-      showAppNotification("warning", "📅",
+      showAppNotification("warning", "",
         "Actualisation — 3 jours restants",
         "Deadline le 15. Votre récap du mois est prêt dans l'onglet Actualisation.",
         null, null);
     } else if (dayOfMonth === openDay) {
-      showAppNotification("info", "📅",
+      showAppNotification("info", "",
         "C'est l'heure de l'actualisation !",
         "L'actualisation est ouverte depuis aujourd'hui jusqu'au 15. Votre récap est prêt.",
         null, null);
@@ -3676,7 +3676,7 @@ function renderChart(doneHours, plannedHours = 0, formationHours = 0, enseigneme
       <text x="150" y="155" text-anchor="middle" font-size="13" fill="${cMuted}" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${Math.round(doneRaw + formCapped + ensRaw + plannedRaw)} h / ${total} h</text>
       ${legendSvg}
     </svg>
-    ${formRaw > 0 ? `<div style="display:flex;align-items:flex-start;gap:6px;margin:2px 10px 10px;padding:9px 11px;border-radius:11px;background:${cSoft};font-size:11px;line-height:1.45;color:${cMuted};"><span>🎓</span><span>Formation comptée : <strong style="color:${cText};">${formCapped} h / ${FORM_CAP} h max</strong>${formRaw > FORM_CAP ? ` (${formRaw} h saisies, plafonnées)` : ''}. Uniquement si tu n'es pas indemnisé pendant la formation.</span></div>` : ''}
+    ${formRaw > 0 ? `<div style="display:flex;align-items:flex-start;gap:6px;margin:2px 10px 10px;padding:9px 11px;border-radius:11px;background:${cSoft};font-size:11px;line-height:1.45;color:${cMuted};"><span></span><span>Formation comptée : <strong style="color:${cText};">${formCapped} h / ${FORM_CAP} h max</strong>${formRaw > FORM_CAP ? ` (${formRaw} h saisies, plafonnées)` : ''}. Uniquement si tu n'es pas indemnisé pendant la formation.</span></div>` : ''}
   `;}
 function renderHistory() {
   const missionsEl = $("missions");
@@ -3706,7 +3706,7 @@ function renderHistory() {
             <span>${ICO.euro}${(Math.round(Number(mission.gross)||0)).toLocaleString('fr-FR')}</span>
           </div>
           <div class="mission-history-actions">
-            <button class="edit-icon-btn" data-edit="${mission.id}" type="button" title="Modifier">✏️</button>
+            <button class="edit-icon-btn" data-edit="${mission.id}" type="button" title="Modifier"></button>
             <button class="delete-icon-btn" data-delete="${mission.id}" type="button" title="Supprimer">✕</button>
           </div>
         </div>`).join("")}
@@ -3929,9 +3929,9 @@ function renderAllMissions() {
       <div style="display:flex;align-items:center;gap:16px;">
         <div style="flex:0 0 auto;">${_atDonutSVG(_atArtH, _atTechH)}</div>
         <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
-          <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;color:var(--text);"><span style="width:11px;height:11px;border-radius:3px;background:#F97316;"></span>🎭 Artiste<span style="margin-left:auto;">${Math.round(_atArtH / _atTot * 100)}%</span></div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;color:var(--text);"><span style="width:11px;height:11px;border-radius:3px;background:#F97316;"></span>Artiste<span style="margin-left:auto;">${Math.round(_atArtH / _atTot * 100)}%</span></div>
           <div style="font-size:11.5px;color:var(--muted);margin:-3px 0 4px 19px;">${_atArtH} h · ${_atArtCachets} cachet${_atArtCachets > 1 ? "s" : ""}</div>
-          <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;color:var(--text);"><span style="width:11px;height:11px;border-radius:3px;background:#1F4E5F;"></span>🔧 Technicien<span style="margin-left:auto;">${Math.round(_atTechH / _atTot * 100)}%</span></div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;color:var(--text);"><span style="width:11px;height:11px;border-radius:3px;background:#1F4E5F;"></span>Technicien<span style="margin-left:auto;">${Math.round(_atTechH / _atTot * 100)}%</span></div>
           <div style="font-size:11.5px;color:var(--muted);margin:-3px 0 0 19px;">${_atTechH} h</div>
         </div>
       </div>
@@ -4039,7 +4039,7 @@ const list = missions.filter((m) => normalizeProductionName(m.production || "San
             <span>${ICO.euro}${(Math.round(Number(mission.gross)||0)).toLocaleString('fr-FR')}</span>
           </div>
           <div class="mission-history-actions">
-            <button class="edit-icon-btn" data-edit="${mission.id}" type="button" title="Modifier">✏️</button>
+            <button class="edit-icon-btn" data-edit="${mission.id}" type="button" title="Modifier"></button>
             <button class="delete-icon-btn" data-delete="${mission.id}" type="button" title="Supprimer">✕</button>
           </div>
         </div>
@@ -4683,7 +4683,7 @@ document.addEventListener("click", function (e) {
 var _noteFormMode = 'note';
 // Arrêts (maternité, paternité, adoption, accident du travail, maladie) = une note kind:'arret'
 // avec un arretType. Même JSON profiles.notes que l'appli → aucune table, aucune migration.
-// ⚠️ Aucun arrêt n'ajoute d'heures aux 507 h pour l'instant (formules en cours de vérification
+// Aucun arrêt n'ajoute d'heures aux 507 h pour l'instant (formules en cours de vérification
 // sur source primaire) : on les NOTE seulement. Identique à l'appli (arretHoursPerDay = 0).
 var ARRET_META_SITE = {
   maternite:        { label: 'Congé maternité',     color: '#DB2777' },
@@ -4720,7 +4720,7 @@ var FORM_CAP = 338; // heures de formation prises en compte pour les 507 h (plaf
 // Enseignement dispensé (contrat régime général avec un établissement AGRÉÉ, en lien avec le métier) :
 // compte dans les 507 h, plafonné à 70 h — ou 120 h à partir de 50 ans à la fin du contrat.
 // On retient le MAXIMUM légal pour ne léser personne ; le formulaire explique la règle.
-// ⚠️ Le plafond de 338 h est GLOBAL : formation suivie + enseignement dispensé réunis (guide France Travail).
+// Le plafond de 338 h est GLOBAL : formation suivie + enseignement dispensé réunis (guide France Travail).
 var ENS_CAP = 120;
 function _applyNoteFormMode(mode){
   _noteFormMode = (mode === 'formation') ? 'formation' : (mode === 'arret') ? 'arret' : 'note';
@@ -4924,7 +4924,7 @@ function _renderQuickModal(){
     '<label class="qk-lbl">' + (_qkMode === "cachet" ? "Nombre de cachets" : "Jours travaillés (facultatif)") + '</label><input class="qk-in" id="qkJours" type="number" inputmode="numeric" min="0" placeholder="' + (_qkMode === "cachet" ? "Ex : 10" : "Ex : 15") + '" value="' + escapeHtml(_qkJours) + '">' +
     (_qkMode === "heures" ? '<div class="qk-hint">Laisse vide si tu ne sais pas : aucun cachet ne sera compté.</div>' : "") +
     '<label class="qk-lbl">Couleur</label><div class="qk-colors">' + swatches + '</div>' +
-    (hasDetailed ? '<div class="qk-warn">⚠️ Ce mois contient déjà des missions détaillées. Pour ne pas compter les heures en double, utilise soit le détail, soit la saisie rapide — pas les deux.</div>' : "") +
+    (hasDetailed ? '<div class="qk-warn">Ce mois contient déjà des missions détaillées. Pour ne pas compter les heures en double, utilise soit le détail, soit la saisie rapide — pas les deux.</div>' : "") +
     '<button class="qk-save" id="qkSave" type="button">' + (existing ? "Mettre à jour le mois" : "Enregistrer le mois") + '</button>' +
     '<button class="qk-cancel" id="qkCancel" type="button">Annuler</button>';
 }
@@ -5069,7 +5069,7 @@ function setupEvents() {
       const input = $("authPassword");
       if (!input) return;
       input.type = input.type === "password" ? "text" : "password";
-      $("togglePassword").textContent = input.type === "password" ? "👁" : "🙈";
+      $("togglePassword").textContent = input.type === "password" ? "" : "";
     });
   }
  
@@ -5086,7 +5086,7 @@ function setupEvents() {
     if (result.error) { $("authMsg").textContent = authErrorMessage(result.error.message); return; }
     if (authMode === "signup" && !result.data?.session) {
       // Confirmation par email requise : aucune session active tant que l'email n'est pas validé
-      $("authMsg").textContent = "✅ Compte créé ! Clique sur le lien de confirmation reçu par email (vérifie tes spams), puis reviens te connecter.";
+      $("authMsg").textContent = "Compte créé ! Clique sur le lien de confirmation reçu par email (vérifie tes spams), puis reviens te connecter.";
       return;
     }
     await init();
@@ -5278,8 +5278,8 @@ function setupEvents() {
   });
   if ($("ftRecapCopy")) $("ftRecapCopy").addEventListener("click", async () => {
     const t = $("ftRecapText") ? $("ftRecapText").value : "";
-    try { await navigator.clipboard.writeText(t); toast("Récap copié ✅ Colle-le dans ton actualisation."); }
-    catch (e) { if ($("ftRecapText")) { $("ftRecapText").select(); document.execCommand("copy"); toast("Récap copié ✅"); } }
+    try { await navigator.clipboard.writeText(t); toast("Récap copié Colle-le dans ton actualisation."); }
+    catch (e) { if ($("ftRecapText")) { $("ftRecapText").select(); document.execCommand("copy"); toast("Récap copié "); } }
   });
   if ($("modalFtClose")) $("modalFtClose").addEventListener("click", () => { if ($("modalFranceTravail")) $("modalFranceTravail").classList.add("hidden"); });
  
@@ -5484,7 +5484,7 @@ function _profilEnsureDom(){
   const ov = document.createElement('div');
   ov.id = 'profilOverlay';
   ov.innerHTML = '<div class="pf-box">'
-    + '<div class="pf-title">📝 Mes informations</div>'
+    + '<div class="pf-title">Mes informations</div>'
     + '<div class="pf-sub">Optionnel — ça pré-remplit tes missions et permet de calculer ton revenu mensuel. Modifiable à tout moment ici.</div>'
     + '<div class="pf-label">Tu es plutôt…</div>'
     + '<div class="pf-seg" id="pfAnnexe"><button type="button" class="pf-opt" data-annexe="technicien">Technicien (annexe 8)</button><button type="button" class="pf-opt" data-annexe="artiste">Artiste (annexe 10)</button><button type="button" class="pf-opt" data-annexe="les_deux">Les deux</button></div>'
@@ -5572,7 +5572,7 @@ function _profilEnsureDom(){
     if (typeof _syncPrevAnnexe === 'function') _syncPrevAnnexe();
     intro.classList.remove('open');
     if(typeof render==='function') render();
-    if(typeof toast==='function') toast('Profil enregistré ✅');
+    if(typeof toast==='function') toast('Profil enregistré ');
   });
 }
 
@@ -5640,7 +5640,7 @@ async function _profilSave(){
   _profil = p;
   if (typeof _syncPrevAnnexe === 'function') _syncPrevAnnexe(); // Prévisions suivent l'annexe choisie tout de suite
   ov.classList.remove('open');
-  if(typeof toast==='function') toast('Infos enregistrées ✅');
+  if(typeof toast==='function') toast('Infos enregistrées ');
   if(typeof render==='function') render(); // re-render le dashboard → l'estimation France Travail s'adapte tout de suite (annexe artiste/technicien)
 }
 
@@ -6062,7 +6062,7 @@ function _syncTypeBtn(){
     var parts = _typeParts(v);
     if(parts.length>1){
       row.style.display='block';
-      row.innerHTML = '<span style="display:inline-block;font-size:12.5px;font-weight:700;color:#9A3412;background:#FFF7ED;border:1px solid #FDBA74;border-radius:8px;padding:6px 10px;margin-top:6px;">⚠ '+parts.length+' types sélectionnés — c\'est bien volontaire ?</span>';
+      row.innerHTML = '<span style="display:inline-block;font-size:12.5px;font-weight:700;color:#9A3412;background:#FFF7ED;border:1px solid #FDBA74;border-radius:8px;padding:6px 10px;margin-top:6px;">'+parts.length+' types sélectionnés — c\'est bien volontaire ?</span>';
     } else { row.style.display='none'; row.innerHTML=''; }
   }
 }

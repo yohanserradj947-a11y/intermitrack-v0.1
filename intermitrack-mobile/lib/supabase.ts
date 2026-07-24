@@ -14,7 +14,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
 });
 
-// 🔄 Garde la session active : renouvelle le jeton dès que l'app revient au premier plan.
+// Garde la session active : renouvelle le jeton dès que l'app revient au premier plan.
 // (Sur mobile, le minuteur de renouvellement se met en pause en arrière-plan -> sans ça, la session expirait.)
 if (Platform.OS !== 'web') {
   AppState.addEventListener('change', (state) => {

@@ -15,7 +15,7 @@ export default function ThemeModal({ visible, onClose }: { visible: boolean; onC
   const { themeId, setTheme, customs, saveCustom, deleteCustom } = useThemeControls();
   const { effectiveTier } = usePremium();
   const locked = effectiveTier === 'gratuit';
-  function lockedTheme() { Alert.alert('🔒 Thème Premium', 'Ce thème est réservé aux abonnés Premium (et aux Pionniers). En version Gratuit, tu as les thèmes Clair et Sombre.'); }
+  function lockedTheme() { Alert.alert('Thème Premium', 'Ce thème est réservé aux abonnés Premium (et aux Pionniers). En version Gratuit, tu as les thèmes Clair et Sombre.'); }
   const [picker, setPicker] = useState<null | 'a' | 'b'>(null);
   const ink = (hex: string) => (lum(hex) > 0.6 ? '#0A0A0A' : '#FFFFFF');
 

@@ -66,11 +66,11 @@ export default function PremiumGate({ children, title }: { children: React.React
                 <Text style={{ fontSize: 34, fontWeight: '900', color: C.petrol }}>1,99 €</Text>
                 <Text style={{ fontSize: 14, color: C.muted, fontWeight: '700' }}>/ mois</Text>
               </View>
-              <Text style={{ fontSize: 12, color: '#B45309', textAlign: 'center', fontWeight: '700', backgroundColor: 'rgba(249,115,22,0.1)', borderRadius: 10, padding: 9, marginTop: 10, lineHeight: 17 }}>🚀 Offre de lancement — ce prix augmentera bientôt. Abonne-toi tôt, tu gardes 1,99 € à vie.</Text>
+              <Text style={{ fontSize: 12, color: '#B45309', textAlign: 'center', fontWeight: '700', backgroundColor: 'rgba(249,115,22,0.1)', borderRadius: 10, padding: 9, marginTop: 10, lineHeight: 17 }}>Offre de lancement — ce prix augmentera bientôt. Abonne-toi tôt, tu gardes 1,99 € à vie.</Text>
               <TouchableOpacity onPress={() => {}} style={{ backgroundColor: C.orange, borderRadius: 14, paddingVertical: 15, marginTop: 16 }}>
                 <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15, textAlign: 'center' }}>Passer en Premium</Text>
               </TouchableOpacity>
-              <Text style={{ fontSize: 11.5, color: C.muted, textAlign: 'center', marginTop: 10, lineHeight: 16 }}>Le paiement arrive très bientôt. Merci de ta patience 🙏</Text>
+              <Text style={{ fontSize: 11.5, color: C.muted, textAlign: 'center', marginTop: 10, lineHeight: 16 }}>Le paiement arrive très bientôt. Merci de ta patience </Text>
               <TouchableOpacity onPress={() => setShow(false)} style={{ paddingVertical: 12, marginTop: 4 }}>
                 <Text style={{ color: C.muted, fontWeight: '700', fontSize: 13, textAlign: 'center' }}>Plus tard</Text>
               </TouchableOpacity>

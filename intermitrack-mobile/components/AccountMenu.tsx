@@ -202,7 +202,7 @@ export function AccountMenu(){
             <Text style={s.accountEmail}>{session?.user.email}</Text>
 
             <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:4,alignSelf:'center',marginTop:2,marginBottom:10,paddingVertical:5,paddingHorizontal:12,borderRadius:99,backgroundColor:'#FFF7E6',borderWidth:1,borderColor:'#F5C97A'}}>
-              <Text style={{fontSize:12.5,fontWeight:'800',color:'#B7791F'}}>⭐ Pionnier — gratuit à vie</Text>
+              <Text style={{fontSize:12.5,fontWeight:'800',color:'#B7791F'}}>Pionnier — gratuit à vie</Text>
             </View>
 
             <TouchableOpacity style={s.accountReportBtn} onPress={()=>{setShowAccount(false);openMesInfosModal();}}>
@@ -266,7 +266,7 @@ export function AccountMenu(){
         <View style={s.modalOverlay}>
           <View style={[s.modalCard,{paddingBottom:22+insets.bottom}]}>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={s.modalTitle}>📊 Analytics</Text>
+              <Text style={s.modalTitle}>Analytics</Text>
               {statsLoading ? (
                 <ActivityIndicator color={C.petrol} size="large" style={{marginVertical:34}} />
               ) : stats?.error ? (
@@ -281,8 +281,8 @@ export function AccountMenu(){
                   <Text style={s.label}>Répartition App / Site</Text>
                   <View style={{flexDirection:'row',alignItems:'center',marginBottom:2,marginTop:2}}>
                     <Text style={{flex:1}} />
-                    <Text style={{width:58,textAlign:'right',fontSize:11,fontWeight:'800',color:C.petrol}}>📱 App</Text>
-                    <Text style={{width:58,textAlign:'right',fontSize:11,fontWeight:'800',color:C.muted}}>🌐 Site</Text>
+                    <Text style={{width:58,textAlign:'right',fontSize:11,fontWeight:'800',color:C.petrol}}>App</Text>
+                    <Text style={{width:58,textAlign:'right',fontSize:11,fontWeight:'800',color:C.muted}}>Site</Text>
                   </View>
                   <CompareRow label="Actifs (7 j)" app={stats.active_7d_mobile} web={stats.active_7d_web} C={C} />
                   <CompareRow label="Actifs (30 j)" app={stats.active_30d_mobile} web={stats.active_30d_web} C={C} />

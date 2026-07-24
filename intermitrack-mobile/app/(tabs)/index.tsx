@@ -26,7 +26,7 @@ const FORM_CAP = 338; // heures de formation prises en compte pour les 507 h : p
 // Enseignement dispensé (contrat régime général avec un établissement AGRÉÉ, en lien avec le métier) :
 // il compte dans les 507 h, plafonné à 70 h — ou 120 h à partir de 50 ans à la fin du contrat.
 // On retient le MAXIMUM légal pour ne léser personne ; le formulaire explique la règle.
-// ⚠️ Le plafond de 338 h est GLOBAL : formation suivie + enseignement dispensé réunis (guide France Travail).
+// Le plafond de 338 h est GLOBAL : formation suivie + enseignement dispensé réunis (guide France Travail).
 const ENS_CAP = 120;
 
 // La palette vient maintenant du thème (lib/theme) → const C = useTheme() dans le composant.
@@ -362,7 +362,7 @@ export default function HomeScreen(){
     const _realized=progressH;            // heures VALIDÉES → servent au rythme
     const _known=progressH+planH;         // + dates déjà posées → comptées aussi
     const _elapsedDays=Math.max(1,(_nowMs-_winSms)/86400000);
-    if(_realized>=507) paceProjTxt='🎉 Tes 507 h sont atteintes';
+    if(_realized>=507) paceProjTxt='Tes 507 h sont atteintes';
     else if(_known>=507) paceProjTxt='Avec tes dates déjà posées, tu atteins tes 507 h ✓';
     else{
       const _rate=_realized/_elapsedDays;
@@ -651,12 +651,12 @@ export default function HomeScreen(){
             <View style={{flexDirection:'row',gap:10}}>
               <View style={{flex:1,alignItems:'center',backgroundColor:C.orange+'22',borderRadius:12,paddingVertical:10}}>
                 <Text style={{fontSize:16,fontWeight:'900',color:C.text}}>{Math.round(artSplitH/((techSplitH+artSplitH)||1)*100)} %</Text>
-                <Text style={{fontSize:11,fontWeight:'700',color:C.orange,marginTop:2}}>🎭 Artiste</Text>
+                <Text style={{fontSize:11,fontWeight:'700',color:C.orange,marginTop:2}}>Artiste</Text>
                 <Text style={{fontSize:10.5,color:C.muted,marginTop:1}}>{artSplitH} h · {artSplitCachets} cachets</Text>
               </View>
               <View style={{flex:1,alignItems:'center',backgroundColor:C.petrol+'22',borderRadius:12,paddingVertical:10}}>
                 <Text style={{fontSize:16,fontWeight:'900',color:C.text}}>{Math.round(techSplitH/((techSplitH+artSplitH)||1)*100)} %</Text>
-                <Text style={{fontSize:11,fontWeight:'700',color:C.petrol,marginTop:2}}>🔧 Technicien</Text>
+                <Text style={{fontSize:11,fontWeight:'700',color:C.petrol,marginTop:2}}>Technicien</Text>
                 <Text style={{fontSize:10.5,color:C.muted,marginTop:1}}>{techSplitH} h</Text>
               </View>
             </View>
@@ -807,7 +807,7 @@ export default function HomeScreen(){
                 </View>
               )}
               {showHeures&&ecart!=null&&Math.abs(ecart)>=0.5&&(
-                <Text style={s.reelEcart}>{ecart>0?`⚠️ Il manque ${ecart} h sur ta paie — à vérifier avec la compta`:`On t'a payé ${Math.abs(ecart)} h de plus que déclaré`}</Text>
+                <Text style={s.reelEcart}>{ecart>0?`Il manque ${ecart} h sur ta paie — à vérifier avec la compta`:`On t'a payé ${Math.abs(ecart)} h de plus que déclaré`}</Text>
               )}
               </View>
             );

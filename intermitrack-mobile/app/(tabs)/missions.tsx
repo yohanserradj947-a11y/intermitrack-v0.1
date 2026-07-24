@@ -769,13 +769,13 @@ export default function Missions(){
           <View style={{gap:4,marginTop:4}}>
             <View style={s.atLegRow}>
               <View style={[s.legendDot,{backgroundColor:'#F97316'}]}/>
-              <Text style={s.atLegName}>🎭 Artiste</Text>
+              <Text style={s.atLegName}>Artiste</Text>
               <Text style={s.atLegPct}>{Math.round(atArtH/atTot*100)}%</Text>
             </View>
             <Text style={s.atLegSub}>{atArtH} h · {atArtCachets} cachet{atArtCachets>1?'s':''}</Text>
             <View style={s.atLegRow}>
               <View style={[s.legendDot,{backgroundColor:'#1F4E5F'}]}/>
-              <Text style={s.atLegName}>🔧 Technicien</Text>
+              <Text style={s.atLegName}>Technicien</Text>
               <Text style={s.atLegPct}>{Math.round(atTechH/atTot*100)}%</Text>
             </View>
             <Text style={s.atLegSub}>{atTechH} h</Text>

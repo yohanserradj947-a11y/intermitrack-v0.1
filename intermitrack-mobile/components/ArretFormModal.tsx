@@ -149,7 +149,7 @@ export default function ArretFormModal({ visible, editNote, defaultDate, onClose
                     <Text style={[s.calcTxt, { color: info.counts ? meta.color : C.muted }]}>{info.calc}</Text>
                   </View>
                 )}
-                <Text style={s.src}>📖 {info.source}</Text>
+                <Text style={s.src}>{info.source}</Text>
                 <Text style={s.study}>Règle que nous continuons de vérifier.</Text>
               </View>
 
