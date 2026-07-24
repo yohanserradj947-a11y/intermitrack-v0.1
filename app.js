@@ -3315,6 +3315,36 @@ function render() {
   if (lesDeux && $("cachetCountDash")) $("cachetCountDash").textContent = sp.cachets;
 }
   if ($("progressText")) $("progressText").textContent = percent + "% de ton objectif intermittent" + (plannedHours > 0 ? (" · " + Math.round(((yearHours + plannedHours + formationHours + enseignementHours) / OBJECTIVE_HOURS) * 100) + "% en comptant tes dates à venir") : "");
+  // Parité app : détail « en comptant tes dates à venir » + encarts Enseignement / Arrêts sous la jauge.
+  (function(){
+    const _valid = yearHours + formationHours + enseignementHours; // heures déjà validées
+    const pn = $("dashPlannedNote");
+    if (pn) {
+      if (plannedHours > 0) {
+        pn.style.display = "";
+        pn.innerHTML = "🚀 En comptant tes dates à venir : <b>" + Math.round((_valid + plannedHours) / OBJECTIVE_HOURS * 100) + " %</b> de tes 507 h (" + Math.round(_valid / OBJECTIVE_HOURS * 100) + " % déjà validés · +" + Math.round(plannedHours / OBJECTIVE_HOURS * 100) + " % à venir).";
+      } else pn.style.display = "none";
+    }
+    const en = $("dashEnsNote");
+    if (en) {
+      if (enseignementHours > 0) {
+        en.style.display = "";
+        en.innerHTML = "🎓 Enseignement compté : <b>" + enseignementHours + " h</b>. Plafond 70 h (120 h dès 50 ans), partagé avec la formation (" + FORM_CAP + " h au total).";
+      } else en.style.display = "none";
+    }
+    // Arrêts notés (maternité, adoption, AT…) = 5 h/jour, affichés mais PAS encore décomptés des 507 h (comme l'app).
+    let _arretH = 0;
+    try { getNotes().forEach(function(n){ if (n.kind === 'arret') { const s = new Date(n.date + 'T00:00:00').getTime(), e = new Date((n.endDate || n.date) + 'T00:00:00').getTime(); _arretH += Math.max(1, Math.round((e - s) / 86400000) + 1) * 5; } }); } catch (e) {}
+    const an = $("dashArretNote");
+    if (an) {
+      if (_arretH > 0) {
+        an.style.display = "";
+        an.innerHTML = "🩺 Arrêts notés : <b>" + _arretH + " h</b> (5 h/jour, maternité · adoption · accident du travail…). Pour l'instant on les affiche mais on ne les décompte PAS encore de tes 507 h — le temps de valider toutes les conditions. Garde-les en tête.";
+      } else an.style.display = "none";
+    }
+  })();
+  // Bouton « Retirer la date » ARE : visible seulement si une date est posée.
+  if ($("clearAreBtn")) $("clearAreBtn").style.display = areAdmissionDate ? "" : "none";
   // Barre "année d'intermittence" : % de l'année écoulée + avance/retard (parité app).
   if ($("aiPaceBox")) {
     if (areAdmissionDate) {
@@ -5087,6 +5117,17 @@ function setupEvents() {
       toast("Date d'admission ARE enregistrée.");
       // Synchro multi-appareils : on enregistre aussi dans Supabase.
       if (currentUser) { try { await sb.from('profiles').upsert({ id: currentUser.id, are_date: value || null }, { onConflict:'id' }); } catch(e){} }
+    });
+  }
+  // Retirer une date ARE saisie par erreur (parité app clearAreDate) : vide le champ partout.
+  if ($("clearAreBtn")) {
+    $("clearAreBtn").addEventListener("click", async () => {
+      areAdmissionDate = ""; aiYearOffset = 0;
+      localStorage.removeItem(storageKey("areAdmissionDate"));
+      if ($("areAdmissionDate")) $("areAdmissionDate").value = "";
+      render();
+      toast("Date d'admission ARE retirée.");
+      if (currentUser) { try { await sb.from('profiles').upsert({ id: currentUser.id, are_date: null }, { onConflict:'id' }); } catch(e){} }
     });
   }
  
