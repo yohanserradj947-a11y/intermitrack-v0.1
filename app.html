@@ -197,44 +197,17 @@
   })();
 </script>
 
-<!-- Compteur de scans QR : chaque ouverture de cette page = 1 scan enregistré.
-     intermitrack.fr/app.html?stats=1 affiche le total EN DIRECT (et ne compte pas ta visite). -->
+<!-- Compteur de scans QR : chaque ouverture de cette page = 1 scan enregistré dans Supabase.
+     L'AFFICHAGE du total est privé : fichier compteur-qr.html (non déployé), pour Yohan uniquement. -->
 <script>
 (function(){
   var SB = "https://upeogpgczoghlfwblnkb.supabase.co";
   var KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwZW9ncGdjem9naGxmd2JsbmtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MjkyMDQsImV4cCI6MjA5NjEwNTIwNH0.6535_0KMaEDLxTMhz_OX-4OqC_tpQsPJR5jkFQL7UqI";
-  var H = { "apikey": KEY, "Authorization": "Bearer " + KEY };
-  var isStats = /[?&]stats=1/.test(location.search);
-
-  if (isStats) {
-    // Vue compteur (pour Yohan) : total en direct, rafraîchi toutes les 5 s.
-    var ov = document.createElement("div");
-    ov.style.cssText = "position:fixed;inset:0;z-index:99999;background:#0b1e26;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Barlow','Segoe UI',sans-serif;gap:8px;";
-    ov.innerHTML = '<div style="font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#A9BBBA;font-weight:700;">Scans du QR code</div>'
-      + '<div id="qrCount" style="font-size:clamp(64px,18vw,140px);font-weight:900;line-height:1;">…</div>'
-      + '<div style="font-size:13px;color:#7FE0C2;font-weight:700;">● en direct</div>'
-      + '<div id="qrToday" style="font-size:13px;color:#A9BBBA;margin-top:6px;"></div>';
-    document.body.appendChild(ov);
-    function fmt(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
-    function refresh(){
-      // total
-      fetch(SB + "/rest/v1/qr_scans?select=id", { headers: Object.assign({ "Prefer": "count=exact", "Range": "0-0", "Range-Unit": "items" }, H) })
-        .then(function(r){ var cr = r.headers.get("content-range") || "0/0"; var t = parseInt((cr.split("/")[1]||"0"),10)||0; var el=document.getElementById("qrCount"); if(el) el.textContent = fmt(t); });
-      // aujourd'hui
-      var d = new Date(); d.setHours(0,0,0,0);
-      fetch(SB + "/rest/v1/qr_scans?select=id&created_at=gte." + d.toISOString(), { headers: Object.assign({ "Prefer": "count=exact", "Range": "0-0", "Range-Unit": "items" }, H) })
-        .then(function(r){ var cr = r.headers.get("content-range") || "0/0"; var t = parseInt((cr.split("/")[1]||"0"),10)||0; var el=document.getElementById("qrToday"); if(el) el.textContent = "+" + fmt(t) + " aujourd'hui"; });
-    }
-    refresh(); setInterval(refresh, 5000);
-    return; // on n'enregistre PAS de scan quand on regarde les stats
-  }
-
-  // Ouverture normale = 1 scan. Source = referrer (site venant d'un lien) ou "direct" (typé / QR).
   try {
     var src = document.referrer ? (new URL(document.referrer).host || "lien") : "direct";
     fetch(SB + "/rest/v1/qr_scans", {
       method: "POST",
-      headers: Object.assign({ "Content-Type": "application/json", "Prefer": "return=minimal" }, H),
+      headers: { "apikey": KEY, "Authorization": "Bearer " + KEY, "Content-Type": "application/json", "Prefer": "return=minimal" },
       body: JSON.stringify({ source: src }),
       keepalive: true
     }).catch(function(){});
