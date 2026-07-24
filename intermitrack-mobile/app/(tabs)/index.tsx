@@ -359,14 +359,16 @@ export default function HomeScreen(){
   let paceProjTxt:string;
   const _nowMs=Date.now(), _winSms=winStart.getTime(), _winEms=winEnd.getTime();
   if(yearOffset===0 && hasARE && _nowMs>=_winSms && _nowMs<_winEms){
-    const _remaining=507-progressH;
+    const _realized=progressH;            // heures VALIDÉES → servent au rythme
+    const _known=progressH+planH;         // + dates déjà posées → comptées aussi
     const _elapsedDays=Math.max(1,(_nowMs-_winSms)/86400000);
-    if(_remaining<=0) paceProjTxt='🎉 Tes 507 h sont atteintes';
+    if(_realized>=507) paceProjTxt='🎉 Tes 507 h sont atteintes';
+    else if(_known>=507) paceProjTxt='Avec tes dates déjà posées, tu atteins tes 507 h ✓';
     else{
-      const _rate=progressH/_elapsedDays;
+      const _rate=_realized/_elapsedDays;
       if(_rate<=0) paceProjTxt='Ajoute des missions pour estimer ta date des 507 h';
       else{
-        const _projMs=_nowMs+(_remaining/_rate)*86400000;
+        const _projMs=_nowMs+((507-_known)/_rate)*86400000;
         paceProjTxt=_projMs>_winEms?'À ce rythme, 507 h non atteintes cette année':('À ce rythme : 507 h vers '+_MONF[new Date(_projMs).getMonth()]+' '+new Date(_projMs).getFullYear());
       }
     }

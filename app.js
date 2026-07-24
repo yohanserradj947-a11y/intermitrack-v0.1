@@ -3346,17 +3346,19 @@ function render() {
       const _MONF = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
       let _projTxt;
       if (aiYearOffset === 0 && _now >= _winS && _now < _winE) {
-        const _countedNow = yearHours + formationHours + enseignementHours;
-        const _remaining507 = OBJECTIVE_HOURS - _countedNow;
+        const _realized = yearHours + formationHours + enseignementHours; // heures VALIDÉES → servent au rythme
+        const _known = _realized + plannedHours;                          // + dates déjà posées → comptées aussi
         const _elapsedDays = Math.max(1, (_now - _winS) / 86400000);
-        if (_remaining507 <= 0) {
+        if (_realized >= OBJECTIVE_HOURS) {
           _projTxt = "🎉 Tes 507 h sont atteintes";
+        } else if (_known >= OBJECTIVE_HOURS) {
+          _projTxt = "Avec tes dates déjà posées, tu atteins tes 507 h ✓";
         } else {
-          const _ratePerDay = _countedNow / _elapsedDays;
+          const _ratePerDay = _realized / _elapsedDays;
           if (_ratePerDay <= 0) {
             _projTxt = "Ajoute des missions pour estimer ta date des 507 h";
           } else {
-            const _projMs = _now + (_remaining507 / _ratePerDay) * 86400000;
+            const _projMs = _now + ((OBJECTIVE_HOURS - _known) / _ratePerDay) * 86400000;
             _projTxt = _projMs > _winE
               ? "À ce rythme, 507 h non atteintes cette année"
               : "À ce rythme : 507 h vers " + _MONF[new Date(_projMs).getMonth()] + " " + new Date(_projMs).getFullYear();
