@@ -35,7 +35,6 @@ import ArretFormModal from '../../components/ArretFormModal';
 import QuickEntryModal from '../../components/QuickEntryModal';
 import NoteDetailModal from '../../components/NoteDetailModal';
 import CalendarImportModal from '../../components/CalendarImportModal';
-import AemImportModal from '../../components/AemImportModal';
 import { syncWidgets } from '../../lib/widgetSync';
 import { useNotes, noteAbbr, Note } from '../../lib/notes';
 import { usePostes, quickTypeChips } from '../../lib/postes';
@@ -86,7 +85,6 @@ export default function Calendar(){
   const [colorPickerOpen,setColorPickerOpen]=useState(false);
   const [managerOpen,setManagerOpen]=useState(false);
   const [showImport,setShowImport]=useState(false);
-  const [showAem,setShowAem]=useState(false);
   const [showExport,setShowExport]=useState(false);
   const [importMode,setImportMode]=useState<'calendar'|'excel'|'notes'>('calendar');
   const { notes, notesForDate } = useNotes();
@@ -711,7 +709,7 @@ export default function Calendar(){
           <Ionicons name="create-outline" size={17} color={C.petrol}/>
           <Text style={{color:C.petrol,fontWeight:'800',fontSize:12.5}} numberOfLines={1}>Import notes</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={()=>{trackEvent('import_aem_open',{});setShowAem(true);}} activeOpacity={0.85} style={{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.orange,backgroundColor:C.soft}}>
+        <TouchableOpacity onPress={()=>{trackEvent('import_aem_interest',{});showAlert('Importer un AEM — bientôt','Très bientôt tu pourras importer ton AEM (depuis Transat, Coffreo, Movinmotion, MyPeopleDoc…) : l\'appli lira ton employeur, tes dates, tes heures et ton brut. Tu vérifieras et corrigeras si besoin, puis ta mission se remplira toute seule.\n\nJe ne veux utiliser aucune IA EN LIGNE qui enverrait tes documents ailleurs ou dont je ne pourrais pas garantir la confidentialité. La lecture se ferait directement sur ton téléphone — le même principe que ton appareil quand il te propose de « copier le texte » d\'une photo — et tes documents ne quittent jamais ton appareil. En cours de développement.');}} activeOpacity={0.85} style={{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,paddingVertical:12,borderRadius:12,borderWidth:1.5,borderColor:C.orange,backgroundColor:C.soft}}>
           <Ionicons name="cloud-upload-outline" size={17} color={C.orange}/>
           <Text style={{color:C.orange,fontWeight:'800',fontSize:12.5}} numberOfLines={1}>Import AEM</Text>
         </TouchableOpacity>
@@ -735,7 +733,6 @@ export default function Calendar(){
         </TouchableOpacity>
       </Modal>
 
-      <AemImportModal visible={showAem} onClose={()=>setShowAem(false)} onSaved={()=>loadMissions()}/>
       <CalendarImportModal visible={showImport} mode={importMode} avgDaily={salaireJour>0?salaireJour:(()=>{const g=missions.reduce((a:number,m:any)=>a+Number(m.gross_amount||0),0);const v=missions.reduce((a:number,m:any)=>a+Number(m.vacations||0),0);return g>0&&v>0?Math.round(g/v):0;})()} onClose={()=>setShowImport(false)} onImported={()=>loadMissions()}/>
 
       <Modal visible={showMonthPicker} transparent animationType="fade" onRequestClose={()=>setShowMonthPicker(false)}>
